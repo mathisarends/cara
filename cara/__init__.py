@@ -1,17 +1,22 @@
 """Cara package."""
 
-from cara.assistant import VoiceAssistant, VoiceTurn
+from cara.assistant import VoiceAssistant, VoiceSession, VoiceTurn
+from cara.conversation import Conversation
+from cara.events import BaseEvent, EventBus, EventHandler
+from cara.hue import HueLifecycleListener
 from cara.lifecycle import (
     AnswerGenerated,
     AssistantEvent,
-    AssistantLifecycleListener,
     AssistantState,
     LoggingLifecycleListener,
+    SessionEnded,
+    SessionStarted,
     StateChanged,
     Transcribed,
     TurnCompleted,
     TurnStarted,
 )
+from cara.sonos import SonosAudioPlayer
 from cara.speech import (
     AsyncOpenAISpeechToText,
     AsyncOpenAITextToSpeech,
@@ -27,11 +32,18 @@ from cara.speech import (
 __all__ = [
     "AnswerGenerated",
     "AssistantEvent",
-    "AssistantLifecycleListener",
     "AssistantState",
     "AsyncOpenAISpeechToText",
     "AsyncOpenAITextToSpeech",
+    "BaseEvent",
+    "Conversation",
+    "EventBus",
+    "EventHandler",
+    "HueLifecycleListener",
     "LoggingLifecycleListener",
+    "SessionEnded",
+    "SessionStarted",
+    "SonosAudioPlayer",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
     "StateChanged",
@@ -42,6 +54,7 @@ __all__ = [
     "TurnCompleted",
     "TurnStarted",
     "VoiceAssistant",
+    "VoiceSession",
     "VoiceTurn",
     "text_to_speech",
     "transcribe_audio",

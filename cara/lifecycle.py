@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from cara.events import BaseEvent, EventBus
+
 if TYPE_CHECKING:
     from cara.assistant import VoiceTurn
 
@@ -14,20 +16,21 @@ logger = logging.getLogger(__name__)
 class AssistantState(StrEnum):
     IDLE = "idle"
     LISTENING = "listening"
+    WAITING_FOLLOW_UP = "waiting_follow_up"
     TRANSCRIBING = "transcribing"
     THINKING = "thinking"
     SPEAKING = "speaking"
 
 
 @dataclass(frozen=True)
-class StateChanged:
+class StateChanged(BaseEvent):
     """Emitted on every phase transition, including the return to ``IDLE``."""
 
     state: AssistantState
 
 
 @dataclass(frozen=True)
-class TurnStarted:
+class TurnStarted(BaseEvent):
     """Emitted when a turn begins, before recording starts.
 
     The assistant does not care what triggered the turn (wake word, button, CLI,
@@ -36,63 +39,48 @@ class TurnStarted:
 
 
 @dataclass(frozen=True)
-class Transcribed:
+class SessionStarted(BaseEvent):
+    """Emitted when a multi-turn voice session begins."""
+
+
+@dataclass(frozen=True)
+class SessionEnded(BaseEvent):
+    """Emitted when a multi-turn voice session ends."""
+
+
+@dataclass(frozen=True)
+class Transcribed(BaseEvent):
     """Emitted once a non-empty transcript is available."""
 
     transcript: str
 
 
 @dataclass(frozen=True)
-class AnswerGenerated:
+class AnswerGenerated(BaseEvent):
     """Emitted once the LLM produced an answer, before text-to-speech runs."""
 
     answer: str
 
 
 @dataclass(frozen=True)
-class TurnCompleted:
+class TurnCompleted(BaseEvent):
     """Emitted when a full turn finished successfully."""
 
     turn: VoiceTurn
 
 
-type AssistantEvent = StateChanged | TurnStarted | Transcribed | AnswerGenerated | TurnCompleted
-"""Closed set of lifecycle events. ``match`` over it to react to specific phases."""
+type AssistantEvent = (
+    StateChanged | SessionStarted | SessionEnded | TurnStarted | Transcribed | AnswerGenerated | TurnCompleted
+)
+"""Closed set of assistant events."""
 
 
-class AssistantLifecycleListener:
-    """Hook into the assistant lifecycle to trigger side effects.
+class LoggingLifecycleListener:
+    """Ready-to-use listener that logs every state change."""
 
-    Subclass and override :meth:`on_event`, matching on the event types you care
-    about. ``StateChanged`` fires on every transition (handy to drive a single
-    state machine, e.g. an LED or UI), while the payload-carrying events let you
-    react to a specific phase. All events are awaited; an exception raised by a
-    listener is logged and swallowed so it can never abort the voice turn.
-
-    Example::
-
-        class LedListener(AssistantLifecycleListener):
-            async def on_event(self, event: AssistantEvent) -> None:
-                match event:
-                    case StateChanged(state):
-                        await self.led.show(state)
-                    case Transcribed(transcript):
-                        log.info("heard %s", transcript)
-    """
-
-    async def on_event(self, event: AssistantEvent) -> None:
-        """React to a lifecycle event. Default implementation does nothing."""
-
-
-class LoggingLifecycleListener(AssistantLifecycleListener):
-    """Ready-to-use listener that logs every state change. Handy as an example."""
-
-    def __init__(self, logger: logging.Logger | None = None) -> None:
+    def __init__(self, event_bus: EventBus, logger: logging.Logger | None = None) -> None:
         self._logger = logger or logging.getLogger(__name__)
+        event_bus.subscribe(StateChanged, self.on_state_changed)
 
-    async def on_event(self, event: AssistantEvent) -> None:
-        match event:
-            case StateChanged(state):
-                self._logger.info("Assistant state -> %s", state)
-            case _:
-                pass
+    async def on_state_changed(self, event: StateChanged) -> None:
+        self._logger.info("Assistant state -> %s", event.state)

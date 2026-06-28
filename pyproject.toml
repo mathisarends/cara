@@ -12,6 +12,7 @@ dependencies = [
     "pyaudio>=0.2.14",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
+    "soco>=0.31.1",
 ]
 
 [dependency-groups]
