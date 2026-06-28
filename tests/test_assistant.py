@@ -1,16 +1,19 @@
 import asyncio
-from pathlib import Path
 
-from cara.assistant import AssistantConfig, AsyncOpenAIChat, VoiceAssistant
+from llmify import ChatModel
+from llmify.views import ChatInvokeCompletion
 
-
-class FakeResponses:
-    def __init__(self) -> None:
-        self.kwargs = None
-
-    async def create(self, **kwargs):
-        self.kwargs = kwargs
-        return {"output_text": "Das ist die Antwort."}
+from cara.assistant import VoiceAssistant
+from cara.lifecycle import (
+    AnswerGenerated,
+    AssistantEvent,
+    AssistantLifecycleListener,
+    AssistantState,
+    StateChanged,
+    Transcribed,
+    TurnCompleted,
+    TurnStarted,
+)
 
 
 class FakeTranscriptions:
@@ -40,67 +43,91 @@ class FakeAudio:
 class FakeClient:
     def __init__(self) -> None:
         self.audio = FakeAudio()
-        self.responses = FakeResponses()
+
+
+class FakeChat(ChatModel):
+    def __init__(self) -> None:
+        super().__init__(model="gpt-test")
+        self.messages = None
+
+    async def invoke(self, messages, output_format=None, **kwargs):
+        self.messages = messages
+        return ChatInvokeCompletion(completion="Das ist die Antwort.")
+
+    async def stream(self, messages, tools=None, tool_choice="auto", **kwargs):
+        raise NotImplementedError
 
 
 class FakeRecorder:
-    def __init__(self, audio_path: Path) -> None:
-        self.audio_path = audio_path
+    def __init__(self, audio: bytes) -> None:
+        self.audio = audio
 
-    async def record_until_silence(self) -> Path:
-        return self.audio_path
+    async def record_until_silence(self) -> bytes:
+        return self.audio
 
 
 class FakePlayer:
     def __init__(self) -> None:
-        self.played_path = None
+        self.played_audio = None
 
-    async def play(self, audio_path: str | Path) -> None:
-        self.played_path = Path(audio_path)
-
-
-def test_openai_chat_uses_responses_api() -> None:
-    asyncio.run(_run_openai_chat_test())
+    async def play(self, audio: bytes) -> None:
+        self.played_audio = audio
 
 
-async def _run_openai_chat_test() -> None:
+class RecordingListener(AssistantLifecycleListener):
+    def __init__(self) -> None:
+        self.events: list[AssistantEvent] = []
+
+    async def on_event(self, event: AssistantEvent) -> None:
+        self.events.append(event)
+
+
+def test_voice_assistant_runs_wake_turn() -> None:
+    asyncio.run(_run_voice_assistant_test())
+
+
+async def _run_voice_assistant_test() -> None:
+    utterance = b"fake wav bytes"
     client = FakeClient()
-
-    answer = await AsyncOpenAIChat(client, model="gpt-test").reply("Hallo", instructions="Sei kurz.")
-
-    assert answer == "Das ist die Antwort."
-    assert client.responses.kwargs == {
-        "model": "gpt-test",
-        "instructions": "Sei kurz.",
-        "input": "Hallo",
-    }
-
-
-def test_voice_assistant_runs_wake_turn(tmp_path: Path) -> None:
-    asyncio.run(_run_voice_assistant_test(tmp_path))
-
-
-async def _run_voice_assistant_test(tmp_path: Path) -> None:
-    input_path = tmp_path / "input.wav"
-    input_path.write_bytes(b"fake wav")
-    client = FakeClient()
+    chat = FakeChat()
     player = FakePlayer()
+    listener = RecordingListener()
     assistant = VoiceAssistant(
         client=client,
-        recorder=FakeRecorder(input_path),
+        llm=chat,
+        recorder=FakeRecorder(utterance),
         player=player,
-        config=AssistantConfig(llm_model="gpt-test", language="de", tts_output_dir=tmp_path),
+        listeners=[listener],
+        language="de",
     )
 
-    turn = await assistant.handle_wake_word()
+    turn = await assistant.run_turn()
 
     assert turn is not None
-    assert turn.audio_path == input_path
+    assert turn.utterance_audio == utterance
     assert turn.transcript == "Wie spät ist es?"
     assert turn.answer == "Das ist die Antwort."
-    assert turn.speech_path.read_bytes() == b"wav-bytes"
-    assert player.played_path == turn.speech_path
-    assert client.audio.transcriptions.kwargs["file"].name == str(input_path)
+    assert turn.answer_audio == b"wav-bytes"
+    assert player.played_audio == b"wav-bytes"
+
+    sent_file = client.audio.transcriptions.kwargs["file"]
+    assert sent_file == ("utterance.wav", utterance)
     assert client.audio.transcriptions.kwargs["language"] == "de"
     assert client.audio.speech.kwargs["input"] == "Das ist die Antwort."
     assert client.audio.speech.kwargs["response_format"] == "wav"
+    assert [m.text for m in chat.messages] == [assistant.system_prompt, "Wie spät ist es?"]
+
+    # Lifecycle events fire in order and end back at IDLE.
+    assert isinstance(listener.events[0], TurnStarted)
+    states = [e.state for e in listener.events if isinstance(e, StateChanged)]
+    assert states == [
+        AssistantState.LISTENING,
+        AssistantState.TRANSCRIBING,
+        AssistantState.THINKING,
+        AssistantState.SPEAKING,
+        AssistantState.IDLE,
+    ]
+    assert any(isinstance(e, Transcribed) and e.transcript == turn.transcript for e in listener.events)
+    assert any(isinstance(e, AnswerGenerated) and e.answer == turn.answer for e in listener.events)
+    assert any(isinstance(e, TurnCompleted) and e.turn is turn for e in listener.events)
+    assert assistant.state is AssistantState.IDLE

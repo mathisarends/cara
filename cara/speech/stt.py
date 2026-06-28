@@ -13,8 +13,13 @@ class AsyncOpenAISpeechToText:
     async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
         params = request.to_openai_params()
 
-        with request.audio_path.open("rb") as audio_file:
-            result = await self.client.audio.transcriptions.create(file=audio_file, **params)
+        if request.audio is not None:
+            file = (request.filename, request.audio)
+            result = await self.client.audio.transcriptions.create(file=file, **params)
+        else:
+            assert request.audio_path is not None  # guaranteed by model validation
+            with request.audio_path.open("rb") as audio_file:
+                result = await self.client.audio.transcriptions.create(file=audio_file, **params)
 
         text = _extract_text(result)
         return SpeechToTextResponse(

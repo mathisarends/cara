@@ -62,7 +62,9 @@ class SpeechToTextRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    audio_path: Path
+    audio_path: Path | None = None
+    audio: bytes | None = Field(default=None, repr=False)
+    filename: str = "utterance.wav"
     model: SpeechToTextModel = SpeechToTextModel.GPT_4O_TRANSCRIBE
     response_format: SpeechToTextFormat = SpeechToTextFormat.JSON
     language: str | None = Field(
@@ -78,7 +80,9 @@ class SpeechToTextRequest(BaseModel):
 
     @field_validator("audio_path")
     @classmethod
-    def audio_path_must_exist(cls, value: Path) -> Path:
+    def audio_path_must_exist(cls, value: Path | None) -> Path | None:
+        if value is None:
+            return value
         if not value.exists():
             raise ValueError(f"Audio file does not exist: {value}")
         if not value.is_file():
@@ -94,6 +98,12 @@ class SpeechToTextRequest(BaseModel):
         if len(normalized) != 2 or not normalized.isalpha():
             raise ValueError("language must be an ISO-639-1 code like 'de' or 'en'")
         return normalized
+
+    @model_validator(mode="after")
+    def exactly_one_audio_source(self) -> Self:
+        if (self.audio_path is None) == (self.audio is None):
+            raise ValueError("Provide exactly one of 'audio_path' or 'audio'.")
+        return self
 
     @model_validator(mode="after")
     def validate_model_capabilities(self) -> Self:
@@ -131,7 +141,7 @@ class SpeechToTextRequest(BaseModel):
 
     def to_openai_params(self) -> dict[str, Any]:
         params = self.model_dump(
-            exclude={"audio_path"},
+            exclude={"audio_path", "audio", "filename"},
             exclude_none=True,
             mode="python",
         )

@@ -1,6 +1,17 @@
 """Cara package."""
 
-from cara.assistant import AssistantConfig, AsyncOpenAIChat, VoiceAssistant, VoiceTurn
+from cara.assistant import VoiceAssistant, VoiceTurn
+from cara.lifecycle import (
+    AnswerGenerated,
+    AssistantEvent,
+    AssistantLifecycleListener,
+    AssistantState,
+    LoggingLifecycleListener,
+    StateChanged,
+    Transcribed,
+    TurnCompleted,
+    TurnStarted,
+)
 from cara.speech import (
     AsyncOpenAISpeechToText,
     AsyncOpenAITextToSpeech,
@@ -14,15 +25,22 @@ from cara.speech import (
 )
 
 __all__ = [
-    "AssistantConfig",
-    "AsyncOpenAIChat",
+    "AnswerGenerated",
+    "AssistantEvent",
+    "AssistantLifecycleListener",
+    "AssistantState",
     "AsyncOpenAISpeechToText",
     "AsyncOpenAITextToSpeech",
+    "LoggingLifecycleListener",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
+    "StateChanged",
     "TextToSpeechFormat",
     "TextToSpeechRequest",
     "TextToSpeechResponse",
+    "Transcribed",
+    "TurnCompleted",
+    "TurnStarted",
     "VoiceAssistant",
     "VoiceTurn",
     "text_to_speech",

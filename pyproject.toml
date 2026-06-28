@@ -2,12 +2,13 @@
 name = "cara"
 version = "0.1.0"
 description = "Small OpenAI speech wrappers for Cara."
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "hueify>=0.2.0",
     "numpy>=2.4.6",
     "openai>=1.100.0",
     "openwakeword>=0.6.0",
+    "py-llmify>=0.6.0",
     "pyaudio>=0.2.14",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
@@ -20,6 +21,14 @@ dev = [
     "ruff>=0.14.0",
 ]
 
+[tool.uv]
+# openwakeword pulls tflite-runtime (linux-only) which has no wheels for
+# Python >= 3.12, while py-llmify requires >= 3.12. They only coexist off Linux.
+environments = [
+    "sys_platform == 'win32'",
+    "sys_platform == 'darwin'",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -29,7 +38,7 @@ packages = ["cara"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [

@@ -26,7 +26,7 @@ class AudioConfig:
 class WakeWordListener:
     def __init__(
         self,
-        on_detection: Callable[[], Awaitable[None]],
+        on_detection: Callable[[], Awaitable[object]],
         wake_word: WakeWord = WakeWord.HEY_MYCROFT,
         sensitivity: float = 0.5,
         audio_config: AudioConfig | None = None,

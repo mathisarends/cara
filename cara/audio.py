@@ -1,16 +1,32 @@
 import asyncio
 import functools
+import io
 import logging
-import tempfile
 import time
 import wave
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pyaudio
 
 logger = logging.getLogger(__name__)
+
+
+class UtteranceRecorder(ABC):
+    """Records a single user utterance into WAV-encoded bytes."""
+
+    @abstractmethod
+    async def record_until_silence(self) -> bytes:
+        """Record until the user stops speaking and return WAV-encoded audio."""
+
+
+class AudioPlayer(ABC):
+    """Plays WAV-encoded audio through an output device."""
+
+    @abstractmethod
+    async def play(self, audio: bytes) -> None:
+        """Play the given WAV audio and return once playback is finished."""
 
 
 @dataclass(frozen=True)
@@ -23,20 +39,19 @@ class MicrophoneRecorderConfig:
     silence_seconds: float = 1.2
     min_record_seconds: float = 0.4
     max_record_seconds: float = 12.0
-    output_dir: Path = Path(tempfile.gettempdir()) / "cara"
 
 
-class MicrophoneRecorder:
+class MicrophoneRecorder(UtteranceRecorder):
     """Records one user utterance from the default microphone into a WAV file."""
 
     def __init__(self, config: MicrophoneRecorderConfig | None = None) -> None:
         self.config = config or MicrophoneRecorderConfig()
 
-    async def record_until_silence(self) -> Path:
+    async def record_until_silence(self) -> bytes:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self._record_until_silence_sync)
 
-    def _record_until_silence_sync(self) -> Path:
+    def _record_until_silence_sync(self) -> bytes:
         config = self.config
         pa = pyaudio.PyAudio()
         stream = pa.open(
@@ -74,16 +89,16 @@ class MicrophoneRecorder:
             stream.close()
             pa.terminate()
 
-        config.output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = config.output_dir / f"utterance-{int(time.time() * 1000)}.wav"
-        with wave.open(str(output_path), "wb") as wav:
+        buffer = io.BytesIO()
+        with wave.open(buffer, "wb") as wav:
             wav.setnchannels(config.channels)
             wav.setsampwidth(config.sample_width)
             wav.setframerate(config.rate)
             wav.writeframes(b"".join(frames))
 
-        logger.info("Recorded utterance to %s", output_path)
-        return output_path
+        audio = buffer.getvalue()
+        logger.info("Recorded utterance (%d bytes).", len(audio))
+        return audio
 
 
 def _rms_int16(pcm: bytes) -> int:
@@ -93,17 +108,17 @@ def _rms_int16(pcm: bytes) -> int:
     return int(np.sqrt(np.mean(audio.astype(np.float64) ** 2)))
 
 
-class WavAudioPlayer:
+class WavAudioPlayer(AudioPlayer):
     """Plays WAV audio through the default output device."""
 
-    async def play(self, audio_path: str | Path) -> None:
+    async def play(self, audio: bytes) -> None:
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, functools.partial(self._play_sync, Path(audio_path)))
+        await loop.run_in_executor(None, functools.partial(self._play_sync, audio))
 
-    def _play_sync(self, audio_path: Path) -> None:
+    def _play_sync(self, audio: bytes) -> None:
         pa = pyaudio.PyAudio()
         try:
-            with wave.open(str(audio_path), "rb") as wav:
+            with wave.open(io.BytesIO(audio), "rb") as wav:
                 stream = pa.open(
                     format=pa.get_format_from_width(wav.getsampwidth()),
                     channels=wav.getnchannels(),
