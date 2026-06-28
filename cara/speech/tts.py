@@ -5,7 +5,6 @@ from typing import Any
 from cara.speech._client import resolve_openai_client
 from cara.speech.models import TextToSpeechRequest, TextToSpeechResponse
 
-
 CONTENT_TYPES = {
     "mp3": "audio/mpeg",
     "opus": "audio/opus",

@@ -1,13 +1,21 @@
 import asyncio
+import logging
 
+from cara import (
+    AssistantConfig,
+    VoiceAssistant,
+)
 from cara.wakeword import WakeWord, WakeWordListener
 
-
-async def on_wake_word() -> None:
-    print("Wake word detected!")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 
 async def main() -> None:
+    assistant = VoiceAssistant(config=AssistantConfig(language="de"))
+
+    async def on_wake_word() -> None:
+        await assistant.handle_wake_word()
+
     listener = WakeWordListener(
         on_detection=on_wake_word,
         wake_word=WakeWord.HEY_MYCROFT,

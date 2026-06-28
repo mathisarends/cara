@@ -3,6 +3,7 @@
 from cara.speech.models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
+    TextToSpeechFormat,
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "AsyncOpenAITextToSpeech",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
+    "TextToSpeechFormat",
     "TextToSpeechRequest",
     "TextToSpeechResponse",
     "text_to_speech",

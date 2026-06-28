@@ -1,10 +1,11 @@
 import asyncio
-from dataclasses import dataclass
+import contextlib
 import functools
 import logging
 import signal
 import sys
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 
 import numpy as np
 import pyaudio
@@ -78,10 +79,8 @@ class WakeWordListener:
             await self._process_audio(pcm)
 
     def _reopen_stream(self) -> None:
-        try:
+        with contextlib.suppress(Exception):
             self._stream.close()
-        except Exception:
-            pass
         self._stream = self._pa.open(
             rate=self._audio_config.rate,
             channels=self._audio_config.channels,
