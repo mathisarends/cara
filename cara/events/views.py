@@ -72,8 +72,3 @@ class TurnCompleted(Event):
     """Emitted when a full turn finished successfully."""
 
     turn: VoiceTurn
-
-
-type AssistantEvent = (
-    StateChanged | SessionStarted | SessionEnded | TurnStarted | Transcribed | AnswerGenerated | TurnCompleted
-)

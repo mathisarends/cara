@@ -2,7 +2,6 @@ from .assistant import VoiceAssistant, VoiceSession, VoiceTurn
 from .conversation import Conversation
 from .events import (
     AnswerGenerated,
-    AssistantEvent,
     AssistantState,
     Event,
     EventBus,
@@ -28,7 +27,6 @@ from .speech import (
 
 __all__ = [
     "AnswerGenerated",
-    "AssistantEvent",
     "AssistantState",
     "OpenAISpeechToText",
     "OpenAITextToSpeech",

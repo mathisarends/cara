@@ -8,8 +8,8 @@ from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudio
 from cara.conversation import Conversation
 from cara.events import (
     AnswerGenerated,
-    AssistantEvent,
     AssistantState,
+    Event,
     EventBus,
     SessionEnded,
     SessionStarted,
@@ -228,5 +228,5 @@ class VoiceAssistant:
         self._state = state
         await self._emit(StateChanged(state=state))
 
-    async def _emit(self, event: AssistantEvent) -> None:
+    async def _emit(self, event: Event) -> None:
         await self._event_bus.dispatch(event)

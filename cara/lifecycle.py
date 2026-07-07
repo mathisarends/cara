@@ -1,6 +1,5 @@
 from .events.views import (
     AnswerGenerated,
-    AssistantEvent,
     AssistantState,
     SessionEnded,
     SessionStarted,
@@ -12,7 +11,6 @@ from .events.views import (
 
 __all__ = [
     "AnswerGenerated",
-    "AssistantEvent",
     "AssistantState",
     "SessionEnded",
     "SessionStarted",
