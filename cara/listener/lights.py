@@ -20,6 +20,7 @@ from cara.lifecycle import (
     SessionStarted,
     StateChanged,
 )
+from cara.listener import LifecycleListener
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ DEFAULT_STATE_EFFECTS: dict[AssistantState, tuple[Color, int]] = {
 }
 
 
-class HueLifecycleListener:
+class HueLifecycleListener(LifecycleListener):
     """Reflects the assistant lifecycle on a Hue room's lights.
 
     Construct it, then ``await start()`` once (connects to the bridge and
@@ -65,7 +66,7 @@ class HueLifecycleListener:
         self._room = self._hue.rooms.from_name(self._room_name)
         logger.info("Hue listener bound to room %r", self._room_name)
 
-    async def aclose(self) -> None:
+    async def stop(self) -> None:
         """Disconnect from the bridge. Safe to call multiple times."""
         await self._hue.close()
 

@@ -21,14 +21,6 @@ class UtteranceRecorder(ABC):
         """Record until the user stops speaking, or return ``None`` if no speech starts."""
 
 
-class AudioPlayer(ABC):
-    """Plays WAV-encoded audio through an output device."""
-
-    @abstractmethod
-    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        """Play the given WAV audio and return once playback is finished."""
-
-
 @dataclass(frozen=True)
 class MicrophoneRecorderConfig:
     rate: int = 16000
@@ -120,33 +112,3 @@ def _rms_int16(pcm: bytes) -> int:
     if audio.size == 0:
         return 0
     return int(np.sqrt(np.mean(audio.astype(np.float64) ** 2)))
-
-
-class WavAudioPlayer(AudioPlayer):
-    """Plays WAV audio through the default output device."""
-
-    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, functools.partial(self._play_sync, audio, cancel=cancel))
-
-    def _play_sync(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        pa = pyaudio.PyAudio()
-        try:
-            with wave.open(io.BytesIO(audio), "rb") as wav:
-                stream = pa.open(
-                    format=pa.get_format_from_width(wav.getsampwidth()),
-                    channels=wav.getnchannels(),
-                    rate=wav.getframerate(),
-                    output=True,
-                )
-                try:
-                    while chunk := wav.readframes(1024):
-                        if cancel is not None and cancel.is_set():
-                            logger.info("Audio playback cancelled.")
-                            break
-                        stream.write(chunk)
-                finally:
-                    stream.stop_stream()
-                    stream.close()
-        finally:
-            pa.terminate()

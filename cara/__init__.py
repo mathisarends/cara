@@ -3,7 +3,8 @@
 from cara.assistant import VoiceAssistant, VoiceSession, VoiceTurn
 from cara.conversation import Conversation
 from cara.events import BaseEvent, EventBus, EventHandler
-from cara.hue import HueLifecycleListener
+from cara.listener.hue import HueLifecycleListener
+from cara.listener import LifecycleListener, ListenerRegistry
 from cara.lifecycle import (
     AnswerGenerated,
     AssistantEvent,
@@ -40,6 +41,8 @@ __all__ = [
     "EventBus",
     "EventHandler",
     "HueLifecycleListener",
+    "LifecycleListener",
+    "ListenerRegistry",
     "LoggingLifecycleListener",
     "SessionEnded",
     "SessionStarted",

@@ -7,6 +7,7 @@ from cara import (
     AnswerGenerated,
     EventBus,
     HueLifecycleListener,
+    ListenerRegistry,
     SessionEnded,
     SessionStarted,
     SonosAudioPlayer,
@@ -54,19 +55,16 @@ class ConsoleLifecycleLogger:
 
 
 async def main() -> None:
-    # Drive the Hue room "Zimmer 1" in sync with the assistant lifecycle.
-    # Needs HUE_BRIDGE_IP and HUE_APP_KEY in the environment / .env.
-    events = EventBus()
-    ConsoleLifecycleLogger(events)
+    event_bus = EventBus()
+    ConsoleLifecycleLogger(event_bus)
 
-    hue = HueLifecycleListener(events, room_name="Mein Zimmer")
-    await hue.start()
+    registry = ListenerRegistry()
+    # registry.register(HueLifecycleListener(event_bus, room_name="Mein Zimmer"))
+    await registry.start()
 
-    # Set speaker_name to target a specific speaker, e.g. SonosAudioPlayer(speaker_name="Wohnzimmer").
-    # Without a name the first discovered Sonos on the network is used.
     assistant = VoiceAssistant(
         language="de",
-        event_bus=events,
+        event_bus=event_bus,
         player=SonosAudioPlayer(),
     )
 
@@ -78,7 +76,7 @@ async def main() -> None:
     try:
         await listener.listen()
     finally:
-        await hue.aclose()
+        await registry.stop()
 
 
 if __name__ == "__main__":
