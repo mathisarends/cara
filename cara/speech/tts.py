@@ -1,13 +1,11 @@
-import inspect
 from pathlib import Path
-from typing import Any
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, omit
 
 from cara.settings import OpenAICredentials
 from cara.speech.models import TextToSpeechRequest, TextToSpeechResponse
 
-CONTENT_TYPES = {
+_CONTENT_TYPES = {
     "mp3": "audio/mpeg",
     "opus": "audio/opus",
     "aac": "audio/aac",
@@ -17,23 +15,27 @@ CONTENT_TYPES = {
 }
 
 
-class AsyncOpenAITextToSpeech:
-    """Small wrapper around OpenAI speech generation."""
-
+class OpenAITextToSpeech:
     def __init__(self, api_key: str | None = None) -> None:
         openai_credentials = OpenAICredentials()
         self.client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
 
     async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
-        result = await self.client.audio.speech.create(**request.to_openai_params())
-        audio = await _read_audio_bytes(result)
+        result = await self.client.audio.speech.create(
+            input=request.text,
+            model=request.model,
+            voice=request.voice,
+            instructions=request.instructions if request.instructions is not None else omit,
+            response_format=request.response_format,
+            speed=request.speed if request.speed is not None else omit,
+        )
 
         return TextToSpeechResponse(
-            audio=audio,
+            audio=result.content,
             model=request.model,
             voice=request.voice,
             response_format=request.response_format,
-            content_type=CONTENT_TYPES[request.response_format],
+            content_type=_CONTENT_TYPES[request.response_format],
         )
 
     async def synthesize_to_file(self, request: TextToSpeechRequest, output_path: str | Path) -> Path:
@@ -42,26 +44,3 @@ class AsyncOpenAITextToSpeech:
         response = await self.synthesize(request)
         output.write_bytes(response.audio)
         return output
-
-
-async def text_to_speech(request: TextToSpeechRequest, api_key: str | None = None) -> TextToSpeechResponse:
-    return await AsyncOpenAITextToSpeech(api_key).synthesize(request)
-
-
-async def _read_audio_bytes(result: Any) -> bytes:
-    read = getattr(result, "read", None)
-    if callable(read):
-        data = read()
-        if inspect.isawaitable(data):
-            data = await data
-        if isinstance(data, bytes):
-            return data
-
-    content = getattr(result, "content", None)
-    if isinstance(content, bytes):
-        return content
-
-    if isinstance(result, bytes):
-        return result
-
-    raise TypeError("OpenAI speech response did not expose audio bytes")

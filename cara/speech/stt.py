@@ -1,14 +1,15 @@
-from typing import Any
+from typing import cast
 
 from openai import AsyncOpenAI
+from openai.types.audio import TranscriptionCreateResponse
 
 from cara.settings import OpenAICredentials
 from cara.speech.models import SpeechToTextRequest, SpeechToTextResponse
 
+type TranscriptionResult = TranscriptionCreateResponse | str
 
-class AsyncOpenAISpeechToText:
-    """Small wrapper around OpenAI audio transcriptions."""
 
+class OpenAISpeechToText:
     def __init__(self, api_key: str | None = None) -> None:
         openai_credentials = OpenAICredentials()
         self.client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
@@ -18,11 +19,17 @@ class AsyncOpenAISpeechToText:
 
         if request.audio is not None:
             file = (request.filename, request.audio)
-            result = await self.client.audio.transcriptions.create(file=file, **params)
+            result = cast(
+                TranscriptionResult,
+                await self.client.audio.transcriptions.create(file=file, **params),
+            )
         else:
             assert request.audio_path is not None  # guaranteed by model validation
             with request.audio_path.open("rb") as audio_file:
-                result = await self.client.audio.transcriptions.create(file=audio_file, **params)
+                result = cast(
+                    TranscriptionResult,
+                    await self.client.audio.transcriptions.create(file=audio_file, **params),
+                )
 
         text = _extract_text(result)
         return SpeechToTextResponse(
@@ -33,27 +40,13 @@ class AsyncOpenAISpeechToText:
         )
 
 
-async def transcribe_audio(request: SpeechToTextRequest, api_key: str | None = None) -> SpeechToTextResponse:
-    return await AsyncOpenAISpeechToText(api_key).transcribe(request)
-
-
-def _extract_text(result: Any) -> str:
+def _extract_text(result: TranscriptionResult) -> str:
     if isinstance(result, str):
         return result
-    text = getattr(result, "text", None)
-    if isinstance(text, str):
-        return text
-    if isinstance(result, dict) and isinstance(result.get("text"), str):
-        return result["text"]
-    raise TypeError("OpenAI transcription response did not contain text")
+    return result.text
 
 
-def _serialize_result(result: Any) -> dict[str, Any] | str:
+def _serialize_result(result: TranscriptionResult) -> dict[str, object] | str:
     if isinstance(result, str):
         return result
-    if isinstance(result, dict):
-        return result
-    model_dump = getattr(result, "model_dump", None)
-    if callable(model_dump):
-        return model_dump()
-    return {"text": _extract_text(result)}
+    return result.model_dump()

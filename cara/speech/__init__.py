@@ -1,23 +1,21 @@
 """OpenAI speech wrappers."""
 
-from cara.speech.models import (
+from .models import (
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechFormat,
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from cara.speech.stt import AsyncOpenAISpeechToText, transcribe_audio
-from cara.speech.tts import AsyncOpenAITextToSpeech, text_to_speech
+from .stt import OpenAISpeechToText
+from .tts import OpenAITextToSpeech
 
 __all__ = [
-    "AsyncOpenAISpeechToText",
-    "AsyncOpenAITextToSpeech",
+    "OpenAISpeechToText",
+    "OpenAITextToSpeech",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
     "TextToSpeechFormat",
     "TextToSpeechRequest",
     "TextToSpeechResponse",
-    "text_to_speech",
-    "transcribe_audio",
 ]

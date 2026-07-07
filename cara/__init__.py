@@ -17,23 +17,21 @@ from .events import (
 from .listener import LifecycleListener, ListenerRegistry
 from .listener.lights import HueLifecycleListener
 from .speech import (
-    AsyncOpenAISpeechToText,
-    AsyncOpenAITextToSpeech,
+    OpenAISpeechToText,
+    OpenAITextToSpeech,
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechFormat,
     TextToSpeechRequest,
     TextToSpeechResponse,
-    text_to_speech,
-    transcribe_audio,
 )
 
 __all__ = [
     "AnswerGenerated",
     "AssistantEvent",
     "AssistantState",
-    "AsyncOpenAISpeechToText",
-    "AsyncOpenAITextToSpeech",
+    "OpenAISpeechToText",
+    "OpenAITextToSpeech",
     "Event",
     "Conversation",
     "EventBus",
@@ -56,8 +54,6 @@ __all__ = [
     "VoiceAssistant",
     "VoiceSession",
     "VoiceTurn",
-    "text_to_speech",
-    "transcribe_audio",
 ]
 
 

@@ -1,6 +1,6 @@
 from .player import WavAudioPlayer
 from .ports import AudioPlayer, SpeechRecorder
-from .recorder import MicrophoneRecorder, MicrophoneInputSettings
+from .recorder import MicrophoneInputSettings, MicrophoneRecorder
 
 __all__ = [
     "AudioPlayer",

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import logging
 from dataclasses import dataclass
@@ -21,8 +19,8 @@ from cara.events import (
     TurnStarted,
 )
 from cara.speech import (
-    AsyncOpenAISpeechToText,
-    AsyncOpenAITextToSpeech,
+    OpenAISpeechToText,
+    OpenAITextToSpeech,
     SpeechToTextRequest,
     TextToSpeechFormat,
     TextToSpeechRequest,
@@ -86,8 +84,8 @@ class VoiceAssistant:
         self._llm = llm or ChatOpenAI()
         self._recorder = recorder or MicrophoneRecorder()
         self._player = player or WavAudioPlayer()
-        self._stt = AsyncOpenAISpeechToText(api_key)
-        self._tts = AsyncOpenAITextToSpeech(api_key)
+        self._stt = OpenAISpeechToText(api_key)
+        self._tts = OpenAITextToSpeech(api_key)
         self.language = language
         self.system_prompt = system_prompt
         self.tts_voice_instructions = tts_voice_instructions

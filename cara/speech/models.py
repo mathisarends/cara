@@ -197,12 +197,6 @@ class TextToSpeechRequest(BaseModel):
             raise ValueError(f"{self.model} does not support voice '{self.voice}'")
         return self
 
-    def to_openai_params(self) -> dict[str, Any]:
-        params = self.model_dump(exclude={"text"}, exclude_none=True, mode="python")
-        params["input"] = self.text
-        return params
-
-
 class TextToSpeechResponse(BaseModel):
     """Generated speech audio bytes plus request metadata."""
 
