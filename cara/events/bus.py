@@ -1,31 +1,22 @@
 import asyncio
 import logging
-import time
-import uuid
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+
+from .views import Event
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True, kw_only=True)
-class BaseEvent:
-    """Common root for events dispatched through the bus."""
-
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: float = field(default_factory=time.time)
-
-
-type EventHandler[T: BaseEvent] = Callable[[T], Awaitable[None]]
-type WildcardEventHandler = Callable[[BaseEvent], Awaitable[None]]
+type EventHandler[T: Event] = Callable[[T], Awaitable[None]]
+type WildcardEventHandler = Callable[[Event], Awaitable[None]]
 
 
 class EventBus:
     def __init__(self) -> None:
-        self._handlers: dict[type[BaseEvent], list[EventHandler]] = {}
+        self._handlers: dict[type[Event], list[EventHandler]] = {}
         self._wildcard_handlers: list[WildcardEventHandler] = []
 
-    def subscribe[T: BaseEvent](self, event_type: type[T], handler: EventHandler[T]) -> None:
+    def subscribe[T: Event](self, event_type: type[T], handler: EventHandler[T]) -> None:
         self._handlers.setdefault(event_type, []).append(handler)
         logger.debug("Subscribed to %s", event_type.__name__)
 
@@ -33,7 +24,7 @@ class EventBus:
         self._wildcard_handlers.append(handler)
         logger.debug("Subscribed to all events")
 
-    def unsubscribe[T: BaseEvent](self, event_type: type[T], handler: EventHandler[T]) -> None:
+    def unsubscribe[T: Event](self, event_type: type[T], handler: EventHandler[T]) -> None:
         handlers = self._handlers.get(event_type)
         if handlers and handler in handlers:
             handlers.remove(handler)
@@ -44,10 +35,10 @@ class EventBus:
         if handler in self._wildcard_handlers:
             self._wildcard_handlers.remove(handler)
 
-    def has_subscribers[T: BaseEvent](self, event_type: type[T]) -> bool:
+    def has_subscribers[T: Event](self, event_type: type[T]) -> bool:
         return bool(self._handlers.get(event_type)) or bool(self._wildcard_handlers)
 
-    async def dispatch[T: BaseEvent](self, event: T) -> T:
+    async def dispatch[T: Event](self, event: T) -> T:
         event_type = type(event)
         handlers = [*self._handlers.get(event_type, []), *self._wildcard_handlers]
         if not handlers:
@@ -67,7 +58,7 @@ class EventBus:
                 )
         return event
 
-    async def wait_for_event[T: BaseEvent](
+    async def wait_for_event[T: Event](
         self,
         event_type: type[T],
         timeout: float | None = None,

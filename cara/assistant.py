@@ -159,7 +159,7 @@ class VoiceAssistant:
                 utterance_audio=utterance_audio,
                 answer_audio=answer_audio,
             )
-            await self._emit(TurnCompleted(turn))
+            await self._emit(TurnCompleted(turn=turn))
             return turn
         finally:
             if reset_state:
@@ -182,7 +182,7 @@ class VoiceAssistant:
         transcript = response.text.strip()
         if transcript:
             logger.info("User said: %s", transcript)
-            await self._emit(Transcribed(transcript))
+            await self._emit(Transcribed(transcript=transcript))
         return transcript
 
     async def _think(self, conversation: Conversation, *, interrupt: asyncio.Event | None = None) -> str:
@@ -203,7 +203,7 @@ class VoiceAssistant:
                 raise asyncio.CancelledError("Assistant thinking was interrupted.")
             answer = await reply_task
         logger.info("Assistant answer: %s", answer)
-        await self._emit(AnswerGenerated(answer))
+        await self._emit(AnswerGenerated(answer=answer))
         return answer
 
     async def _speak(self, answer: str, *, interrupt: asyncio.Event | None = None) -> bytes:
@@ -228,7 +228,7 @@ class VoiceAssistant:
 
     async def _set_state(self, state: AssistantState) -> None:
         self._state = state
-        await self._emit(StateChanged(state))
+        await self._emit(StateChanged(state=state))
 
     async def _emit(self, event: AssistantEvent) -> None:
         await self._event_bus.dispatch(event)

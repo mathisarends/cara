@@ -1,4 +1,4 @@
-from .bus import BaseEvent, EventBus, EventHandler, WildcardEventHandler
+from .bus import Event, EventBus, EventHandler, WildcardEventHandler
 from .views import (
     AnswerGenerated,
     AssistantEvent,
@@ -15,7 +15,7 @@ __all__ = [
     "AnswerGenerated",
     "AssistantEvent",
     "AssistantState",
-    "BaseEvent",
+    "Event",
     "EventBus",
     "EventHandler",
     "SessionEnded",

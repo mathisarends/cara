@@ -1,13 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import time
+import uuid
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from .bus import BaseEvent
-
 if TYPE_CHECKING:
     from cara.assistant import VoiceTurn
+
+
+@dataclass(frozen=True, kw_only=True)
+class Event:
+    """Common root for events dispatched through the bus."""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: float = field(default_factory=time.time)
 
 
 class AssistantState(StrEnum):
@@ -19,15 +27,15 @@ class AssistantState(StrEnum):
     SPEAKING = "speaking"
 
 
-@dataclass(frozen=True)
-class StateChanged(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class StateChanged(Event):
     """Emitted on every phase transition, including the return to ``IDLE``."""
 
     state: AssistantState
 
 
-@dataclass(frozen=True)
-class TurnStarted(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class TurnStarted(Event):
     """Emitted when a turn begins, before recording starts.
 
     The assistant does not care what triggered the turn (wake word, button, CLI,
@@ -35,32 +43,32 @@ class TurnStarted(BaseEvent):
     """
 
 
-@dataclass(frozen=True)
-class SessionStarted(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class SessionStarted(Event):
     """Emitted when a multi-turn voice session begins."""
 
 
-@dataclass(frozen=True)
-class SessionEnded(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class SessionEnded(Event):
     """Emitted when a multi-turn voice session ends."""
 
 
-@dataclass(frozen=True)
-class Transcribed(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class Transcribed(Event):
     """Emitted once a non-empty transcript is available."""
 
     transcript: str
 
 
-@dataclass(frozen=True)
-class AnswerGenerated(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class AnswerGenerated(Event):
     """Emitted once the LLM produced an answer, before text-to-speech runs."""
 
     answer: str
 
 
-@dataclass(frozen=True)
-class TurnCompleted(BaseEvent):
+@dataclass(frozen=True, kw_only=True)
+class TurnCompleted(Event):
     """Emitted when a full turn finished successfully."""
 
     turn: VoiceTurn
