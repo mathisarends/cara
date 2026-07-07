@@ -33,8 +33,8 @@ class AsyncOpenAISpeechToText:
         )
 
 
-async def transcribe_audio(request: SpeechToTextRequest, client: Any | None = None) -> SpeechToTextResponse:
-    return await AsyncOpenAISpeechToText(client=client).transcribe(request)
+async def transcribe_audio(request: SpeechToTextRequest, api_key: str | None = None) -> SpeechToTextResponse:
+    return await AsyncOpenAISpeechToText(api_key).transcribe(request)
 
 
 def _extract_text(result: Any) -> str:

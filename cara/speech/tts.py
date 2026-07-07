@@ -20,11 +20,9 @@ CONTENT_TYPES = {
 class AsyncOpenAITextToSpeech:
     """Small wrapper around OpenAI speech generation."""
 
-    def __init__(self, client: AsyncOpenAI | None = None, *, api_key: str | None = None) -> None:
-        if client is None:
-            openai_credentials = OpenAICredentials()
-            client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
-        self.client = client
+    def __init__(self, api_key: str | None = None) -> None:
+        openai_credentials = OpenAICredentials()
+        self.client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
 
     async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
         result = await self.client.audio.speech.create(**request.to_openai_params())
@@ -46,8 +44,8 @@ class AsyncOpenAITextToSpeech:
         return output
 
 
-async def text_to_speech(request: TextToSpeechRequest, client: Any | None = None) -> TextToSpeechResponse:
-    return await AsyncOpenAITextToSpeech(client=client).synthesize(request)
+async def text_to_speech(request: TextToSpeechRequest, api_key: str | None = None) -> TextToSpeechResponse:
+    return await AsyncOpenAITextToSpeech(api_key).synthesize(request)
 
 
 async def _read_audio_bytes(result: Any) -> bytes:
