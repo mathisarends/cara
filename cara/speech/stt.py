@@ -1,14 +1,17 @@
 from typing import Any
 
-from cara.speech._client import resolve_openai_client
+from openai import AsyncOpenAI
+
+from cara.settings import OpenAICredentials
 from cara.speech.models import SpeechToTextRequest, SpeechToTextResponse
 
 
 class AsyncOpenAISpeechToText:
     """Small wrapper around OpenAI audio transcriptions."""
 
-    def __init__(self, client: Any | None = None) -> None:
-        self.client = resolve_openai_client(client)
+    def __init__(self, api_key: str | None = None) -> None:
+        openai_credentials = OpenAICredentials()
+        self.client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
 
     async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
         params = request.to_openai_params()

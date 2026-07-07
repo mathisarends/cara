@@ -2,7 +2,9 @@ import inspect
 from pathlib import Path
 from typing import Any
 
-from cara.speech._client import resolve_openai_client
+from openai import AsyncOpenAI
+
+from cara.settings import OpenAICredentials
 from cara.speech.models import TextToSpeechRequest, TextToSpeechResponse
 
 CONTENT_TYPES = {
@@ -18,8 +20,11 @@ CONTENT_TYPES = {
 class AsyncOpenAITextToSpeech:
     """Small wrapper around OpenAI speech generation."""
 
-    def __init__(self, client: Any | None = None) -> None:
-        self.client = resolve_openai_client(client)
+    def __init__(self, client: AsyncOpenAI | None = None, *, api_key: str | None = None) -> None:
+        if client is None:
+            openai_credentials = OpenAICredentials()
+            client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
+        self.client = client
 
     async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
         result = await self.client.audio.speech.create(**request.to_openai_params())

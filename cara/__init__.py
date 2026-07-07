@@ -1,5 +1,3 @@
-"""Cara package."""
-
 from .assistant import VoiceAssistant, VoiceSession, VoiceTurn
 from .conversation import Conversation
 from .events import BaseEvent, EventBus, EventHandler
@@ -7,7 +5,6 @@ from .lifecycle import (
     AnswerGenerated,
     AssistantEvent,
     AssistantState,
-    LoggingLifecycleListener,
     SessionEnded,
     SessionStarted,
     StateChanged,
@@ -42,7 +39,6 @@ __all__ = [
     "HueLifecycleListener",
     "LifecycleListener",
     "ListenerRegistry",
-    "LoggingLifecycleListener",
     "SessionEnded",
     "SessionStarted",
     "SonosAudioPlayer",

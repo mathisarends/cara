@@ -28,8 +28,6 @@ from cara.speech import (
     TextToSpeechFormat,
     TextToSpeechRequest,
 )
-from cara.speech._client import resolve_openai_client
-
 if TYPE_CHECKING:
     from openai import AsyncOpenAI
 
@@ -88,12 +86,11 @@ class VoiceAssistant:
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
         max_conversation_turns: int = DEFAULT_MAX_CONVERSATION_TURNS,
     ) -> None:
-        openai_client = resolve_openai_client(client)
         self._llm = llm or ChatOpenAI()
         self._recorder = recorder or MicrophoneRecorder()
         self._player = player or WavAudioPlayer()
-        self._stt = AsyncOpenAISpeechToText(openai_client)
-        self._tts = AsyncOpenAITextToSpeech(openai_client)
+        self._stt = AsyncOpenAISpeechToText(client)
+        self._tts = AsyncOpenAITextToSpeech(client)
         self.language = language
         self.system_prompt = system_prompt
         self.tts_voice_instructions = tts_voice_instructions

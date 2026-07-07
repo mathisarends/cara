@@ -72,15 +72,3 @@ class TurnCompleted(BaseEvent):
 type AssistantEvent = (
     StateChanged | SessionStarted | SessionEnded | TurnStarted | Transcribed | AnswerGenerated | TurnCompleted
 )
-"""Closed set of assistant events."""
-
-
-class LoggingLifecycleListener:
-    """Ready-to-use listener that logs every state change."""
-
-    def __init__(self, event_bus: EventBus, logger: logging.Logger | None = None) -> None:
-        self._logger = logger or logging.getLogger(__name__)
-        event_bus.subscribe(StateChanged, self.on_state_changed)
-
-    async def on_state_changed(self, event: StateChanged) -> None:
-        self._logger.info("Assistant state -> %s", event.state)
