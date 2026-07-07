@@ -3,19 +3,12 @@ import functools
 import io
 import logging
 import wave
-from abc import ABC, abstractmethod
 
 import pyaudio
 
+from .ports import AudioPlayer
+
 logger = logging.getLogger(__name__)
-
-
-class AudioPlayer(ABC):
-    """Plays WAV-encoded audio through an output device."""
-
-    @abstractmethod
-    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        """Play the given WAV audio and return once playback is finished."""
 
 
 class WavAudioPlayer(AudioPlayer):

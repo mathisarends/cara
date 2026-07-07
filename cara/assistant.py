@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from llmify import ChatModel, ChatOpenAI
 
-from cara.audio import AudioPlayer, MicrophoneRecorder, UtteranceRecorder, WavAudioPlayer
+from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudioPlayer
 from cara.conversation import Conversation
 from cara.events import EventBus
 from cara.lifecycle import (
@@ -79,7 +79,7 @@ class VoiceAssistant:
         *,
         llm: ChatModel | None = None,
         client: AsyncOpenAI | None = None,
-        recorder: UtteranceRecorder | None = None,
+        recorder: SpeechRecorder | None = None,
         player: AudioPlayer | None = None,
         event_bus: EventBus,
         language: str = "de",

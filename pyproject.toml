@@ -12,6 +12,10 @@ dependencies = [
     "pyaudio>=0.2.14",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
+]
+
+[project.optional-dependencies]
+sonos = [
     "soco>=0.31.1",
 ]
 

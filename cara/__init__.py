@@ -1,11 +1,9 @@
 """Cara package."""
 
-from cara.assistant import VoiceAssistant, VoiceSession, VoiceTurn
-from cara.conversation import Conversation
-from cara.events import BaseEvent, EventBus, EventHandler
-from cara.listener.hue import HueLifecycleListener
-from cara.listener import LifecycleListener, ListenerRegistry
-from cara.lifecycle import (
+from .assistant import VoiceAssistant, VoiceSession, VoiceTurn
+from .conversation import Conversation
+from .events import BaseEvent, EventBus, EventHandler
+from .lifecycle import (
     AnswerGenerated,
     AssistantEvent,
     AssistantState,
@@ -17,8 +15,9 @@ from cara.lifecycle import (
     TurnCompleted,
     TurnStarted,
 )
-from cara.sonos import SonosAudioPlayer
-from cara.speech import (
+from .listener import LifecycleListener, ListenerRegistry
+from .listener.lights import HueLifecycleListener
+from .speech import (
     AsyncOpenAISpeechToText,
     AsyncOpenAITextToSpeech,
     SpeechToTextRequest,
@@ -62,3 +61,11 @@ __all__ = [
     "text_to_speech",
     "transcribe_audio",
 ]
+
+
+def __getattr__(name: str) -> object:
+    if name == "SonosAudioPlayer":
+        from .audio import SonosAudioPlayer
+
+        return SonosAudioPlayer
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -4,21 +4,14 @@ import io
 import logging
 import time
 import wave
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
 import pyaudio
 
+from .ports import SpeechRecorder
+
 logger = logging.getLogger(__name__)
-
-
-class UtteranceRecorder(ABC):
-    """Records a single user utterance into WAV-encoded bytes."""
-
-    @abstractmethod
-    async def record_until_silence(self, *, initial_silence_timeout: float | None = None) -> bytes | None:
-        """Record until the user stops speaking, or return ``None`` if no speech starts."""
 
 
 @dataclass(frozen=True)
@@ -33,7 +26,7 @@ class MicrophoneRecorderConfig:
     max_record_seconds: float = 12.0
 
 
-class MicrophoneRecorder(UtteranceRecorder):
+class MicrophoneRecorder(SpeechRecorder):
     """Records one user utterance from the default microphone into a WAV file."""
 
     def __init__(self, config: MicrophoneRecorderConfig | None = None) -> None:

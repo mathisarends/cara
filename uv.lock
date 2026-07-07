@@ -120,6 +120,10 @@ dependencies = [
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+
+[package.optional-dependencies]
+sonos = [
     { name = "soco", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
@@ -140,8 +144,9 @@ requires-dist = [
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
-    { name = "soco", specifier = ">=0.31.1" },
+    { name = "soco", marker = "extra == 'sonos'", specifier = ">=0.31.1" },
 ]
+provides-extras = ["sonos"]
 
 [package.metadata.requires-dev]
 dev = [

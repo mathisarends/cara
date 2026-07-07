@@ -1,10 +1,20 @@
-from .player import AudioPlayer, WavAudioPlayer
-from .recorder import MicrophoneRecorder, MicrophoneRecorderConfig, UtteranceRecorder
+from .player import WavAudioPlayer
+from .ports import AudioPlayer, SpeechRecorder
+from .recorder import MicrophoneRecorder, MicrophoneRecorderConfig
 
 __all__ = [
     "AudioPlayer",
     "MicrophoneRecorder",
     "MicrophoneRecorderConfig",
-    "UtteranceRecorder",
+    "SpeechRecorder",
+    "SonosAudioPlayer",
     "WavAudioPlayer",
 ]
+
+
+def __getattr__(name: str) -> object:
+    if name == "SonosAudioPlayer":
+        from .sonos import SonosAudioPlayer
+
+        return SonosAudioPlayer
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from cara import (
     AnswerGenerated,
     EventBus,
-    HueLifecycleListener,
     ListenerRegistry,
     SessionEnded,
     SessionStarted,
