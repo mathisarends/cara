@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from openai import AsyncOpenAI, omit
 
 from cara.settings import OpenAICredentials
@@ -37,10 +35,3 @@ class OpenAITextToSpeech:
             response_format=request.response_format,
             content_type=_CONTENT_TYPES[request.response_format],
         )
-
-    async def synthesize_to_file(self, request: TextToSpeechRequest, output_path: str | Path) -> Path:
-        output = Path(output_path)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        response = await self.synthesize(request)
-        output.write_bytes(response.audio)
-        return output

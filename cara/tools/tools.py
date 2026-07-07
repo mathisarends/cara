@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 from cara.tools.di import ToolContext
 from cara.tools.executor import ToolExecutor
+from cara.tools.params import DoneParams
+from cara.tools.schemas import ToolSchema
 from cara.tools.views import ActionResult, Tool
 
 
@@ -36,6 +38,7 @@ class Tools:
         name: str | None = None,
         *,
         params: type[P] | None = None,
+        status_label: Callable[[P], str] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             self._register(
@@ -44,6 +47,7 @@ class Tools:
                     description=description,
                     fn=fn,
                     param_model=params,
+                    status_label=status_label,
                 )
             )
             return fn
@@ -56,10 +60,14 @@ class Tools:
     async def execute(self, name: str, args: dict[str, Any] | None = None) -> ActionResult:
         return await self._executor.execute(name, args)
 
-    def to_schema(self) -> builtins.list[dict[str, Any]]:
+    def to_schema(self) -> builtins.list[ToolSchema]:
         return [tool.to_schema() for tool in self._tools.values()]
 
     def _register_default_tools(self) -> None:
-        @self.action(description="Mark the current task as done.")
-        async def done() -> ActionResult:
+        @self.action(
+            description="Mark the current task as done.",
+            params=DoneParams,
+            status_label=lambda _params: "Done",
+        )
+        async def done(_params: DoneParams) -> ActionResult:
             return ActionResult.success("Done.")

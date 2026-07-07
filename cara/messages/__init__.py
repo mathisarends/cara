@@ -1,1 +1,8 @@
-# build this so it can deal with more sophisticatede context
+from .manager import Message, MessageManager
+from .system_prompt import SystemPrompt
+
+__all__ = [
+    "Message",
+    "MessageManager",
+    "SystemPrompt",
+]

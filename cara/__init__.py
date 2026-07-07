@@ -1,5 +1,4 @@
 from .assistant import VoiceAssistant, VoiceSession, VoiceTurn
-from .conversation import Conversation
 from .events import (
     AnswerGenerated,
     AssistantState,
@@ -15,6 +14,7 @@ from .events import (
 )
 from .listener import LifecycleListener, ListenerRegistry
 from .listener.lights import HueLifecycleListener
+from .messages import MessageManager, SystemPrompt
 from .speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -31,18 +31,19 @@ __all__ = [
     "OpenAISpeechToText",
     "OpenAITextToSpeech",
     "Event",
-    "Conversation",
     "EventBus",
     "EventHandler",
     "HueLifecycleListener",
     "LifecycleListener",
     "ListenerRegistry",
+    "MessageManager",
     "SessionEnded",
     "SessionStarted",
     "SonosAudioPlayer",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
     "StateChanged",
+    "SystemPrompt",
     "TextToSpeechFormat",
     "TextToSpeechRequest",
     "TextToSpeechResponse",

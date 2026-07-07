@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from cara.tools import ActionResult, Inject, Tool, ToolContext, Tools
+from cara.tools import ActionResult, DoneParams, Inject, Tools
 
 
 class Greeting:
@@ -23,6 +23,21 @@ def test_default_done_tool_returns_success() -> None:
     result = asyncio.run(tools.execute("done"))
 
     assert result == ActionResult.success("Done.")
+
+
+def test_default_done_tool_uses_empty_params_schema() -> None:
+    tools = Tools()
+    done = tools.get("done")
+    schema = next(item for item in tools.to_schema() if item["function"]["name"] == "done")
+
+    assert done is not None
+    assert done.param_model is DoneParams
+    assert schema["function"]["parameters"] == {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    }
+
 
 def test_action_decorator_registers_tool() -> None:
     tools = Tools()

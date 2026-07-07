@@ -4,7 +4,7 @@ Ausbau des Voice-Loops von einem Single-Shot-Turn zu einer echten Konversations-
 
 Zwei Features bauen aufeinander auf:
 
-1. **MULTI_TURN_CONVERSATIONS** — Cara behält Kontext über mehrere Turns und führt
+1. **MULTI_TURN_MESSAGES** — Cara behält Kontext über mehrere Turns und führt
    Folge-Turns ohne erneutes Wakeword.
 2. **BARGE_IN** — der Nutzer kann Cara per Wakeword unterbrechen, während sie
    *denkt* oder *spricht*, um die Anfrage zu korrigieren oder zu verfeinern.
@@ -33,7 +33,7 @@ Wakeword-Listening während eines Turns — sind die zentralen Hürden.
 
 ---
 
-## Feature 1: MULTI_TURN_CONVERSATIONS
+## Feature 1: MULTI_TURN_MESSAGES
 
 ### Ziel
 
@@ -59,13 +59,12 @@ durch Stille (Timeout), eine Abschiedsfloskel oder explizites Beenden.
 
 ### Architektur-Änderungen
 
-#### 1. Conversation/History-Modell
+#### 1. MessageManager/History-Modell
 
-Neue Datei `cara/conversation.py`:
+Neue Datei `cara/messages/manager.py`:
 
 ```python
-@dataclass
-class Conversation:
+class MessageManager:
     system_prompt: str
     messages: list[Message]          # llmify Message-Typen
     max_turns: int = 12
@@ -78,7 +77,7 @@ class Conversation:
         ...
 ```
 
-- `VoiceAssistant._reply()` nutzt `conversation.to_llm_messages()` statt jedes Mal
+- `VoiceAssistant._reply()` nutzt `message_manager.to_llm_messages()` statt jedes Mal
   System + einzelne UserMessage neu zu bauen.
 - `VoiceTurn` bleibt das Ergebnis eines einzelnen Turns; eine neue `VoiceSession`
   kann optional die Liste der Turns + finale History tragen.
@@ -89,11 +88,11 @@ Neue Methode `run_session()`, die `run_turn()` als Schleife nutzt:
 
 ```python
 async def run_session(self) -> VoiceSession:
-    conversation = Conversation(system_prompt=self.system_prompt, messages=[])
+    message_manager = MessageManager(system_prompt=self.system_prompt, messages=[])
     turns: list[VoiceTurn] = []
     try:
         while True:
-            turn = await self.run_turn(conversation, follow_up=bool(turns))
+            turn = await self.run_turn(message_manager, follow_up=bool(turns))
             if turn is None:          # Stille -> Session beenden
                 break
             turns.append(turn)
@@ -104,7 +103,7 @@ async def run_session(self) -> VoiceSession:
     return VoiceSession(turns=turns)
 ```
 
-- `run_turn()` bekommt die `Conversation` übergeben und arbeitet darauf.
+- `run_turn()` bekommt den `MessageManager` übergeben und arbeitet darauf.
 - Der `follow_up`-Modus nutzt ein kürzeres Aufnahmefenster mit Stille-Timeout
   (returnt `None` bei reiner Stille → Session endet).
 - `main.py` ruft `assistant.run_session` statt `assistant.run_turn` im
@@ -141,7 +140,7 @@ In `cara/lifecycle.py`:
 
 ### Tests
 
-- `Conversation`: History wächst korrekt, Trimming respektiert das Window,
+- `MessageManager`: History wächst korrekt, Trimming respektiert das Window,
   `to_llm_messages()` liefert System + getrimmte History.
 - `run_session()` mit Fake-Recorder/STT/LLM: mehrere Turns, korrekte Übergabe von
   Kontext, Stille beendet Session.
@@ -158,7 +157,7 @@ Wakeword sagen, um sie sofort zu unterbrechen: laufendes Playback bzw. die laufe
 LLM-Generierung wird abgebrochen, Cara hört direkt neu zu und der neue Input
 verfeinert/korrigiert die Anfrage im selben Konversationskontext.
 
-> Voraussetzung: Feature 1 (Conversation/History), damit die Korrektur im Kontext
+> Voraussetzung: Feature 1 (MessageManager/History), damit die Korrektur im Kontext
 > der bisherigen Konversation landet.
 
 ### Verhalten
@@ -214,11 +213,11 @@ ohnehin unnötig, da Cara bereits zuhört.)
 `run_turn()` bekommt ein Interrupt-Signal, das in `_think` und `_speak` greift:
 
 ```python
-async def run_turn(self, conversation, *, follow_up=False) -> VoiceTurn | None:
+async def run_turn(self, message_manager, *, follow_up=False) -> VoiceTurn | None:
     interrupt = asyncio.Event()
     # Wakeword-Detektion während THINKING/SPEAKING setzt interrupt
     ...
-    answer = await self._think(conversation, interrupt=interrupt)
+    answer = await self._think(message_manager, interrupt=interrupt)
     if interrupt.is_set():
         return self._interrupted_turn(...)
     await self._speak(answer, interrupt=interrupt)
@@ -272,8 +271,8 @@ async def run_turn(self, conversation, *, follow_up=False) -> VoiceTurn | None:
 
 ## Umsetzungsreihenfolge (inkrementell)
 
-1. **Conversation-Modell** (`cara/conversation.py`) + Tests — rein, ohne I/O.
-2. **`run_turn(conversation)`** auf History umstellen, Verhalten unverändert.
+1. **MessageManager-Modell** (`cara/messages/manager.py`) + Tests — rein, ohne I/O.
+2. **`run_turn(message_manager)`** auf History umstellen, Verhalten unverändert.
 3. **`run_session()`** + Follow-up-Recording + Session-Events → Feature 1 fertig.
 4. **Unterbrechbares Playback** (`AudioPlayer.play(cancel=...)`) + Tests.
 5. **Cancelbarer `_think`** (LLM-Task) + Interrupt-Verdrahtung in `run_turn`.

@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from cara.tools.schema_builder import ToolSchemaBuilder
+from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,7 @@ class Tool:
     description: str | None
     fn: ToolCallable
     param_model: type[BaseModel] | None = None
+    status_label: Callable[[Any], str] | None = None
 
     async def execute(self, kwargs: dict[str, Any]) -> ActionResult:
         result = self.fn(**kwargs)
@@ -38,7 +39,7 @@ class Tool:
             result = await result
         return result
 
-    def to_schema(self) -> dict[str, Any]:
+    def to_schema(self) -> ToolSchema:
         return {
             "type": "function",
             "function": {
