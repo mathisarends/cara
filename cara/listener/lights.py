@@ -14,9 +14,9 @@ import logging
 from hueify import Color, Hueify
 from hueify.grouped_lights import GroupedLights
 
-from cara.events import EventBus
-from cara.lifecycle import (
+from cara.events import (
     AssistantState,
+    EventBus,
     SessionStarted,
     StateChanged,
 )

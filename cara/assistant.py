@@ -3,17 +3,16 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from llmify import ChatModel, ChatOpenAI
 
 from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudioPlayer
 from cara.conversation import Conversation
-from cara.events import EventBus
-from cara.lifecycle import (
+from cara.events import (
     AnswerGenerated,
     AssistantEvent,
     AssistantState,
+    EventBus,
     SessionEnded,
     SessionStarted,
     StateChanged,
@@ -28,8 +27,6 @@ from cara.speech import (
     TextToSpeechFormat,
     TextToSpeechRequest,
 )
-if TYPE_CHECKING:
-    from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +73,7 @@ class VoiceAssistant:
         self,
         *,
         llm: ChatModel | None = None,
-        client: AsyncOpenAI | None = None,
+        api_key: str | None = None,
         recorder: SpeechRecorder | None = None,
         player: AudioPlayer | None = None,
         event_bus: EventBus,
@@ -89,8 +86,8 @@ class VoiceAssistant:
         self._llm = llm or ChatOpenAI()
         self._recorder = recorder or MicrophoneRecorder()
         self._player = player or WavAudioPlayer()
-        self._stt = AsyncOpenAISpeechToText(client)
-        self._tts = AsyncOpenAITextToSpeech(client)
+        self._stt = AsyncOpenAISpeechToText(api_key)
+        self._tts = AsyncOpenAITextToSpeech(api_key)
         self.language = language
         self.system_prompt = system_prompt
         self.tts_voice_instructions = tts_voice_instructions

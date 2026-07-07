@@ -21,8 +21,6 @@ type WildcardEventHandler = Callable[[BaseEvent], Awaitable[None]]
 
 
 class EventBus:
-    """Async event bus for independent event handlers."""
-
     def __init__(self) -> None:
         self._handlers: dict[type[BaseEvent], list[EventHandler]] = {}
         self._wildcard_handlers: list[WildcardEventHandler] = []

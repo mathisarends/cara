@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class MicrophoneRecorderConfig:
+class MicrophoneInputSettings:
     rate: int = 16000
     channels: int = 1
     chunk: int = 1024
@@ -29,8 +29,8 @@ class MicrophoneRecorderConfig:
 class MicrophoneRecorder(SpeechRecorder):
     """Records one user utterance from the default microphone into a WAV file."""
 
-    def __init__(self, config: MicrophoneRecorderConfig | None = None) -> None:
-        self.config = config or MicrophoneRecorderConfig()
+    def __init__(self, config: MicrophoneInputSettings | None = None) -> None:
+        self.config = config or MicrophoneInputSettings()
 
     async def record_until_silence(self, *, initial_silence_timeout: float | None = None) -> bytes | None:
         loop = asyncio.get_running_loop()

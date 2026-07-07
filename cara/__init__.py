@@ -1,10 +1,12 @@
 from .assistant import VoiceAssistant, VoiceSession, VoiceTurn
 from .conversation import Conversation
-from .events import BaseEvent, EventBus, EventHandler
-from .lifecycle import (
+from .events import (
     AnswerGenerated,
     AssistantEvent,
     AssistantState,
+    BaseEvent,
+    EventBus,
+    EventHandler,
     SessionEnded,
     SessionStarted,
     StateChanged,
