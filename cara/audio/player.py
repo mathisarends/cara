@@ -10,9 +10,16 @@ from .ports import AudioPlayer
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_TRAILING_SILENCE_SECONDS = 0.2
+
 
 class WavAudioPlayer(AudioPlayer):
     """Plays WAV audio through the default output device."""
+
+    def __init__(self, *, trailing_silence_seconds: float = _DEFAULT_TRAILING_SILENCE_SECONDS) -> None:
+        if trailing_silence_seconds < 0:
+            raise ValueError("trailing_silence_seconds must not be negative.")
+        self._trailing_silence_seconds = trailing_silence_seconds
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         loop = asyncio.get_running_loop()
@@ -22,18 +29,33 @@ class WavAudioPlayer(AudioPlayer):
         pa = pyaudio.PyAudio()
         try:
             with wave.open(io.BytesIO(audio), "rb") as wav:
+                sample_width = wav.getsampwidth()
+                channels = wav.getnchannels()
+                frame_rate = wav.getframerate()
                 stream = pa.open(
-                    format=pa.get_format_from_width(wav.getsampwidth()),
-                    channels=wav.getnchannels(),
-                    rate=wav.getframerate(),
+                    format=pa.get_format_from_width(sample_width),
+                    channels=channels,
+                    rate=frame_rate,
                     output=True,
                 )
                 try:
+                    cancelled = False
                     while chunk := wav.readframes(1024):
                         if cancel is not None and cancel.is_set():
                             logger.info("Audio playback cancelled.")
+                            cancelled = True
                             break
                         stream.write(chunk)
+                    if cancel is not None and cancel.is_set():
+                        cancelled = True
+                    if not cancelled and self._trailing_silence_seconds:
+                        silence_frames = round(frame_rate * self._trailing_silence_seconds)
+                        silence = bytes(silence_frames * channels * sample_width)
+                        stream.write(silence)
+                        logger.debug(
+                            "Added %.0f ms trailing silence to WAV playback.",
+                            self._trailing_silence_seconds * 1000,
+                        )
                 finally:
                     stream.stop_stream()
                     stream.close()
