@@ -1,4 +1,4 @@
 from .listener import WakeWordListener
-from .views import WakeWord
+from .views import WakeWord, WakeWordSettings
 
-__all__ = ["WakeWordListener", "WakeWord"]
+__all__ = ["WakeWord", "WakeWordListener", "WakeWordSettings"]

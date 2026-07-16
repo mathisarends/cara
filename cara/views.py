@@ -5,7 +5,7 @@ from cara.speech import TextToSpeechVoice
 DEFAULT_TTS_VOICE_INSTRUCTIONS = "Sprich freundlich, ruhig und klar auf Deutsch."
 
 
-class SpeechConfig(BaseModel):
+class SpeechSettings(BaseModel):
     """Language and voice settings shared by speech-to-text and text-to-speech."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")

@@ -26,7 +26,8 @@ from cara.speech import (
     TextToSpeechRequest,
 )
 from cara.tools import ActionKind, Tools
-from cara.views import SpeechConfig
+from cara.views import SpeechSettings
+from cara.wakeword import WakeWordListener, WakeWordSettings
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,9 @@ class VoiceAssistant:
         stt: SpeechToText | None = None,
         tts: TextToSpeech | None = None,
         event_bus: EventBus,
+        wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
-        speech_config: SpeechConfig | None = None,
+        speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,
         override_system_prompt: str | None = None,
         extend_system_prompt: str | None = None,
@@ -58,7 +60,8 @@ class VoiceAssistant:
         self._stt = stt or OpenAISpeechToText(api_key)
         self._tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
-        self._speech_config = speech_config or SpeechConfig()
+        self._speech_settings = speech_settings or SpeechSettings()
+        self._wake_word_settings = wake_word_settings
         self._system_prompt = self._build_system_prompt(
             system_prompt=system_prompt,
             override_system_prompt=override_system_prompt,
@@ -89,7 +92,16 @@ class VoiceAssistant:
             extend_system_prompt=extend_system_prompt,
         )
 
-    async def run(self) -> None:
+    async def listen(self) -> None:
+        """Listen for the wake word and start a session on each detection."""
+        listener = WakeWordListener(
+            on_detection=self._run,
+            wake_word=self._wake_word_settings.wake_word,
+            sensitivity=self._wake_word_settings.sensitivity,
+        )
+        await listener.listen()
+
+    async def _run(self) -> None:
         follow_up = False
         await self._event_bus.dispatch(SessionStarted())
         try:
@@ -128,7 +140,7 @@ class VoiceAssistant:
     async def _transcribe(self, utterance_audio: bytes) -> str:
         await self._set_state(AssistantState.TRANSCRIBING)
         response = await self._stt.transcribe(
-            SpeechToTextRequest(audio=utterance_audio, language=self._speech_config.language)
+            SpeechToTextRequest(audio=utterance_audio, language=self._speech_settings.language)
         )
         transcript = response.text.strip()
         if transcript:
@@ -179,9 +191,9 @@ class VoiceAssistant:
         response = await self._tts.synthesize(
             TextToSpeechRequest(
                 text=answer,
-                voice=self._speech_config.tts_voice,
+                voice=self._speech_settings.tts_voice,
                 response_format=TextToSpeechFormat.WAV,
-                instructions=self._speech_config.tts_voice_instructions,
+                instructions=self._speech_settings.tts_voice_instructions,
             )
         )
         await self._player.play(response.audio, cancel=interrupt)

@@ -23,7 +23,7 @@ from .speech import (
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from .views import SpeechConfig
+from .views import SpeechSettings
 
 __all__ = [
     "AnswerGenerated",
@@ -40,7 +40,7 @@ __all__ = [
     "SessionEnded",
     "SessionStarted",
     "SonosAudioPlayer",
-    "SpeechConfig",
+    "SpeechSettings",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
     "StateChanged",

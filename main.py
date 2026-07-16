@@ -10,12 +10,12 @@ from cara import (
     SessionEnded,
     SessionStarted,
     SonosAudioPlayer,
-    SpeechConfig,
+    SpeechSettings,
     StateChanged,
     Transcribed,
     VoiceAssistant,
 )
-from cara.wakeword import WakeWord, WakeWordListener
+from cara.wakeword import WakeWord, WakeWordSettings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -63,18 +63,14 @@ async def main() -> None:
     await registry.start()
 
     assistant = VoiceAssistant(
-        speech_config=SpeechConfig(language="de"),
+        speech_settings=SpeechSettings(language="de"),
+        wake_word_settings=WakeWordSettings(wake_word=WakeWord.HEY_MYCROFT, sensitivity=0.5),
         event_bus=event_bus,
         player=SonosAudioPlayer(),
     )
 
-    listener = WakeWordListener(
-        on_detection=assistant.run,
-        wake_word=WakeWord.HEY_MYCROFT,
-        sensitivity=0.5,
-    )
     try:
-        await listener.listen()
+        await assistant.listen()
     finally:
         await registry.stop()
 
