@@ -59,7 +59,7 @@ def test_action_decorator_supports_pydantic_params() -> None:
     async def search(params: SearchParams) -> ActionResult:
         return ActionResult.success(f"{params.query}:{params.limit}")
 
-    result = asyncio.run(tools.execute("search", {"query": "songs"}))
+    result = asyncio.run(tools.execute("search", {"query": "songs", "status": "Ich suche kurz..."}))
 
     assert result == ActionResult.success("songs:10")
 
@@ -103,17 +103,16 @@ def test_to_schema_uses_pydantic_param_model() -> None:
 
     schema = next(item for item in tools.to_schema() if item["function"]["name"] == "search")
 
-    assert schema["function"]["parameters"] == {
-        "type": "object",
-        "properties": {
-            "query": {"description": "Search query", "type": "string"},
-            "limit": {"type": "integer", "default": 10},
-            "tags": {
-                "type": "array",
-                "items": {"type": "string"},
-                "minItems": 1,
-                "maxItems": 3,
-            },
-        },
-        "required": ["query"],
+    parameters = schema["function"]["parameters"]
+
+    assert parameters["type"] == "object"
+    assert parameters["properties"]["query"] == {"description": "Search query", "type": "string"}
+    assert parameters["properties"]["limit"] == {"type": "integer", "default": 10}
+    assert parameters["properties"]["tags"] == {
+        "type": "array",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 3,
     }
+    assert parameters["properties"]["status"]["type"] == "string"
+    assert set(parameters["required"]) == {"status", "query"}
