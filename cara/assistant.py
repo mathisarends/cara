@@ -102,7 +102,7 @@ class VoiceAssistant:
             extend_system_prompt=extend_system_prompt,
         )
 
-    async def listen(self) -> None:
+    async def start(self) -> None:
         """Listen for the wake word and start a session on each detection."""
         listener = WakeWordListener(
             on_detection=self._run,

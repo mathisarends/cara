@@ -21,7 +21,7 @@ async def main() -> None:
     ConsoleListener(assistant.event_bus)
     # HueListener(assistant.event_bus, room_name="Mein Zimmer")
 
-    await assistant.listen()
+    await assistant.start()
 
 
 if __name__ == "__main__":
