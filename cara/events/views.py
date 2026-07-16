@@ -60,3 +60,10 @@ class AnswerGenerated(Event):
     """Emitted once the full answer is known; streamed speech may already be playing."""
 
     answer: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class Interrupted(Event):
+    """Emitted when user speech interrupts an in-flight assistant response."""
+
+    phase: AssistantState

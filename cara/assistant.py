@@ -5,11 +5,13 @@ from collections.abc import AsyncIterator
 
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent
 
-from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudioPlayer
+from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudioPlayer, WebRtcEchoCanceller
+from cara.audio.barge_in import BargeInCapture
 from cara.events import (
     AnswerGenerated,
     AssistantState,
     EventBus,
+    Interrupted,
     SessionEnded,
     SessionStarted,
     StateChanged,
@@ -35,6 +37,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS = 7.0
 
 
+class _ResponseInterrupted(Exception):
+    pass
+
+
 class VoiceAssistant:
     def __init__(
         self,
@@ -55,6 +61,10 @@ class VoiceAssistant:
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
     ) -> None:
         self._llm = llm or ChatOpenAI()
+        if recorder is None and player is None:
+            echo_canceller = WebRtcEchoCanceller()
+            recorder = MicrophoneRecorder(echo_canceller=echo_canceller)
+            player = WavAudioPlayer(echo_canceller=echo_canceller)
         self._recorder = recorder or MicrophoneRecorder()
         player = player or WavAudioPlayer()
         self._stt = stt or OpenAISpeechToText(api_key)
@@ -113,12 +123,16 @@ class VoiceAssistant:
 
     async def _run(self) -> None:
         follow_up = False
+        pending_audio: bytes | None = None
         await self._event_bus.dispatch(SessionStarted())
         try:
             while True:
                 await self._event_bus.dispatch(TurnStarted())
 
-                audio = await self._record(follow_up=follow_up)
+                audio = pending_audio
+                pending_audio = None
+                if audio is None:
+                    audio = await self._record(follow_up=follow_up)
                 if audio is None:
                     break
                 transcript = await self._transcribe(audio)
@@ -127,7 +141,17 @@ class VoiceAssistant:
                     break
 
                 self._message_manager.add_user(transcript)
-                answer, end_session = await self._think()
+                async with BargeInCapture(self._recorder) as barge_in:
+                    try:
+                        answer, end_session = await self._think(interrupt=barge_in.interrupt)
+                    except _ResponseInterrupted:
+                        await self._event_bus.dispatch(Interrupted(phase=self._state))
+                        await self._set_state(AssistantState.LISTENING)
+                        pending_audio = await barge_in.receive()
+                        if pending_audio is None:
+                            break
+                        follow_up = False
+                        continue
                 self._message_manager.add_assistant(answer)
 
                 if end_session:
@@ -168,7 +192,7 @@ class VoiceAssistant:
                 return_when=asyncio.FIRST_COMPLETED,
             )
             if interrupt_task in done and interrupt.is_set():
-                raise asyncio.CancelledError("Assistant thinking was interrupted.")
+                raise _ResponseInterrupted
             return await response_task
         finally:
             for task in (response_task, interrupt_task):

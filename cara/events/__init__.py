@@ -2,6 +2,7 @@ from .bus import Event, EventBus, EventHandler, WildcardEventHandler
 from .views import (
     AnswerGenerated,
     AssistantState,
+    Interrupted,
     SessionEnded,
     SessionStarted,
     StateChanged,
@@ -15,6 +16,7 @@ __all__ = [
     "Event",
     "EventBus",
     "EventHandler",
+    "Interrupted",
     "SessionEnded",
     "SessionStarted",
     "StateChanged",

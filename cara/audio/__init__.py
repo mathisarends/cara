@@ -1,12 +1,16 @@
+from .echo import EchoCancellationSettings, WebRtcEchoCanceller
 from .player import WavAudioPlayer
-from .ports import AudioPlayer, SpeechRecorder
+from .ports import AudioPlayer, EchoCanceller, SpeechRecorder
 from .recorder import MicrophoneInputSettings, MicrophoneRecorder
 
 __all__ = [
     "AudioPlayer",
+    "EchoCancellationSettings",
+    "EchoCanceller",
     "MicrophoneRecorder",
     "MicrophoneInputSettings",
     "SpeechRecorder",
+    "WebRtcEchoCanceller",
     "SonosAudioPlayer",
     "WavAudioPlayer",
 ]
