@@ -5,7 +5,6 @@ from .events.views import (
     SessionStarted,
     StateChanged,
     Transcribed,
-    TurnCompleted,
     TurnStarted,
 )
 
@@ -16,6 +15,5 @@ __all__ = [
     "SessionStarted",
     "StateChanged",
     "Transcribed",
-    "TurnCompleted",
     "TurnStarted",
 ]

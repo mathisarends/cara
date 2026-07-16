@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from cara.tools import ActionResult, DoneParams, Inject, Tools
+from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, Tools
 
 
 class Greeting:
@@ -17,26 +17,21 @@ class SearchParams(BaseModel):
     tags: list[str] = Field(default_factory=list, min_length=1, max_length=3)
 
 
-def test_default_done_tool_returns_success() -> None:
+def test_default_end_session_tool_returns_farewell() -> None:
     tools = Tools()
 
-    result = asyncio.run(tools.execute("done"))
+    result = asyncio.run(tools.execute("end_session", {"farewell": "Bis bald!"}))
 
-    assert result == ActionResult.success("Done.")
+    assert result == ActionResult.success("Bis bald!")
 
 
-def test_default_done_tool_uses_empty_params_schema() -> None:
+def test_default_end_session_tool_is_tagged_with_kind() -> None:
     tools = Tools()
-    done = tools.get("done")
-    schema = next(item for item in tools.to_schema() if item["function"]["name"] == "done")
+    end_session = tools.get("end_session")
 
-    assert done is not None
-    assert done.param_model is DoneParams
-    assert schema["function"]["parameters"] == {
-        "type": "object",
-        "properties": {},
-        "required": [],
-    }
+    assert end_session is not None
+    assert end_session.param_model is EndSessionParams
+    assert end_session.kind is ActionKind.END_SESSION
 
 
 def test_action_decorator_registers_tool() -> None:

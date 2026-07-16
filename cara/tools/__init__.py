@@ -1,12 +1,13 @@
 from .di import Inject, ToolContext
-from .params import DoneParams
+from .params import EndSessionParams
 from .schemas import ToolSchema, ToolSchemaBuilder
 from .tools import Tools
-from .views import ActionResult, Tool, ToolCallable
+from .views import ActionKind, ActionResult, Tool, ToolCallable
 
 __all__ = [
+    "ActionKind",
     "ActionResult",
-    "DoneParams",
+    "EndSessionParams",
     "Inject",
     "Tool",
     "ToolCallable",

@@ -1,4 +1,4 @@
-from .assistant import VoiceAssistant, VoiceSession, VoiceTurn
+from .assistant import VoiceAssistant
 from .events import (
     AnswerGenerated,
     AssistantState,
@@ -9,7 +9,6 @@ from .events import (
     SessionStarted,
     StateChanged,
     Transcribed,
-    TurnCompleted,
     TurnStarted,
 )
 from .listener import LifecycleListener, ListenerRegistry
@@ -24,6 +23,7 @@ from .speech import (
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
+from .views import SpeechConfig
 
 __all__ = [
     "AnswerGenerated",
@@ -40,6 +40,7 @@ __all__ = [
     "SessionEnded",
     "SessionStarted",
     "SonosAudioPlayer",
+    "SpeechConfig",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
     "StateChanged",
@@ -48,11 +49,8 @@ __all__ = [
     "TextToSpeechRequest",
     "TextToSpeechResponse",
     "Transcribed",
-    "TurnCompleted",
     "TurnStarted",
     "VoiceAssistant",
-    "VoiceSession",
-    "VoiceTurn",
 ]
 
 

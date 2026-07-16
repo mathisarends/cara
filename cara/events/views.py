@@ -1,13 +1,7 @@
-from __future__ import annotations
-
 import time
 import uuid
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from cara.assistant import VoiceTurn
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -65,10 +59,3 @@ class AnswerGenerated(Event):
     """Emitted once the LLM produced an answer, before text-to-speech runs."""
 
     answer: str
-
-
-@dataclass(frozen=True, kw_only=True)
-class TurnCompleted(Event):
-    """Emitted when a full turn finished successfully."""
-
-    turn: VoiceTurn

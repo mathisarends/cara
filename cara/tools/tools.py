@@ -6,9 +6,9 @@ from pydantic import BaseModel
 
 from cara.tools.di import ToolContext
 from cara.tools.executor import ToolExecutor
-from cara.tools.params import DoneParams
+from cara.tools.params import EndSessionParams
 from cara.tools.schemas import ToolSchema
-from cara.tools.views import ActionResult, Tool
+from cara.tools.views import ActionKind, ActionResult, Tool
 
 
 class Tools:
@@ -39,6 +39,7 @@ class Tools:
         *,
         params: type[P] | None = None,
         status_label: Callable[[P], str] | None = None,
+        kind: ActionKind = ActionKind.GENERIC,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             self._register(
@@ -48,6 +49,7 @@ class Tools:
                     fn=fn,
                     param_model=params,
                     status_label=status_label,
+                    kind=kind,
                 )
             )
             return fn
@@ -65,9 +67,14 @@ class Tools:
 
     def _register_default_tools(self) -> None:
         @self.action(
-            description="Mark the current task as done.",
-            params=DoneParams,
-            status_label=lambda _params: "Done",
+            name="end_session",
+            description=(
+                "End the conversation when the user says goodbye or otherwise signals "
+                "they are finished. Provide a short spoken farewell."
+            ),
+            params=EndSessionParams,
+            status_label=lambda _params: "Ending session",
+            kind=ActionKind.END_SESSION,
         )
-        async def done(_params: DoneParams) -> ActionResult:
-            return ActionResult.success("Done.")
+        async def end_session(params: EndSessionParams) -> ActionResult:
+            return ActionResult.success(params.farewell)

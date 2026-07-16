@@ -1,11 +1,17 @@
 import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from enum import Enum, auto
 from typing import Any
 
 from pydantic import BaseModel
 
 from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
+
+
+class ActionKind(Enum):
+    GENERIC = auto()
+    END_SESSION = auto()
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,7 @@ class Tool:
     fn: ToolCallable
     param_model: type[BaseModel] | None = None
     status_label: Callable[[Any], str] | None = None
+    kind: ActionKind = ActionKind.GENERIC
 
     async def execute(self, kwargs: dict[str, Any]) -> ActionResult:
         result = self.fn(**kwargs)

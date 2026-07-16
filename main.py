@@ -10,6 +10,7 @@ from cara import (
     SessionEnded,
     SessionStarted,
     SonosAudioPlayer,
+    SpeechConfig,
     StateChanged,
     Transcribed,
     VoiceAssistant,
@@ -62,13 +63,13 @@ async def main() -> None:
     await registry.start()
 
     assistant = VoiceAssistant(
-        language="de",
+        speech_config=SpeechConfig(language="de"),
         event_bus=event_bus,
         player=SonosAudioPlayer(),
     )
 
     listener = WakeWordListener(
-        on_detection=assistant.run_session,
+        on_detection=assistant.run,
         wake_word=WakeWord.HEY_MYCROFT,
         sensitivity=0.5,
     )
