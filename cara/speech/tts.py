@@ -2,6 +2,7 @@ from openai import AsyncOpenAI, omit
 
 from cara.settings import OpenAICredentials
 from cara.speech.models import TextToSpeechRequest, TextToSpeechResponse
+from cara.speech.ports import TextToSpeech
 
 _CONTENT_TYPES = {
     "mp3": "audio/mpeg",
@@ -13,7 +14,7 @@ _CONTENT_TYPES = {
 }
 
 
-class OpenAITextToSpeech:
+class OpenAITextToSpeech(TextToSpeech):
     def __init__(self, api_key: str | None = None) -> None:
         openai_credentials = OpenAICredentials()
         self.client = AsyncOpenAI(api_key=api_key or openai_credentials.api_key.get_secret_value())

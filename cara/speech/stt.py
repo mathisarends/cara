@@ -5,11 +5,12 @@ from openai.types.audio import TranscriptionCreateResponse
 
 from cara.settings import OpenAICredentials
 from cara.speech.models import SpeechToTextRequest, SpeechToTextResponse
+from cara.speech.ports import SpeechToText
 
 type TranscriptionResult = TranscriptionCreateResponse | str
 
 
-class OpenAISpeechToText:
+class OpenAISpeechToText(SpeechToText):
     def __init__(self, api_key: str | None = None) -> None:
         openai_credentials = OpenAICredentials()
         self.client = AsyncOpenAI(api_key=api_key or openai_credentials.api_key.get_secret_value())

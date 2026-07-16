@@ -21,7 +21,9 @@ from cara.messages import MessageManager, SystemPrompt
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
+    SpeechToText,
     SpeechToTextRequest,
+    TextToSpeech,
     TextToSpeechFormat,
     TextToSpeechRequest,
 )
@@ -71,6 +73,8 @@ class VoiceAssistant:
         api_key: str | None = None,
         recorder: SpeechRecorder | None = None,
         player: AudioPlayer | None = None,
+        stt: SpeechToText | None = None,
+        tts: TextToSpeech | None = None,
         event_bus: EventBus,
         language: str = "de",
         system_prompt: str | SystemPrompt | None = None,
@@ -83,8 +87,8 @@ class VoiceAssistant:
         self._llm = llm or ChatOpenAI()
         self._recorder = recorder or MicrophoneRecorder()
         self._player = player or WavAudioPlayer()
-        self._stt = OpenAISpeechToText(api_key)
-        self._tts = OpenAITextToSpeech(api_key)
+        self._stt = stt or OpenAISpeechToText(api_key)
+        self._tts = tts or OpenAITextToSpeech(api_key)
         self._language = language
         self._system_prompt = self._build_system_prompt(
             system_prompt=system_prompt,
