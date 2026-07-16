@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-from dataclasses import dataclass
 
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI
 
@@ -33,12 +32,6 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS = 7.0
-
-
-@dataclass(frozen=True)
-class _Thought:
-    answer: str
-    end_session: bool
 
 
 class VoiceAssistant:
@@ -112,11 +105,11 @@ class VoiceAssistant:
                     break
 
                 self._message_manager.add_user(transcript)
-                thought = await self._think()
-                self._message_manager.add_assistant(thought.answer)
-                await self._speak(thought.answer)
+                answer, end_session = await self._think()
+                self._message_manager.add_assistant(answer)
+                await self._speak(answer)
 
-                if thought.end_session:
+                if end_session:
                     break
                 follow_up = True
         finally:
@@ -143,13 +136,13 @@ class VoiceAssistant:
             await self._event_bus.dispatch(Transcribed(transcript=transcript))
         return transcript
 
-    async def _think(self, *, interrupt: asyncio.Event | None = None) -> _Thought:
+    async def _think(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
         await self._set_state(AssistantState.THINKING)
         completion = await self._invoke_llm(interrupt=interrupt)
-        thought = await self._resolve_completion(completion)
-        logger.info("Assistant answer: %s", thought.answer)
-        await self._event_bus.dispatch(AnswerGenerated(answer=thought.answer))
-        return thought
+        answer, end_session = await self._resolve_completion(completion)
+        logger.info("Assistant answer: %s", answer)
+        await self._event_bus.dispatch(AnswerGenerated(answer=answer))
+        return answer, end_session
 
     async def _invoke_llm(self, *, interrupt: asyncio.Event | None) -> ChatInvokeCompletion[str]:
         if interrupt is None:
@@ -168,7 +161,7 @@ class VoiceAssistant:
             raise asyncio.CancelledError("Assistant thinking was interrupted.")
         return await reply_task
 
-    async def _resolve_completion(self, completion: ChatInvokeCompletion[str]) -> _Thought:
+    async def _resolve_completion(self, completion: ChatInvokeCompletion[str]) -> tuple[str, bool]:
         answer = completion.completion.strip()
         end_session = False
         for tool_call in completion.tool_calls:
@@ -179,13 +172,14 @@ class VoiceAssistant:
                 end_session = True
                 if result.content:
                     answer = result.content.strip()
-        return _Thought(answer=answer, end_session=end_session)
+        return answer, end_session
 
     async def _speak(self, answer: str, *, interrupt: asyncio.Event | None = None) -> bytes:
         await self._set_state(AssistantState.SPEAKING)
         response = await self._tts.synthesize(
             TextToSpeechRequest(
                 text=answer,
+                voice=self._speech_config.tts_voice,
                 response_format=TextToSpeechFormat.WAV,
                 instructions=self._speech_config.tts_voice_instructions,
             )
