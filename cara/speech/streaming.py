@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 
 from cara.audio import AudioPlayer
 from cara.speech.models import TextToSpeechFormat, TextToSpeechRequest, TextToSpeechVoice
 from cara.speech.ports import TextToSpeech
+
+logger = logging.getLogger(__name__)
 
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?\u2026])(?:[\"'\u00bb\u201d)\]]+)?(?=\s)")
 
@@ -24,11 +27,19 @@ class PunctuationSentenceChunker:
                 sentences.append(sentence)
             start = match.end()
         self._buffer = self._buffer[start:]
+        if sentences:
+            logger.debug(
+                "Chunked streamed text into %d sentence(s); %d characters remain buffered.",
+                len(sentences),
+                len(self._buffer),
+            )
         return sentences
 
     def flush(self) -> str | None:
         sentence = self._buffer.strip()
         self._buffer = ""
+        if sentence:
+            logger.debug("Flushed final speech chunk with %d characters.", len(sentence))
         return sentence or None
 
 
@@ -81,10 +92,14 @@ class StreamingTextToSpeech:
         cancel: asyncio.Event | None = None,
         on_started: _SpeechStartedHandler | None = None,
     ) -> None:
+        logger.info("Starting streaming text-to-speech pipeline.")
         audio_chunks: asyncio.Queue[bytes | None] = asyncio.Queue()
-        async with asyncio.TaskGroup() as task_group:
-            task_group.create_task(self._synthesize(text_chunks, audio_chunks, on_started=on_started))
-            task_group.create_task(self._play(audio_chunks, cancel=cancel))
+        try:
+            async with asyncio.TaskGroup() as task_group:
+                task_group.create_task(self._synthesize(text_chunks, audio_chunks, on_started=on_started))
+                task_group.create_task(self._play(audio_chunks, cancel=cancel))
+        finally:
+            logger.info("Streaming text-to-speech pipeline finished.")
 
     async def _synthesize(
         self,
@@ -94,12 +109,19 @@ class StreamingTextToSpeech:
         on_started: _SpeechStartedHandler | None,
     ) -> None:
         started = False
+        chunk_number = 0
         try:
             async for text in text_chunks:
+                chunk_number += 1
                 if not started:
                     if on_started is not None:
                         await on_started()
                     started = True
+                logger.info(
+                    "Synthesizing speech chunk %d with %d characters.",
+                    chunk_number,
+                    len(text),
+                )
                 response = await self._tts.synthesize(
                     TextToSpeechRequest(
                         text=text,
@@ -118,7 +140,11 @@ class StreamingTextToSpeech:
         *,
         cancel: asyncio.Event | None,
     ) -> None:
+        chunk_number = 0
         while (audio := await audio_chunks.get()) is not None:
             if cancel is not None and cancel.is_set():
+                logger.info("Streaming speech playback cancelled before the next chunk.")
                 return
+            chunk_number += 1
+            logger.info("Playing speech chunk %d with %d bytes.", chunk_number, len(audio))
             await self._player.play(audio, cancel=cancel)
