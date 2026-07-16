@@ -9,7 +9,6 @@ from cara import (
     ListenerRegistry,
     SessionEnded,
     SessionStarted,
-    SonosAudioPlayer,
     SpeechSettings,
     StateChanged,
     Transcribed,
@@ -66,7 +65,6 @@ async def main() -> None:
         speech_settings=SpeechSettings(language="de"),
         wake_word_settings=WakeWordSettings(wake_word=WakeWord.HEY_MYCROFT, sensitivity=0.5),
         event_bus=event_bus,
-        player=SonosAudioPlayer(),
     )
 
     try:

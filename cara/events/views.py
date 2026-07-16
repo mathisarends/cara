@@ -56,6 +56,6 @@ class Transcribed(Event):
 
 @dataclass(frozen=True, kw_only=True)
 class AnswerGenerated(Event):
-    """Emitted once the LLM produced an answer, before text-to-speech runs."""
+    """Emitted once the full answer is known; streamed speech may already be playing."""
 
     answer: str

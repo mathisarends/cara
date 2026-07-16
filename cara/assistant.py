@@ -1,8 +1,9 @@
 import asyncio
 import json
 import logging
+from collections.abc import AsyncIterator
 
-from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI
+from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent
 
 from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudioPlayer
 from cara.events import (
@@ -16,21 +17,20 @@ from cara.events import (
     TurnStarted,
 )
 from cara.messages import MessageManager, SystemPrompt
+from cara.replies import StreamingReply
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
     SpeechToText,
     SpeechToTextRequest,
     TextToSpeech,
-    TextToSpeechFormat,
-    TextToSpeechRequest,
 )
+from cara.speech.streaming import PunctuationSentenceChunker, StreamingTextToSpeech
 from cara.tools import ActionKind, Tools
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
 
 logger = logging.getLogger(__name__)
-
 
 DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS = 7.0
 
@@ -45,7 +45,7 @@ class VoiceAssistant:
         player: AudioPlayer | None = None,
         stt: SpeechToText | None = None,
         tts: TextToSpeech | None = None,
-        event_bus: EventBus,
+        event_bus: EventBus | None = None,
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
         speech_settings: SpeechSettings | None = None,
@@ -56,11 +56,17 @@ class VoiceAssistant:
     ) -> None:
         self._llm = llm or ChatOpenAI()
         self._recorder = recorder or MicrophoneRecorder()
-        self._player = player or WavAudioPlayer()
+        player = player or WavAudioPlayer()
         self._stt = stt or OpenAISpeechToText(api_key)
-        self._tts = tts or OpenAITextToSpeech(api_key)
+        tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
         self._speech_settings = speech_settings or SpeechSettings()
+        self._speech_stream = StreamingTextToSpeech(
+            tts=tts,
+            player=player,
+            voice=self._speech_settings.tts_voice,
+            instructions=self._speech_settings.tts_voice_instructions,
+        )
         self._wake_word_settings = wake_word_settings
         self._system_prompt = self._build_system_prompt(
             system_prompt=system_prompt,
@@ -69,12 +75,16 @@ class VoiceAssistant:
         )
         self._message_manager = MessageManager(system_prompt=self._system_prompt)
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
-        self._event_bus = event_bus
+        self._event_bus = event_bus or EventBus()
         self._state = AssistantState.IDLE
 
     @property
     def state(self) -> AssistantState:
         return self._state
+
+    @property
+    def event_bus(self) -> EventBus:
+        return self._event_bus
 
     def _build_system_prompt(
         self,
@@ -108,10 +118,10 @@ class VoiceAssistant:
             while True:
                 await self._event_bus.dispatch(TurnStarted())
 
-                utterance_audio = await self._record(follow_up=follow_up)
-                if utterance_audio is None:
+                audio = await self._record(follow_up=follow_up)
+                if audio is None:
                     break
-                transcript = await self._transcribe(utterance_audio)
+                transcript = await self._transcribe(audio)
                 if not transcript:
                     logger.info("Ignoring empty transcription")
                     break
@@ -119,7 +129,6 @@ class VoiceAssistant:
                 self._message_manager.add_user(transcript)
                 answer, end_session = await self._think()
                 self._message_manager.add_assistant(answer)
-                await self._speak(answer)
 
                 if end_session:
                     break
@@ -137,11 +146,9 @@ class VoiceAssistant:
         await self._set_state(AssistantState.LISTENING)
         return await self._recorder.record_until_silence()
 
-    async def _transcribe(self, utterance_audio: bytes) -> str:
+    async def _transcribe(self, audio: bytes) -> str:
         await self._set_state(AssistantState.TRANSCRIBING)
-        response = await self._stt.transcribe(
-            SpeechToTextRequest(audio=utterance_audio, language=self._speech_settings.language)
-        )
+        response = await self._stt.transcribe(SpeechToTextRequest(audio=audio, language=self._speech_settings.language))
         transcript = response.text.strip()
         if transcript:
             logger.info("User said: %s", transcript)
@@ -150,28 +157,42 @@ class VoiceAssistant:
 
     async def _think(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
         await self._set_state(AssistantState.THINKING)
-        completion = await self._invoke_llm(interrupt=interrupt)
-        answer, end_session = await self._resolve_completion(completion)
-        logger.info("Assistant answer: %s", answer)
-        await self._event_bus.dispatch(AnswerGenerated(answer=answer))
-        return answer, end_session
-
-    async def _invoke_llm(self, *, interrupt: asyncio.Event | None) -> ChatInvokeCompletion[str]:
         if interrupt is None:
-            return await self._reply()
+            return await self._stream_response()
 
-        reply_task = asyncio.create_task(self._reply())
+        response_task = asyncio.create_task(self._stream_response(interrupt=interrupt))
         interrupt_task = asyncio.create_task(interrupt.wait())
-        done, pending = await asyncio.wait(
-            {reply_task, interrupt_task},
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        for task in pending:
-            task.cancel()
-        if interrupt_task in done and interrupt.is_set():
-            reply_task.cancel()
-            raise asyncio.CancelledError("Assistant thinking was interrupted.")
-        return await reply_task
+        try:
+            done, _ = await asyncio.wait(
+                {response_task, interrupt_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if interrupt_task in done and interrupt.is_set():
+                raise asyncio.CancelledError("Assistant thinking was interrupted.")
+            return await response_task
+        finally:
+            for task in (response_task, interrupt_task):
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
+
+    async def _stream_response(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
+        reply = StreamingReply(self._reply(), PunctuationSentenceChunker())
+        async with asyncio.TaskGroup() as task_group:
+            reply_task = task_group.create_task(self._resolve_streaming_reply(reply))
+            task_group.create_task(self._speak(reply.text_chunks, interrupt=interrupt))
+        return reply_task.result()
+
+    async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool]:
+        try:
+            completion = await reply.collect()
+            answer, end_session = await self._resolve_completion(completion)
+            logger.info("Assistant answer: %s", answer)
+            await self._event_bus.dispatch(AnswerGenerated(answer=answer))
+            reply.finish(answer)
+            return answer, end_session
+        finally:
+            reply.close()
 
     async def _resolve_completion(self, completion: ChatInvokeCompletion[str]) -> tuple[str, bool]:
         answer = completion.completion.strip()
@@ -186,24 +207,24 @@ class VoiceAssistant:
                     answer = result.content.strip()
         return answer, end_session
 
-    async def _speak(self, answer: str, *, interrupt: asyncio.Event | None = None) -> bytes:
-        await self._set_state(AssistantState.SPEAKING)
-        response = await self._tts.synthesize(
-            TextToSpeechRequest(
-                text=answer,
-                voice=self._speech_settings.tts_voice,
-                response_format=TextToSpeechFormat.WAV,
-                instructions=self._speech_settings.tts_voice_instructions,
-            )
+    async def _speak(
+        self,
+        sentences: AsyncIterator[str],
+        *,
+        interrupt: asyncio.Event | None = None,
+    ) -> None:
+        await self._speech_stream.speak(
+            sentences,
+            cancel=interrupt,
+            on_started=lambda: self._set_state(AssistantState.SPEAKING),
         )
-        await self._player.play(response.audio, cancel=interrupt)
-        return response.audio
 
-    async def _reply(self) -> ChatInvokeCompletion[str]:
-        return await self._llm.invoke(
+    async def _reply(self) -> AsyncIterator[StreamEvent]:
+        async for event in self._llm.stream(
             self._message_manager.to_llm_messages(),
             tools=self._tools.to_schema(),
-        )
+        ):
+            yield event
 
     async def _set_state(self, state: AssistantState) -> None:
         self._state = state
