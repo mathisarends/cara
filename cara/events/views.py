@@ -18,6 +18,7 @@ class AssistantState(StrEnum):
     WAITING_FOLLOW_UP = "waiting_follow_up"
     TRANSCRIBING = "transcribing"
     THINKING = "thinking"
+    CALLING_TOOL = "calling_tool"
     SPEAKING = "speaking"
 
 

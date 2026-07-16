@@ -2,11 +2,9 @@ import builtins
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel
-
 from cara.tools.di import ToolContext
 from cara.tools.executor import ToolExecutor
-from cara.tools.params import EndSessionParams
+from cara.tools.params import EndSessionParams, ToolParams
 from cara.tools.schemas import ToolSchema
 from cara.tools.views import ActionKind, ActionResult, Tool
 
@@ -32,13 +30,12 @@ class Tools:
     def get(self, name: str) -> Tool | None:
         return self._tools.get(name)
 
-    def action[P: BaseModel](
+    def action[P: ToolParams](
         self,
         description: str | None = None,
         name: str | None = None,
         *,
         params: type[P] | None = None,
-        status_label: Callable[[P], str] | None = None,
         kind: ActionKind = ActionKind.GENERIC,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -48,7 +45,6 @@ class Tools:
                     description=description,
                     fn=fn,
                     param_model=params,
-                    status_label=status_label,
                     kind=kind,
                 )
             )
@@ -73,7 +69,6 @@ class Tools:
                 "they are finished. Provide a short spoken farewell."
             ),
             params=EndSessionParams,
-            status_label=lambda _params: "Ending session",
             kind=ActionKind.END_SESSION,
         )
         async def end_session(params: EndSessionParams) -> ActionResult:

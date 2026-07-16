@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 from cara.speech import TextToSpeechRequest, TextToSpeechResponse, TextToSpeechVoice
-from cara.speech.streaming import PunctuationSentenceChunker, StreamingTextToSpeech
+from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 
 
 class RecordingTextToSpeech:
@@ -39,15 +39,33 @@ async def _text_chunks(*chunks: str) -> AsyncIterator[str]:
         yield chunk
 
 
-def test_punctuation_sentence_chunker_handles_token_boundaries_and_final_fragment() -> None:
-    chunker = PunctuationSentenceChunker()
+def test_natural_pause_chunker_keeps_short_answers_together() -> None:
+    chunker = NaturalPauseChunker(
+        min_chunk_chars=300,
+        target_chunk_chars=500,
+        max_chunk_chars=800,
+    )
+    answer = "Hallo Welt. Wie geht es dir? Mir geht es gut."
 
-    assert chunker.add("Hallo Welt") == []
-    assert chunker.add(". Wie") == ["Hallo Welt."]
-    assert chunker.add(" geht es? ") == ["Wie geht es?"]
-    assert chunker.add("Gut") == []
-    assert chunker.flush() == "Gut"
+    assert chunker.add(answer) == []
+    assert chunker.flush() == answer
     assert chunker.flush() is None
+
+
+def test_natural_pause_chunker_groups_sentences_near_the_target_size() -> None:
+    chunker = NaturalPauseChunker(
+        min_chunk_chars=300,
+        target_chunk_chars=500,
+        max_chunk_chars=800,
+    )
+    first_sentence = f"{'A' * 339}."
+    second_sentence = f"{'B' * 139}."
+    final_sentence = f"{'C' * 319}."
+
+    chunks = chunker.add(f"{first_sentence} {second_sentence} {final_sentence}")
+
+    assert chunks == [f"{first_sentence} {second_sentence}"]
+    assert chunker.flush() == final_sentence
 
 
 def test_streaming_tts_synthesizes_ahead_while_preserving_playback_order() -> None:

@@ -2,10 +2,11 @@ import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Self
 
-from pydantic import BaseModel
+from pydantic import ValidationError
 
+from cara.tools.params import ToolParams
 from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
 
 
@@ -20,11 +21,11 @@ class ActionResult:
     content: str | None = None
 
     @classmethod
-    def success(cls, content: str | None = None) -> "ActionResult":
+    def success(cls, content: str | None = None) -> Self:
         return cls(ok=True, content=content)
 
     @classmethod
-    def fail(cls, error: Exception | str) -> "ActionResult":
+    def fail(cls, error: Exception | str) -> Self:
         return cls(ok=False, content=str(error))
 
 
@@ -36,9 +37,22 @@ class Tool:
     name: str
     description: str | None
     fn: ToolCallable
-    param_model: type[BaseModel] | None = None
-    status_label: Callable[[Any], str] | None = None
+    param_model: type[ToolParams] | None = None
     kind: ActionKind = ActionKind.GENERIC
+
+    def status(self, args: dict[str, Any]) -> str | None:
+        """Spoken status the LLM generated for this call, or ``None``.
+
+        Invalid arguments yield ``None`` instead of raising; the call itself
+        will surface the validation error when it executes.
+        """
+        if self.param_model is None:
+            return None
+        try:
+            params = self.param_model.model_validate(args)
+        except ValidationError:
+            return None
+        return params.status
 
     async def execute(self, kwargs: dict[str, Any]) -> ActionResult:
         result = self.fn(**kwargs)

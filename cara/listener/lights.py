@@ -31,6 +31,7 @@ DEFAULT_STATE_EFFECTS: dict[AssistantState, tuple[Color, int]] = {
     AssistantState.WAITING_FOLLOW_UP: (Color.TEAL, 55),
     AssistantState.TRANSCRIBING: (Color.CYAN, 75),
     AssistantState.THINKING: (Color.PURPLE, 60),
+    AssistantState.CALLING_TOOL: (Color.VIOLET, 70),
     AssistantState.SPEAKING: (Color.WARM_WHITE, 95),
     AssistantState.IDLE: (Color.WARM_WHITE, 50),
 }

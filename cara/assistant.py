@@ -25,7 +25,7 @@ from cara.speech import (
     SpeechToTextRequest,
     TextToSpeech,
 )
-from cara.speech.streaming import PunctuationSentenceChunker, StreamingTextToSpeech
+from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 from cara.tools import ActionKind, Tools
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
@@ -177,7 +177,14 @@ class VoiceAssistant:
             await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
 
     async def _stream_response(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
-        reply = StreamingReply(self._reply(), PunctuationSentenceChunker())
+        reply = StreamingReply(
+            self._reply(),
+            NaturalPauseChunker(
+                min_chunk_chars=300,
+                target_chunk_chars=500,
+                max_chunk_chars=800,
+            ),
+        )
         async with asyncio.TaskGroup() as task_group:
             reply_task = task_group.create_task(self._resolve_streaming_reply(reply))
             task_group.create_task(self._speak(reply.text_chunks, interrupt=interrupt))
@@ -186,7 +193,7 @@ class VoiceAssistant:
     async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool]:
         try:
             completion = await reply.collect()
-            answer, end_session = await self._resolve_completion(completion)
+            answer, end_session = await self._resolve_completion(completion, reply)
             logger.info("Assistant answer: %s", answer)
             await self._event_bus.dispatch(AnswerGenerated(answer=answer))
             reply.finish(answer)
@@ -194,13 +201,24 @@ class VoiceAssistant:
         finally:
             reply.close()
 
-    async def _resolve_completion(self, completion: ChatInvokeCompletion[str]) -> tuple[str, bool]:
+    async def _resolve_completion(
+        self,
+        completion: ChatInvokeCompletion[str],
+        reply: StreamingReply,
+    ) -> tuple[str, bool]:
         answer = completion.completion.strip()
         end_session = False
         for tool_call in completion.tool_calls:
+            name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
-            result = await self._tools.execute(tool_call.function.name, arguments)
-            tool = self._tools.get(tool_call.function.name)
+            tool = self._tools.get(name)
+            status = tool.status(arguments) if tool is not None else None
+
+            await self._set_state(AssistantState.CALLING_TOOL)
+            if status and tool is not None and tool.kind is ActionKind.GENERIC:
+                reply.announce(status)
+
+            result = await self._tools.execute(name, arguments)
             if tool is not None and tool.kind is ActionKind.END_SESSION:
                 end_session = True
                 if result.content:

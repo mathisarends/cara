@@ -10,30 +10,67 @@ from cara.speech.ports import TextToSpeech
 logger = logging.getLogger(__name__)
 
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?\u2026])(?:[\"'\u00bb\u201d)\]]+)?(?=\s)")
+_PARAGRAPH_BOUNDARY = re.compile(r"\n\s*\n")
 
 type _SpeechStartedHandler = Callable[[], Awaitable[None]]
 
 
-class PunctuationSentenceChunker:
-    def __init__(self) -> None:
+class NaturalPauseChunker:
+    def __init__(
+        self,
+        *,
+        min_chunk_chars: int,
+        target_chunk_chars: int,
+        max_chunk_chars: int,
+    ) -> None:
+        if not 0 < min_chunk_chars <= target_chunk_chars <= max_chunk_chars <= 4096:
+            raise ValueError("Chunk sizes must satisfy 0 < min <= target <= max <= 4096.")
+        self._min_chunk_chars = min_chunk_chars
+        self._target_chunk_chars = target_chunk_chars
+        self._max_chunk_chars = max_chunk_chars
         self._buffer = ""
 
     def add(self, text: str) -> list[str]:
         self._buffer += text
-        sentences: list[str] = []
-        start = 0
-        for match in _SENTENCE_BOUNDARY.finditer(self._buffer):
-            if sentence := self._buffer[start : match.end()].strip():
-                sentences.append(sentence)
-            start = match.end()
-        self._buffer = self._buffer[start:]
-        if sentences:
-            logger.debug(
-                "Chunked streamed text into %d sentence(s); %d characters remain buffered.",
-                len(sentences),
-                len(self._buffer),
+        chunks: list[str] = []
+        while len(self._buffer) >= self._max_chunk_chars:
+            boundary = self._find_natural_boundary()
+            chunk = self._buffer[:boundary].strip()
+            self._buffer = self._buffer[boundary:].lstrip()
+            if chunk:
+                chunks.append(chunk)
+                logger.info(
+                    "Created natural-pause speech chunk with %d characters; %d remain buffered.",
+                    len(chunk),
+                    len(self._buffer),
+                )
+        return chunks
+
+    def _find_natural_boundary(self) -> int:
+        paragraph_boundaries = [
+            match.end()
+            for match in _PARAGRAPH_BOUNDARY.finditer(self._buffer, 0, self._max_chunk_chars)
+            if match.end() >= self._min_chunk_chars
+        ]
+        if paragraph_boundaries:
+            return min(
+                paragraph_boundaries,
+                key=lambda boundary: abs(boundary - self._target_chunk_chars),
             )
-        return sentences
+
+        sentence_boundaries = [
+            match.end()
+            for match in _SENTENCE_BOUNDARY.finditer(self._buffer, 0, self._max_chunk_chars)
+            if match.end() >= self._min_chunk_chars
+        ]
+        if sentence_boundaries:
+            return min(
+                sentence_boundaries,
+                key=lambda boundary: abs(boundary - self._target_chunk_chars),
+            )
+
+        word_boundary = self._buffer.rfind(" ", self._min_chunk_chars, self._max_chunk_chars + 1)
+        return word_boundary + 1 if word_boundary >= 0 else self._max_chunk_chars
 
     def flush(self) -> str | None:
         sentence = self._buffer.strip()

@@ -7,6 +7,13 @@ from cara.events import AnswerGenerated, EventBus
 from cara.speech import TextToSpeechRequest, TextToSpeechResponse
 from cara.wakeword import WakeWordSettings
 
+_FIRST_SENTENCE = f"{'A' * 339}."
+_SECOND_SENTENCE = f"{'B' * 139}."
+_THIRD_SENTENCE = f"{'C' * 319}."
+_FIRST_SPEECH_CHUNK = f"{_FIRST_SENTENCE} {_SECOND_SENTENCE}"
+_FINAL_SPEECH_CHUNK = f"{_THIRD_SENTENCE} Abschluss."
+_STREAMED_ANSWER = f"{_FIRST_SPEECH_CHUNK} {_FINAL_SPEECH_CHUNK}"
+
 
 class UnusedRecorder:
     async def record_until_silence(self, *, initial_silence_timeout: float | None = None) -> bytes | None:
@@ -51,18 +58,21 @@ class CoordinatedChatModel:
         self._player = player
 
     async def stream(self, messages, *, tools):
-        yield StreamTextDelta(delta="Erster Satz. ")
+        yield StreamTextDelta(delta=f"{_FIRST_SPEECH_CHUNK} {_THIRD_SENTENCE}")
         await asyncio.wait_for(self._player.first_playback_started.wait(), timeout=1)
         self._player.second_delta_generated.set()
-        yield StreamTextDelta(delta="Zweiter Satz.")
-        yield StreamEnd(completion="Erster Satz. Zweiter Satz.")
+        yield StreamTextDelta(delta=" Abschluss.")
+        yield StreamEnd(completion=_STREAMED_ANSWER)
 
 
 class EndSessionChatModel:
     async def stream(self, messages, *, tools):
         tool_call = ToolCall(
             id="end-session",
-            function=Function(name="end_session", arguments='{"farewell":"Bis bald!"}'),
+            function=Function(
+                name="end_session",
+                arguments='{"farewell":"Bis bald!","status":"Ich beende die Sitzung..."}',
+            ),
         )
         yield StreamToolCall(tool_call=tool_call)
         yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
@@ -80,7 +90,7 @@ def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlaye
     )
 
 
-def test_assistant_plays_first_sentence_while_llm_generates_the_rest() -> None:
+def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> None:
     async def run() -> tuple[str, bool, RecordingTextToSpeech, CoordinatedAudioPlayer, list[str]]:
         player = CoordinatedAudioPlayer()
         tts = RecordingTextToSpeech()
@@ -96,10 +106,10 @@ def test_assistant_plays_first_sentence_while_llm_generates_the_rest() -> None:
 
     answer, end_session, tts, player, answers = asyncio.run(run())
 
-    assert answer == "Erster Satz. Zweiter Satz."
+    assert answer == _STREAMED_ANSWER
     assert end_session is False
-    assert tts.texts == ["Erster Satz.", "Zweiter Satz."]
-    assert player.audio == [b"Erster Satz.", b"Zweiter Satz."]
+    assert tts.texts == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
+    assert player.audio == [_FIRST_SPEECH_CHUNK.encode(), _FINAL_SPEECH_CHUNK.encode()]
     assert answers == [answer]
 
 

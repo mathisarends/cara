@@ -2,14 +2,14 @@ from collections.abc import AsyncIterator
 
 from llmify import ChatInvokeCompletion, StreamEnd, StreamEvent, StreamTextDelta, StreamToolCall
 
-from cara.speech.streaming import PunctuationSentenceChunker, TextChunkStream
+from cara.speech.streaming import NaturalPauseChunker, TextChunkStream
 
 
 class StreamingReply:
     def __init__(
         self,
         events: AsyncIterator[StreamEvent],
-        chunker: PunctuationSentenceChunker,
+        chunker: NaturalPauseChunker,
     ) -> None:
         self._events = events
         self._chunker = chunker
@@ -45,6 +45,10 @@ class StreamingReply:
         finally:
             if not collected:
                 self.close()
+
+    def announce(self, text: str) -> None:
+        """Queue an interim spoken sentence (e.g. a tool-call status) ahead of the answer."""
+        self._text_chunks.send(text)
 
     def finish(self, answer: str) -> None:
         if self._completion is None:

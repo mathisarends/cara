@@ -1,9 +1,9 @@
 import asyncio
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, Tools
+from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolParams, Tools
 
 
 class Greeting:
@@ -11,7 +11,7 @@ class Greeting:
         self.text = text
 
 
-class SearchParams(BaseModel):
+class SearchParams(ToolParams):
     query: str = Field(description="Search query")
     limit: int = 10
     tags: list[str] = Field(default_factory=list, min_length=1, max_length=3)
@@ -20,7 +20,12 @@ class SearchParams(BaseModel):
 def test_default_end_session_tool_returns_farewell() -> None:
     tools = Tools()
 
-    result = asyncio.run(tools.execute("end_session", {"farewell": "Bis bald!"}))
+    result = asyncio.run(
+        tools.execute(
+            "end_session",
+            {"farewell": "Bis bald!", "status": "Ich beende die Sitzung..."},
+        )
+    )
 
     assert result == ActionResult.success("Bis bald!")
 
