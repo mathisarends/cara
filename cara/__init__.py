@@ -11,8 +11,7 @@ from .events import (
     Transcribed,
     TurnStarted,
 )
-from .listener import LifecycleListener, ListenerRegistry
-from .listener.lights import HueLifecycleListener
+from .listener import HueListener
 from .messages import MessageManager, SystemPrompt
 from .speech import (
     OpenAISpeechToText,
@@ -33,9 +32,7 @@ __all__ = [
     "Event",
     "EventBus",
     "EventHandler",
-    "HueLifecycleListener",
-    "LifecycleListener",
-    "ListenerRegistry",
+    "HueListener",
     "MessageManager",
     "SessionEnded",
     "SessionStarted",

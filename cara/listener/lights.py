@@ -1,4 +1,4 @@
-"""Philips Hue lifecycle listener.
+"""Philips Hue listener.
 
 Drives a Hue room's lighting in response to the assistant lifecycle so the room
 visibly reflects what Cara is doing: listening, thinking, speaking, idle.
@@ -6,8 +6,6 @@ visibly reflects what Cara is doing: listening, thinking, speaking, idle.
 Credentials are read from the ``HUE_BRIDGE_IP`` and ``HUE_APP_KEY`` environment
 variables (see :class:`hueify.Hueify`).
 """
-
-from __future__ import annotations
 
 import logging
 
@@ -20,7 +18,6 @@ from cara.events import (
     SessionStarted,
     StateChanged,
 )
-from cara.listener import LifecycleListener
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +34,13 @@ DEFAULT_STATE_EFFECTS: dict[AssistantState, tuple[Color, int]] = {
 }
 
 
-class HueLifecycleListener(LifecycleListener):
+class HueListener:
     """Reflects the assistant lifecycle on a Hue room's lights.
 
-    Construct it, then ``await start()`` once (connects to the bridge and
-    resolves the room) before subscribing it to the assistant event bus. Each
-    ``StateChanged`` event sets the room's color and brightness; the room is
+    Construct it with the assistant's event bus and it subscribes itself to the
+    relevant events. The bridge connection is established lazily on the first
+    event, so no explicit lifecycle management is required: each
+    ``StateChanged`` event sets the room's color and brightness, and the room is
     switched on when a session begins.
     """
 
@@ -54,40 +52,31 @@ class HueLifecycleListener(LifecycleListener):
         hue: Hueify | None = None,
         state_effects: dict[AssistantState, tuple[Color, int]] | None = None,
     ) -> None:
+        self._event_bus = event_bus
         self._room_name = room_name
         self._hue = hue or Hueify()
         self._state_effects = state_effects or DEFAULT_STATE_EFFECTS
         self._room: GroupedLights | None = None
-        event_bus.subscribe(SessionStarted, self.on_session_started)
-        event_bus.subscribe(StateChanged, self.on_state_changed)
+        self._event_bus.subscribe(SessionStarted, self._on_session_started)
+        self._event_bus.subscribe(StateChanged, self._on_state_changed)
 
-    async def start(self) -> None:
-        """Connect to the bridge and resolve the target room. Call once."""
-        await self._hue.connect()
-        self._room = self._hue.rooms.from_name(self._room_name)
-        logger.info("Hue listener bound to room %r", self._room_name)
+    async def _on_session_started(self, event: SessionStarted) -> None:
+        room = await self._ensure_room()
+        await room.turn_on()
 
-    async def stop(self) -> None:
-        """Disconnect from the bridge. Safe to call multiple times."""
-        await self._hue.close()
-
-    async def on_session_started(self, event: SessionStarted) -> None:
-        await self._turn_on()
-
-    async def on_state_changed(self, event: StateChanged) -> None:
-        await self._apply(event.state)
-
-    async def _turn_on(self) -> None:
-        if self._room is None:
-            return
-        await self._room.turn_on()
-
-    async def _apply(self, state: AssistantState) -> None:
-        if self._room is None:
-            return
-        effect = self._state_effects.get(state)
+    async def _on_state_changed(self, event: StateChanged) -> None:
+        effect = self._state_effects.get(event.state)
         if effect is None:
             return
+        room = await self._ensure_room()
         color, brightness = effect
-        await self._room.set_named_color(color)
-        await self._room.set_brightness(brightness)
+        await room.set_named_color(color)
+        await room.set_brightness(brightness)
+
+    async def _ensure_room(self) -> GroupedLights:
+        """Connect to the bridge and resolve the target room on first use."""
+        if self._room is None:
+            await self._hue.connect()
+            self._room = self._hue.rooms.from_name(self._room_name)
+            logger.info("Hue listener bound to room %r", self._room_name)
+        return self._room
