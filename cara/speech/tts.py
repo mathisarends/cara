@@ -16,7 +16,7 @@ _CONTENT_TYPES = {
 class OpenAITextToSpeech:
     def __init__(self, api_key: str | None = None) -> None:
         openai_credentials = OpenAICredentials()
-        self.client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
+        self.client = AsyncOpenAI(api_key=api_key or openai_credentials.api_key.get_secret_value())
 
     async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
         result = await self.client.audio.speech.create(

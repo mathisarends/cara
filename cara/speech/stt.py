@@ -12,7 +12,7 @@ type TranscriptionResult = TranscriptionCreateResponse | str
 class OpenAISpeechToText:
     def __init__(self, api_key: str | None = None) -> None:
         openai_credentials = OpenAICredentials()
-        self.client = AsyncOpenAI(api_key=api_key or openai_credentials.require_api_key())
+        self.client = AsyncOpenAI(api_key=api_key or openai_credentials.api_key.get_secret_value())
 
     async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
         params = request.to_openai_params()
