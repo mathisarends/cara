@@ -17,3 +17,18 @@ uv run python main.py
 ```
 
 The default wake word is `hey_mycroft`. Runtime recordings and TTS files are written below the system temp directory in `cara`.
+
+## Device discovery
+
+Helper scripts under `scripts/` find the local devices Cara talks to and print the environment variables to add to your `.env`:
+
+```bash
+# Sonos speakers -> SONOS_IP_ADDRESS (skips the runtime network scan)
+bash scripts/discover_sonos.sh
+
+# Philips Hue bridge -> HUE_BRIDGE_IP and HUE_APP_KEY
+# (press the bridge's link button when prompted)
+bash scripts/discover_hue.sh
+```
+
+Sonos discovery needs the optional `sonos` dependency; the script runs it via `uv run --extra sonos`.
