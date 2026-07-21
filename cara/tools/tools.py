@@ -18,7 +18,20 @@ from cara.tools.params import (
     WriteFileParams,
 )
 from cara.tools.schemas import ToolSchema
-from cara.tools.views import ActionKind, ActionResult, Tool
+from cara.tools.views import ActionKind, ActionResult, Tool, ToolAvailability, ToolDescription
+
+
+def _multiple_audio_outputs_available(context: ToolContext) -> bool:
+    player = context.resolve(AudioPlayer)
+    return player is not None and len(player.available_outputs) > 1
+
+
+def _audio_output_tool_description(context: ToolContext) -> str:
+    player = context.resolve(AudioPlayer)
+    if player is None:
+        return "Switch audio playback to another configured output strategy."
+    available = ", ".join(output.value for output in player.available_outputs)
+    return f"Switch audio playback to another configured output strategy. Available output names: {available}."
 
 
 class Tools:
@@ -40,15 +53,19 @@ class Tools:
         return self._context.resolve(expected_type)
 
     def get(self, name: str) -> Tool | None:
-        return self._tools.get(name)
+        tool = self._tools.get(name)
+        if tool is None or not tool.is_available(self._context):
+            return None
+        return tool
 
     def action[P: ToolParams](
         self,
-        description: str | None = None,
+        description: ToolDescription | None = None,
         name: str | None = None,
         *,
         params: type[P] | None = None,
         kind: ActionKind = ActionKind.GENERIC,
+        available_when: ToolAvailability | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
             self._register(
@@ -58,6 +75,7 @@ class Tools:
                     fn=fn,
                     param_model=params,
                     kind=kind,
+                    available_when=available_when,
                 )
             )
             return fn
@@ -71,7 +89,7 @@ class Tools:
         return await self._executor.execute(name, args)
 
     def to_schema(self) -> builtins.list[ToolSchema]:
-        return [tool.to_schema() for tool in self._tools.values()]
+        return [tool.to_schema(self._context) for tool in self._tools.values() if tool.is_available(self._context)]
 
     def _register_default_tools(self) -> None:
         self._register_end_session_tool()
@@ -112,11 +130,9 @@ class Tools:
     def _register_set_audio_output_tool(self) -> None:
         @self.action(
             name="set_audio_output",
-            description=(
-                "Switch audio playback to another configured output strategy. "
-                "Use the exact output name requested by the user."
-            ),
+            description=_audio_output_tool_description,
             params=SetAudioOutputParams,
+            available_when=_multiple_audio_outputs_available,
         )
         async def set_audio_output(
             params: SetAudioOutputParams,
@@ -126,7 +142,7 @@ class Tools:
                 player.set_output(params.output)
             except ValueError as error:
                 return ActionResult.fail(error)
-            return ActionResult.success(f"Audio output switched to {params.output!r}.")
+            return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
 
     def _register_file_system_tools(self) -> None:
         @self.action(

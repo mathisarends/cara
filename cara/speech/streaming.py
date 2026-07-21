@@ -3,7 +3,7 @@ import logging
 import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 
-from cara.audio import AudioOutputStrategy
+from cara.audio import AudioPlayback
 from cara.speech.models import TextToSpeechFormat, TextToSpeechRequest, TextToSpeechVoice
 from cara.speech.ports import TextToSpeech
 
@@ -113,7 +113,7 @@ class StreamingTextToSpeech:
         self,
         *,
         tts: TextToSpeech,
-        player: AudioOutputStrategy,
+        player: AudioPlayback,
         voice: TextToSpeechVoice,
         instructions: str | None = None,
     ) -> None:

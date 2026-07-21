@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from cara.audio import AudioPlayer
+from cara.audio import AudioOutput, AudioPlayer
 from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolParams, Tools
 
 
@@ -13,6 +13,13 @@ class Greeting:
 
 
 class SilentOutput:
+    def __init__(self, output: AudioOutput) -> None:
+        self._output = output
+
+    @property
+    def output(self) -> AudioOutput:
+        return self._output
+
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         pass
 
@@ -46,7 +53,7 @@ def test_default_end_session_tool_is_tagged_with_kind() -> None:
 
 
 def test_default_set_audio_output_tool_switches_the_injected_player() -> None:
-    player = AudioPlayer({"local": SilentOutput(), "sonos": SilentOutput()})
+    player = AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS))
     tools = Tools()
     tools.provide(player)
 
@@ -58,7 +65,24 @@ def test_default_set_audio_output_tool_switches_the_injected_player() -> None:
     )
 
     assert result == ActionResult.success("Audio output switched to 'sonos'.")
-    assert player.active_output == "sonos"
+    assert player.active_output is AudioOutput.SONOS
+
+
+def test_audio_output_tool_is_only_available_for_multiple_configured_outputs() -> None:
+    tools = Tools()
+    tools.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL)))
+
+    assert tools.get("set_audio_output") is None
+    assert all(schema["function"]["name"] != "set_audio_output" for schema in tools.to_schema())
+
+
+def test_audio_output_tool_description_lists_the_configured_outputs() -> None:
+    tools = Tools()
+    tools.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS)))
+
+    schema = next(item for item in tools.to_schema() if item["function"]["name"] == "set_audio_output")
+
+    assert schema["function"]["description"].endswith("Available output names: local, sonos.")
 
 
 def test_action_decorator_registers_tool() -> None:

@@ -6,6 +6,7 @@ from typing import Any, Self
 
 from pydantic import ValidationError
 
+from cara.tools.di import ToolContext
 from cara.tools.params import ToolParams
 from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
 
@@ -30,15 +31,21 @@ class ActionResult:
 
 
 type ToolCallable = Callable[..., ActionResult | Awaitable[ActionResult]]
+type ToolDescription = str | Callable[[ToolContext], str]
+type ToolAvailability = Callable[[ToolContext], bool]
 
 
 @dataclass(frozen=True)
 class Tool:
     name: str
-    description: str | None
+    description: ToolDescription | None
     fn: ToolCallable
     param_model: type[ToolParams] | None = None
     kind: ActionKind = ActionKind.GENERIC
+    available_when: ToolAvailability | None = None
+
+    def is_available(self, context: ToolContext) -> bool:
+        return self.available_when is None or self.available_when(context)
 
     def status(self, args: dict[str, Any]) -> str | None:
         """Spoken status the LLM generated for this call, or ``None``.
@@ -60,12 +67,13 @@ class Tool:
             result = await result
         return result
 
-    def to_schema(self) -> ToolSchema:
+    def to_schema(self, context: ToolContext) -> ToolSchema:
+        description = self.description(context) if callable(self.description) else self.description
         return {
             "type": "function",
             "function": {
                 "name": self.name,
-                "description": self.description or "",
+                "description": description or "",
                 "parameters": ToolSchemaBuilder(self.fn, self.param_model).build(),
             },
         }

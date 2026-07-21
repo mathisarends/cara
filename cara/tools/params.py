@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from cara.audio.ports import AudioOutput
+
 
 class ToolParams(BaseModel):
     """Base class for tool parameter models.
@@ -26,8 +28,8 @@ class EndSessionParams(ToolParams):
 
 
 class SetAudioOutputParams(ToolParams):
-    output: str = Field(
-        description="Name of the configured audio output strategy to activate.",
+    output: AudioOutput = Field(
+        description="Configured audio output strategy to activate.",
     )
 
 

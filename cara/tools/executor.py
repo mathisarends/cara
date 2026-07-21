@@ -20,8 +20,11 @@ class ToolExecutor:
 
     async def execute(self, name: str, args: dict[str, Any] | None = None) -> ActionResult:
         tool = self._tools.get(name)
-        if tool is None:
-            return ActionResult.fail(f"Unknown tool '{name}'. Available: {list(self._tools)}")
+        if tool is None or not tool.is_available(self._context):
+            available = [
+                tool_name for tool_name, candidate in self._tools.items() if candidate.is_available(self._context)
+            ]
+            return ActionResult.fail(f"Unknown tool '{name}'. Available: {available}")
 
         try:
             resolved_args = self._resolve_args(tool, args or {})
@@ -46,8 +49,7 @@ class ToolExecutor:
             if dependency is None:
                 if param.default is inspect.Parameter.empty:
                     raise ValueError(
-                        f"Missing injected dependency for parameter '{param_name}' "
-                        f"of type '{actual_type.__name__}'"
+                        f"Missing injected dependency for parameter '{param_name}' of type '{actual_type.__name__}'"
                     )
                 continue
             kwargs[param_name] = dependency

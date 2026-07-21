@@ -3,6 +3,7 @@ import asyncio
 from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall
 
 from cara.assistant import VoiceAssistant
+from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated, EventBus
 from cara.speech import TextToSpeechRequest, TextToSpeechResponse
 from cara.wakeword import WakeWordSettings
@@ -46,6 +47,10 @@ class CoordinatedAudioPlayer:
         self.first_playback_started = asyncio.Event()
         self.second_delta_generated = asyncio.Event()
 
+    @property
+    def output(self) -> AudioOutput:
+        return AudioOutput.LOCAL
+
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         self.audio.append(audio)
         if len(self.audio) == 1:
@@ -82,7 +87,7 @@ def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlaye
     return VoiceAssistant(
         llm=llm,
         recorder=UnusedRecorder(),
-        player=player,
+        player=AudioPlayer(player),
         stt=UnusedSpeechToText(),
         tts=tts,
         event_bus=EventBus(),

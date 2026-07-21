@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from soco import SoCo, discovery
 
-from cara.audio.ports import AudioOutputStrategy
+from cara.audio.ports import AudioOutput, AudioOutputStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +115,10 @@ class SonosAudioPlayer(AudioOutputStrategy):
         self._local_host = self._settings.local_host
         self._server: _AudioClipServer | None = None
         self._lock = threading.Lock()
+
+    @property
+    def output(self) -> AudioOutput:
+        return AudioOutput.SONOS
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         loop = asyncio.get_running_loop()

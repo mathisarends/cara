@@ -2,12 +2,17 @@ import asyncio
 
 import pytest
 
-from cara.audio import AudioPlayer
+from cara.audio import AudioOutput, AudioPlayer
 
 
 class RecordingOutput:
-    def __init__(self) -> None:
+    def __init__(self, output: AudioOutput) -> None:
+        self._output = output
         self.audio: list[bytes] = []
+
+    @property
+    def output(self) -> AudioOutput:
+        return self._output
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         self.audio.append(audio)
@@ -15,12 +20,12 @@ class RecordingOutput:
 
 def test_audio_player_delegates_to_the_active_output() -> None:
     async def run() -> tuple[RecordingOutput, RecordingOutput]:
-        local = RecordingOutput()
-        sonos = RecordingOutput()
-        player = AudioPlayer({"local": local, "sonos": sonos})
+        local = RecordingOutput(AudioOutput.LOCAL)
+        sonos = RecordingOutput(AudioOutput.SONOS)
+        player = AudioPlayer(local, sonos)
 
         await player.play(b"local")
-        player.set_output("sonos")
+        player.set_output(AudioOutput.SONOS)
         await player.play(b"remote")
 
         return local, sonos
@@ -31,17 +36,17 @@ def test_audio_player_delegates_to_the_active_output() -> None:
     assert sonos.audio == [b"remote"]
 
 
-def test_audio_player_reports_available_outputs_for_an_unknown_name() -> None:
-    player = AudioPlayer({"local": RecordingOutput(), "sonos": RecordingOutput()})
+def test_audio_player_reports_when_an_output_is_not_configured() -> None:
+    player = AudioPlayer(RecordingOutput(AudioOutput.LOCAL))
 
-    with pytest.raises(ValueError, match="Available outputs: local, sonos"):
-        player.set_output("kitchen")
+    with pytest.raises(ValueError, match="Available outputs: local"):
+        player.set_output(AudioOutput.SONOS)
 
 
 def test_audio_player_can_register_and_activate_an_output() -> None:
-    player = AudioPlayer({"local": RecordingOutput()})
+    player = AudioPlayer(RecordingOutput(AudioOutput.LOCAL))
 
-    player.register_output("sonos", RecordingOutput(), activate=True)
+    player.register_output(RecordingOutput(AudioOutput.SONOS), activate=True)
 
-    assert player.active_output == "sonos"
-    assert player.available_outputs == ("local", "sonos")
+    assert player.active_output is AudioOutput.SONOS
+    assert player.available_outputs == (AudioOutput.LOCAL, AudioOutput.SONOS)

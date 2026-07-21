@@ -6,7 +6,6 @@ from collections.abc import AsyncIterator
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent, ToolCall
 
 from cara.audio import (
-    AudioOutputStrategy,
     AudioPlayer,
     Earcon,
     EarconPlayer,
@@ -60,7 +59,7 @@ class VoiceAssistant:
         llm: ChatModel | None = None,
         api_key: str | None = None,
         recorder: SpeechRecorder | None = None,
-        player: AudioOutputStrategy | None = None,
+        player: AudioPlayer | None = None,
         stt: SpeechToText | None = None,
         tts: TextToSpeech | None = None,
         event_bus: EventBus | None = None,
@@ -78,11 +77,10 @@ class VoiceAssistant:
         if recorder is None and player is None:
             echo_canceller = WebRtcEchoCanceller()
             recorder = MicrophoneRecorder(echo_canceller=echo_canceller)
-            player = WavAudioPlayer(echo_canceller=echo_canceller)
+            player = AudioPlayer(WavAudioPlayer(echo_canceller=echo_canceller))
 
         self._recorder = recorder or MicrophoneRecorder()
-        output = player or WavAudioPlayer()
-        self._player = output if isinstance(output, AudioPlayer) else AudioPlayer({"local": output})
+        self._player = player or AudioPlayer(WavAudioPlayer())
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()

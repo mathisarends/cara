@@ -6,7 +6,7 @@ import wave
 
 import pyaudio
 
-from cara.audio.ports import AudioOutputStrategy, EchoCanceller
+from cara.audio.ports import AudioOutput, AudioOutputStrategy, EchoCanceller
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,10 @@ class WavAudioPlayer(AudioOutputStrategy):
             raise ValueError("trailing_silence_seconds must not be negative.")
         self._trailing_silence_seconds = trailing_silence_seconds
         self._echo_canceller = echo_canceller
+
+    @property
+    def output(self) -> AudioOutput:
+        return AudioOutput.LOCAL
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         loop = asyncio.get_running_loop()

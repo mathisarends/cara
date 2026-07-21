@@ -3,6 +3,7 @@ import asyncio
 from llmify import Function, StreamEnd, StreamToolCall, ToolCall, UserMessage
 
 from cara.assistant import VoiceAssistant
+from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AssistantState, EventBus, Interrupted
 from cara.speech import (
     SpeechToTextRequest,
@@ -75,6 +76,10 @@ class ImmediateTextToSpeech:
 
 
 class ImmediateAudioPlayer:
+    @property
+    def output(self) -> AudioOutput:
+        return AudioOutput.LOCAL
+
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         pass
 
@@ -140,7 +145,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         assistant = VoiceAssistant(
             llm=llm,
             recorder=recorder,
-            player=ImmediateAudioPlayer(),
+            player=AudioPlayer(ImmediateAudioPlayer()),
             stt=stt,
             tts=ImmediateTextToSpeech(),
             event_bus=event_bus,

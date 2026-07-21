@@ -42,8 +42,9 @@ available at runtime and pass the player to `VoiceAssistant`:
 
 ```python
 audio_player = AudioPlayer(
-    {"local": WavAudioPlayer(), "sonos": SonosAudioPlayer()},
-    active_output="sonos",
+    WavAudioPlayer(),
+    SonosAudioPlayer(),
+    active_output=AudioOutput.SONOS,
 )
 ```
 
