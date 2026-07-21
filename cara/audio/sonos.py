@@ -10,7 +10,9 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any
 
-from .ports import AudioPlayer
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from cara.audio.ports import AudioPlayer
 
 if TYPE_CHECKING:
     from soco import SoCo
@@ -19,6 +21,20 @@ logger = logging.getLogger(__name__)
 
 # How long to wait for the speaker to actually start playing before giving up.
 _PLAYBACK_START_TIMEOUT = 10.0
+
+
+class SonosSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="SONOS_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    ip_address: str | None = None
+    speaker_name: str | None = None
+    local_host: str | None = None
+    poll_interval: float = 0.25
 
 
 class _AudioClipServer:
@@ -91,25 +107,17 @@ class _AudioClipServer:
 
 
 class SonosAudioPlayer(AudioPlayer):
-    """Plays WAV audio on a Sonos speaker via SoCo.
-
-    The target speaker can be passed directly, looked up by name, or discovered
-    automatically. The local HTTP server used to stream clips is created lazily
-    on first playback and reused for the lifetime of the player.
-    """
+    """Plays WAV audio on a Sonos speaker via SoCo."""
 
     def __init__(
         self,
         *,
         device: SoCo | None = None,
-        speaker_name: str | None = None,
-        local_host: str | None = None,
-        poll_interval: float = 0.25,
+        settings: SonosSettings | None = None,
     ) -> None:
         self._device = device
-        self._speaker_name = speaker_name
-        self._local_host = local_host
-        self._poll_interval = poll_interval
+        self._settings = settings or SonosSettings()
+        self._local_host = self._settings.local_host
         self._server: _AudioClipServer | None = None
         self._lock = threading.Lock()
 
@@ -141,11 +149,14 @@ class SonosAudioPlayer(AudioPlayer):
     def _resolve_device(self) -> SoCo:
         if self._device is not None:
             return self._device
+        if self._settings.ip_address:
+            self._device = _load_soco()(self._settings.ip_address)
+            return self._device
         discovery = _load_soco_discovery()
-        if self._speaker_name:
-            device = discovery.by_name(self._speaker_name)
+        if self._settings.speaker_name:
+            device = discovery.by_name(self._settings.speaker_name)
             if device is None:
-                raise RuntimeError(f"Sonos speaker {self._speaker_name!r} not found on the network.")
+                raise RuntimeError(f"Sonos speaker {self._settings.speaker_name!r} not found on the network.")
         else:
             device = discovery.any_soco()
             if device is None:
@@ -179,7 +190,7 @@ class SonosAudioPlayer(AudioPlayer):
         while True:
             if cancel is not None and cancel.is_set():
                 logger.info("Sonos playback cancelled.")
-                self._safe_stop(device)
+                _safe_stop(device)
                 return
 
             state = device.get_current_transport_info().get("current_transport_state")
@@ -191,14 +202,22 @@ class SonosAudioPlayer(AudioPlayer):
                 logger.warning("Sonos playback did not start within %.1fs.", _PLAYBACK_START_TIMEOUT)
                 return
 
-            time.sleep(self._poll_interval)
+            time.sleep(self._settings.poll_interval)
 
-    @staticmethod
-    def _safe_stop(device: SoCo) -> None:
-        try:
-            device.stop()
-        except Exception:
-            logger.exception("Failed to stop Sonos playback.")
+
+def _safe_stop(device: SoCo) -> None:
+    try:
+        device.stop()
+    except Exception:
+        logger.exception("Failed to stop Sonos playback.")
+
+
+def _load_soco() -> type[SoCo]:
+    try:
+        from soco import SoCo
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("Sonos support requires the optional dependency group: `cara[sonos]`.") from exc
+    return SoCo
 
 
 def _load_soco_discovery() -> Any:

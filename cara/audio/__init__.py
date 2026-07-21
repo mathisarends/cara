@@ -12,13 +12,14 @@ __all__ = [
     "SpeechRecorder",
     "WebRtcEchoCanceller",
     "SonosAudioPlayer",
+    "SonosSettings",
     "WavAudioPlayer",
 ]
 
 
 def __getattr__(name: str) -> object:
-    if name == "SonosAudioPlayer":
-        from .sonos import SonosAudioPlayer
+    if name in ("SonosAudioPlayer", "SonosSettings"):
+        from . import sonos
 
-        return SonosAudioPlayer
+        return getattr(sonos, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

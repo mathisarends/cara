@@ -1,3 +1,3 @@
-from cara.audio.sonos import SonosAudioPlayer
+from cara.audio.sonos import SonosAudioPlayer, SonosSettings
 
-__all__ = ["SonosAudioPlayer"]
+__all__ = ["SonosAudioPlayer", "SonosSettings"]
