@@ -1,6 +1,6 @@
-import asyncio
 from collections.abc import Callable
 from pathlib import Path
+from tempfile import gettempdir
 from typing import Any
 
 from cara.audio import AudioPlayer
@@ -8,7 +8,7 @@ from cara.file_system import FileSystem, LocalFileSystem, Workspace
 from cara.skills import Skills
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
-from cara.tools.handler import Location, OpenMeteoClient
+from cara.tools.handler import BashSandbox, BashSandboxError, DockerBashSandbox, Location, OpenMeteoClient
 from cara.tools.middleware.defaults import default_tool_middlewares
 from cara.tools.params import (
     BashParams,
@@ -48,6 +48,12 @@ def _audio_output_tool_description(context: ToolContext) -> str:
     return f"Switch audio playback to another configured output strategy. Available output names: {available}."
 
 
+def _default_workspace() -> Workspace:
+    root = Path(gettempdir()) / "cara" / "workspace"
+    root.mkdir(parents=True, exist_ok=True)
+    return Workspace(root)
+
+
 class Tools:
     def __init__(
         self,
@@ -55,13 +61,15 @@ class Tools:
         *,
         workspace: Workspace | None = None,
         bash_allowed_commands: tuple[str, ...] = (),
+        bash_sandbox: BashSandbox | None = None,
     ) -> None:
         self._tools: dict[str, Tool] = {}
         initial_context = context or ToolContext()
         configured_workspace = initial_context.resolve(Workspace)
         if workspace is not None and configured_workspace is not None and workspace.root != configured_workspace.root:
             raise ValueError("ToolContext and Tools specify different workspaces")
-        self._workspace = workspace or configured_workspace or Workspace(Path.cwd())
+        self._workspace = workspace or configured_workspace or _default_workspace()
+        self._bash_sandbox = bash_sandbox if bash_sandbox is not None else DockerBashSandbox()
         self._context = self._prepare_context(initial_context)
 
         self._executor = ToolExecutor(
@@ -219,30 +227,21 @@ class Tools:
 
         @self.action(
             description=(
-                "Execute one command allowed by the configured Bash policy in the workspace. "
-                "Shell operators, redirects, substitutions, and command chaining are rejected."
+                "Execute a Bash command in an isolated Docker container. The container has no network, "
+                "has limited resources, and can only write to the workspace."
             ),
             params=BashParams,
             kind=ActionKind.DESTRUCTIVE,
         )
         async def bash(params: BashParams, workspace: Inject[Workspace]) -> ActionResult:
-            process = await asyncio.create_subprocess_exec(
-                "bash",
-                "-lc",
-                params.command,
-                cwd=workspace.root,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
-            output, _ = await process.communicate()
-            content = output.decode("utf-8", errors="replace").rstrip()
-            return_code = process.returncode
-            if return_code is None:
-                return ActionResult.fail("Bash process ended without a return code.")
-            if return_code != 0:
-                detail = f"\n{content}" if content else ""
-                return ActionResult.fail(f"Command exited with status {return_code}.{detail}")
-            return ActionResult.success(content or "(no output)")
+            try:
+                result = await self._bash_sandbox.run(params.command, workspace)
+            except BashSandboxError as error:
+                return ActionResult.fail(error)
+            if result.return_code != 0:
+                detail = f"\n{result.output}" if result.output else ""
+                return ActionResult.fail(f"Command exited with status {result.return_code}.{detail}")
+            return ActionResult.success(result.output or "(no output)")
 
         @self.action(
             description=(

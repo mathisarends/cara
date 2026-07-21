@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import logging
 from pathlib import Path
+from tempfile import gettempdir
 from typing import Annotated, Literal
 
 from pydantic import Field
@@ -9,6 +10,7 @@ from pydantic import Field
 from cara.audio import AudioOutput, AudioPlayer
 from cara.file_system import Workspace
 from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolContext, ToolParams, Tools
+from cara.tools.handler import BashSandboxError, BashSandboxResult
 
 
 class Greeting:
@@ -151,8 +153,24 @@ def test_replacing_context_preserves_configured_workspace(tmp_path: Path) -> Non
     assert tools.resolve(Workspace) is workspace
 
 
-def test_default_bash_tool_is_denied() -> None:
-    tools = Tools()
+def test_default_workspace_is_an_isolated_temporary_directory() -> None:
+    workspace = Tools().resolve(Workspace)
+
+    assert workspace is not None
+    assert workspace.root == (Path(gettempdir()) / "cara" / "workspace").resolve()
+
+
+def test_default_bash_tool_runs_without_an_allow_list(tmp_path: Path) -> None:
+    invocation: dict[str, object] = {}
+
+    class Sandbox:
+        async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
+            invocation["command"] = command
+            invocation["workspace"] = workspace
+            return BashSandboxResult(return_code=0, output="hello from sandbox")
+
+    workspace = Workspace(tmp_path)
+    tools = Tools(workspace=workspace, bash_sandbox=Sandbox())
 
     result = asyncio.run(
         tools.execute(
@@ -161,10 +179,8 @@ def test_default_bash_tool_is_denied() -> None:
         )
     )
 
-    assert result == ActionResult.fail(
-        "Bash execution is disabled by the current tool policy. "
-        "Use the dedicated file tools or configure an explicit command allow-list."
-    )
+    assert result == ActionResult.success("hello from sandbox")
+    assert invocation == {"command": "printf 'hello from bash'", "workspace": workspace}
 
 
 def test_unknown_tool_is_logged(caplog) -> None:
@@ -177,8 +193,15 @@ def test_unknown_tool_is_logged(caplog) -> None:
     assert any(message.startswith("Rejected unavailable tool 'unknown'.") for message in caplog.messages)
 
 
-def test_bash_tool_rejects_shell_syntax_even_for_allowed_command() -> None:
-    tools = Tools(bash_allowed_commands=("printf",))
+def test_bash_tool_passes_shell_syntax_to_sandbox() -> None:
+    invocation: dict[str, str] = {}
+
+    class Sandbox:
+        async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
+            invocation["command"] = command
+            return BashSandboxResult(return_code=7, output="failure details")
+
+    tools = Tools(bash_sandbox=Sandbox())
 
     result = asyncio.run(
         tools.execute(
@@ -187,39 +210,18 @@ def test_bash_tool_rejects_shell_syntax_even_for_allowed_command() -> None:
         )
     )
 
-    assert result == ActionResult.fail(
-        "Shell operators, redirects, substitutions, and command chaining are not allowed. "
-        "Run one allow-listed command without shell syntax."
-    )
+    assert result == ActionResult.fail("Command exited with status 7.\nfailure details")
+    assert invocation["command"] == "printf 'failure details' >&2; exit 7"
 
 
-def test_allowed_bash_command_runs_at_workspace_root(monkeypatch, tmp_path: Path) -> None:
-    invocation: dict[str, object] = {}
+def test_bash_tool_returns_sandbox_startup_error() -> None:
+    class Sandbox:
+        async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
+            raise BashSandboxError("Docker is unavailable.")
 
-    class Process:
-        returncode = 0
+    result = asyncio.run(Tools(bash_sandbox=Sandbox()).execute("bash", {"command": "rg needle"}))
 
-        async def communicate(self) -> tuple[bytes, None]:
-            return b"result", None
-
-    async def create_process(*args, **kwargs):
-        invocation["args"] = args
-        invocation["kwargs"] = kwargs
-        return Process()
-
-    monkeypatch.setattr(asyncio, "create_subprocess_exec", create_process)
-    tools = Tools(workspace=Workspace(tmp_path), bash_allowed_commands=("rg",))
-
-    result = asyncio.run(
-        tools.execute(
-            "bash",
-            {"command": "rg needle"},
-        )
-    )
-
-    assert result == ActionResult.success("result")
-    assert invocation["args"] == ("bash", "-lc", "rg needle")
-    assert invocation["kwargs"]["cwd"] == tmp_path.resolve()
+    assert result == ActionResult.fail("Docker is unavailable.")
 
 
 def test_default_bash_tool_schema_describes_guarded_command() -> None:
@@ -228,7 +230,7 @@ def test_default_bash_tool_schema_describes_guarded_command() -> None:
     schema = next(item for item in tools.to_schema() if item["function"]["name"] == "bash")
 
     assert schema["function"]["parameters"]["properties"]["command"] == {
-        "description": "Single allow-listed command to execute in the workspace.",
+        "description": "Bash command to execute inside the isolated workspace sandbox.",
         "type": "string",
     }
     assert schema["function"]["parameters"]["required"] == ["command"]

@@ -63,8 +63,26 @@ Tool execution uses an onion-style middleware chain. The default order is
 The order is intentional: custom tracing sees policy denials and the original response before the outer
 result limit truncates it.
 
-The built-in `bash` tool is disabled by default. Callers may configure explicit command prefixes with
-`Tools(bash_allowed_commands=("pwd",))`. Even then, each invocation is restricted to one
-command in the workspace; redirects, pipes, substitutions, and command chaining are rejected. This
-allow-list is a policy boundary, not an OS sandbox—only commands whose complete behavior is trusted
-should be enabled.
+The built-in `bash` tool runs in a short-lived Docker container. The container has no network access,
+uses a read-only root filesystem, drops Linux capabilities, and has CPU, memory, process, output, and
+execution-time limits. Only the workspace is mounted read-write, so Bash commands can still modify or
+delete any file inside that workspace. By default, `Tools()` uses a dedicated scratch workspace below
+the system temporary directory instead of mounting the project directory and its `.env` file. Callers
+can still provide an explicit trusted `Workspace` when required.
+
+Start Docker Desktop and prepare the local sandbox image once before using the tool:
+
+```bash
+bash scripts/prepare_bash_sandbox.sh
+```
+
+From PowerShell on Windows, Git Bash can be selected explicitly to avoid the WSL `bash.exe` launcher:
+
+```powershell
+& 'C:\Program Files\Git\usr\bin\bash.exe' scripts/prepare_bash_sandbox.sh
+```
+
+The setup script explicitly pulls the Python base image, builds `cara-bash-sandbox:latest`, and verifies
+Bash and Python with Docker's `--pull=never` mode. The resulting image contains Python 3.13, available as
+both `python` and `python3`. It is never pulled or built automatically during a tool call. The current
+temporary Bash policy permits every command because the Docker container is the security boundary.

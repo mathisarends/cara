@@ -53,7 +53,7 @@ class LoadSkillParams(ToolParams):
 
 class BashParams(ToolParams):
     command: str = Field(
-        description="Single allow-listed command to execute in the workspace.",
+        description="Bash command to execute inside the isolated workspace sandbox.",
     )
 
 
