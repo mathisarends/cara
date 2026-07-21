@@ -61,8 +61,7 @@ shared error boundary before invoking tools.
 Tool execution uses an onion-style middleware chain. The default order is
 `ErrorBoundary -> ResultLimit -> custom middleware -> PathPolicy -> ContentSize -> BashPolicy -> tool`.
 The order is intentional: custom tracing sees policy denials and the original response before the outer
-result limit truncates it. Built-in operations are grouped into `CoreTools`, `AudioTools`, `BashTools`,
-and `FileSystemTools`; additional groups implement the small `Toolset.register()` protocol.
+result limit truncates it.
 
 The built-in `bash` tool is disabled by default. Callers may configure explicit command prefixes with
 `Tools(bash_allowed_commands=("pwd",))`. Even then, each invocation is restricted to one

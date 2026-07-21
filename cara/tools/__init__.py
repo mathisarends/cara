@@ -18,7 +18,6 @@ from .middleware import (
 from .params import AccessMode, EndSessionParams, FilePath, PathField, SetAudioOutputParams, ToolParams, WritablePath
 from .schemas import ToolSchema, ToolSchemaBuilder
 from .tools import Tools
-from .toolsets import AudioTools, BashTools, CoreTools, FileSystemTools, Toolset
 from .views import ActionKind, ActionResult, Tool, ToolAvailability, ToolCallable, ToolDescription
 
 __all__ = [
@@ -27,13 +26,10 @@ __all__ = [
     "AccessMode",
     "BashPolicy",
     "BashPolicyMiddleware",
-    "BashTools",
     "ContentSizeMiddleware",
-    "CoreTools",
     "EndSessionParams",
     "ErrorBoundaryMiddleware",
     "FilePath",
-    "FileSystemTools",
     "Inject",
     "PathField",
     "PathPolicy",
@@ -41,7 +37,6 @@ __all__ = [
     "PolicyDenial",
     "ResultLimitMiddleware",
     "SetAudioOutputParams",
-    "AudioTools",
     "Tool",
     "ToolCall",
     "ToolFeedbackError",
@@ -54,7 +49,6 @@ __all__ = [
     "ToolParams",
     "ToolSchema",
     "ToolSchemaBuilder",
-    "Toolset",
     "Tools",
     "WritablePath",
     "compose",

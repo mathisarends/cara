@@ -32,13 +32,6 @@ class SearchParams(ToolParams):
     tags: list[str] = Field(default_factory=list, min_length=1, max_length=3)
 
 
-class EchoTools:
-    def register(self, tools: Tools) -> None:
-        @tools.action(description="Echo a message.")
-        async def echo(message: str) -> ActionResult:
-            return ActionResult.success(message)
-
-
 def test_default_end_session_tool_returns_farewell() -> None:
     tools = Tools()
 
@@ -105,15 +98,6 @@ def test_action_decorator_registers_tool() -> None:
 
     assert result == ActionResult.success("hi")
     assert tools.get("echo") is not None
-
-
-def test_custom_toolsets_can_replace_default_registration() -> None:
-    tools = Tools(toolsets=(EchoTools(),))
-
-    result = asyncio.run(tools.execute("echo", {"message": "hi"}))
-
-    assert result == ActionResult.success("hi")
-    assert tools.get("end_session") is None
 
 
 def test_replacing_context_preserves_configured_workspace(tmp_path: Path) -> None:
