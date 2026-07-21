@@ -61,6 +61,16 @@ class BashParams(ToolParams):
     )
 
 
+class WeatherParams(ToolParams):
+    location: str | None = Field(
+        default=None,
+        description=(
+            "Ort für die Wetterabfrage, z. B. eine Stadt. Ohne Angabe wird der "
+            "aktuelle Standort aus dem Kontext verwendet."
+        ),
+    )
+
+
 class ListFilesParams(ToolParams):
     path: FilePath = Field(
         default=".",

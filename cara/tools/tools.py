@@ -9,9 +9,11 @@ from cara.file_system import FileSystem, LocalFileSystem, Workspace
 from cara.skills import Skills
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
+from cara.tools.handler import Location, OpenMeteoClient
 from cara.tools.middleware import (
     BashPolicy,
     BashPolicyMiddleware,
+    CallLoggingMiddleware,
     ContentSizeMiddleware,
     ErrorBoundaryMiddleware,
     PathPolicy,
@@ -28,6 +30,7 @@ from cara.tools.params import (
     ReadFileParams,
     SetAudioOutputParams,
     ToolParams,
+    WeatherParams,
     WriteFileParams,
 )
 from cara.tools.schemas import ToolSchema
@@ -37,6 +40,10 @@ from cara.tools.views import ActionKind, ActionResult, Tool, ToolAvailability, T
 def _multiple_audio_outputs_available(context: ToolContext) -> bool:
     player = context.resolve(AudioPlayer)
     return player is not None and len(player.available_outputs) > 1
+
+
+def _weather_available(context: ToolContext) -> bool:
+    return context.resolve(OpenMeteoClient) is not None and context.resolve(Location) is not None
 
 
 def _audio_output_tool_description(context: ToolContext) -> str:
@@ -65,6 +72,7 @@ class Tools:
         self._context = self._prepare_context(initial_context)
 
         middleware_chain: list[ToolMiddleware] = [
+            CallLoggingMiddleware(),
             ErrorBoundaryMiddleware(),
             ResultLimitMiddleware(),
             *middlewares,
@@ -173,6 +181,29 @@ class Tools:
         ) -> ActionResult:
             player.set_output(params.output)
             return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
+
+        @self.action(
+            description=(
+                "Frage das aktuelle Wetter ab. Gib optional einen Ort an; ohne Ort gilt der "
+                "aktuelle Standort aus dem Kontext."
+            ),
+            params=WeatherParams,
+            kind=ActionKind.READ,
+            available_when=_weather_available,
+        )
+        async def weather(
+            params: WeatherParams,
+            client: Inject[OpenMeteoClient],
+            location: Inject[Location],
+        ) -> ActionResult:
+            target = location
+            if params.location:
+                found = await client.locate(params.location)
+                if found is None:
+                    return ActionResult.fail(f"Ich konnte den Ort '{params.location}' nicht finden.")
+                target = found
+            report = await client.current(target)
+            return ActionResult.success(report.summary())
 
         @self.action(
             description=(

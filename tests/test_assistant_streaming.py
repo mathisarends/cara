@@ -1,11 +1,12 @@
 import asyncio
+import logging
 
 from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall
 
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated, EventBus
-from cara.speech import TextToSpeechRequest, TextToSpeechResponse
+from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
 from cara.wakeword import WakeWordSettings
 
 _FIRST_SENTENCE = f"{'A' * 339}."
@@ -24,6 +25,16 @@ class UnusedRecorder:
 class UnusedSpeechToText:
     async def transcribe(self, request) -> None:
         raise AssertionError("speech-to-text should not be used")
+
+
+class StaticSpeechToText:
+    async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
+        return SpeechToTextResponse(
+            text=" Hallo Welt ",
+            model=request.model,
+            response_format=request.response_format,
+            raw={},
+        )
 
 
 class RecordingTextToSpeech:
@@ -83,16 +94,33 @@ class EndSessionChatModel:
         yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
 
 
-def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer) -> VoiceAssistant:
+def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer, stt=None) -> VoiceAssistant:
     return VoiceAssistant(
         llm=llm,
         recorder=UnusedRecorder(),
         player=AudioPlayer(player),
-        stt=UnusedSpeechToText(),
+        stt=stt or UnusedSpeechToText(),
         tts=tts,
         event_bus=EventBus(),
         wake_word_settings=WakeWordSettings(),
     )
+
+
+def test_assistant_logs_transcript_without_event_subscribers(caplog) -> None:
+    player = CoordinatedAudioPlayer()
+    tts = RecordingTextToSpeech()
+    assistant = _assistant(
+        llm=CoordinatedChatModel(player),
+        tts=tts,
+        player=player,
+        stt=StaticSpeechToText(),
+    )
+
+    with caplog.at_level(logging.INFO, logger="cara.assistant"):
+        transcript = asyncio.run(assistant._transcribe(b"audio"))
+
+    assert transcript == "Hallo Welt"
+    assert "\x1b[96m[heard] Hallo Welt\x1b[0m" in caplog.messages
 
 
 def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> None:

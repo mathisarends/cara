@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 
 from cara.speech import TextToSpeechRequest, TextToSpeechResponse, TextToSpeechVoice
@@ -68,7 +69,7 @@ def test_natural_pause_chunker_groups_sentences_near_the_target_size() -> None:
     assert chunker.flush() == final_sentence
 
 
-def test_streaming_tts_synthesizes_ahead_while_preserving_playback_order() -> None:
+def test_streaming_tts_synthesizes_ahead_while_preserving_playback_order(caplog) -> None:
     async def run() -> tuple[RecordingTextToSpeech, BlockingFirstAudioPlayer, int]:
         tts = RecordingTextToSpeech()
         player = BlockingFirstAudioPlayer(tts)
@@ -86,8 +87,11 @@ def test_streaming_tts_synthesizes_ahead_while_preserving_playback_order() -> No
         await stream.speak(_text_chunks("Erster Satz.", "Zweiter Satz."), on_started=on_started)
         return tts, player, started
 
-    tts, player, started = asyncio.run(run())
+    with caplog.at_level(logging.INFO, logger="cara.speech.streaming"):
+        tts, player, started = asyncio.run(run())
 
     assert tts.texts == ["Erster Satz.", "Zweiter Satz."]
     assert player.audio == [b"Erster Satz.", b"Zweiter Satz."]
     assert started == 1
+    assert "\x1b[92m[says] Erster Satz.\x1b[0m" in caplog.messages
+    assert "\x1b[92m[says] Zweiter Satz.\x1b[0m" in caplog.messages

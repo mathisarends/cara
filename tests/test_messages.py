@@ -1,12 +1,23 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import pytest
 from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
-from cara.messages import MessageManager, SystemPrompt
+from cara.messages import MessageManager, RuntimeContext, SystemPrompt
 from cara.skills import Skill, Skills
 
 
 def _tool_call() -> ToolCall:
     return ToolCall(id="call-1", function=Function(name="load_skill", arguments="{}"))
+
+
+def _fixed_context() -> RuntimeContext:
+    return RuntimeContext(
+        location_name="Berlin",
+        timezone="Europe/Berlin",
+        clock=lambda: datetime(2026, 7, 21, 14, 30, tzinfo=ZoneInfo("Europe/Berlin")),
+    )
 
 
 def test_message_manager_builds_llm_messages_with_system_prompt() -> None:
@@ -64,6 +75,33 @@ def test_empty_skills_leaves_the_system_prompt_untouched() -> None:
     messages = MessageManager(system_prompt="System", skills=Skills())
 
     assert messages.to_llm_messages()[0].content == "System"
+
+
+def test_runtime_context_renders_location_and_local_time() -> None:
+    assert _fixed_context().render() == (
+        "Aktueller Standort: Berlin\nAktuelle lokale Zeit: Dienstag, 21. Juli 2026, 14:30 Uhr"
+    )
+
+
+def test_runtime_context_is_wrapped_in_a_context_block() -> None:
+    messages = MessageManager(system_prompt="System", context=_fixed_context())
+
+    rendered = messages.to_llm_messages()[0].content
+
+    assert rendered == (
+        "System\n\n<context>\n"
+        "Aktueller Standort: Berlin\nAktuelle lokale Zeit: Dienstag, 21. Juli 2026, 14:30 Uhr"
+        "\n</context>"
+    )
+
+
+def test_context_precedes_available_skills_in_the_system_prompt() -> None:
+    skills = Skills([Skill(name="weather", description="Wetter ansagen.", instructions="...")])
+    messages = MessageManager(system_prompt="System", skills=skills, context=_fixed_context())
+
+    rendered = messages.to_llm_messages()[0].content
+
+    assert rendered.index("<context>") < rendered.index("<available_skills>")
 
 
 def test_trim_drops_tool_results_orphaned_from_their_call() -> None:

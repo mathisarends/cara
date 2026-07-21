@@ -13,6 +13,7 @@ from cara.audio import (
     SpeechRecorder,
     WavAudioPlayer,
 )
+from cara.console_logging import _log_user_transcript
 from cara.events import (
     AnswerGenerated,
     AssistantState,
@@ -26,7 +27,7 @@ from cara.events import (
 )
 from cara.file_system import FileSystem
 from cara.listener import SoundListener
-from cara.messages import MessageManager, SystemPrompt
+from cara.messages import MessageManager, RuntimeContext, SystemPrompt
 from cara.replies import StreamingReply
 from cara.skills import Skills
 from cara.speech import (
@@ -38,6 +39,7 @@ from cara.speech import (
 )
 from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 from cara.tools import ActionKind, Tools
+from cara.tools.handler import Location, OpenMeteoClient
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
 from cara.wakeword.barge_in import WakeWordBargeIn
@@ -65,6 +67,7 @@ class VoiceAssistant:
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
         skills: Skills | None = None,
+        location: Location | None = None,
         file_system: FileSystem | None = None,
         speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,
@@ -81,6 +84,8 @@ class VoiceAssistant:
         self._tools.provide(self._player)
         if skills is not None:
             self._tools.provide(skills)
+        if location is not None:
+            self._tools.provide(location, OpenMeteoClient())
         if file_system is not None:
             self._tools.provide(file_system)
         self._speech_settings = speech_settings or SpeechSettings()
@@ -99,6 +104,11 @@ class VoiceAssistant:
         self._message_manager = MessageManager(
             system_prompt=self._system_prompt,
             skills=skills,
+            context=(
+                RuntimeContext(location_name=location.name, timezone=location.timezone)
+                if location is not None
+                else None
+            ),
         )
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
@@ -208,7 +218,7 @@ class VoiceAssistant:
         response = await self._stt.transcribe(SpeechToTextRequest(audio=audio, language=self._speech_settings.language))
         transcript = response.text.strip()
         if transcript:
-            logger.info("User said: %s", transcript)
+            _log_user_transcript(logger, transcript)
             await self._event_bus.dispatch(Transcribed(transcript=transcript))
         return transcript
 
@@ -251,7 +261,6 @@ class VoiceAssistant:
         try:
             completion = await reply.collect()
             answer, end_session = await self._resolve_completion(completion, reply)
-            logger.info("Assistant answer: %s", answer)
             await self._event_bus.dispatch(AnswerGenerated(answer=answer))
             reply.finish(answer)
             return answer, end_session

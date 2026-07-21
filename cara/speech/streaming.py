@@ -4,6 +4,7 @@ import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 
 from cara.audio import AudioPlayback
+from cara.console_logging import _log_spoken_text
 from cara.speech.models import TextToSpeechFormat, TextToSpeechRequest, TextToSpeechVoice
 from cara.speech.ports import TextToSpeech
 
@@ -154,6 +155,7 @@ class StreamingTextToSpeech:
                     if on_started is not None:
                         await on_started()
                     started = True
+                _log_spoken_text(logger, text)
                 logger.info(
                     "Synthesizing speech chunk %d with %d characters.",
                     chunk_number,

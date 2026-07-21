@@ -7,6 +7,7 @@ from llmify import (
     UserMessage,
 )
 
+from cara.messages.context import RuntimeContext
 from cara.messages.system_prompt import SystemPrompt
 from cara.skills import Skills
 
@@ -19,11 +20,13 @@ class MessageManager:
         messages: list[Message] | None = None,
         max_turns: int = 12,
         skills: Skills | None = None,
+        context: RuntimeContext | None = None,
     ) -> None:
         self._system_prompt = system_prompt if system_prompt is not None else SystemPrompt()
         self._messages = messages if messages is not None else []
         self._max_turns = max_turns
         self._skills = skills
+        self._context = context
 
     def add_user(self, text: str) -> None:
         self._messages.append(UserMessage(content=text))
@@ -54,6 +57,9 @@ class MessageManager:
 
     def _render_system_prompt(self) -> str:
         base = self._system_prompt.render() if isinstance(self._system_prompt, SystemPrompt) else self._system_prompt
-        if self._skills is None or not (catalog := self._skills.render_catalog()):
-            return base
-        return f"{base}\n\n<available_skills>\n{catalog}\n</available_skills>"
+        sections = [base]
+        if self._context is not None and (rendered := self._context.render()):
+            sections.append(f"<context>\n{rendered}\n</context>")
+        if self._skills is not None and (catalog := self._skills.render_catalog()):
+            sections.append(f"<available_skills>\n{catalog}\n</available_skills>")
+        return "\n\n".join(sections)
