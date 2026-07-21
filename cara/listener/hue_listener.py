@@ -1,18 +1,3 @@
-"""Philips Hue listener.
-
-Nudges a Hue room's existing lighting to reflect the assistant lifecycle instead
-of overriding it: the room's state at session start is the baseline, each phase
-applies a relative shift on top of it, and everything reverts to the baseline
-once idle or the session ends. A room that's off is left untouched.
-
-The baseline itself is kept in sync with the room's own Hue Bridge events, so a
-manual change made outside this listener (e.g. via the Hue app) shifts the
-baseline instead of being fought or silently reverted.
-
-Credentials are read from the ``HUE_BRIDGE_IP`` and ``HUE_APP_KEY`` environment
-variables (see :class:`hueify.Hueify`).
-"""
-
 import logging
 from dataclasses import dataclass, replace
 

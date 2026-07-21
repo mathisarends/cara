@@ -23,3 +23,7 @@ class EndSessionParams(ToolParams):
     farewell: str = Field(
         description="A short, friendly spoken goodbye in the user's language.",
     )
+
+
+class LoadSkillParams(ToolParams):
+    name: str = Field(description="Name of the skill to load, exactly as listed.")

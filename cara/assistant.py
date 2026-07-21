@@ -74,6 +74,7 @@ class VoiceAssistant:
             echo_canceller = WebRtcEchoCanceller()
             recorder = MicrophoneRecorder(echo_canceller=echo_canceller)
             player = WavAudioPlayer(echo_canceller=echo_canceller)
+
         self._recorder = recorder or MicrophoneRecorder()
         self._player = player or WavAudioPlayer()
         self._stt = stt or OpenAISpeechToText(api_key)
@@ -92,7 +93,10 @@ class VoiceAssistant:
             override_system_prompt=override_system_prompt,
             extend_system_prompt=extend_system_prompt,
         )
-        self._message_manager = MessageManager(system_prompt=self._system_prompt)
+        self._message_manager = MessageManager(
+            system_prompt=self._system_prompt,
+            context_provider=self._tools.render_skill_context,
+        )
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
         self._earcons = EarconPlayer(self._player)
