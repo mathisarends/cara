@@ -99,7 +99,6 @@ class Tools:
 
     def _register_end_session_tool(self) -> None:
         @self.action(
-            name="end_session",
             description=(
                 "End the conversation when the user says goodbye or otherwise signals "
                 "they are finished. Provide a short spoken farewell."
@@ -108,11 +107,13 @@ class Tools:
             kind=ActionKind.END_SESSION,
         )
         async def end_session(params: EndSessionParams) -> ActionResult:
-            return ActionResult.success(params.farewell)
+            try:
+                return ActionResult.success(params.farewell)
+            except Exception as error:
+                return ActionResult.fail(error)
 
     def _register_load_skill_tool(self) -> None:
         @self.action(
-            name="load_skill",
             description=(
                 "Load a skill's full instructions into context before carrying out a "
                 "task it covers. Call this first whenever a request matches one of the "
@@ -121,15 +122,17 @@ class Tools:
             params=LoadSkillParams,
         )
         async def load_skill(params: LoadSkillParams, repository: Inject[SkillRepository]) -> ActionResult:
-            skill = repository.get(params.name)
-            if skill is None:
-                available = ", ".join(repository.names())
-                return ActionResult.fail(f"Unknown skill '{params.name}'. Available: {available}")
-            return ActionResult.success(skill.instructions)
+            try:
+                skill = repository.get(params.name)
+                if skill is None:
+                    available = ", ".join(repository.names())
+                    return ActionResult.fail(f"Unknown skill '{params.name}'. Available: {available}")
+                return ActionResult.success(skill.instructions)
+            except Exception as error:
+                return ActionResult.fail(error)
 
     def _register_set_audio_output_tool(self) -> None:
         @self.action(
-            name="set_audio_output",
             description=_audio_output_tool_description,
             params=SetAudioOutputParams,
             available_when=_multiple_audio_outputs_available,
@@ -140,13 +143,12 @@ class Tools:
         ) -> ActionResult:
             try:
                 player.set_output(params.output)
-            except ValueError as error:
+                return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
+            except Exception as error:
                 return ActionResult.fail(error)
-            return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
 
     def _register_file_system_tools(self) -> None:
         @self.action(
-            name="list_files",
             description=(
                 "List files and directories under a path so you can see the workspace "
                 "layout before reading or editing. Directories end with a trailing slash."
@@ -154,23 +156,27 @@ class Tools:
             params=ListFilesParams,
         )
         async def list_files(params: ListFilesParams, file_system: Inject[FileSystem]) -> ActionResult:
-            if not file_system.is_dir(params.path):
-                return ActionResult.fail(f"'{params.path}' is not a directory.")
-            entries = file_system.tree(params.path)
-            return ActionResult.success("\n".join(entries) if entries else "(empty)")
+            try:
+                if not file_system.is_dir(params.path):
+                    return ActionResult.fail(f"'{params.path}' is not a directory.")
+                entries = file_system.tree(params.path)
+                return ActionResult.success("\n".join(entries) if entries else "(empty)")
+            except Exception as error:
+                return ActionResult.fail(error)
 
         @self.action(
-            name="read_file",
             description="Read a text file's full contents.",
             params=ReadFileParams,
         )
         async def read_file(params: ReadFileParams, file_system: Inject[FileSystem]) -> ActionResult:
-            if not file_system.exists(params.path):
-                return ActionResult.fail(f"'{params.path}' does not exist.")
-            return ActionResult.success(file_system.read_text(params.path))
+            try:
+                if not file_system.exists(params.path):
+                    return ActionResult.fail(f"'{params.path}' does not exist.")
+                return ActionResult.success(file_system.read_text(params.path))
+            except Exception as error:
+                return ActionResult.fail(error)
 
         @self.action(
-            name="write_file",
             description=(
                 "Create a file or overwrite it entirely with new content. Prefer edit_file "
                 "for small changes to an existing file."
@@ -178,24 +184,29 @@ class Tools:
             params=WriteFileParams,
         )
         async def write_file(params: WriteFileParams, file_system: Inject[FileSystem]) -> ActionResult:
-            file_system.write_text(params.path, params.content)
-            return ActionResult.success(f"Wrote {params.path}.")
+            try:
+                file_system.write_text(params.path, params.content)
+                return ActionResult.success(f"Wrote {params.path}.")
+            except Exception as error:
+                return ActionResult.fail(error)
 
         @self.action(
-            name="edit_file",
             description="Replace an exact snippet in an existing file. old_text must occur exactly once.",
             params=EditFileParams,
         )
         async def edit_file(params: EditFileParams, file_system: Inject[FileSystem]) -> ActionResult:
-            if not file_system.exists(params.path):
-                return ActionResult.fail(f"'{params.path}' does not exist.")
-            content = file_system.read_text(params.path)
-            occurrences = content.count(params.old_text)
-            if occurrences == 0:
-                return ActionResult.fail("old_text was not found in the file.")
-            if occurrences > 1:
-                return ActionResult.fail(
-                    f"old_text is not unique ({occurrences} matches); include more surrounding context."
-                )
-            file_system.write_text(params.path, content.replace(params.old_text, params.new_text))
-            return ActionResult.success(f"Edited {params.path}.")
+            try:
+                if not file_system.exists(params.path):
+                    return ActionResult.fail(f"'{params.path}' does not exist.")
+                content = file_system.read_text(params.path)
+                occurrences = content.count(params.old_text)
+                if occurrences == 0:
+                    return ActionResult.fail("old_text was not found in the file.")
+                if occurrences > 1:
+                    return ActionResult.fail(
+                        f"old_text is not unique ({occurrences} matches); include more surrounding context."
+                    )
+                file_system.write_text(params.path, content.replace(params.old_text, params.new_text))
+                return ActionResult.success(f"Edited {params.path}.")
+            except Exception as error:
+                return ActionResult.fail(error)
