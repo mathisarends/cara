@@ -4,7 +4,7 @@ import functools
 import logging
 import signal
 import sys
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 import numpy as np
@@ -26,7 +26,6 @@ class AudioConfig:
 class WakeWordListener:
     def __init__(
         self,
-        on_detection: Callable[[], Awaitable[object]],
         wake_word: WakeWord = WakeWord.HEY_MYCROFT,
         sensitivity: float = 0.5,
         audio_config: AudioConfig | None = None,
@@ -36,7 +35,6 @@ class WakeWordListener:
 
         self._wake_word = wake_word
         self._sensitivity = sensitivity
-        self._on_detection = on_detection
         self._audio_config = audio_config or AudioConfig()
         self._model = Model(
             wakeword_models=[WAKE_WORD_MODEL[wake_word]],
@@ -51,7 +49,13 @@ class WakeWordListener:
             frames_per_buffer=self._audio_config.chunk,
         )
 
-    async def listen(self) -> None:
+    async def detections(self) -> AsyncIterator[float]:
+        """Yield the detection score once per wake-word detection.
+
+        The microphone stream is paused while the consumer handles a detection
+        and resumed when it requests the next one, so the recorder can reuse the
+        microphone during a session.
+        """
         logger.info('Listening for "%s"...', self._wake_word)
 
         loop = asyncio.get_running_loop()
@@ -76,7 +80,17 @@ class WakeWordListener:
                     self._reopen_stream()
                     continue
                 raise
-            await self._process_audio(pcm)
+
+            score = self._detect(pcm)
+            if score is None:
+                continue
+
+            logger.info("Wake word detected (score=%.2f) - pausing listener.", score)
+            self._stream.stop_stream()
+            yield score
+            self._model.reset()
+            self._stream.start_stream()
+            logger.info('Listening for "%s"...', self._wake_word)
 
     def _reopen_stream(self) -> None:
         with contextlib.suppress(Exception):
@@ -89,25 +103,18 @@ class WakeWordListener:
             frames_per_buffer=self._audio_config.chunk,
         )
 
-    async def _process_audio(self, pcm: bytes) -> None:
+    def _detect(self, pcm: bytes) -> float | None:
         audio = np.frombuffer(pcm, dtype=np.int16)
         predictions = self._model.predict(audio)
 
         if not predictions:
-            return
+            return None
 
         score = max(predictions.values())
         if score < self._sensitivity:
-            return
+            return None
 
-        logger.info("Wake word detected (score=%.2f) - pausing listener.", score)
-        self._stream.stop_stream()
-
-        await self._on_detection()
-
-        self._model.reset()
-        self._stream.start_stream()
-        logger.info('Listening for "%s"...', self._wake_word)
+        return score
 
     def _shutdown(self) -> None:
         logger.info("Shutting down...")

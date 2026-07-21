@@ -112,7 +112,7 @@ class MicrophoneRecorder(SpeechRecorder):
         logger.info("Recording user utterance...")
         try:
             while True:
-                if cancel is not None and cancel.is_set():
+                if cancel is not None and cancel.is_set() and voice_started_at is None:
                     logger.info("Recording cancelled.")
                     return None
                 pcm = stream.read(config.chunk, exception_on_overflow=False)
