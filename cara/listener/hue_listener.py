@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 # Maps each assistant phase to a (color, brightness%) light effect.
-DEFAULT_STATE_EFFECTS: dict[AssistantState, tuple[Color, int]] = {
+_STATE_EFFECTS: dict[AssistantState, tuple[Color, int]] = {
     AssistantState.LISTENING: (Color.OCEAN, 85),
     AssistantState.WAITING_FOLLOW_UP: (Color.TEAL, 55),
     AssistantState.TRANSCRIBING: (Color.CYAN, 75),
@@ -50,12 +50,10 @@ class HueListener:
         room_name: str = "Zimmer 1",
         *,
         hue: Hueify | None = None,
-        state_effects: dict[AssistantState, tuple[Color, int]] | None = None,
     ) -> None:
         self._event_bus = event_bus
         self._room_name = room_name
         self._hue = hue or Hueify()
-        self._state_effects = state_effects or DEFAULT_STATE_EFFECTS
         self._room: GroupedLights | None = None
         self._event_bus.subscribe(SessionStarted, self._on_session_started)
         self._event_bus.subscribe(StateChanged, self._on_state_changed)
@@ -65,7 +63,7 @@ class HueListener:
         await room.turn_on()
 
     async def _on_state_changed(self, event: StateChanged) -> None:
-        effect = self._state_effects.get(event.state)
+        effect = _STATE_EFFECTS.get(event.state)
         if effect is None:
             return
         room = await self._ensure_room()
