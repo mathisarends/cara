@@ -133,10 +133,13 @@ class VoiceAssistant:
             wake_word=self._wake_word_settings.wake_word,
             sensitivity=self._wake_word_settings.sensitivity,
         )
-        async for _ in listener.detections():
-            await self._run()
+        try:
+            async for _ in listener.detections():
+                await self._run(listener)
+        finally:
+            listener.close()
 
-    async def _run(self) -> None:
+    async def _run(self, wake_word_listener: WakeWordListener) -> None:
         follow_up = False
         pending_audio: bytes | None = None
         await self._event_bus.dispatch(SessionStarted())
@@ -158,17 +161,17 @@ class VoiceAssistant:
                     break
 
                 self._message_manager.add_user(transcript)
-                async with BargeInCapture(self._recorder) as barge_in:
+                async with BargeInCapture(wake_word_listener) as barge_in:
                     try:
                         answer, end_session = await self._think(interrupt=barge_in.interrupt)
                     except _ResponseInterrupted:
-                        pending_audio = await self._receive_barge_in(barge_in, phase=self._state)
+                        pending_audio = await self._receive_barge_in(phase=self._state)
                         if pending_audio is None:
                             break
                         follow_up = False
                         continue
                 if barge_in.interrupt.is_set():
-                    pending_audio = await self._receive_barge_in(barge_in, phase=self._state)
+                    pending_audio = await self._receive_barge_in(phase=self._state)
                     if pending_audio is None:
                         break
                     follow_up = False
@@ -186,13 +189,11 @@ class VoiceAssistant:
 
     async def _receive_barge_in(
         self,
-        capture: BargeInCapture,
         *,
         phase: AssistantState,
     ) -> bytes | None:
         await self._event_bus.dispatch(Interrupted(phase=phase))
-        await self._set_state(AssistantState.LISTENING)
-        return await capture.receive()
+        return await self._record()
 
     async def _record(self, *, follow_up: bool = False) -> bytes | None:
         if follow_up:

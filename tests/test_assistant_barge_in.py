@@ -12,13 +12,12 @@ from cara.speech import (
 )
 from cara.tools import ActionResult, Tools
 from cara.wakeword import WakeWordSettings
+from cara.wakeword.ports import WakeWordDetectionSource
 
 
 class BargeInRecorder:
-    def __init__(self, tool_started: asyncio.Event) -> None:
-        self._tool_started = tool_started
-        self.regular_recordings = 0
-        self.background_recordings = 0
+    def __init__(self) -> None:
+        self.recordings = 0
 
     async def record_until_silence(
         self,
@@ -27,15 +26,22 @@ class BargeInRecorder:
         speech_started: asyncio.Event | None = None,
         cancel: asyncio.Event | None = None,
     ) -> bytes | None:
-        if speech_started is None:
-            self.regular_recordings += 1
-            return b"initial request"
+        assert speech_started is None
+        assert cancel is None
+        self.recordings += 1
+        return b"initial request" if self.recordings == 1 else b"corrected request"
 
-        self.background_recordings += 1
-        if self.background_recordings == 1:
+
+class RepeatedWakeWordListener(WakeWordDetectionSource):
+    def __init__(self, tool_started: asyncio.Event) -> None:
+        self._tool_started = tool_started
+        self.detections = 0
+
+    async def detect_once(self, *, cancel: asyncio.Event | None = None) -> float | None:
+        self.detections += 1
+        if self.detections == 1:
             await self._tool_started.wait()
-            speech_started.set()
-            return b"corrected request"
+            return 0.9
 
         assert cancel is not None
         await cancel.wait()
@@ -98,8 +104,15 @@ class TwoTurnChatModel:
         yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
 
 
-def test_user_speech_interrupts_tool_and_becomes_next_turn() -> None:
-    async def run() -> tuple[BargeInRecorder, MappingSpeechToText, TwoTurnChatModel, list[Interrupted], bool]:
+def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
+    async def run() -> tuple[
+        BargeInRecorder,
+        RepeatedWakeWordListener,
+        MappingSpeechToText,
+        TwoTurnChatModel,
+        list[Interrupted],
+        bool,
+    ]:
         tool_started = asyncio.Event()
         tool_cancelled = asyncio.Event()
         tools = Tools()
@@ -113,7 +126,8 @@ def test_user_speech_interrupts_tool_and_becomes_next_turn() -> None:
                 tool_cancelled.set()
             return ActionResult.success()
 
-        recorder = BargeInRecorder(tool_started)
+        recorder = BargeInRecorder()
+        wake_word_listener = RepeatedWakeWordListener(tool_started)
         stt = MappingSpeechToText()
         llm = TwoTurnChatModel()
         event_bus = EventBus()
@@ -134,13 +148,13 @@ def test_user_speech_interrupts_tool_and_becomes_next_turn() -> None:
             tools=tools,
         )
 
-        await asyncio.wait_for(assistant._run(), timeout=2)
-        return recorder, stt, llm, interruptions, tool_cancelled.is_set()
+        await asyncio.wait_for(assistant._run(wake_word_listener), timeout=2)
+        return recorder, wake_word_listener, stt, llm, interruptions, tool_cancelled.is_set()
 
-    recorder, stt, llm, interruptions, tool_cancelled = asyncio.run(run())
+    recorder, wake_word_listener, stt, llm, interruptions, tool_cancelled = asyncio.run(run())
 
-    assert recorder.regular_recordings == 1
-    assert recorder.background_recordings == 2
+    assert recorder.recordings == 2
+    assert wake_word_listener.detections == 2
     assert stt.audio == [b"initial request", b"corrected request"]
     assert tool_cancelled is True
     assert [event.phase for event in interruptions] == [AssistantState.CALLING_TOOL]

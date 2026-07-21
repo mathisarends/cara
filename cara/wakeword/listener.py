@@ -11,6 +11,7 @@ import numpy as np
 import pyaudio
 from openwakeword.model import Model
 
+from cara.wakeword.ports import WakeWordDetectionSource
 from cara.wakeword.views import WAKE_WORD_MODEL, WakeWord
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class AudioConfig:
     channels: int = 1
 
 
-class WakeWordListener:
+class WakeWordListener(WakeWordDetectionSource):
     def __init__(
         self,
         wake_word: WakeWord = WakeWord.HEY_MYCROFT,
@@ -48,6 +49,7 @@ class WakeWordListener:
             input=True,
             frames_per_buffer=self._audio_config.chunk,
         )
+        self._closed = False
 
     async def detections(self) -> AsyncIterator[float]:
         """Yield the detection score once per wake-word detection.
@@ -65,6 +67,23 @@ class WakeWordListener:
             signal.signal(signal.SIGINT, lambda *_: self._shutdown())
 
         while True:
+            score = await self.detect_once()
+            if score is None:
+                continue
+            yield score
+            logger.info('Listening for "%s"...', self._wake_word)
+
+    async def detect_once(self, *, cancel: asyncio.Event | None = None) -> float | None:
+        """Listen until the wake word is detected or cancellation is requested."""
+        if self._closed:
+            raise RuntimeError("Wake-word listener is closed.")
+
+        self._model.reset()
+        if self._stream.is_stopped():
+            self._stream.start_stream()
+
+        loop = asyncio.get_running_loop()
+        while cancel is None or not cancel.is_set():
             try:
                 pcm = await loop.run_in_executor(
                     None,
@@ -81,16 +100,28 @@ class WakeWordListener:
                     continue
                 raise
 
+            if cancel is not None and cancel.is_set():
+                break
+
             score = self._detect(pcm)
             if score is None:
                 continue
 
             logger.info("Wake word detected (score=%.2f) - pausing listener.", score)
             self._stream.stop_stream()
-            yield score
-            self._model.reset()
-            self._stream.start_stream()
-            logger.info('Listening for "%s"...', self._wake_word)
+            return score
+
+        self._stream.stop_stream()
+        return None
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        if self._stream.is_active():
+            self._stream.stop_stream()
+        self._stream.close()
+        self._pa.terminate()
+        self._closed = True
 
     def _reopen_stream(self) -> None:
         with contextlib.suppress(Exception):
@@ -118,7 +149,5 @@ class WakeWordListener:
 
     def _shutdown(self) -> None:
         logger.info("Shutting down...")
-        self._stream.stop_stream()
-        self._stream.close()
-        self._pa.terminate()
+        self.close()
         sys.exit(0)

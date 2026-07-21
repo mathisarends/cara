@@ -1,39 +1,34 @@
 import asyncio
 from typing import Self
 
-from cara.audio.ports import SpeechRecorder
+from cara.wakeword.ports import WakeWordDetectionSource
 
 
 class BargeInCapture:
-    """Owns the background microphone capture for one assistant response."""
+    """Listens for an explicit wake word during one assistant response."""
 
-    def __init__(self, recorder: SpeechRecorder) -> None:
-        self._recorder = recorder
+    def __init__(self, wake_word_listener: WakeWordDetectionSource) -> None:
+        self._wake_word_listener = wake_word_listener
         self._interrupt = asyncio.Event()
         self._cancel = asyncio.Event()
-        self._recording: asyncio.Task[bytes | None] | None = None
+        self._listening: asyncio.Task[None] | None = None
 
     @property
     def interrupt(self) -> asyncio.Event:
         return self._interrupt
 
     async def __aenter__(self) -> Self:
-        if self._recording is not None:
+        if self._listening is not None:
             raise RuntimeError("Barge-in capture is already running.")
-        self._recording = asyncio.create_task(
-            self._recorder.record_until_silence(
-                speech_started=self._interrupt,
-                cancel=self._cancel,
-            )
-        )
+        self._listening = asyncio.create_task(self._listen())
         return self
 
     async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
         self._cancel.set()
-        if self._recording is not None:
-            await self._recording
+        if self._listening is not None:
+            await self._listening
 
-    async def receive(self) -> bytes | None:
-        if self._recording is None:
-            raise RuntimeError("Barge-in capture has not been started.")
-        return await self._recording
+    async def _listen(self) -> None:
+        score = await self._wake_word_listener.detect_once(cancel=self._cancel)
+        if score is not None:
+            self._interrupt.set()

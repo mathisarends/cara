@@ -64,6 +64,6 @@ class AnswerGenerated(Event):
 
 @dataclass(frozen=True, kw_only=True)
 class Interrupted(Event):
-    """Emitted when user speech interrupts an in-flight assistant response."""
+    """Emitted when a repeated wake word interrupts an in-flight assistant response."""
 
     phase: AssistantState

@@ -17,6 +17,7 @@ uv run python main.py
 ```
 
 The default wake word is `hey_mycroft`. Runtime recordings and TTS files are written below the system temp directory in `cara`.
+While Cara is responding, say the wake word again to interrupt the response and start a new turn.
 
 ## Device discovery
 

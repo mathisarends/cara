@@ -3,6 +3,7 @@ import asyncio
 from cara.assistant import VoiceAssistant
 from cara.events import EventBus
 from cara.wakeword import WakeWordSettings
+from cara.wakeword.ports import WakeWordDetectionSource
 
 
 class RecordingPlayer:
@@ -32,6 +33,13 @@ class UnusedDependency:
     pass
 
 
+class NoWakeWordListener(WakeWordDetectionSource):
+    async def detect_once(self, *, cancel: asyncio.Event | None = None) -> float | None:
+        assert cancel is not None
+        await cancel.wait()
+        return None
+
+
 def test_wake_earcon_finishes_before_first_recording() -> None:
     async def run() -> list[str]:
         events: list[str] = []
@@ -44,7 +52,7 @@ def test_wake_earcon_finishes_before_first_recording() -> None:
             event_bus=EventBus(),
             wake_word_settings=WakeWordSettings(),
         )
-        await assistant._run()
+        await assistant._run(NoWakeWordListener())
         return events
 
     assert asyncio.run(run())[:2] == ["play", "record"]
