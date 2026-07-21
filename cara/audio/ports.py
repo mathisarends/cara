@@ -43,3 +43,11 @@ class AudioOutputStrategy(AudioPlayback):
     @abstractmethod
     def output(self) -> AudioOutput:
         """Return the output represented by this strategy."""
+
+    @abstractmethod
+    async def get_volume(self) -> float:
+        """Return the current playback volume, from 0.0 (silent) to 1.0 (full)."""
+
+    @abstractmethod
+    async def set_volume(self, volume: float) -> None:
+        """Set the playback volume, clamped to 0.0-1.0."""

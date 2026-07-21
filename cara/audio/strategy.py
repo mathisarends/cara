@@ -50,6 +50,14 @@ class AudioPlayer(AudioPlayback):
         strategy = self._strategies[self._active_output]
         await strategy.play(audio, cancel=cancel)
 
+    async def get_volume(self) -> float:
+        strategy = self._strategies[self._active_output]
+        return await strategy.get_volume()
+
+    async def set_volume(self, volume: float) -> None:
+        strategy = self._strategies[self._active_output]
+        await strategy.set_volume(volume)
+
     def _unknown_output_message(self, output: AudioOutput) -> str:
         available = ", ".join(item.value for item in self._strategies)
         return f"Audio output {output.value!r} is not configured. Available outputs: {available}."

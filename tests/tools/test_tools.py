@@ -19,6 +19,7 @@ class Greeting:
 class SilentOutput:
     def __init__(self, output: AudioOutput) -> None:
         self._output = output
+        self.volume = 1.0
 
     @property
     def output(self) -> AudioOutput:
@@ -26,6 +27,12 @@ class SilentOutput:
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         pass
+
+    async def get_volume(self) -> float:
+        return self.volume
+
+    async def set_volume(self, volume: float) -> None:
+        self.volume = volume
 
 
 class SearchParams(ToolParams):
@@ -91,6 +98,35 @@ def test_audio_output_tool_description_lists_the_configured_outputs() -> None:
     schema = next(item for item in tools.to_schema() if item["function"]["name"] == "set_audio_output")
 
     assert schema["function"]["description"].endswith("Available output names: local, sonos.")
+
+
+def test_default_set_volume_tool_updates_the_injected_player() -> None:
+    player = AudioPlayer(SilentOutput(AudioOutput.LOCAL))
+    tools = Tools()
+    tools.provide(player)
+
+    result = asyncio.run(tools.execute("set_volume", {"level": 0.4}))
+
+    assert result == ActionResult.success("Lautstärke ist jetzt 40%.")
+    assert asyncio.run(player.get_volume()) == 0.4
+
+
+def test_default_get_volume_tool_reads_the_injected_player() -> None:
+    player = AudioPlayer(SilentOutput(AudioOutput.LOCAL))
+    asyncio.run(player.set_volume(0.7))
+    tools = Tools()
+    tools.provide(player)
+
+    result = asyncio.run(tools.execute("get_volume", {}))
+
+    assert result == ActionResult.success("0.70")
+
+
+def test_volume_tools_are_unavailable_without_a_configured_player() -> None:
+    tools = Tools()
+
+    assert tools.get("get_volume") is None
+    assert tools.get("set_volume") is None
 
 
 def test_action_decorator_registers_tool() -> None:

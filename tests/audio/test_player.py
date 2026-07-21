@@ -1,5 +1,6 @@
 import asyncio
 import io
+import struct
 import wave
 
 from cara.audio import device as device_module
@@ -62,6 +63,32 @@ def test_wav_player_writes_trailing_silence_before_closing(monkeypatch) -> None:
     assert pa.stream.stopped is True
     assert pa.stream.closed is True
     assert pa.terminated is True
+
+
+def test_wav_player_default_volume_is_full() -> None:
+    assert asyncio.run(WavAudioPlayer().get_volume()) == 1.0
+
+
+def test_wav_player_set_volume_clamps_to_0_1_range() -> None:
+    player = WavAudioPlayer()
+
+    asyncio.run(player.set_volume(1.5))
+    assert asyncio.run(player.get_volume()) == 1.0
+
+    asyncio.run(player.set_volume(-0.5))
+    assert asyncio.run(player.get_volume()) == 0.0
+
+
+def test_wav_player_scales_pcm_samples_by_volume(monkeypatch) -> None:
+    pa = RecordingPyAudio()
+    monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: pa)
+    player = WavAudioPlayer(trailing_silence_seconds=0)
+    asyncio.run(player.set_volume(0.5))
+    samples = struct.pack("<4h", 100, -100, 32767, -32768)
+
+    player._play_sync(_wav_audio(frames=samples))
+
+    assert pa.stream.writes == [struct.pack("<4h", 50, -50, 16384, -16384)]
 
 
 def test_wav_player_does_not_delay_cancelled_playback(monkeypatch) -> None:

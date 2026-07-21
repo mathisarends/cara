@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 # How long to wait for the speaker to actually start playing before giving up.
 _PLAYBACK_START_TIMEOUT = 10.0
+_MIN_VOLUME = 0.0
+_MAX_VOLUME = 1.0
 
 
 class SonosSettings(BaseSettings):
@@ -123,6 +125,20 @@ class SonosAudioPlayer(AudioOutputStrategy):
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, functools.partial(self._play_sync, audio, cancel=cancel))
+
+    async def get_volume(self) -> float:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self._get_volume_sync)
+
+    async def set_volume(self, volume: float) -> None:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, functools.partial(self._set_volume_sync, volume))
+
+    def _get_volume_sync(self) -> float:
+        return self._resolve_device().volume / 100
+
+    def _set_volume_sync(self, volume: float) -> None:
+        self._resolve_device().volume = round(max(_MIN_VOLUME, min(_MAX_VOLUME, volume)) * 100)
 
     def close(self) -> None:
         """Shut down the local HTTP server. Safe to call multiple times."""

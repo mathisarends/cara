@@ -39,6 +39,14 @@ class SetAudioOutputParams(ToolParams):
     )
 
 
+class SetVolumeParams(ToolParams):
+    level: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Target playback volume, from 0.0 (silent) to 1.0 (full).",
+    )
+
+
 class LoadSkillParams(ToolParams):
     name: str = Field(description="Name of the skill to load, exactly as listed.")
 

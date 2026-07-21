@@ -15,7 +15,16 @@ from .middleware import (
     compose,
     extract_paths,
 )
-from .params import AccessMode, EndSessionParams, FilePath, PathField, SetAudioOutputParams, ToolParams, WritablePath
+from .params import (
+    AccessMode,
+    EndSessionParams,
+    FilePath,
+    PathField,
+    SetAudioOutputParams,
+    SetVolumeParams,
+    ToolParams,
+    WritablePath,
+)
 from .schemas import ToolSchema, ToolSchemaBuilder
 from .tools import Tools
 from .views import ActionKind, ActionResult, Tool, ToolAvailability, ToolCallable, ToolDescription
@@ -37,6 +46,7 @@ __all__ = [
     "PolicyDenial",
     "ResultLimitMiddleware",
     "SetAudioOutputParams",
+    "SetVolumeParams",
     "Tool",
     "ToolCall",
     "ToolFeedbackError",

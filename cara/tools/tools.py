@@ -18,6 +18,7 @@ from cara.tools.params import (
     LoadSkillParams,
     ReadFileParams,
     SetAudioOutputParams,
+    SetVolumeParams,
     ToolParams,
     WeatherParams,
     WriteFileParams,
@@ -29,6 +30,10 @@ from cara.tools.views import ActionKind, ActionResult, Tool, ToolAvailability, T
 def _multiple_audio_outputs_available(context: ToolContext) -> bool:
     player = context.resolve(AudioPlayer)
     return player is not None and len(player.available_outputs) > 1
+
+
+def _audio_player_available(context: ToolContext) -> bool:
+    return context.resolve(AudioPlayer) is not None
 
 
 def _weather_available(context: ToolContext) -> bool:
@@ -164,6 +169,30 @@ class Tools:
         ) -> ActionResult:
             player.set_output(params.output)
             return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
+
+        @self.action(
+            description=(
+                "Frage die aktuelle Wiedergabelautstärke des aktiven Audio-Ausgangs ab, als Wert von 0.0 bis 1.0."
+            ),
+            kind=ActionKind.READ,
+            available_when=_audio_player_available,
+        )
+        async def get_volume(player: Inject[AudioPlayer]) -> ActionResult:
+            level = await player.get_volume()
+            return ActionResult.success(f"{level:.2f}")
+
+        @self.action(
+            description=(
+                "Stelle die Wiedergabelautstärke des aktiven Audio-Ausgangs auf einen Zielwert. "
+                "Frage vorher get_volume ab, um den aktuellen Wert zu kennen, z. B. um ihn schrittweise "
+                "lauter oder leiser zu machen."
+            ),
+            params=SetVolumeParams,
+            available_when=_audio_player_available,
+        )
+        async def set_volume(params: SetVolumeParams, player: Inject[AudioPlayer]) -> ActionResult:
+            await player.set_volume(params.level)
+            return ActionResult.success(f"Lautstärke ist jetzt {round(params.level * 100)}%.")
 
         @self.action(
             description=(
