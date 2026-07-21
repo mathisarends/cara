@@ -1,13 +1,15 @@
+import asyncio
 import builtins
 from collections.abc import Callable
 from typing import Any
 
 from cara.audio import AudioPlayer
 from cara.file_system import FileSystem
-from cara.skills import SkillRepository
+from cara.skills import Skills
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
 from cara.tools.params import (
+    BashParams,
     EditFileParams,
     EndSessionParams,
     ListFilesParams,
@@ -95,6 +97,7 @@ class Tools:
         self._register_end_session_tool()
         self._register_load_skill_tool()
         self._register_set_audio_output_tool()
+        self._register_bash_tool()
         self._register_file_system_tools()
 
     def _register_end_session_tool(self) -> None:
@@ -121,11 +124,11 @@ class Tools:
             ),
             params=LoadSkillParams,
         )
-        async def load_skill(params: LoadSkillParams, repository: Inject[SkillRepository]) -> ActionResult:
+        async def load_skill(params: LoadSkillParams, skills: Inject[Skills]) -> ActionResult:
             try:
-                skill = repository.get(params.name)
+                skill = skills.get(params.name)
                 if skill is None:
-                    available = ", ".join(repository.names())
+                    available = ", ".join(skills.names())
                     return ActionResult.fail(f"Unknown skill '{params.name}'. Available: {available}")
                 return ActionResult.success(skill.instructions)
             except Exception as error:
@@ -144,6 +147,36 @@ class Tools:
             try:
                 player.set_output(params.output)
                 return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
+            except Exception as error:
+                return ActionResult.fail(error)
+
+    def _register_bash_tool(self) -> None:
+        @self.action(
+            description=(
+                "Execute a Bash command directly in the current working directory. "
+                "The command is passed unchanged to `bash -lc`; shell syntax such as "
+                "pipes, redirects, and command chaining is supported."
+            ),
+            params=BashParams,
+        )
+        async def bash(params: BashParams) -> ActionResult:
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "bash",
+                    "-lc",
+                    params.command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                output, _ = await process.communicate()
+                content = output.decode("utf-8", errors="replace").rstrip()
+                return_code = process.returncode
+                if return_code is None:
+                    return ActionResult.fail("Bash process ended without a return code.")
+                if return_code != 0:
+                    detail = f"\n{content}" if content else ""
+                    return ActionResult.fail(f"Command exited with status {return_code}.{detail}")
+                return ActionResult.success(content or "(no output)")
             except Exception as error:
                 return ActionResult.fail(error)
 

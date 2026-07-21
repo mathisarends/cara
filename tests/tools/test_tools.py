@@ -98,6 +98,44 @@ def test_action_decorator_registers_tool() -> None:
     assert tools.get("echo") is not None
 
 
+def test_default_bash_tool_executes_command() -> None:
+    tools = Tools()
+
+    result = asyncio.run(
+        tools.execute(
+            "bash",
+            {"command": "printf 'hello from bash'", "status": "Ich führe den Befehl aus..."},
+        )
+    )
+
+    assert result == ActionResult.success("hello from bash")
+
+
+def test_default_bash_tool_returns_output_and_nonzero_exit_status() -> None:
+    tools = Tools()
+
+    result = asyncio.run(
+        tools.execute(
+            "bash",
+            {"command": "printf 'failure details' >&2; exit 7", "status": "Ich prüfe das kurz..."},
+        )
+    )
+
+    assert result == ActionResult.fail("Command exited with status 7.\nfailure details")
+
+
+def test_default_bash_tool_schema_describes_unrestricted_command() -> None:
+    tools = Tools()
+
+    schema = next(item for item in tools.to_schema() if item["function"]["name"] == "bash")
+
+    assert schema["function"]["parameters"]["properties"]["command"] == {
+        "description": "Bash command to execute verbatim in the current working directory.",
+        "type": "string",
+    }
+    assert set(schema["function"]["parameters"]["required"]) == {"command", "status"}
+
+
 def test_action_decorator_supports_pydantic_params() -> None:
     tools = Tools()
 

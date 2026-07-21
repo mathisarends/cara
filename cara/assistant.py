@@ -28,7 +28,7 @@ from cara.file_system import FileSystem
 from cara.listener import SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
-from cara.skills import SkillRepository
+from cara.skills import Skills
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -64,7 +64,7 @@ class VoiceAssistant:
         event_bus: EventBus | None = None,
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
-        skills: SkillRepository | None = None,
+        skills: Skills | None = None,
         file_system: FileSystem | None = None,
         speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,

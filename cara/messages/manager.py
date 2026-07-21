@@ -8,7 +8,7 @@ from llmify import (
 )
 
 from cara.messages.system_prompt import SystemPrompt
-from cara.skills import SkillRepository
+from cara.skills import Skills
 
 
 class MessageManager:
@@ -18,7 +18,7 @@ class MessageManager:
         system_prompt: str | SystemPrompt | None = None,
         messages: list[Message] | None = None,
         max_turns: int = 12,
-        skills: SkillRepository | None = None,
+        skills: Skills | None = None,
     ) -> None:
         self._system_prompt = system_prompt if system_prompt is not None else SystemPrompt()
         self._messages = messages if messages is not None else []

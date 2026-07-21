@@ -2,7 +2,7 @@ import pytest
 from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
 from cara.messages import MessageManager, SystemPrompt
-from cara.skills import Skill, SkillRepository
+from cara.skills import Skill, Skills
 
 
 def _tool_call() -> ToolCall:
@@ -52,7 +52,7 @@ def test_tool_result_lands_in_context_paired_with_its_call() -> None:
 
 
 def test_available_skills_are_appended_to_the_system_prompt() -> None:
-    skills = SkillRepository([Skill(name="pdf", description="Read PDFs.", instructions="...")])
+    skills = Skills([Skill(name="pdf", description="Read PDFs.", instructions="...")])
     messages = MessageManager(system_prompt="System", skills=skills)
 
     rendered = messages.to_llm_messages()[0].content
@@ -60,8 +60,8 @@ def test_available_skills_are_appended_to_the_system_prompt() -> None:
     assert rendered == "System\n\n<available_skills>\n- pdf: Read PDFs.\n</available_skills>"
 
 
-def test_empty_skill_repository_leaves_the_system_prompt_untouched() -> None:
-    messages = MessageManager(system_prompt="System", skills=SkillRepository())
+def test_empty_skills_leaves_the_system_prompt_untouched() -> None:
+    messages = MessageManager(system_prompt="System", skills=Skills())
 
     assert messages.to_llm_messages()[0].content == "System"
 

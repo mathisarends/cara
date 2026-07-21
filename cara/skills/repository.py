@@ -8,7 +8,7 @@ from cara.skills.parser import parse_skill
 _SKILL_MANIFEST = "SKILL.md"
 
 
-class SkillRepository:
+class Skills:
     """A named collection of skills the ``load_skill`` action can draw from.
 
     Skills can be supplied directly as :class:`Skill` objects or discovered from
@@ -20,9 +20,9 @@ class SkillRepository:
 
     @classmethod
     def from_directory(cls, filesystem: FileSystem, root: str) -> Self:
-        repository = cls()
-        repository.load_directory(filesystem, root)
-        return repository
+        skills = cls()
+        skills.load_directory(filesystem, root)
+        return skills
 
     def add(self, skill: Skill) -> None:
         self._skills[skill.name] = skill

@@ -37,6 +37,12 @@ class LoadSkillParams(ToolParams):
     name: str = Field(description="Name of the skill to load, exactly as listed.")
 
 
+class BashParams(ToolParams):
+    command: str = Field(
+        description="Bash command to execute verbatim in the current working directory.",
+    )
+
+
 class ListFilesParams(ToolParams):
     path: str = Field(
         default=".",

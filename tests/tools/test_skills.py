@@ -1,6 +1,6 @@
 import asyncio
 
-from cara.skills import Skill, SkillRepository
+from cara.skills import Skill, Skills
 from cara.tools import Tools
 
 _PDF = Skill(
@@ -12,7 +12,7 @@ _PDF = Skill(
 
 def _tools_with_pdf() -> Tools:
     tools = Tools()
-    tools.provide(SkillRepository([_PDF]))
+    tools.provide(Skills([_PDF]))
     return tools
 
 
@@ -44,7 +44,7 @@ def test_load_skill_returns_the_full_instructions_as_its_result() -> None:
     assert result.content == "Use the bundled parser to extract text."
 
 
-def test_load_skill_without_a_provided_repository_fails() -> None:
+def test_load_skill_without_provided_skills_fails() -> None:
     result = asyncio.run(Tools().execute("load_skill", {"name": "pdf", **_status()}))
 
     assert not result.ok

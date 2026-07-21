@@ -50,3 +50,9 @@ audio_player = AudioPlayer(
 
 The built-in `set_audio_output` tool receives this player through the tool context and can switch to
 another registered output, such as `local` or `sonos`, while the assistant is running.
+
+## Bash tool
+
+The built-in `bash` tool executes commands through `bash -lc` in Cara's current working directory.
+Commands are passed to Bash unchanged, and their combined standard output and error output is returned
+to the model. Each invocation uses a fresh Bash process, so shell state does not persist between calls.

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from cara.file_system import LocalFileSystem
-from cara.skills import Skill, SkillRepository
+from cara.skills import Skill, Skills
 
 _GREET = Skill(
     name="greet",
@@ -16,17 +16,17 @@ _FAREWELL = Skill(
 
 
 def test_holds_directly_provided_skills() -> None:
-    repository = SkillRepository([_GREET, _FAREWELL])
+    skills = Skills([_GREET, _FAREWELL])
 
-    assert repository.get("greet") == _GREET
-    assert repository.names() == ["farewell", "greet"]
-    assert repository.get("unknown") is None
+    assert skills.get("greet") == _GREET
+    assert skills.names() == ["farewell", "greet"]
+    assert skills.get("unknown") is None
 
 
 def test_render_catalog_lists_name_and_description() -> None:
-    repository = SkillRepository([_GREET])
+    skills = Skills([_GREET])
 
-    assert repository.render_catalog() == "- greet: Greet the user warmly."
+    assert skills.render_catalog() == "- greet: Greet the user warmly."
 
 
 def _write_skill(root: Path, name: str, description: str, body: str) -> None:
@@ -43,10 +43,10 @@ def test_discovers_skills_from_a_directory(tmp_path: Path) -> None:
     (tmp_path / "skills" / "pdf" / "parser.py").write_text("# script", encoding="utf-8")
     _write_skill(tmp_path, "email", "Draft emails.", "Keep it concise.")
 
-    repository = SkillRepository.from_directory(LocalFileSystem(tmp_path), "skills")
+    skills = Skills.from_directory(LocalFileSystem(tmp_path), "skills")
 
-    assert repository.names() == ["email", "pdf"]
-    pdf = repository.get("pdf")
+    assert skills.names() == ["email", "pdf"]
+    pdf = skills.get("pdf")
     assert pdf is not None
     assert pdf.instructions == "Use the bundled parser."
     assert pdf.resources == ("parser.py",)
@@ -55,13 +55,13 @@ def test_discovers_skills_from_a_directory(tmp_path: Path) -> None:
 def test_directory_source_merges_with_direct_skills(tmp_path: Path) -> None:
     _write_skill(tmp_path, "pdf", "Read PDFs.", "Use the bundled parser.")
 
-    repository = SkillRepository([_GREET])
-    repository.load_directory(LocalFileSystem(tmp_path), "skills")
+    skills = Skills([_GREET])
+    skills.load_directory(LocalFileSystem(tmp_path), "skills")
 
-    assert repository.names() == ["greet", "pdf"]
+    assert skills.names() == ["greet", "pdf"]
 
 
 def test_missing_directory_yields_no_skills(tmp_path: Path) -> None:
-    repository = SkillRepository.from_directory(LocalFileSystem(tmp_path), "skills")
+    skills = Skills.from_directory(LocalFileSystem(tmp_path), "skills")
 
-    assert repository.names() == []
+    assert skills.names() == []
