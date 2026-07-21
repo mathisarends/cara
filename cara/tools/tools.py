@@ -2,6 +2,7 @@ import builtins
 from collections.abc import Callable
 from typing import Any
 
+from cara.audio import AudioPlayer
 from cara.file_system import FileSystem
 from cara.skills import SkillRepository
 from cara.tools.di import Inject, ToolContext
@@ -12,6 +13,7 @@ from cara.tools.params import (
     ListFilesParams,
     LoadSkillParams,
     ReadFileParams,
+    SetAudioOutputParams,
     ToolParams,
     WriteFileParams,
 )
@@ -74,6 +76,7 @@ class Tools:
     def _register_default_tools(self) -> None:
         self._register_end_session_tool()
         self._register_load_skill_tool()
+        self._register_set_audio_output_tool()
         self._register_file_system_tools()
 
     def _register_end_session_tool(self) -> None:
@@ -105,6 +108,25 @@ class Tools:
                 available = ", ".join(repository.names())
                 return ActionResult.fail(f"Unknown skill '{params.name}'. Available: {available}")
             return ActionResult.success(skill.instructions)
+
+    def _register_set_audio_output_tool(self) -> None:
+        @self.action(
+            name="set_audio_output",
+            description=(
+                "Switch audio playback to another configured output strategy. "
+                "Use the exact output name requested by the user."
+            ),
+            params=SetAudioOutputParams,
+        )
+        async def set_audio_output(
+            params: SetAudioOutputParams,
+            player: Inject[AudioPlayer],
+        ) -> ActionResult:
+            try:
+                player.set_output(params.output)
+            except ValueError as error:
+                return ActionResult.fail(error)
+            return ActionResult.success(f"Audio output switched to {params.output!r}.")
 
     def _register_file_system_tools(self) -> None:
         @self.action(

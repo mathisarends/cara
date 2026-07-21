@@ -3,12 +3,18 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
+from cara.audio import AudioPlayer
 from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolParams, Tools
 
 
 class Greeting:
     def __init__(self, text: str) -> None:
         self.text = text
+
+
+class SilentOutput:
+    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
+        pass
 
 
 class SearchParams(ToolParams):
@@ -37,6 +43,22 @@ def test_default_end_session_tool_is_tagged_with_kind() -> None:
     assert end_session is not None
     assert end_session.param_model is EndSessionParams
     assert end_session.kind is ActionKind.END_SESSION
+
+
+def test_default_set_audio_output_tool_switches_the_injected_player() -> None:
+    player = AudioPlayer({"local": SilentOutput(), "sonos": SilentOutput()})
+    tools = Tools()
+    tools.provide(player)
+
+    result = asyncio.run(
+        tools.execute(
+            "set_audio_output",
+            {"output": "sonos", "status": "Ich wechsle die Audioausgabe..."},
+        )
+    )
+
+    assert result == ActionResult.success("Audio output switched to 'sonos'.")
+    assert player.active_output == "sonos"
 
 
 def test_action_decorator_registers_tool() -> None:

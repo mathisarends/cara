@@ -41,7 +41,6 @@ __all__ = [
     "MessageManager",
     "SessionEnded",
     "SessionStarted",
-    "SonosAudioPlayer",
     "SpeechSettings",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
@@ -54,11 +53,3 @@ __all__ = [
     "TurnStarted",
     "VoiceAssistant",
 ]
-
-
-def __getattr__(name: str) -> object:
-    if name == "SonosAudioPlayer":
-        from .audio import SonosAudioPlayer
-
-        return SonosAudioPlayer
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

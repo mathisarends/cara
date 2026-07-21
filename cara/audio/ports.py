@@ -16,8 +16,8 @@ class SpeechRecorder(ABC):
         """Record one utterance, optionally signalling its start or stopping early."""
 
 
-class AudioPlayer(ABC):
-    """Plays WAV-encoded audio through an output device."""
+class AudioOutputStrategy(ABC):
+    """Plays WAV-encoded audio through a specific output implementation."""
 
     @abstractmethod
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:

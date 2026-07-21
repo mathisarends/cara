@@ -25,6 +25,12 @@ class EndSessionParams(ToolParams):
     )
 
 
+class SetAudioOutputParams(ToolParams):
+    output: str = Field(
+        description="Name of the configured audio output strategy to activate.",
+    )
+
+
 class LoadSkillParams(ToolParams):
     name: str = Field(description="Name of the skill to load, exactly as listed.")
 

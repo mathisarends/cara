@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent, ToolCall
 
 from cara.audio import (
+    AudioOutputStrategy,
     AudioPlayer,
     Earcon,
     EarconPlayer,
@@ -59,7 +60,7 @@ class VoiceAssistant:
         llm: ChatModel | None = None,
         api_key: str | None = None,
         recorder: SpeechRecorder | None = None,
-        player: AudioPlayer | None = None,
+        player: AudioOutputStrategy | None = None,
         stt: SpeechToText | None = None,
         tts: TextToSpeech | None = None,
         event_bus: EventBus | None = None,
@@ -73,17 +74,19 @@ class VoiceAssistant:
         extend_system_prompt: str | None = None,
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
     ) -> None:
-        self._llm = llm or ChatOpenAI()
+        self._llm = llm or ChatOpenAI(model="gpt-5.6-terra")
         if recorder is None and player is None:
             echo_canceller = WebRtcEchoCanceller()
             recorder = MicrophoneRecorder(echo_canceller=echo_canceller)
             player = WavAudioPlayer(echo_canceller=echo_canceller)
 
         self._recorder = recorder or MicrophoneRecorder()
-        self._player = player or WavAudioPlayer()
+        output = player or WavAudioPlayer()
+        self._player = output if isinstance(output, AudioPlayer) else AudioPlayer({"local": output})
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
+        self._tools.provide(self._player)
         if skills is not None:
             self._tools.provide(skills)
         if file_system is not None:

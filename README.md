@@ -13,7 +13,7 @@ Wake-word driven local voice loop:
 Set `OPENAI_API_KEY`, connect a microphone and speakers, then run:
 
 ```powershell
-uv run python main.py
+uv run --extra sonos python main.py
 ```
 
 The default wake word is `hey_mycroft`. Runtime recordings and TTS files are written below the system temp directory in `cara`.
@@ -32,4 +32,20 @@ bash scripts/discover_sonos.sh
 bash scripts/discover_hue.sh
 ```
 
-Sonos discovery needs the optional `sonos` dependency; the script runs it via `uv run --extra sonos`.
+Sonos playback and discovery use the optional `sonos` dependency. Import Sonos explicitly from
+`cara.audio.sonos`; importing `cara` or `cara.audio` does not load it.
+
+## Audio outputs
+
+`AudioPlayer` delegates playback to a named output strategy. Register every output that should be
+available at runtime and pass the player to `VoiceAssistant`:
+
+```python
+audio_player = AudioPlayer(
+    {"local": WavAudioPlayer(), "sonos": SonosAudioPlayer()},
+    active_output="sonos",
+)
+```
+
+The built-in `set_audio_output` tool receives this player through the tool context and can switch to
+another registered output, such as `local` or `sonos`, while the assistant is running.

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import asyncio
 import functools
 import logging
@@ -8,14 +6,11 @@ import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import TYPE_CHECKING, Any
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from soco import SoCo, discovery
 
-from cara.audio.ports import AudioPlayer
-
-if TYPE_CHECKING:
-    from soco import SoCo
+from cara.audio.ports import AudioOutputStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +101,7 @@ class _AudioClipServer:
         return _Handler
 
 
-class SonosAudioPlayer(AudioPlayer):
+class SonosAudioPlayer(AudioOutputStrategy):
     """Plays WAV audio on a Sonos speaker via SoCo."""
 
     def __init__(
@@ -150,9 +145,8 @@ class SonosAudioPlayer(AudioPlayer):
         if self._device is not None:
             return self._device
         if self._settings.ip_address:
-            self._device = _load_soco()(self._settings.ip_address)
+            self._device = SoCo(self._settings.ip_address)
             return self._device
-        discovery = _load_soco_discovery()
         if self._settings.speaker_name:
             device = discovery.by_name(self._settings.speaker_name)
             if device is None:
@@ -210,19 +204,3 @@ def _safe_stop(device: SoCo) -> None:
         device.stop()
     except Exception:
         logger.exception("Failed to stop Sonos playback.")
-
-
-def _load_soco() -> type[SoCo]:
-    try:
-        from soco import SoCo
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("Sonos support requires the optional dependency group: `cara[sonos]`.") from exc
-    return SoCo
-
-
-def _load_soco_discovery() -> Any:
-    try:
-        import soco.discovery
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("Sonos support requires the optional dependency group: `cara[sonos]`.") from exc
-    return soco.discovery

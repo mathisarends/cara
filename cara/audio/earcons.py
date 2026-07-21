@@ -3,7 +3,7 @@ import logging
 from enum import StrEnum
 from pathlib import Path
 
-from cara.audio.ports import AudioPlayer
+from cara.audio.ports import AudioOutputStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class Earcon(StrEnum):
 
 
 class EarconPlayer:
-    def __init__(self, player: AudioPlayer, *, sounds_dir: Path | None = None) -> None:
+    def __init__(self, player: AudioOutputStrategy, *, sounds_dir: Path | None = None) -> None:
         self._player = player
         self._sounds_dir = sounds_dir or _DEFAULT_SOUNDS_DIR
         self._cache: dict[Earcon, bytes] = {}

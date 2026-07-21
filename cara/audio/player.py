@@ -6,14 +6,14 @@ import wave
 
 import pyaudio
 
-from cara.audio.ports import AudioPlayer, EchoCanceller
+from cara.audio.ports import AudioOutputStrategy, EchoCanceller
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TRAILING_SILENCE_SECONDS = 0.2
 
 
-class WavAudioPlayer(AudioPlayer):
+class WavAudioPlayer(AudioOutputStrategy):
     """Plays WAV audio through the default output device."""
 
     def __init__(
