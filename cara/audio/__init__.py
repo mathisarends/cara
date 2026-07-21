@@ -1,3 +1,4 @@
+from .earcons import Earcon, EarconPlayer
 from .echo import EchoCancellationSettings, WebRtcEchoCanceller
 from .player import WavAudioPlayer
 from .ports import AudioPlayer, EchoCanceller, SpeechRecorder
@@ -7,6 +8,8 @@ __all__ = [
     "AudioPlayer",
     "EchoCancellationSettings",
     "EchoCanceller",
+    "Earcon",
+    "EarconPlayer",
     "MicrophoneRecorder",
     "MicrophoneInputSettings",
     "SpeechRecorder",

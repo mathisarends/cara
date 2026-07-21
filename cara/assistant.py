@@ -5,7 +5,15 @@ from collections.abc import AsyncIterator
 
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent
 
-from cara.audio import AudioPlayer, MicrophoneRecorder, SpeechRecorder, WavAudioPlayer, WebRtcEchoCanceller
+from cara.audio import (
+    AudioPlayer,
+    Earcon,
+    EarconPlayer,
+    MicrophoneRecorder,
+    SpeechRecorder,
+    WavAudioPlayer,
+    WebRtcEchoCanceller,
+)
 from cara.audio.barge_in import BargeInCapture
 from cara.events import (
     AnswerGenerated,
@@ -18,6 +26,7 @@ from cara.events import (
     Transcribed,
     TurnStarted,
 )
+from cara.listener import SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
 from cara.speech import (
@@ -66,14 +75,14 @@ class VoiceAssistant:
             recorder = MicrophoneRecorder(echo_canceller=echo_canceller)
             player = WavAudioPlayer(echo_canceller=echo_canceller)
         self._recorder = recorder or MicrophoneRecorder()
-        player = player or WavAudioPlayer()
+        self._player = player or WavAudioPlayer()
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
         self._speech_settings = speech_settings or SpeechSettings()
         self._speech_stream = StreamingTextToSpeech(
             tts=tts,
-            player=player,
+            player=self._player,
             voice=self._speech_settings.tts_voice,
             instructions=self._speech_settings.tts_voice_instructions,
         )
@@ -86,6 +95,8 @@ class VoiceAssistant:
         self._message_manager = MessageManager(system_prompt=self._system_prompt)
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
+        self._earcons = EarconPlayer(self._player)
+        self._sound_listener = SoundListener(self._event_bus, self._earcons)
         self._state = AssistantState.IDLE
 
     @property
@@ -120,6 +131,7 @@ class VoiceAssistant:
         follow_up = False
         pending_audio: bytes | None = None
         await self._event_bus.dispatch(SessionStarted())
+        await self._earcons.play(Earcon.WAKE)
         try:
             while True:
                 await self._event_bus.dispatch(TurnStarted())
