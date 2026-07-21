@@ -1,5 +1,8 @@
+import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
+from functools import partial
 
 from hueify import Hueify
 from hueify.grouped_lights import GroupedLights
@@ -63,6 +66,12 @@ class HueListener:
     state at session start as a baseline and applies a relative shift on top
     of it per phase, restoring exactly that baseline once idle or the session
     ends. A room that's off stays off.
+
+    Every Hue API call runs on a single background worker fed by an internal
+    queue, so the event handlers only enqueue and return: bridge I/O never
+    adds latency to the agentic loop that dispatches the events. Serializing
+    the work through one worker also keeps successive lifecycle phases from
+    interleaving their awaits on the shared baseline and room.
     """
 
     def __init__(
@@ -78,12 +87,39 @@ class HueListener:
         self._room: GroupedLights | None = None
         self._baseline: _Baseline | None = None
         self._active_tint = _ZERO_TINT
+        self._jobs: asyncio.Queue[Callable[[], Awaitable[None]]] = asyncio.Queue()
+        self._worker: asyncio.Task[None] | None = None
         self._event_bus.subscribe(SessionStarted, self._on_session_started)
         self._event_bus.subscribe(SessionEnded, self._on_session_ended)
         self._event_bus.subscribe(StateChanged, self._on_state_changed)
         self._hue.on(GroupedLightEvent, self._on_bridge_event)
 
     async def _on_session_started(self, event: SessionStarted) -> None:
+        self._submit(self._capture_baseline)
+
+    async def _on_session_ended(self, event: SessionEnded) -> None:
+        self._submit(self._restore_baseline)
+
+    async def _on_state_changed(self, event: StateChanged) -> None:
+        self._submit(partial(self._apply_state, event.state))
+
+    def _submit(self, job: Callable[[], Awaitable[None]]) -> None:
+        """Enqueue a Hue operation for the background worker and return at once."""
+        if self._worker is None or self._worker.done():
+            self._worker = asyncio.create_task(self._run())
+        self._jobs.put_nowait(job)
+
+    async def _run(self) -> None:
+        while True:
+            job = await self._jobs.get()
+            try:
+                await job()
+            except Exception:
+                logger.exception("Hue operation failed")
+            finally:
+                self._jobs.task_done()
+
+    async def _capture_baseline(self) -> None:
         room = await self._ensure_room()
         self._active_tint = _ZERO_TINT
         self._baseline = _Baseline(
@@ -92,15 +128,12 @@ class HueListener:
             temperature=_read_temperature(room),
         )
 
-    async def _on_session_ended(self, event: SessionEnded) -> None:
-        await self._restore_baseline()
-
-    async def _on_state_changed(self, event: StateChanged) -> None:
-        if event.state is AssistantState.IDLE:
+    async def _apply_state(self, state: AssistantState) -> None:
+        if state is AssistantState.IDLE:
             await self._restore_baseline()
             return
 
-        tint = _STATE_TINTS.get(event.state)
+        tint = _STATE_TINTS.get(state)
         baseline = self._baseline
         if tint is None or baseline is None or not baseline.on:
             return

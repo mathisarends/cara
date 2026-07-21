@@ -36,9 +36,13 @@ class MessageManager:
         self._messages.append(AssistantMessage(content=text))
         self.trim()
 
-    def add_tool_result(self, tool_call: ToolCall, content: str) -> None:
-        self._messages.append(AssistantMessage(tool_calls=[tool_call]))
-        self._messages.append(ToolResultMessage(tool_call_id=tool_call.id, content=content))
+    def add_tool_results(self, results: list[tuple[ToolCall, str]]) -> None:
+        if not results:
+            return
+        self._messages.append(AssistantMessage(tool_calls=[tool_call for tool_call, _ in results]))
+        self._messages.extend(
+            ToolResultMessage(tool_call_id=tool_call.id, content=content) for tool_call, content in results
+        )
         self.trim()
 
     def to_llm_messages(self) -> list[Message]:

@@ -115,7 +115,6 @@ class VoiceAssistant:
         self._earcons = EarconPlayer(self._player)
         self._sound_listener = SoundListener(self._event_bus, self._earcons)
         self._state = AssistantState.IDLE
-        self._pending_skill_results: list[tuple[ToolCall, str]] = []
 
     @property
     def event_bus(self) -> EventBus:
@@ -156,7 +155,6 @@ class VoiceAssistant:
         try:
             while True:
                 await self._event_bus.dispatch(TurnStarted())
-                self._pending_skill_results = []
 
                 audio = pending_audio
                 pending_audio = None
@@ -185,8 +183,6 @@ class VoiceAssistant:
                         break
                     follow_up = False
                     continue
-                for tool_call, content in self._pending_skill_results:
-                    self._message_manager.add_tool_result(tool_call, content)
                 self._message_manager.add_assistant(answer)
 
                 if end_session:
@@ -244,26 +240,31 @@ class VoiceAssistant:
             await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
 
     async def _stream_response(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
-        reply = StreamingReply(
-            self._reply(),
-            NaturalPauseChunker(
-                min_chunk_chars=300,
-                target_chunk_chars=500,
-                max_chunk_chars=800,
-            ),
-        )
-        async with asyncio.TaskGroup() as task_group:
-            reply_task = task_group.create_task(self._resolve_streaming_reply(reply))
-            task_group.create_task(self._speak(reply.text_chunks, interrupt=interrupt))
-        return reply_task.result()
+        while True:
+            reply = StreamingReply(
+                self._reply(),
+                NaturalPauseChunker(
+                    min_chunk_chars=300,
+                    target_chunk_chars=500,
+                    max_chunk_chars=800,
+                ),
+            )
+            async with asyncio.TaskGroup() as task_group:
+                reply_task = task_group.create_task(self._resolve_streaming_reply(reply))
+                task_group.create_task(self._speak(reply.text_chunks, interrupt=interrupt))
 
-    async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool]:
+            answer, end_session, called_tools = reply_task.result()
+            if end_session or not called_tools:
+                await self._event_bus.dispatch(AnswerGenerated(answer=answer))
+                return answer, end_session
+            await self._set_state(AssistantState.THINKING)
+
+    async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool, bool]:
         try:
             completion = await reply.collect()
-            answer, end_session = await self._resolve_completion(completion, reply)
-            await self._event_bus.dispatch(AnswerGenerated(answer=answer))
+            answer, end_session, called_tools = await self._resolve_completion(completion, reply)
             reply.finish(answer)
-            return answer, end_session
+            return answer, end_session, called_tools
         finally:
             reply.close()
 
@@ -271,9 +272,10 @@ class VoiceAssistant:
         self,
         completion: ChatInvokeCompletion[str],
         reply: StreamingReply,
-    ) -> tuple[str, bool]:
+    ) -> tuple[str, bool, bool]:
         answer = completion.completion.strip()
         end_session = False
+        tool_results: list[tuple[ToolCall, str]] = []
         for tool_call in completion.tool_calls:
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
@@ -285,13 +287,15 @@ class VoiceAssistant:
                 reply.announce(status)
 
             result = await self._tools.execute(name, arguments)
+            content = result.content or ("Tool completed successfully." if result.ok else "Tool failed.")
+            tool_results.append((tool_call, content))
             if tool is not None and tool.kind is ActionKind.END_SESSION:
                 end_session = True
                 if result.content:
                     answer = result.content.strip()
-            elif name == "load_skill" and result.ok and result.content:
-                self._pending_skill_results.append((tool_call, result.content))
-        return answer, end_session
+
+        self._message_manager.add_tool_results(tool_results)
+        return answer, end_session, bool(completion.tool_calls)
 
     async def _speak(
         self,

@@ -49,7 +49,7 @@ def test_tool_result_lands_in_context_paired_with_its_call() -> None:
     messages = MessageManager(system_prompt="System")
 
     messages.add_user("Read this PDF")
-    messages.add_tool_result(_tool_call(), "Use the bundled parser.")
+    messages.add_tool_results([(_tool_call(), "Use the bundled parser.")])
     messages.add_assistant("Mache ich.")
 
     llm_messages = messages.to_llm_messages()
@@ -60,6 +60,23 @@ def test_tool_result_lands_in_context_paired_with_its_call() -> None:
     assert isinstance(tool_result, ToolResultMessage)
     assert tool_result.tool_call_id == "call-1"
     assert tool_result.content == "Use the bundled parser."
+
+
+def test_multiple_tool_results_share_one_assistant_tool_call_message() -> None:
+    messages = MessageManager(system_prompt="System")
+    first = _tool_call()
+    second = ToolCall(id="call-2", function=Function(name="read_file", arguments="{}"))
+
+    messages.add_tool_results([(first, "skill instructions"), (second, "file contents")])
+
+    llm_messages = messages.to_llm_messages()
+    assistant_call = llm_messages[1]
+    assert isinstance(assistant_call, AssistantMessage)
+    assert [tool_call.id for tool_call in assistant_call.tool_calls] == ["call-1", "call-2"]
+    assert [message.tool_call_id for message in llm_messages[2:] if isinstance(message, ToolResultMessage)] == [
+        "call-1",
+        "call-2",
+    ]
 
 
 def test_available_skills_are_appended_to_the_system_prompt() -> None:
@@ -107,7 +124,7 @@ def test_context_precedes_available_skills_in_the_system_prompt() -> None:
 def test_trim_drops_tool_results_orphaned_from_their_call() -> None:
     messages = MessageManager(system_prompt="System", max_turns=1)
 
-    messages.add_tool_result(_tool_call(), "instructions")
+    messages.add_tool_results([(_tool_call(), "instructions")])
     messages.add_user("three")
 
     assert not any(isinstance(message, ToolResultMessage) for message in messages.to_llm_messages())

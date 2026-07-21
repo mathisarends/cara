@@ -1,12 +1,15 @@
 import asyncio
 import logging
 
-from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall
+from llmify import AssistantMessage, Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, ToolResultMessage
 
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated, EventBus
+from cara.skills import Skill, Skills
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
+from cara.tools import ActionResult, Tools
+from cara.tools.params import WeatherParams
 from cara.wakeword import WakeWordSettings
 
 _FIRST_SENTENCE = f"{'A' * 339}."
@@ -94,6 +97,40 @@ class EndSessionChatModel:
         yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
 
 
+class MultiRoundToolChatModel:
+    def __init__(self) -> None:
+        self.messages: list[list[object]] = []
+
+    async def stream(self, messages, *, tools):
+        self.messages.append(messages)
+        if len(self.messages) == 1:
+            tool_call = ToolCall(
+                id="load-weather-skill",
+                function=Function(
+                    name="load_skill",
+                    arguments='{"name":"weather","status":"Ich schaue kurz aufs Wetter."}',
+                ),
+            )
+            yield StreamToolCall(tool_call=tool_call)
+            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
+            return
+        if len(self.messages) == 2:
+            tool_call = ToolCall(
+                id="fetch-weather",
+                function=Function(
+                    name="weather_lookup",
+                    arguments='{"location":null,"status":"Ich frage die Wetterdaten ab."}',
+                ),
+            )
+            yield StreamToolCall(tool_call=tool_call)
+            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
+            return
+
+        answer = "Heute sind es 22 Grad und es ist sonnig."
+        yield StreamTextDelta(delta=answer)
+        yield StreamEnd(completion=answer)
+
+
 def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer, stt=None) -> VoiceAssistant:
     return VoiceAssistant(
         llm=llm,
@@ -144,6 +181,67 @@ def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> N
     assert tts.texts == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
     assert player.audio == [_FIRST_SPEECH_CHUNK.encode(), _FINAL_SPEECH_CHUNK.encode()]
     assert answers == [answer]
+
+
+def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
+    async def run() -> tuple[str, MultiRoundToolChatModel, RecordingTextToSpeech, list[str]]:
+        player = CoordinatedAudioPlayer()
+        player.second_delta_generated.set()
+        tts = RecordingTextToSpeech()
+        llm = MultiRoundToolChatModel()
+        tools = Tools()
+
+        @tools.action(name="weather_lookup", params=WeatherParams)
+        async def weather_lookup(params: WeatherParams) -> ActionResult:
+            return ActionResult.success("22 Grad und sonnig.")
+
+        skills = Skills([Skill(name="weather", description="Wetter abrufen.", instructions="Rufe weather_lookup auf.")])
+        assistant = VoiceAssistant(
+            llm=llm,
+            recorder=UnusedRecorder(),
+            player=AudioPlayer(player),
+            stt=UnusedSpeechToText(),
+            tts=tts,
+            event_bus=EventBus(),
+            wake_word_settings=WakeWordSettings(),
+            tools=tools,
+            skills=skills,
+        )
+        answers: list[str] = []
+
+        async def capture_answer(event: AnswerGenerated) -> None:
+            answers.append(event.answer)
+
+        assistant.event_bus.subscribe(AnswerGenerated, capture_answer)
+        answer, end_session = await assistant._think()
+        assert end_session is False
+        return answer, llm, tts, answers
+
+    answer, llm, tts, answers = asyncio.run(run())
+
+    assert answer == "Heute sind es 22 Grad und es ist sonnig."
+    assert len(llm.messages) == 3
+    assert tts.texts == [
+        "Ich schaue kurz aufs Wetter.",
+        "Ich frage die Wetterdaten ab.",
+        answer,
+    ]
+    assert answers == [answer]
+
+    second_round_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
+    assert [(result.tool_call_id, result.content) for result in second_round_results] == [
+        ("load-weather-skill", "Rufe weather_lookup auf.")
+    ]
+    third_round_calls = [message for message in llm.messages[2] if isinstance(message, AssistantMessage)]
+    third_round_results = [message for message in llm.messages[2] if isinstance(message, ToolResultMessage)]
+    assert [call.tool_calls[0].id for call in third_round_calls if call.tool_calls] == [
+        "load-weather-skill",
+        "fetch-weather",
+    ]
+    assert [(result.tool_call_id, result.content) for result in third_round_results] == [
+        ("load-weather-skill", "Rufe weather_lookup auf."),
+        ("fetch-weather", "22 Grad und sonnig."),
+    ]
 
 
 def test_assistant_speaks_end_session_tool_result() -> None:
