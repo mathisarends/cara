@@ -1,10 +1,12 @@
 import asyncio
+from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import Field
 
 from cara.audio import AudioOutput, AudioPlayer
-from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolParams, Tools
+from cara.file_system import Workspace
+from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolContext, ToolParams, Tools
 
 
 class Greeting:
@@ -28,6 +30,13 @@ class SearchParams(ToolParams):
     query: str = Field(description="Search query")
     limit: int = 10
     tags: list[str] = Field(default_factory=list, min_length=1, max_length=3)
+
+
+class EchoTools:
+    def register(self, tools: Tools) -> None:
+        @tools.action(description="Echo a message.")
+        async def echo(message: str) -> ActionResult:
+            return ActionResult.success(message)
 
 
 def test_default_end_session_tool_returns_farewell() -> None:
@@ -98,7 +107,25 @@ def test_action_decorator_registers_tool() -> None:
     assert tools.get("echo") is not None
 
 
-def test_default_bash_tool_executes_command() -> None:
+def test_custom_toolsets_can_replace_default_registration() -> None:
+    tools = Tools(toolsets=(EchoTools(),))
+
+    result = asyncio.run(tools.execute("echo", {"message": "hi"}))
+
+    assert result == ActionResult.success("hi")
+    assert tools.get("end_session") is None
+
+
+def test_replacing_context_preserves_configured_workspace(tmp_path: Path) -> None:
+    workspace = Workspace(tmp_path)
+    tools = Tools(workspace=workspace)
+
+    tools.set_context(ToolContext())
+
+    assert tools.resolve(Workspace) is workspace
+
+
+def test_default_bash_tool_is_denied() -> None:
     tools = Tools()
 
     result = asyncio.run(
@@ -108,11 +135,14 @@ def test_default_bash_tool_executes_command() -> None:
         )
     )
 
-    assert result == ActionResult.success("hello from bash")
+    assert result == ActionResult.fail(
+        "Bash execution is disabled by the current tool policy. "
+        "Use the dedicated file tools or configure an explicit command allow-list."
+    )
 
 
-def test_default_bash_tool_returns_output_and_nonzero_exit_status() -> None:
-    tools = Tools()
+def test_bash_tool_rejects_shell_syntax_even_for_allowed_command() -> None:
+    tools = Tools(bash_allowed_commands=("printf",))
 
     result = asyncio.run(
         tools.execute(
@@ -121,16 +151,48 @@ def test_default_bash_tool_returns_output_and_nonzero_exit_status() -> None:
         )
     )
 
-    assert result == ActionResult.fail("Command exited with status 7.\nfailure details")
+    assert result == ActionResult.fail(
+        "Shell operators, redirects, substitutions, and command chaining are not allowed. "
+        "Run one allow-listed command without shell syntax."
+    )
 
 
-def test_default_bash_tool_schema_describes_unrestricted_command() -> None:
+def test_allowed_bash_command_runs_at_workspace_root(monkeypatch, tmp_path: Path) -> None:
+    invocation: dict[str, object] = {}
+
+    class Process:
+        returncode = 0
+
+        async def communicate(self) -> tuple[bytes, None]:
+            return b"result", None
+
+    async def create_process(*args, **kwargs):
+        invocation["args"] = args
+        invocation["kwargs"] = kwargs
+        return Process()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", create_process)
+    tools = Tools(workspace=Workspace(tmp_path), bash_allowed_commands=("rg",))
+
+    result = asyncio.run(
+        tools.execute(
+            "bash",
+            {"command": "rg needle", "status": "Searching..."},
+        )
+    )
+
+    assert result == ActionResult.success("result")
+    assert invocation["args"] == ("bash", "-lc", "rg needle")
+    assert invocation["kwargs"]["cwd"] == tmp_path.resolve()
+
+
+def test_default_bash_tool_schema_describes_guarded_command() -> None:
     tools = Tools()
 
     schema = next(item for item in tools.to_schema() if item["function"]["name"] == "bash")
 
     assert schema["function"]["parameters"]["properties"]["command"] == {
-        "description": "Bash command to execute verbatim in the current working directory.",
+        "description": "Single allow-listed command to execute in the workspace.",
         "type": "string",
     }
     assert set(schema["function"]["parameters"]["required"]) == {"command", "status"}

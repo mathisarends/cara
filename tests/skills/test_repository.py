@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from cara.file_system import LocalFileSystem
+from cara.file_system import LocalFileSystem, Workspace
 from cara.skills import Skill, Skills
 
 _GREET = Skill(
@@ -43,7 +43,7 @@ def test_discovers_skills_from_a_directory(tmp_path: Path) -> None:
     (tmp_path / "skills" / "pdf" / "parser.py").write_text("# script", encoding="utf-8")
     _write_skill(tmp_path, "email", "Draft emails.", "Keep it concise.")
 
-    skills = Skills.from_directory(LocalFileSystem(tmp_path), "skills")
+    skills = Skills.from_directory(LocalFileSystem(Workspace(tmp_path)), "skills")
 
     assert skills.names() == ["email", "pdf"]
     pdf = skills.get("pdf")
@@ -56,12 +56,12 @@ def test_directory_source_merges_with_direct_skills(tmp_path: Path) -> None:
     _write_skill(tmp_path, "pdf", "Read PDFs.", "Use the bundled parser.")
 
     skills = Skills([_GREET])
-    skills.load_directory(LocalFileSystem(tmp_path), "skills")
+    skills.load_directory(LocalFileSystem(Workspace(tmp_path)), "skills")
 
     assert skills.names() == ["greet", "pdf"]
 
 
 def test_missing_directory_yields_no_skills(tmp_path: Path) -> None:
-    skills = Skills.from_directory(LocalFileSystem(tmp_path), "skills")
+    skills = Skills.from_directory(LocalFileSystem(Workspace(tmp_path)), "skills")
 
     assert skills.names() == []

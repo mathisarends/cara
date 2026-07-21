@@ -13,6 +13,9 @@ from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
 
 class ActionKind(Enum):
     GENERIC = auto()
+    READ = auto()
+    MUTATE = auto()
+    DESTRUCTIVE = auto()
     END_SESSION = auto()
 
 
@@ -28,6 +31,18 @@ class ActionResult:
     @classmethod
     def fail(cls, error: Exception | str) -> Self:
         return cls(ok=False, content=str(error))
+
+    @property
+    def is_success(self) -> bool:
+        return self.ok
+
+    def truncated(self, max_chars: int, *, note: str) -> Self:
+        if self.content is None or len(self.content) <= max_chars:
+            return self
+        suffix = f"\n\n[{note}]"
+        if len(suffix) >= max_chars:
+            return type(self)(ok=self.ok, content=suffix[:max_chars])
+        return type(self)(ok=self.ok, content=f"{self.content[: max_chars - len(suffix)]}{suffix}")
 
 
 type ToolCallable = Callable[..., ActionResult | Awaitable[ActionResult]]

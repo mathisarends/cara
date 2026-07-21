@@ -12,7 +12,7 @@ from .events import (
     Transcribed,
     TurnStarted,
 )
-from .file_system import FileSystem, LocalFileSystem
+from .file_system import FileSystem, LocalFileSystem, PathOutsideWorkspaceError, Workspace
 from .listener import HueListener
 from .messages import MessageManager, SystemPrompt
 from .speech import (
@@ -37,6 +37,7 @@ __all__ = [
     "FileSystem",
     "HueListener",
     "LocalFileSystem",
+    "PathOutsideWorkspaceError",
     "Interrupted",
     "MessageManager",
     "SessionEnded",
@@ -52,4 +53,5 @@ __all__ = [
     "Transcribed",
     "TurnStarted",
     "VoiceAssistant",
+    "Workspace",
 ]

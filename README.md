@@ -51,8 +51,21 @@ audio_player = AudioPlayer(
 The built-in `set_audio_output` tool receives this player through the tool context and can switch to
 another registered output, such as `local` or `sonos`, while the assistant is running.
 
-## Bash tool
+## Tool safety
 
-The built-in `bash` tool executes commands through `bash -lc` in Cara's current working directory.
-Commands are passed to Bash unchanged, and their combined standard output and error output is returned
-to the model. Each invocation uses a fresh Bash process, so shell state does not persist between calls.
+File tools resolve every path through a `Workspace` root jail in the filesystem adapter. Absolute paths,
+parent traversal, and symlinks that resolve outside that root are rejected even if a policy middleware is
+missing. A middleware chain adds configurable path policies, write-size limits, result truncation, and a
+shared error boundary before invoking tools.
+
+Tool execution uses an onion-style middleware chain. The default order is
+`ErrorBoundary -> ResultLimit -> custom middleware -> PathPolicy -> ContentSize -> BashPolicy -> tool`.
+The order is intentional: custom tracing sees policy denials and the original response before the outer
+result limit truncates it. Built-in operations are grouped into `CoreTools`, `AudioTools`, `BashTools`,
+and `FileSystemTools`; additional groups implement the small `Toolset.register()` protocol.
+
+The built-in `bash` tool is disabled by default. Callers may configure explicit command prefixes with
+`Tools(bash_allowed_commands=("pwd",))`. Even then, each invocation is restricted to one
+command in the workspace; redirects, pipes, substitutions, and command chaining are rejected. This
+allow-list is a policy boundary, not an OS sandbox—only commands whose complete behavior is trusted
+should be enabled.

@@ -272,7 +272,7 @@ class VoiceAssistant:
             status = tool.status(arguments) if tool is not None else None
 
             await self._set_state(AssistantState.CALLING_TOOL)
-            if status and tool is not None and tool.kind is ActionKind.GENERIC:
+            if status and tool is not None and tool.kind is not ActionKind.END_SESSION:
                 reply.announce(status)
 
             result = await self._tools.execute(name, arguments)

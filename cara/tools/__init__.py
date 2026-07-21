@@ -1,16 +1,52 @@
 from .di import Inject, ToolContext
-from .params import EndSessionParams, SetAudioOutputParams, ToolParams
+from .middleware import (
+    BashPolicy,
+    BashPolicyMiddleware,
+    ContentSizeMiddleware,
+    ErrorBoundaryMiddleware,
+    PathPolicy,
+    PathPolicyMiddleware,
+    PolicyDenial,
+    ResultLimitMiddleware,
+    ToolCall,
+    ToolFeedbackError,
+    ToolHandler,
+    ToolMiddleware,
+    compose,
+    extract_paths,
+)
+from .params import AccessMode, EndSessionParams, FilePath, PathField, SetAudioOutputParams, ToolParams, WritablePath
 from .schemas import ToolSchema, ToolSchemaBuilder
 from .tools import Tools
+from .toolsets import AudioTools, BashTools, CoreTools, FileSystemTools, Toolset
 from .views import ActionKind, ActionResult, Tool, ToolAvailability, ToolCallable, ToolDescription
 
 __all__ = [
     "ActionKind",
     "ActionResult",
+    "AccessMode",
+    "BashPolicy",
+    "BashPolicyMiddleware",
+    "BashTools",
+    "ContentSizeMiddleware",
+    "CoreTools",
     "EndSessionParams",
+    "ErrorBoundaryMiddleware",
+    "FilePath",
+    "FileSystemTools",
     "Inject",
+    "PathField",
+    "PathPolicy",
+    "PathPolicyMiddleware",
+    "PolicyDenial",
+    "ResultLimitMiddleware",
     "SetAudioOutputParams",
+    "AudioTools",
     "Tool",
+    "ToolCall",
+    "ToolFeedbackError",
+    "ToolHandler",
+    "ToolMiddleware",
     "ToolAvailability",
     "ToolCallable",
     "ToolContext",
@@ -18,5 +54,9 @@ __all__ = [
     "ToolParams",
     "ToolSchema",
     "ToolSchemaBuilder",
+    "Toolset",
     "Tools",
+    "WritablePath",
+    "compose",
+    "extract_paths",
 ]

@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from cara.file_system.base import FileSystem
+from cara.file_system.workspace import Workspace
 
 
 class LocalFileSystem(FileSystem):
-    def __init__(self, root: str | Path | None = None) -> None:
-        self._root = Path(root) if root is not None else None
+    def __init__(self, workspace: Workspace) -> None:
+        self._workspace = workspace
 
     def read_text(self, path: str) -> str:
         return self._resolve(path).read_text(encoding="utf-8")
@@ -25,4 +26,4 @@ class LocalFileSystem(FileSystem):
         return sorted(entry.name for entry in self._resolve(path).iterdir())
 
     def _resolve(self, path: str) -> Path:
-        return self._root / path if self._root is not None else Path(path)
+        return self._workspace.resolve(path)
