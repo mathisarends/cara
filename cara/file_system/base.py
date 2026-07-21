@@ -23,3 +23,18 @@ class FileSystem(ABC):
 
     @abstractmethod
     def list_dir(self, path: str) -> list[str]: ...
+
+    def tree(self, path: str) -> list[str]:
+        """Recursively list entries under ``path``, relative to it.
+
+        Directories are suffixed with ``/`` and precede their contents.
+        """
+        entries: list[str] = []
+        for name in self.list_dir(path):
+            child = f"{path}/{name}"
+            if self.is_dir(child):
+                entries.append(f"{name}/")
+                entries.extend(f"{name}/{descendant}" for descendant in self.tree(child))
+            else:
+                entries.append(name)
+        return entries

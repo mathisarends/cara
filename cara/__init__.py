@@ -12,6 +12,7 @@ from .events import (
     Transcribed,
     TurnStarted,
 )
+from .file_system import FileSystem, LocalFileSystem
 from .listener import HueListener
 from .messages import MessageManager, SystemPrompt
 from .speech import (
@@ -33,7 +34,9 @@ __all__ = [
     "Event",
     "EventBus",
     "EventHandler",
+    "FileSystem",
     "HueListener",
+    "LocalFileSystem",
     "Interrupted",
     "MessageManager",
     "SessionEnded",

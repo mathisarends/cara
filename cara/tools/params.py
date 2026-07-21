@@ -27,3 +27,25 @@ class EndSessionParams(ToolParams):
 
 class LoadSkillParams(ToolParams):
     name: str = Field(description="Name of the skill to load, exactly as listed.")
+
+
+class ListFilesParams(ToolParams):
+    path: str = Field(
+        default=".",
+        description="Directory to list, relative to the workspace root. Defaults to the root.",
+    )
+
+
+class ReadFileParams(ToolParams):
+    path: str = Field(description="Path of the file to read, relative to the workspace root.")
+
+
+class WriteFileParams(ToolParams):
+    path: str = Field(description="Path of the file to create or overwrite, relative to the workspace root.")
+    content: str = Field(description="Full new contents of the file.")
+
+
+class EditFileParams(ToolParams):
+    path: str = Field(description="Path of the file to edit, relative to the workspace root.")
+    old_text: str = Field(description="Exact text to replace. Must occur exactly once in the file.")
+    new_text: str = Field(description="Text to insert in place of old_text.")

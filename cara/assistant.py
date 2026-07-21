@@ -26,6 +26,7 @@ from cara.events import (
     Transcribed,
     TurnStarted,
 )
+from cara.file_system import FileSystem
 from cara.listener import SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
@@ -65,6 +66,7 @@ class VoiceAssistant:
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
         skills: SkillRepository | None = None,
+        file_system: FileSystem | None = None,
         speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,
         override_system_prompt: str | None = None,
@@ -84,6 +86,8 @@ class VoiceAssistant:
         self._tools = tools or Tools()
         if skills is not None:
             self._tools.provide(skills)
+        if file_system is not None:
+            self._tools.provide(file_system)
         self._speech_settings = speech_settings or SpeechSettings()
         self._speech_stream = StreamingTextToSpeech(
             tts=tts,
