@@ -1,4 +1,5 @@
 import asyncio
+import threading
 
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
@@ -27,7 +28,10 @@ class EmptyRecorder:
         self,
         *,
         initial_silence_timeout: float | None = None,
+        ready: threading.Event | None = None,
     ) -> bytes | None:
+        while ready is not None and not ready.is_set():
+            await asyncio.sleep(0)
         self._events.append("record")
         return None
 
@@ -43,7 +47,7 @@ class NoWakeWordListener(WakeWordDetectionSource):
         return None
 
 
-def test_wake_earcon_finishes_before_first_recording() -> None:
+def test_first_recording_arms_after_wake_earcon() -> None:
     async def run() -> list[str]:
         events: list[str] = []
         assistant = VoiceAssistant(

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import threading
 from collections.abc import AsyncIterator
 
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent, ToolCall
@@ -10,9 +11,11 @@ from cara.audio import (
     Earcon,
     EarconPlayer,
     MicrophoneRecorder,
+    MicrophoneStream,
     SpeechRecorder,
     WavAudioPlayer,
 )
+from cara.audio.device import PortAudioDevice
 from cara.console_logging import _log_user_transcript
 from cara.events import (
     AnswerGenerated,
@@ -76,8 +79,10 @@ class VoiceAssistant:
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
     ) -> None:
         self._llm = llm or ChatOpenAI(model="gpt-5.6-terra", reasoning_effort="none")
-        self._recorder = recorder or MicrophoneRecorder()
-        self._player = player or AudioPlayer(WavAudioPlayer())
+        self._audio_device = PortAudioDevice()
+        self._microphone = MicrophoneStream(device=self._audio_device)
+        self._recorder = recorder or MicrophoneRecorder(self._microphone)
+        self._player = player or AudioPlayer(WavAudioPlayer(device=self._audio_device))
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
@@ -138,6 +143,7 @@ class VoiceAssistant:
 
     async def start(self) -> None:
         listener = WakeWordListener(
+            self._microphone,
             wake_word=self._wake_word_settings.wake_word,
             sensitivity=self._wake_word_settings.sensitivity,
         )
@@ -145,13 +151,15 @@ class VoiceAssistant:
             async for _ in listener.detections():
                 await self._run(listener)
         finally:
-            listener.close()
+            self._microphone.close()
+            self._audio_device.close()
 
     async def _run(self, wake_word_listener: WakeWordListener) -> None:
         follow_up = False
         pending_audio: bytes | None = None
+        ready: threading.Event | None = threading.Event()
         await self._event_bus.dispatch(SessionStarted())
-        await self._earcons.play(Earcon.WAKE)
+        wake_earcon = asyncio.create_task(self._announce_wake(ready))
         try:
             while True:
                 await self._event_bus.dispatch(TurnStarted())
@@ -159,7 +167,8 @@ class VoiceAssistant:
                 audio = pending_audio
                 pending_audio = None
                 if audio is None:
-                    audio = await self._record(follow_up=follow_up)
+                    audio = await self._record(follow_up=follow_up, ready=ready)
+                    ready = None
                 if audio is None:
                     break
                 transcript = await self._transcribe(audio)
@@ -189,8 +198,16 @@ class VoiceAssistant:
                     break
                 follow_up = True
         finally:
+            wake_earcon.cancel()
+            await asyncio.gather(wake_earcon, return_exceptions=True)
             await self._event_bus.dispatch(SessionEnded())
             await self._set_state(AssistantState.IDLE)
+
+    async def _announce_wake(self, ready: threading.Event) -> None:
+        try:
+            await self._earcons.play(Earcon.WAKE)
+        finally:
+            ready.set()
 
     async def _receive_barge_in(
         self,
@@ -200,14 +217,20 @@ class VoiceAssistant:
         await self._event_bus.dispatch(Interrupted(phase=phase))
         return await self._record()
 
-    async def _record(self, *, follow_up: bool = False) -> bytes | None:
+    async def _record(
+        self,
+        *,
+        follow_up: bool = False,
+        ready: threading.Event | None = None,
+    ) -> bytes | None:
         if follow_up:
             await self._set_state(AssistantState.WAITING_FOLLOW_UP)
             return await self._recorder.record_until_silence(
                 initial_silence_timeout=self._follow_up_timeout_seconds,
+                ready=ready,
             )
         await self._set_state(AssistantState.LISTENING)
-        return await self._recorder.record_until_silence()
+        return await self._recorder.record_until_silence(ready=ready)
 
     async def _transcribe(self, audio: bytes) -> str:
         await self._set_state(AssistantState.TRANSCRIBING)

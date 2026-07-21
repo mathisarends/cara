@@ -1,4 +1,5 @@
 import asyncio
+import threading
 
 from llmify import Function, StreamEnd, StreamToolCall, ToolCall, UserMessage
 
@@ -25,7 +26,10 @@ class BargeInRecorder:
         self,
         *,
         initial_silence_timeout: float | None = None,
+        ready: threading.Event | None = None,
     ) -> bytes | None:
+        while ready is not None and not ready.is_set():
+            await asyncio.sleep(0)
         self.recordings += 1
         self._events.append("record")
         return b"initial request" if self.recordings == 1 else b"corrected request"

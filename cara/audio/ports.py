@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from abc import ABC, abstractmethod
 from enum import StrEnum
 
@@ -16,8 +17,15 @@ class SpeechRecorder(ABC):
         self,
         *,
         initial_silence_timeout: float | None = None,
+        ready: threading.Event | None = None,
     ) -> bytes | None:
-        """Record one utterance, optionally timing out before speech begins."""
+        """Record one utterance, optionally timing out before speech begins.
+
+        Capture begins immediately, so speech spoken right after the wake word -
+        even over a still-playing earcon - is kept. While ``ready`` is provided
+        and unset, end-of-utterance silence detection is suspended so the earcon
+        cannot end the recording before the user has finished speaking.
+        """
 
 
 class AudioPlayback(ABC):

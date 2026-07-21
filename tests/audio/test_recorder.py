@@ -1,50 +1,28 @@
 import threading
 
-from cara.audio import recorder as recorder_module
 from cara.audio.recorder import MicrophoneInputSettings, MicrophoneRecorder
 
 
-class CancellingInputStream:
+class CancellingMicrophone:
+    rate = 16000
+    channels = 1
+
     def __init__(self, cancel: threading.Event) -> None:
         self._cancel = cancel
-        self.stopped = False
-        self.closed = False
+        self.reads = 0
 
-    def read(self, chunk: int, *, exception_on_overflow: bool) -> bytes:
+    def read(self, num_frames: int) -> bytes:
+        self.reads += 1
         self._cancel.set()
-        return b"\xff\x7f" * chunk
-
-    def stop_stream(self) -> None:
-        self.stopped = True
-
-    def close(self) -> None:
-        self.closed = True
+        return b"\xff\x7f" * num_frames
 
 
-class RecordingPyAudio:
-    def __init__(self, stream: CancellingInputStream) -> None:
-        self.stream = stream
-        self.terminated = False
-
-    def open(self, **kwargs: object) -> CancellingInputStream:
-        return self.stream
-
-    def terminate(self) -> None:
-        self.terminated = True
-
-
-def test_recorder_stops_when_cancelled_before_speech(monkeypatch) -> None:
+def test_recorder_stops_when_cancelled_before_speech() -> None:
     cancel = threading.Event()
-    stream = CancellingInputStream(cancel)
-    pa = RecordingPyAudio(stream)
-    monkeypatch.setattr(recorder_module.pyaudio, "PyAudio", lambda: pa)
-    recorder = MicrophoneRecorder(MicrophoneInputSettings(chunk=160))
+    microphone = CancellingMicrophone(cancel)
+    recorder = MicrophoneRecorder(microphone, MicrophoneInputSettings(chunk=160))
 
-    audio = recorder._record_until_silence_sync(
-        cancel=cancel,
-    )
+    audio = recorder._record_until_silence_sync(cancel=cancel)
 
     assert audio is None
-    assert stream.stopped is True
-    assert stream.closed is True
-    assert pa.terminated is True
+    assert microphone.reads >= 1

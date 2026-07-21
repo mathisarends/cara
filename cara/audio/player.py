@@ -4,8 +4,7 @@ import io
 import logging
 import wave
 
-import pyaudio
-
+from cara.audio.device import PortAudioDevice
 from cara.audio.ports import AudioOutput, AudioOutputStrategy
 
 logger = logging.getLogger(__name__)
@@ -20,10 +19,12 @@ class WavAudioPlayer(AudioOutputStrategy):
         self,
         *,
         trailing_silence_seconds: float = _DEFAULT_TRAILING_SILENCE_SECONDS,
+        device: PortAudioDevice | None = None,
     ) -> None:
         if trailing_silence_seconds < 0:
             raise ValueError("trailing_silence_seconds must not be negative.")
         self._trailing_silence_seconds = trailing_silence_seconds
+        self._device = device
 
     @property
     def output(self) -> AudioOutput:
@@ -34,14 +35,14 @@ class WavAudioPlayer(AudioOutputStrategy):
         await loop.run_in_executor(None, functools.partial(self._play_sync, audio, cancel=cancel))
 
     def _play_sync(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        pa = pyaudio.PyAudio()
+        device = self._device or PortAudioDevice()
         try:
             with wave.open(io.BytesIO(audio), "rb") as wav:
                 sample_width = wav.getsampwidth()
                 channels = wav.getnchannels()
                 frame_rate = wav.getframerate()
-                stream = pa.open(
-                    format=pa.get_format_from_width(sample_width),
+                stream = device.open_stream(
+                    format=device.get_format_from_width(sample_width),
                     channels=channels,
                     rate=frame_rate,
                     output=True,
@@ -69,4 +70,5 @@ class WavAudioPlayer(AudioOutputStrategy):
                     stream.stop_stream()
                     stream.close()
         finally:
-            pa.terminate()
+            if self._device is None:
+                device.close()

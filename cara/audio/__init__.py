@@ -1,4 +1,5 @@
 from .earcons import Earcon, EarconPlayer
+from .microphone import MicrophoneStream
 from .player import WavAudioPlayer
 from .ports import AudioOutput, AudioOutputStrategy, AudioPlayback, SpeechRecorder
 from .recorder import MicrophoneInputSettings, MicrophoneRecorder
@@ -13,6 +14,7 @@ __all__ = [
     "EarconPlayer",
     "MicrophoneRecorder",
     "MicrophoneInputSettings",
+    "MicrophoneStream",
     "SpeechRecorder",
     "WavAudioPlayer",
 ]

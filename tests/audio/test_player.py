@@ -2,7 +2,9 @@ import asyncio
 import io
 import wave
 
-from cara.audio import player as player_module
+from cara.audio import device as device_module
+from cara.audio.device import PortAudioDevice
+from cara.audio.microphone import MicrophoneStream
 from cara.audio.player import WavAudioPlayer
 
 
@@ -51,7 +53,7 @@ def _wav_audio(*, frames: bytes, frame_rate: int = 8000, channels: int = 1, samp
 
 def test_wav_player_writes_trailing_silence_before_closing(monkeypatch) -> None:
     pa = RecordingPyAudio()
-    monkeypatch.setattr(player_module.pyaudio, "PyAudio", lambda: pa)
+    monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: pa)
     speech = b"\x01\x02" * 4
 
     WavAudioPlayer(trailing_silence_seconds=0.2)._play_sync(_wav_audio(frames=speech))
@@ -64,10 +66,64 @@ def test_wav_player_writes_trailing_silence_before_closing(monkeypatch) -> None:
 
 def test_wav_player_does_not_delay_cancelled_playback(monkeypatch) -> None:
     pa = RecordingPyAudio()
-    monkeypatch.setattr(player_module.pyaudio, "PyAudio", lambda: pa)
+    monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: pa)
     cancel = asyncio.Event()
     cancel.set()
 
     WavAudioPlayer()._play_sync(_wav_audio(frames=b"\x01\x02"), cancel=cancel)
 
     assert pa.stream.writes == []
+
+
+class RecordingInputStream:
+    def read(self, num_frames: int, *, exception_on_overflow: bool) -> bytes:
+        return bytes(num_frames * 2)
+
+    def is_active(self) -> bool:
+        return True
+
+    def stop_stream(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+class FullDuplexPyAudio(RecordingPyAudio):
+    def __init__(self) -> None:
+        super().__init__()
+        self.input_stream = RecordingInputStream()
+        self.opens: list[dict[str, object]] = []
+
+    def open(self, **kwargs: object) -> RecordingInputStream | RecordingOutputStream:
+        self.opens.append(kwargs)
+        if kwargs.get("input") is True:
+            return self.input_stream
+        return self.stream
+
+
+def test_microphone_and_player_share_one_portaudio_lifecycle(monkeypatch) -> None:
+    pa = FullDuplexPyAudio()
+    constructions = 0
+
+    def create_pyaudio() -> FullDuplexPyAudio:
+        nonlocal constructions
+        constructions += 1
+        return pa
+
+    monkeypatch.setattr(device_module.pyaudio, "PyAudio", create_pyaudio)
+    device = PortAudioDevice()
+    microphone = MicrophoneStream(device=device)
+    player = WavAudioPlayer(device=device, trailing_silence_seconds=0)
+
+    microphone.read(1)
+    player._play_sync(_wav_audio(frames=b"\x01\x02"))
+
+    assert constructions == 1
+    assert [opened.get("input") for opened in pa.opens] == [True, None]
+    assert pa.terminated is False
+
+    microphone.close()
+    device.close()
+
+    assert pa.terminated is True

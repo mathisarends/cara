@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import StrEnum
 from typing import Any, Self
 
 from pydantic import ValidationError
@@ -11,12 +11,12 @@ from cara.tools.params import ToolParams
 from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
 
 
-class ActionKind(Enum):
-    GENERIC = auto()
-    READ = auto()
-    MUTATE = auto()
-    DESTRUCTIVE = auto()
-    END_SESSION = auto()
+class ActionKind(StrEnum):
+    GENERIC = "generic"
+    READ = "read"
+    MUTATE = "mutate"
+    DESTRUCTIVE = "destructive"
+    END_SESSION = "end_session"
 
 
 @dataclass(frozen=True)
