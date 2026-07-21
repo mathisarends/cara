@@ -3,7 +3,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 
-from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent
+from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent, ToolCall
 
 from cara.audio import (
     AudioPlayer,
@@ -29,6 +29,7 @@ from cara.events import (
 from cara.listener import SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
+from cara.skills import SkillRepository
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -63,6 +64,7 @@ class VoiceAssistant:
         event_bus: EventBus | None = None,
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
+        skills: SkillRepository | None = None,
         speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,
         override_system_prompt: str | None = None,
@@ -80,6 +82,8 @@ class VoiceAssistant:
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
+        if skills is not None:
+            self._tools.provide(skills)
         self._speech_settings = speech_settings or SpeechSettings()
         self._speech_stream = StreamingTextToSpeech(
             tts=tts,
@@ -95,13 +99,14 @@ class VoiceAssistant:
         )
         self._message_manager = MessageManager(
             system_prompt=self._system_prompt,
-            context_provider=self._tools.render_skill_context,
+            skills=skills,
         )
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
         self._earcons = EarconPlayer(self._player)
         self._sound_listener = SoundListener(self._event_bus, self._earcons)
         self._state = AssistantState.IDLE
+        self._pending_skill_results: list[tuple[ToolCall, str]] = []
 
     @property
     def event_bus(self) -> EventBus:
@@ -139,6 +144,7 @@ class VoiceAssistant:
         try:
             while True:
                 await self._event_bus.dispatch(TurnStarted())
+                self._pending_skill_results = []
 
                 audio = pending_audio
                 pending_audio = None
@@ -167,6 +173,8 @@ class VoiceAssistant:
                         break
                     follow_up = False
                     continue
+                for tool_call, content in self._pending_skill_results:
+                    self._message_manager.add_tool_result(tool_call, content)
                 self._message_manager.add_assistant(answer)
 
                 if end_session:
@@ -272,6 +280,8 @@ class VoiceAssistant:
                 end_session = True
                 if result.content:
                     answer = result.content.strip()
+            elif name == "load_skill" and result.ok and result.content:
+                self._pending_skill_results.append((tool_call, result.content))
         return answer, end_session
 
     async def _speak(

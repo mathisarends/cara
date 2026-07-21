@@ -1,8 +1,14 @@
-from collections.abc import Callable
-
-from llmify import AssistantMessage, Message, SystemMessage, UserMessage
+from llmify import (
+    AssistantMessage,
+    Message,
+    SystemMessage,
+    ToolCall,
+    ToolResultMessage,
+    UserMessage,
+)
 
 from cara.messages.system_prompt import SystemPrompt
+from cara.skills import SkillRepository
 
 
 class MessageManager:
@@ -12,12 +18,12 @@ class MessageManager:
         system_prompt: str | SystemPrompt | None = None,
         messages: list[Message] | None = None,
         max_turns: int = 12,
-        context_provider: Callable[[], str] | None = None,
+        skills: SkillRepository | None = None,
     ) -> None:
         self._system_prompt = system_prompt if system_prompt is not None else SystemPrompt()
         self._messages = messages if messages is not None else []
         self._max_turns = max_turns
-        self._context_provider = context_provider
+        self._skills = skills
 
     def add_user(self, text: str) -> None:
         self._messages.append(UserMessage(content=text))
@@ -25,6 +31,11 @@ class MessageManager:
 
     def add_assistant(self, text: str) -> None:
         self._messages.append(AssistantMessage(content=text))
+        self.trim()
+
+    def add_tool_result(self, tool_call: ToolCall, content: str) -> None:
+        self._messages.append(AssistantMessage(tool_calls=[tool_call]))
+        self._messages.append(ToolResultMessage(tool_call_id=tool_call.id, content=content))
         self.trim()
 
     def to_llm_messages(self) -> list[Message]:
@@ -35,10 +46,14 @@ class MessageManager:
         max_messages = max(0, self._max_turns * 2)
         if max_messages and len(self._messages) > max_messages:
             self._messages[:] = self._messages[-max_messages:]
+        self._drop_orphan_tool_results()
+
+    def _drop_orphan_tool_results(self) -> None:
+        while self._messages and isinstance(self._messages[0], ToolResultMessage):
+            self._messages.pop(0)
 
     def _render_system_prompt(self) -> str:
         base = self._system_prompt.render() if isinstance(self._system_prompt, SystemPrompt) else self._system_prompt
-        if self._context_provider is None:
+        if self._skills is None or not (catalog := self._skills.render_catalog()):
             return base
-        extra = self._context_provider().strip()
-        return f"{base}\n\n{extra}" if extra else base
+        return f"{base}\n\n<available_skills>\n{catalog}\n</available_skills>"
