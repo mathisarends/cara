@@ -72,8 +72,13 @@ class PathPolicy:
 
 
 class PathPolicyMiddleware(ToolMiddleware):
-    def __init__(self, policy: PathPolicy) -> None:
-        self._policy = policy
+    def __init__(
+        self,
+        *,
+        allowed: Sequence[str] = (),
+        denied: Sequence[str] | None = None,
+    ) -> None:
+        self._policy = PathPolicy(allowed=allowed, denied=denied)
 
     async def __call__(self, call: ToolCall, next: ToolHandler) -> ActionResult:
         if call.params is None:

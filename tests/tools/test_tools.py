@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -30,6 +31,10 @@ class SearchParams(ToolParams):
     query: str = Field(description="Search query")
     limit: int = 10
     tags: list[str] = Field(default_factory=list, min_length=1, max_length=3)
+
+
+def test_tools_does_not_accept_additional_middlewares() -> None:
+    assert "middlewares" not in inspect.signature(Tools).parameters
 
 
 def test_default_end_session_tool_returns_farewell() -> None:

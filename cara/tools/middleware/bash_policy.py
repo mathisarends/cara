@@ -48,8 +48,8 @@ class BashPolicy:
 
 
 class BashPolicyMiddleware(ToolMiddleware):
-    def __init__(self, policy: BashPolicy) -> None:
-        self._policy = policy
+    def __init__(self, allowed_commands: Sequence[str] = ()) -> None:
+        self._policy = BashPolicy(allowed_commands)
 
     async def __call__(self, call: ToolCall, next: ToolHandler) -> ActionResult:
         if isinstance(call.params, BashParams):

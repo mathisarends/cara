@@ -1,11 +1,13 @@
 import asyncio
 import logging
+from pathlib import Path
 
 from llmify import AssistantMessage, Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, ToolResultMessage
 
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated, EventBus
+from cara.file_system import Workspace
 from cara.skills import Skill, Skills
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
 from cara.tools import ActionResult, Tools
@@ -131,6 +133,29 @@ class MultiRoundToolChatModel:
         yield StreamEnd(completion=answer)
 
 
+class DeniedPathChatModel:
+    def __init__(self) -> None:
+        self.messages: list[list[object]] = []
+
+    async def stream(self, messages, *, tools):
+        self.messages.append(messages)
+        if len(self.messages) == 1:
+            tool_call = ToolCall(
+                id="write-outside-workspace",
+                function=Function(
+                    name="write_file",
+                    arguments=('{"path":"../outside.txt","content":"unsafe","status":"Ich schreibe die Datei."}'),
+                ),
+            )
+            yield StreamToolCall(tool_call=tool_call)
+            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
+            return
+
+        answer = "Ich kann nur innerhalb des Arbeitsbereichs schreiben."
+        yield StreamTextDelta(delta=answer)
+        yield StreamEnd(completion=answer)
+
+
 def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer, stt=None) -> VoiceAssistant:
     return VoiceAssistant(
         llm=llm,
@@ -241,6 +266,36 @@ def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
     assert [(result.tool_call_id, result.content) for result in third_round_results] == [
         ("load-weather-skill", "Rufe weather_lookup auf."),
         ("fetch-weather", "22 Grad und sonnig."),
+    ]
+
+
+def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> None:
+    async def run() -> DeniedPathChatModel:
+        player = CoordinatedAudioPlayer()
+        player.second_delta_generated.set()
+        llm = DeniedPathChatModel()
+        assistant = VoiceAssistant(
+            llm=llm,
+            recorder=UnusedRecorder(),
+            player=AudioPlayer(player),
+            stt=UnusedSpeechToText(),
+            tts=RecordingTextToSpeech(),
+            event_bus=EventBus(),
+            wake_word_settings=WakeWordSettings(),
+            tools=Tools(workspace=Workspace(tmp_path)),
+        )
+
+        await assistant._think()
+        return llm
+
+    llm = asyncio.run(run())
+
+    tool_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
+    assert [(result.tool_call_id, result.content) for result in tool_results] == [
+        (
+            "write-outside-workspace",
+            "Path '../outside.txt' is outside the workspace. Use a relative path below the workspace root.",
+        )
     ]
 
 

@@ -10,17 +10,7 @@ from cara.skills import Skills
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
 from cara.tools.handler import Location, OpenMeteoClient
-from cara.tools.middleware import (
-    BashPolicy,
-    BashPolicyMiddleware,
-    CallLoggingMiddleware,
-    ContentSizeMiddleware,
-    ErrorBoundaryMiddleware,
-    PathPolicy,
-    PathPolicyMiddleware,
-    ResultLimitMiddleware,
-    ToolMiddleware,
-)
+from cara.tools.middleware.defaults import default_tool_middlewares
 from cara.tools.params import (
     BashParams,
     EditFileParams,
@@ -60,7 +50,6 @@ class Tools:
         context: ToolContext | None = None,
         *,
         workspace: Workspace | None = None,
-        middlewares: tuple[ToolMiddleware, ...] = (),
         bash_allowed_commands: tuple[str, ...] = (),
     ) -> None:
         self._tools: dict[str, Tool] = {}
@@ -71,16 +60,11 @@ class Tools:
         self._workspace = workspace or configured_workspace or Workspace(Path.cwd())
         self._context = self._prepare_context(initial_context)
 
-        middleware_chain: list[ToolMiddleware] = [
-            CallLoggingMiddleware(),
-            ErrorBoundaryMiddleware(),
-            ResultLimitMiddleware(),
-            *middlewares,
-            PathPolicyMiddleware(PathPolicy()),
-            ContentSizeMiddleware(),
-            BashPolicyMiddleware(BashPolicy(bash_allowed_commands)),
-        ]
-        self._executor = ToolExecutor(self._tools, self._context, middleware_chain)
+        self._executor = ToolExecutor(
+            self._tools,
+            self._context,
+            default_tool_middlewares(bash_allowed_commands=bash_allowed_commands),
+        )
         self._register_default_tools()
 
     def set_context(self, context: ToolContext) -> None:
