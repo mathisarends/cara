@@ -12,7 +12,7 @@ def test_path_policy_blocks_escape_before_file_tool_runs(tmp_path: Path) -> None
     result = asyncio.run(
         tools.execute(
             "write_file",
-            {"path": f"../{outside_name}", "content": "unsafe", "status": "Writing..."},
+            {"path": f"../{outside_name}", "content": "unsafe"},
         )
     )
 
@@ -28,7 +28,7 @@ def test_path_policy_blocks_sensitive_file(tmp_path: Path) -> None:
     result = asyncio.run(
         tools.execute(
             "write_file",
-            {"path": ".env", "content": "SECRET=value", "status": "Writing..."},
+            {"path": ".env", "content": "SECRET=value"},
         )
     )
 
@@ -44,7 +44,7 @@ def test_path_policy_matches_sensitive_paths_case_insensitively(tmp_path: Path) 
     result = asyncio.run(
         tools.execute(
             "write_file",
-            {"path": ".ENV", "content": "SECRET=value", "status": "Writing..."},
+            {"path": ".ENV", "content": "SECRET=value"},
         )
     )
 

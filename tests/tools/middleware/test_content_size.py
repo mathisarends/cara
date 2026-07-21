@@ -11,7 +11,7 @@ def test_content_size_middleware_blocks_large_write(tmp_path: Path) -> None:
     result = asyncio.run(
         tools.execute(
             "write_file",
-            {"path": "large.txt", "content": "x" * 1_000_001, "status": "Writing..."},
+            {"path": "large.txt", "content": "x" * 1_000_001},
         )
     )
 

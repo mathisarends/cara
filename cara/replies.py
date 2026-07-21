@@ -46,10 +46,6 @@ class StreamingReply:
             if not collected:
                 self.close()
 
-    def announce(self, text: str) -> None:
-        """Queue an interim spoken sentence (e.g. a tool-call status) ahead of the answer."""
-        self._text_chunks.send(text)
-
     def finish(self, answer: str) -> None:
         if self._completion is None:
             raise RuntimeError("Cannot finish a reply before collecting its completion.")

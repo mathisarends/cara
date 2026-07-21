@@ -34,10 +34,6 @@ class _StubClient(OpenMeteoClient):
         return _report(location.name)
 
 
-def _status() -> dict[str, str]:
-    return {"status": "Ich schaue kurz aufs Wetter..."}
-
-
 def _tools(client: OpenMeteoClient) -> Tools:
     tools = Tools()
     tools.provide(_HOME, client)
@@ -56,7 +52,7 @@ def test_weather_without_location_uses_the_configured_home() -> None:
     client = _StubClient()
     tools = _tools(client)
 
-    result = asyncio.run(tools.execute("weather", _status()))
+    result = asyncio.run(tools.execute("weather"))
 
     assert result.ok
     assert result.content == _report("Berlin").summary()
@@ -68,7 +64,7 @@ def test_weather_with_location_resolves_it_before_fetching() -> None:
     client = _StubClient(located=_ELSEWHERE)
     tools = _tools(client)
 
-    result = asyncio.run(tools.execute("weather", {"location": "Hamburg", **_status()}))
+    result = asyncio.run(tools.execute("weather", {"location": "Hamburg"}))
 
     assert result.ok
     assert client.locate_calls == ["Hamburg"]
@@ -79,7 +75,7 @@ def test_weather_reports_an_unknown_location_back_to_the_model() -> None:
     client = _StubClient(located=None)
     tools = _tools(client)
 
-    result = asyncio.run(tools.execute("weather", {"location": "Nirgendwo", **_status()}))
+    result = asyncio.run(tools.execute("weather", {"location": "Nirgendwo"}))
 
     assert not result.ok
     assert "Nirgendwo" in (result.content or "")

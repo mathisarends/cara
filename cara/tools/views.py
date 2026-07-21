@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Self
 
-from pydantic import ValidationError
-
 from cara.tools.di import ToolContext
 from cara.tools.params import ToolParams
 from cara.tools.schemas import ToolSchema, ToolSchemaBuilder
@@ -61,20 +59,6 @@ class Tool:
 
     def is_available(self, context: ToolContext) -> bool:
         return self.available_when is None or self.available_when(context)
-
-    def status(self, args: dict[str, Any]) -> str | None:
-        """Spoken status the LLM generated for this call, or ``None``.
-
-        Invalid arguments yield ``None`` instead of raising; the call itself
-        will surface the validation error when it executes.
-        """
-        if self.param_model is None:
-            return None
-        try:
-            params = self.param_model.model_validate(args)
-        except ValidationError:
-            return None
-        return params.status
 
     async def execute(self, kwargs: dict[str, Any]) -> ActionResult:
         result = self.fn(**kwargs)

@@ -22,21 +22,9 @@ WritablePath = Annotated[str, PathField(AccessMode.WRITE)]
 
 
 class ToolParams(BaseModel):
-    """Base class for tool parameter models.
-
-    Every tool call carries a ``status``: a short spoken announcement the LLM
-    phrases per call, played while the tool executes.
-    """
+    """Base class for tool parameter models."""
 
     model_config = ConfigDict(extra="forbid")
-
-    status: str = Field(
-        description=(
-            "A short spoken status announcement in the user's language, phrased "
-            "as if said aloud while the tool runs, e.g. 'Ich schaue kurz in "
-            "deinen Kalender...'"
-        ),
-    )
 
 
 class EndSessionParams(ToolParams):

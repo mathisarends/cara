@@ -44,7 +44,7 @@ def test_default_end_session_tool_returns_farewell() -> None:
     result = asyncio.run(
         tools.execute(
             "end_session",
-            {"farewell": "Bis bald!", "status": "Ich beende die Sitzung..."},
+            {"farewell": "Bis bald!"},
         )
     )
 
@@ -68,7 +68,7 @@ def test_default_set_audio_output_tool_switches_the_injected_player() -> None:
     result = asyncio.run(
         tools.execute(
             "set_audio_output",
-            {"output": "sonos", "status": "Ich wechsle die Audioausgabe..."},
+            {"output": "sonos"},
         )
     )
 
@@ -121,7 +121,7 @@ def test_default_bash_tool_is_denied() -> None:
     result = asyncio.run(
         tools.execute(
             "bash",
-            {"command": "printf 'hello from bash'", "status": "Ich führe den Befehl aus..."},
+            {"command": "printf 'hello from bash'"},
         )
     )
 
@@ -147,7 +147,7 @@ def test_bash_tool_rejects_shell_syntax_even_for_allowed_command() -> None:
     result = asyncio.run(
         tools.execute(
             "bash",
-            {"command": "printf 'failure details' >&2; exit 7", "status": "Ich prüfe das kurz..."},
+            {"command": "printf 'failure details' >&2; exit 7"},
         )
     )
 
@@ -177,7 +177,7 @@ def test_allowed_bash_command_runs_at_workspace_root(monkeypatch, tmp_path: Path
     result = asyncio.run(
         tools.execute(
             "bash",
-            {"command": "rg needle", "status": "Searching..."},
+            {"command": "rg needle"},
         )
     )
 
@@ -195,7 +195,7 @@ def test_default_bash_tool_schema_describes_guarded_command() -> None:
         "description": "Single allow-listed command to execute in the workspace.",
         "type": "string",
     }
-    assert set(schema["function"]["parameters"]["required"]) == {"command", "status"}
+    assert schema["function"]["parameters"]["required"] == ["command"]
 
 
 def test_action_decorator_supports_pydantic_params() -> None:
@@ -205,7 +205,7 @@ def test_action_decorator_supports_pydantic_params() -> None:
     async def search(params: SearchParams) -> ActionResult:
         return ActionResult.success(f"{params.query}:{params.limit}")
 
-    result = asyncio.run(tools.execute("search", {"query": "songs", "status": "Ich suche kurz..."}))
+    result = asyncio.run(tools.execute("search", {"query": "songs"}))
 
     assert result == ActionResult.success("songs:10")
 
@@ -260,5 +260,4 @@ def test_to_schema_uses_pydantic_param_model() -> None:
         "minItems": 1,
         "maxItems": 3,
     }
-    assert parameters["properties"]["status"]["type"] == "string"
-    assert set(parameters["required"]) == {"status", "query"}
+    assert parameters["required"] == ["query"]

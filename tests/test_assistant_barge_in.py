@@ -107,7 +107,7 @@ class TwoTurnChatModel:
                 id="end-session",
                 function=Function(
                     name="end_session",
-                    arguments='{"farewell":"Erledigt.","status":"Ich beende die Sitzung."}',
+                    arguments='{"farewell":"Erledigt."}',
                 ),
             )
         yield StreamToolCall(tool_call=tool_call)

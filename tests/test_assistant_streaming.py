@@ -92,7 +92,7 @@ class EndSessionChatModel:
             id="end-session",
             function=Function(
                 name="end_session",
-                arguments='{"farewell":"Bis bald!","status":"Ich beende die Sitzung..."}',
+                arguments='{"farewell":"Bis bald!"}',
             ),
         )
         yield StreamToolCall(tool_call=tool_call)
@@ -110,7 +110,7 @@ class MultiRoundToolChatModel:
                 id="load-weather-skill",
                 function=Function(
                     name="load_skill",
-                    arguments='{"name":"weather","status":"Ich schaue kurz aufs Wetter."}',
+                    arguments='{"name":"weather"}',
                 ),
             )
             yield StreamToolCall(tool_call=tool_call)
@@ -121,7 +121,7 @@ class MultiRoundToolChatModel:
                 id="fetch-weather",
                 function=Function(
                     name="weather_lookup",
-                    arguments='{"location":null,"status":"Ich frage die Wetterdaten ab."}',
+                    arguments='{"location":null}',
                 ),
             )
             yield StreamToolCall(tool_call=tool_call)
@@ -144,7 +144,7 @@ class DeniedPathChatModel:
                 id="write-outside-workspace",
                 function=Function(
                     name="write_file",
-                    arguments=('{"path":"../outside.txt","content":"unsafe","status":"Ich schreibe die Datei."}'),
+                    arguments=('{"path":"../outside.txt","content":"unsafe"}'),
                 ),
             )
             yield StreamToolCall(tool_call=tool_call)
@@ -246,11 +246,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
 
     assert answer == "Heute sind es 22 Grad und es ist sonnig."
     assert len(llm.messages) == 3
-    assert tts.texts == [
-        "Ich schaue kurz aufs Wetter.",
-        "Ich frage die Wetterdaten ab.",
-        answer,
-    ]
+    assert tts.texts == [answer]
     assert answers == [answer]
 
     second_round_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]

@@ -16,10 +16,6 @@ def _tools_with_pdf() -> Tools:
     return tools
 
 
-def _status() -> dict[str, str]:
-    return {"status": "Einen Moment..."}
-
-
 def test_load_skill_tool_is_always_registered() -> None:
     assert Tools().get("load_skill") is not None
 
@@ -38,14 +34,14 @@ def test_available_skills_are_not_duplicated_in_the_tool_description() -> None:
 def test_load_skill_returns_the_full_instructions_as_its_result() -> None:
     tools = _tools_with_pdf()
 
-    result = asyncio.run(tools.execute("load_skill", {"name": "pdf", **_status()}))
+    result = asyncio.run(tools.execute("load_skill", {"name": "pdf"}))
 
     assert result.ok
     assert result.content == "Use the bundled parser to extract text."
 
 
 def test_load_skill_without_provided_skills_fails() -> None:
-    result = asyncio.run(Tools().execute("load_skill", {"name": "pdf", **_status()}))
+    result = asyncio.run(Tools().execute("load_skill", {"name": "pdf"}))
 
     assert not result.ok
 
@@ -53,6 +49,6 @@ def test_load_skill_without_provided_skills_fails() -> None:
 def test_loading_unknown_skill_fails() -> None:
     tools = _tools_with_pdf()
 
-    result = asyncio.run(tools.execute("load_skill", {"name": "missing", **_status()}))
+    result = asyncio.run(tools.execute("load_skill", {"name": "missing"}))
 
     assert not result.ok

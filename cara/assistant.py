@@ -285,7 +285,7 @@ class VoiceAssistant:
     async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool, bool]:
         try:
             completion = await reply.collect()
-            answer, end_session, called_tools = await self._resolve_completion(completion, reply)
+            answer, end_session, called_tools = await self._resolve_completion(completion)
             reply.finish(answer)
             return answer, end_session, called_tools
         finally:
@@ -294,7 +294,6 @@ class VoiceAssistant:
     async def _resolve_completion(
         self,
         completion: ChatInvokeCompletion[str],
-        reply: StreamingReply,
     ) -> tuple[str, bool, bool]:
         answer = completion.completion.strip()
         end_session = False
@@ -303,12 +302,8 @@ class VoiceAssistant:
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
             tool = self._tools.get(name)
-            status = tool.status(arguments) if tool is not None else None
 
             await self._set_state(AssistantState.CALLING_TOOL)
-            if status and tool is not None and tool.kind is not ActionKind.END_SESSION:
-                reply.announce(status)
-
             result = await self._tools.execute(name, arguments)
             content = result.content or ("Tool completed successfully." if result.ok else "Tool failed.")
             tool_results.append((tool_call, content))
