@@ -67,6 +67,16 @@ class WeatherParams(ToolParams):
     )
 
 
+class WebSearchParams(ToolParams):
+    query: str = Field(description="Suchanfrage für die Websuche.")
+    max_results: int = Field(
+        default=5,
+        ge=1,
+        le=10,
+        description="Maximale Anzahl an Suchergebnissen.",
+    )
+
+
 class ListFilesParams(ToolParams):
     path: FilePath = Field(
         default=".",

@@ -8,7 +8,14 @@ from cara.file_system import FileSystem, LocalFileSystem, Workspace
 from cara.skills import Skills
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
-from cara.tools.handler import BashSandbox, BashSandboxError, DockerBashSandbox, Location, OpenMeteoClient
+from cara.tools.handler import (
+    BashSandbox,
+    BashSandboxError,
+    DockerBashSandbox,
+    Location,
+    OpenMeteoClient,
+    TavilySearchClient,
+)
 from cara.tools.middleware.defaults import default_tool_middlewares
 from cara.tools.params import (
     BashParams,
@@ -21,6 +28,7 @@ from cara.tools.params import (
     SetVolumeParams,
     ToolParams,
     WeatherParams,
+    WebSearchParams,
     WriteFileParams,
 )
 from cara.tools.schemas import ToolSchema
@@ -38,6 +46,10 @@ def _audio_player_available(context: ToolContext) -> bool:
 
 def _weather_available(context: ToolContext) -> bool:
     return context.resolve(OpenMeteoClient) is not None and context.resolve(Location) is not None
+
+
+def _web_search_available(context: ToolContext) -> bool:
+    return context.resolve(TavilySearchClient) is not None
 
 
 def _audio_output_tool_description(context: ToolContext) -> str:
@@ -224,6 +236,19 @@ class Tools:
                 target = found
             report = await client.current(target)
             return ActionResult.success(report.summary())
+
+        @self.action(
+            description=(
+                "Durchsuche das Internet nach aktuellen Informationen, News oder Fakten, "
+                "die nicht aus dem Kontext bekannt sind."
+            ),
+            params=WebSearchParams,
+            kind=ActionKind.READ,
+            available_when=_web_search_available,
+        )
+        async def web_search(params: WebSearchParams, client: Inject[TavilySearchClient]) -> ActionResult:
+            response = await client.search(params.query, max_results=params.max_results)
+            return ActionResult.success(response.summary())
 
         @self.action(
             description=(

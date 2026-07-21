@@ -1,5 +1,6 @@
 from .bash import BashSandbox, BashSandboxError, BashSandboxResult, DockerBashSandbox
 from .weather import Location, OpenMeteoClient, WeatherReport
+from .web_search import SearchResponse, SearchResult, TavilySearchClient
 
 __all__ = [
     "BashSandbox",
@@ -8,5 +9,8 @@ __all__ = [
     "DockerBashSandbox",
     "Location",
     "OpenMeteoClient",
+    "SearchResponse",
+    "SearchResult",
+    "TavilySearchClient",
     "WeatherReport",
 ]

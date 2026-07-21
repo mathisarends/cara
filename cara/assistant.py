@@ -42,7 +42,7 @@ from cara.speech import (
 )
 from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 from cara.tools import ActionKind, Tools
-from cara.tools.handler import Location, OpenMeteoClient
+from cara.tools.handler import Location, OpenMeteoClient, TavilySearchClient
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
 from cara.wakeword.barge_in import WakeWordBargeIn
@@ -91,6 +91,7 @@ class VoiceAssistant:
             self._tools.provide(skills)
         if location is not None:
             self._tools.provide(location, OpenMeteoClient())
+        self._tools.provide(TavilySearchClient())
         if file_system is not None:
             self._tools.provide(file_system)
         self._speech_settings = speech_settings or SpeechSettings()
