@@ -1,1 +1,0 @@
-Was sind die nächsten Schritte? Die nächsten Schritte sind es, AEC-agnostisch für die Implementierung von Audio Device und Player Device zu machen, das eben nicht in die Implementierung verdrahtet ist.
