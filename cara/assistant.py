@@ -89,10 +89,6 @@ class VoiceAssistant:
         self._state = AssistantState.IDLE
 
     @property
-    def state(self) -> AssistantState:
-        return self._state
-
-    @property
     def event_bus(self) -> EventBus:
         return self._event_bus
 
