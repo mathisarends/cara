@@ -1,5 +1,4 @@
 import asyncio
-import builtins
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -124,7 +123,7 @@ class Tools:
     async def execute(self, name: str, args: dict[str, Any] | None = None) -> ActionResult:
         return await self._executor.execute(name, args)
 
-    def to_schema(self) -> builtins.list[ToolSchema]:
+    def to_schema(self) -> list[ToolSchema]:
         return [tool.to_schema(self._context) for tool in self._tools.values() if tool.is_available(self._context)]
 
     def _register_default_tools(self) -> None:

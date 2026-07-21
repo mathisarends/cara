@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -128,6 +129,16 @@ def test_default_bash_tool_is_denied() -> None:
         "Bash execution is disabled by the current tool policy. "
         "Use the dedicated file tools or configure an explicit command allow-list."
     )
+
+
+def test_unknown_tool_is_logged(caplog) -> None:
+    tools = Tools()
+
+    with caplog.at_level(logging.WARNING, logger="cara.tools.executor"):
+        result = asyncio.run(tools.execute("unknown", {"value": "test"}))
+
+    assert not result.ok
+    assert any(message.startswith("Rejected unavailable tool 'unknown'.") for message in caplog.messages)
 
 
 def test_bash_tool_rejects_shell_syntax_even_for_allowed_command() -> None:

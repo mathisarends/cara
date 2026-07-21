@@ -12,6 +12,13 @@ _RESET = "\x1b[0m"
 
 class CallLoggingMiddleware(ToolMiddleware):
     async def __call__(self, call: ToolCall, next: ToolHandler) -> ActionResult:
+        logger.info(
+            "%s[tool] %s called with arguments: %r%s",
+            _BRIGHT_MAGENTA,
+            call.tool.name,
+            call.raw_args,
+            _RESET,
+        )
         start = time.perf_counter()
         result = await next(call)
         elapsed_ms = (time.perf_counter() - start) * 1000

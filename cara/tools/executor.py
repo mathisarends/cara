@@ -39,12 +39,14 @@ class ToolExecutor:
             available = [
                 tool_name for tool_name, candidate in self._tools.items() if candidate.is_available(self._context)
             ]
+            logger.warning("Rejected unavailable tool '%s'. Available: %s", name, available)
             return ActionResult.fail(f"Unknown tool '{name}'. Available: {available}")
 
         raw_args = args or {}
         try:
             params = tool.param_model.model_validate(raw_args) if tool.param_model is not None else None
         except ValidationError as error:
+            logger.warning("Rejected tool '%s' due to invalid arguments: %s", name, error)
             return ActionResult.fail(error)
         except Exception:
             logger.exception("Failed to parse arguments for tool '%s'", name)

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from cara.tools import (
     ActionResult,
@@ -12,6 +13,7 @@ from cara.tools import (
     ToolMiddleware,
     compose,
 )
+from cara.tools.middleware.call_log import CallLoggingMiddleware
 
 
 async def _unused_tool() -> ActionResult:
@@ -87,3 +89,23 @@ def test_result_limit_changes_successful_response_on_the_way_out() -> None:
     assert result.content is not None
     assert len(result.content) == 30
     assert result.content.endswith("[Output truncated.]")
+
+
+def test_call_logging_records_arguments_and_result(caplog) -> None:
+    call = ToolCall(
+        tool=Tool(name="test", description=None, fn=_unused_tool),
+        params=None,
+        raw_args={"query": "weather"},
+        context=ToolContext(),
+    )
+
+    async def terminal(tool_call: ToolCall) -> ActionResult:
+        assert tool_call is call
+        return ActionResult.success()
+
+    with caplog.at_level(logging.INFO, logger="cara.tools.middleware.call_log"):
+        result = asyncio.run(compose([CallLoggingMiddleware()], terminal)(call))
+
+    assert result == ActionResult.success()
+    assert any("[tool] test called with arguments: {'query': 'weather'}" in message for message in caplog.messages)
+    assert any("[tool] test -> ok (" in message for message in caplog.messages)
