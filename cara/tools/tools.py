@@ -12,7 +12,7 @@ from cara.tools.handler import (
     BashSandbox,
     BashSandboxError,
     DockerBashSandbox,
-    Location,
+    IpLocationClient,
     OpenMeteoClient,
     TavilySearchClient,
 )
@@ -42,14 +42,6 @@ def _multiple_audio_outputs_available(context: ToolContext) -> bool:
 
 def _audio_player_available(context: ToolContext) -> bool:
     return context.resolve(AudioPlayer) is not None
-
-
-def _weather_available(context: ToolContext) -> bool:
-    return context.resolve(OpenMeteoClient) is not None and context.resolve(Location) is not None
-
-
-def _web_search_available(context: ToolContext) -> bool:
-    return context.resolve(TavilySearchClient) is not None
 
 
 def _audio_output_tool_description(context: ToolContext) -> str:
@@ -215,26 +207,17 @@ class Tools:
             return ActionResult.success(f"Lautstärke ist jetzt {round(params.level * 100)}%.")
 
         @self.action(
-            description=(
-                "Frage das aktuelle Wetter ab. Gib optional einen Ort an; ohne Ort gilt der "
-                "aktuelle Standort aus dem Kontext."
-            ),
+            description="Frage das aktuelle Wetter ab. Uses the current location.",
             params=WeatherParams,
             kind=ActionKind.READ,
-            available_when=_weather_available,
         )
         async def weather(
             params: WeatherParams,
+            location_client: Inject[IpLocationClient],
             client: Inject[OpenMeteoClient],
-            location: Inject[Location],
         ) -> ActionResult:
-            target = location
-            if params.location:
-                found = await client.locate(params.location)
-                if found is None:
-                    return ActionResult.fail(f"Ich konnte den Ort '{params.location}' nicht finden.")
-                target = found
-            report = await client.current(target)
+            location = await location_client.current()
+            report = await client.current(location)
             return ActionResult.success(report.summary())
 
         @self.action(
@@ -244,7 +227,6 @@ class Tools:
             ),
             params=WebSearchParams,
             kind=ActionKind.READ,
-            available_when=_web_search_available,
         )
         async def web_search(params: WebSearchParams, client: Inject[TavilySearchClient]) -> ActionResult:
             response = await client.search(params.query, max_results=params.max_results)

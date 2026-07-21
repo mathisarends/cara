@@ -20,14 +20,8 @@ def _tools(client: TavilySearchClient) -> Tools:
     return tools
 
 
-def test_web_search_tool_is_unavailable_without_client() -> None:
-    assert Tools().get("web_search") is None
-
-
-def test_web_search_tool_is_available_once_client_is_provided() -> None:
-    client = _StubClient(SearchResponse())
-
-    assert _tools(client).get("web_search") is not None
+def test_web_search_tool_is_registered_without_availability_checks() -> None:
+    assert Tools().get("web_search") is not None
 
 
 def test_web_search_returns_the_client_summary() -> None:

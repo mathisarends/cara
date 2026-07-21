@@ -30,7 +30,7 @@ from cara.events import (
 )
 from cara.file_system import FileSystem
 from cara.listener import SoundListener
-from cara.messages import MessageManager, RuntimeContext, SystemPrompt
+from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
 from cara.skills import Skills
 from cara.speech import (
@@ -42,7 +42,7 @@ from cara.speech import (
 )
 from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 from cara.tools import ActionKind, Tools
-from cara.tools.handler import Location, OpenMeteoClient, TavilySearchClient
+from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
 from cara.wakeword.barge_in import WakeWordBargeIn
@@ -70,7 +70,6 @@ class VoiceAssistant:
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
         skills: Skills | None = None,
-        location: Location | None = None,
         file_system: FileSystem | None = None,
         speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,
@@ -86,12 +85,9 @@ class VoiceAssistant:
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
-        self._tools.provide(self._player)
+        self._tools.provide(self._player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient())
         if skills is not None:
             self._tools.provide(skills)
-        if location is not None:
-            self._tools.provide(location, OpenMeteoClient())
-        self._tools.provide(TavilySearchClient())
         if file_system is not None:
             self._tools.provide(file_system)
         self._speech_settings = speech_settings or SpeechSettings()
@@ -110,11 +106,6 @@ class VoiceAssistant:
         self._message_manager = MessageManager(
             system_prompt=self._system_prompt,
             skills=skills,
-            context=(
-                RuntimeContext(location_name=location.name, timezone=location.timezone)
-                if location is not None
-                else None
-            ),
         )
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()

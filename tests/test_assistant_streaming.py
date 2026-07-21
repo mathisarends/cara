@@ -121,7 +121,7 @@ class MultiRoundToolChatModel:
                 id="fetch-weather",
                 function=Function(
                     name="weather_lookup",
-                    arguments='{"location":null}',
+                    arguments="{}",
                 ),
             )
             yield StreamToolCall(tool_call=tool_call)

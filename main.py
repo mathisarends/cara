@@ -11,15 +11,11 @@ from cara.events.bus import EventBus
 from cara.file_system import LocalFileSystem, Workspace
 from cara.listener import HueListener
 from cara.skills import Skills
-from cara.tools.handler import Location
 from cara.wakeword import WakeWord, WakeWordSettings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 load_dotenv(override=True)
-
-# Standort für Zeit-/Wetterkontext. Koordinaten anpassen.
-LOCATION = Location(name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin")
 
 
 async def main() -> None:
@@ -38,7 +34,6 @@ async def main() -> None:
         event_bus=event_bus,
         player=audio_player,
         skills=skills,
-        location=LOCATION,
     )
 
     HueListener(event_bus=event_bus, room_name="Mein Zimmer")
