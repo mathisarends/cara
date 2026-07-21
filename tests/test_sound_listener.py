@@ -9,11 +9,14 @@ class RecordingEarconPlayer:
     def __init__(self) -> None:
         self.earcons: list[Earcon] = []
 
+    async def play(self, earcon: Earcon) -> None:
+        self.earcons.append(earcon)
+
     def play_soon(self, earcon: Earcon) -> None:
         self.earcons.append(earcon)
 
 
-def test_interrupted_schedules_interrupt_earcon() -> None:
+def test_interrupted_plays_interrupt_earcon_before_dispatch_completes() -> None:
     async def run() -> list[Earcon]:
         event_bus = EventBus()
         earcons = RecordingEarconPlayer()

@@ -6,7 +6,7 @@ import wave
 
 import pyaudio
 
-from cara.audio.ports import AudioOutput, AudioOutputStrategy, EchoCanceller
+from cara.audio.ports import AudioOutput, AudioOutputStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,10 @@ class WavAudioPlayer(AudioOutputStrategy):
         self,
         *,
         trailing_silence_seconds: float = _DEFAULT_TRAILING_SILENCE_SECONDS,
-        echo_canceller: EchoCanceller | None = None,
     ) -> None:
         if trailing_silence_seconds < 0:
             raise ValueError("trailing_silence_seconds must not be negative.")
         self._trailing_silence_seconds = trailing_silence_seconds
-        self._echo_canceller = echo_canceller
 
     @property
     def output(self) -> AudioOutput:
@@ -56,26 +54,12 @@ class WavAudioPlayer(AudioOutputStrategy):
                             logger.info("Audio playback cancelled.")
                             cancelled = True
                             break
-                        if self._echo_canceller is not None:
-                            self._echo_canceller.analyze_render(
-                                chunk,
-                                sample_rate=frame_rate,
-                                channels=channels,
-                                sample_width=sample_width,
-                            )
                         stream.write(chunk)
                     if cancel is not None and cancel.is_set():
                         cancelled = True
                     if not cancelled and self._trailing_silence_seconds:
                         silence_frames = round(frame_rate * self._trailing_silence_seconds)
                         silence = bytes(silence_frames * channels * sample_width)
-                        if self._echo_canceller is not None:
-                            self._echo_canceller.analyze_render(
-                                silence,
-                                sample_rate=frame_rate,
-                                channels=channels,
-                                sample_width=sample_width,
-                            )
                         stream.write(silence)
                         logger.debug(
                             "Added %.0f ms trailing silence to WAV playback.",

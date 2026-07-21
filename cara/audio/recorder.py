@@ -5,13 +5,12 @@ import logging
 import threading
 import time
 import wave
-from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
 import pyaudio
 
-from cara.audio.ports import EchoCanceller, SpeechRecorder
+from cara.audio.ports import SpeechRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -31,27 +30,13 @@ class MicrophoneInputSettings:
 class MicrophoneRecorder(SpeechRecorder):
     """Records one user utterance from the default microphone into a WAV file."""
 
-    def __init__(
-        self,
-        config: MicrophoneInputSettings | None = None,
-        *,
-        echo_canceller: EchoCanceller | None = None,
-    ) -> None:
+    def __init__(self, config: MicrophoneInputSettings | None = None) -> None:
         self.config = config or MicrophoneInputSettings()
-        self._echo_canceller = echo_canceller
-        if echo_canceller is not None and (
-            self.config.rate != echo_canceller.sample_rate
-            or self.config.channels != echo_canceller.channels
-            or self.config.sample_width != 2
-        ):
-            raise ValueError("Microphone settings must match the echo canceller's 16-bit PCM format.")
 
     async def record_until_silence(
         self,
         *,
         initial_silence_timeout: float | None = None,
-        speech_started: asyncio.Event | None = None,
-        cancel: asyncio.Event | None = None,
     ) -> bytes | None:
         loop = asyncio.get_running_loop()
         cancelled = threading.Event()
@@ -60,38 +45,20 @@ class MicrophoneRecorder(SpeechRecorder):
             functools.partial(
                 self._record_until_silence_sync,
                 initial_silence_timeout=initial_silence_timeout,
-                speech_started=(
-                    None if speech_started is None else lambda: loop.call_soon_threadsafe(speech_started.set)
-                ),
                 cancel=cancelled,
             ),
         )
-        cancel_waiter = asyncio.create_task(cancel.wait()) if cancel is not None else None
         try:
-            if cancel_waiter is None:
-                return await asyncio.shield(recording)
-
-            done, _ = await asyncio.wait(
-                {recording, cancel_waiter},
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-            if cancel_waiter in done:
-                cancelled.set()
             return await asyncio.shield(recording)
         except asyncio.CancelledError:
             cancelled.set()
             await asyncio.shield(recording)
             raise
-        finally:
-            if cancel_waiter is not None and not cancel_waiter.done():
-                cancel_waiter.cancel()
-                await asyncio.gather(cancel_waiter, return_exceptions=True)
 
     def _record_until_silence_sync(
         self,
         *,
         initial_silence_timeout: float | None = None,
-        speech_started: Callable[[], None] | None = None,
         cancel: threading.Event | None = None,
     ) -> bytes | None:
         config = self.config
@@ -112,19 +79,15 @@ class MicrophoneRecorder(SpeechRecorder):
         logger.info("Recording user utterance...")
         try:
             while True:
-                if cancel is not None and cancel.is_set() and voice_started_at is None:
+                if cancel is not None and cancel.is_set():
                     logger.info("Recording cancelled.")
                     return None
                 pcm = stream.read(config.chunk, exception_on_overflow=False)
-                if self._echo_canceller is not None:
-                    pcm = self._echo_canceller.process_capture(pcm)
 
                 elapsed = time.monotonic() - started_at
                 rms = _rms_int16(pcm)
                 if voice_started_at is None and rms >= config.silence_threshold:
                     voice_started_at = time.monotonic()
-                    if speech_started is not None:
-                        speech_started()
 
                 if (
                     voice_started_at is None

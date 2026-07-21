@@ -4,7 +4,7 @@ from typing import Self
 from cara.wakeword.ports import WakeWordDetectionSource
 
 
-class BargeInCapture:
+class WakeWordBargeIn:
     """Listens for an explicit wake word during one assistant response."""
 
     def __init__(self, wake_word_listener: WakeWordDetectionSource) -> None:
@@ -19,7 +19,7 @@ class BargeInCapture:
 
     async def __aenter__(self) -> Self:
         if self._listening is not None:
-            raise RuntimeError("Barge-in capture is already running.")
+            raise RuntimeError("Wake-word barge-in is already running.")
         self._listening = asyncio.create_task(self._listen())
         return self
 

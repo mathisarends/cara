@@ -27,8 +27,6 @@ class EmptyRecorder:
         self,
         *,
         initial_silence_timeout: float | None = None,
-        speech_started: asyncio.Event | None = None,
-        cancel: asyncio.Event | None = None,
     ) -> bytes | None:
         self._events.append("record")
         return None

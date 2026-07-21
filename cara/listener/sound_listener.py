@@ -3,7 +3,7 @@ from cara.events import EventBus, Interrupted, SessionEnded
 
 
 class SoundListener:
-    """Plays non-blocking earcons for assistant lifecycle events."""
+    """Plays earcons for assistant lifecycle events."""
 
     def __init__(self, event_bus: EventBus, earcons: EarconPlayer) -> None:
         self._event_bus = event_bus
@@ -12,7 +12,7 @@ class SoundListener:
         self._event_bus.subscribe(SessionEnded, self._on_session_ended)
 
     async def _on_interrupted(self, event: Interrupted) -> None:
-        self._earcons.play_soon(Earcon.INTERRUPT)
+        await self._earcons.play(Earcon.INTERRUPT)
 
     async def _on_session_ended(self, event: SessionEnded) -> None:
         self._earcons.play_soon(Earcon.SLEEP)

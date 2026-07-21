@@ -33,47 +33,18 @@ class RecordingPyAudio:
         self.terminated = True
 
 
-class SilencingEchoCanceller:
-    sample_rate = 16000
-    channels = 1
-
-    def analyze_render(
-        self,
-        pcm: bytes,
-        *,
-        sample_rate: int,
-        channels: int,
-        sample_width: int,
-    ) -> None:
-        pass
-
-    def process_capture(self, pcm: bytes) -> bytes:
-        return bytes(len(pcm))
-
-
-def test_recorder_detects_voice_only_after_echo_cancellation(monkeypatch) -> None:
+def test_recorder_stops_when_cancelled_before_speech(monkeypatch) -> None:
     cancel = threading.Event()
     stream = CancellingInputStream(cancel)
     pa = RecordingPyAudio(stream)
     monkeypatch.setattr(recorder_module.pyaudio, "PyAudio", lambda: pa)
-    speech_started = False
-
-    def mark_speech_started() -> None:
-        nonlocal speech_started
-        speech_started = True
-
-    recorder = MicrophoneRecorder(
-        MicrophoneInputSettings(chunk=160),
-        echo_canceller=SilencingEchoCanceller(),
-    )
+    recorder = MicrophoneRecorder(MicrophoneInputSettings(chunk=160))
 
     audio = recorder._record_until_silence_sync(
-        speech_started=mark_speech_started,
         cancel=cancel,
     )
 
     assert audio is None
-    assert speech_started is False
     assert stream.stopped is True
     assert stream.closed is True
     assert pa.terminated is True

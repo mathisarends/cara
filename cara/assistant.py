@@ -12,9 +12,7 @@ from cara.audio import (
     MicrophoneRecorder,
     SpeechRecorder,
     WavAudioPlayer,
-    WebRtcEchoCanceller,
 )
-from cara.audio.barge_in import BargeInCapture
 from cara.events import (
     AnswerGenerated,
     AssistantState,
@@ -42,6 +40,7 @@ from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 from cara.tools import ActionKind, Tools
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
+from cara.wakeword.barge_in import WakeWordBargeIn
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +72,7 @@ class VoiceAssistant:
         extend_system_prompt: str | None = None,
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
     ) -> None:
-        self._llm = llm or ChatOpenAI(model="gpt-5.6-terra")
-        if recorder is None and player is None:
-            echo_canceller = WebRtcEchoCanceller()
-            recorder = MicrophoneRecorder(echo_canceller=echo_canceller)
-            player = AudioPlayer(WavAudioPlayer(echo_canceller=echo_canceller))
-
+        self._llm = llm or ChatOpenAI(model="gpt-5.6-terra", reasoning_effort="none")
         self._recorder = recorder or MicrophoneRecorder()
         self._player = player or AudioPlayer(WavAudioPlayer())
         self._stt = stt or OpenAISpeechToText(api_key)
@@ -166,7 +160,7 @@ class VoiceAssistant:
                     break
 
                 self._message_manager.add_user(transcript)
-                async with BargeInCapture(wake_word_listener) as barge_in:
+                async with WakeWordBargeIn(wake_word_listener) as barge_in:
                     try:
                         answer, end_session = await self._think(interrupt=barge_in.interrupt)
                     except _ResponseInterrupted:
