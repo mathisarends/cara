@@ -1,16 +1,17 @@
-"""OpenAI speech wrappers."""
+"""Speech interfaces backed by the vocalbin library."""
 
-from .models import (
+from vocalbin import (
+    OpenAISpeechToText,
+    OpenAITextToSpeech,
+    SpeechToText,
     SpeechToTextRequest,
     SpeechToTextResponse,
+    TextToSpeech,
     TextToSpeechFormat,
     TextToSpeechRequest,
     TextToSpeechResponse,
     TextToSpeechVoice,
 )
-from .ports import SpeechToText, TextToSpeech
-from .stt import OpenAISpeechToText
-from .tts import OpenAITextToSpeech
 
 __all__ = [
     "OpenAISpeechToText",
