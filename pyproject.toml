@@ -2,7 +2,7 @@
 name = "cara"
 version = "0.1.0"
 description = "Small OpenAI speech wrappers for Cara."
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "httpx>=0.28.0",
     "hueify>=0.2.0",
@@ -16,6 +16,7 @@ dependencies = [
     "pyyaml>=6.0",
     "tavily-python>=0.7.26",
     "tzdata>=2024.1",
+    "vocalbin>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -50,7 +51,7 @@ packages = ["cara"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = [
