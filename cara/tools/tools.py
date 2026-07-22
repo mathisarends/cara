@@ -159,12 +159,12 @@ class Tools:
         @self.action(
             description=described(
                 LanguageModels,
-                lambda models: "Switch the language model used to generate your responses. "
-                f"Currently active: {models.active().name!r}. Available profiles: {models.describe_profiles()}.",
+                render=lambda models: "Switch the language model used to generate your responses. "
+                f"Currently active: {models.active().name!r}. Available profiles: {models.describe_profiles()}",
                 default="Switch the language model used to generate responses.",
             ),
             params=SetLanguageModelParams,
-            available_when=requires(LanguageModels, lambda models: models.has_alternatives()),
+            available_when=requires(LanguageModels, predicate=lambda models: models.has_alternatives()),
         )
         async def set_language_model(
             params: SetLanguageModelParams,
@@ -180,12 +180,12 @@ class Tools:
         @self.action(
             description=described(
                 AudioPlayer,
-                lambda player: "Switch audio playback to another configured output strategy. "
+                render=lambda player: "Switch audio playback to another configured output strategy. "
                 f"Available output names: {player.describe_outputs()}.",
                 default="Switch audio playback to another configured output strategy.",
             ),
             params=SetAudioOutputParams,
-            available_when=requires(AudioPlayer, lambda player: player.has_multiple_outputs),
+            available_when=requires(AudioPlayer, predicate=lambda player: player.has_multiple_outputs),
         )
         async def set_audio_output(
             params: SetAudioOutputParams,

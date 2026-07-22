@@ -346,3 +346,86 @@ Barge-in unangetastet.
 - [TEN VAD (Hugging Face)](https://huggingface.co/TEN-framework/ten-vad)
 - [OpenAI Realtime VAD Guide](https://developers.openai.com/api/docs/guides/realtime-vad)
 - [Picovoice Cobra VAD](https://picovoice.ai/platform/cobra/)
+
+===
+
+## Konkrete Entscheidung für dein Problem (Denkpausen + kein 12-s-Limit)
+
+**Dein Problem:** Du fängst an zu reden, machst kurz eine Denkpause, die 1,2 s
+laufen ab → die ganze Pipeline feuert, obwohl du noch gar nicht fertig bist.
+Und das harte `max_record_seconds = 12` willst du auch los. Latenz ist dir
+ausdrücklich *nicht* kritisch.
+
+Das ist ein reines **Turn-Problem**, kein VAD-Problem. Ein besseres VAD (Silero)
+allein würde es **nicht** lösen — es würde die Pause nur zuverlässiger erkennen
+und trotzdem nach 1,2 s auslösen. Es braucht **Intelligenz über das Satzende**,
+also einen semantischen Turn-Detektor.
+
+### Entscheidung: Silero VAD + Smart Turn v3, „silence-gated"
+
+Und zwar **genau in dem Muster, das du selbst vorgeschlagen hast** — erst kurz
+auf Stille warten, *dann* den Klassifikator anwerfen. Das ist nicht nur
+akzeptabel, sondern die **technisch bessere** Variante:
+
+- **Weniger Inferenz:** Der Klassifikator läuft nicht dauernd, sondern nur an
+  echten Sprech-Pausen. Bei jeder Pause **einmal** statt fortlaufend.
+- **Einfachere Zustandslogik:** Die (billige, lokale) VAD macht die
+  Grob-Segmentierung, das (teurere) Turn-Modell trifft nur die
+  Ja/Nein-Endentscheidung. Sauber getrennt, gut testbar.
+- **Latenz spielt keine Rolle** für dich → die ~0,8–1,0 s Wartefenster + ~12–100 ms
+  Modell-Inferenz sind völlig unkritisch. Genau der Fall, für den dieses Muster
+  gemacht ist.
+
+### So läuft ein Turn dann ab
+
+1. **Silero VAD** erkennt Sprachbeginn (ersetzt die RMS-Schwelle, Abschnitt 3.1).
+   Rohaudio des Turns wird durchgehend gepuffert.
+2. Silero meldet eine **Kandidaten-Pause** (z.B. ~0,8 s zusammenhängend still) —
+   das ist *nicht* mehr sofort „Ende", sondern nur „hier lohnt sich die Frage".
+3. **Smart Turn v3** bekommt das bisher Gesprochene und entscheidet:
+   - **„complete"** → Turn ist zu Ende → Aufnahme beenden → transkribieren.
+   - **„incomplete"** → das war nur eine **Denkpause** → **weiter aufnehmen**,
+     Pausenzähler zurücksetzen. Genau das löst dein Kernproblem.
+4. Zurück zu Schritt 2, bis das Modell „complete" sagt.
+
+Damit verschwindet der feste 1,2-s-Timer als *Entscheider*: Er wird nur noch zum
+**Trigger für die Frage** an das Modell (kürzer, ~0,8 s reicht), nicht mehr zum
+Abbruchkriterium.
+
+### Was aus `max_record_seconds = 12` wird
+
+Ersatzlos streichen als *normales* Abbruchkriterium — die Endentscheidung trifft
+jetzt das Turn-Modell. Als reine **Runaway-Sicherung** (Mikro klemmt, Dauerlärm)
+optional eine sehr großzügige, weiche Obergrenze behalten (z.B. 60–90 s) oder
+alternativ „N aufeinanderfolgende ‚incomplete'-Urteile ohne neue Sprache" als
+Abbruch. Im Normalbetrieb greift beides nie. Wichtig: die Grenze so wählen, dass
+sie sich nie wie das heutige 12-s-Limit anfühlt.
+
+### Konkrete Startwerte
+
+| Parameter | Wert | Rolle |
+|---|---|---|
+| VAD-Backend | Silero (ONNX) | Sprachbeginn + Kandidaten-Pause |
+| Kandidaten-Pause | ~0,8 s Stille | löst *nur* die Modellfrage aus |
+| Turn-Modell | Smart Turn v3 (int8 ONNX) | „complete / incomplete" |
+| Entscheidung „complete" | Turn beenden | eigentliches Satzende |
+| Entscheidung „incomplete" | weiter aufnehmen | Denkpause abgefangen |
+| Harte Obergrenze | 60–90 s (nur Notaus) | ersetzt die 12 s |
+
+### Umbau (an der bekannten Naht `MicrophoneRecorder`)
+
+1. **Etappe 1:** `VoiceActivityDetector`-Port + `SileroVAD`; im Recorder
+   `rms >= silence_threshold` durch `vad.is_speech(frame)` ersetzen
+   (Abschnitt 3.1). Framegröße auf Silero anpassen.
+2. **Etappe 2:** `TurnDetector`-Port + `SmartTurnV3` (reines ONNX, kein Pipecat-
+   Framework). Im Recorder die „still für X → break"-Logik ersetzen durch
+   „still für 0,8 s → `await turn_detector.is_complete(buffer)` → break **nur**
+   bei True". Modell-Inferenz in `run_in_executor`, damit die Event-Loop frei
+   bleibt. `max_record_seconds` auf die weiche Notaus-Grenze anheben.
+
+`assistant.py`, Wakeword, Earcons und der `ready`/Barge-in-Mechanismus bleiben
+komplett unangetastet — alles hängt weiter an `record_until_silence()`.
+
+> **Kurz:** Silero als Ohr, Smart Turn v3 als Verstand, ausgelöst genau nach
+> deinem „erst warten, dann klassifizieren"-Muster. Löst Denkpausen *und* macht
+> das 12-s-Limit überflüssig.
