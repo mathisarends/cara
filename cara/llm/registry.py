@@ -51,6 +51,12 @@ class LanguageModels:
         self._active = name
         return profile
 
+    def has_alternatives(self) -> bool:
+        return len(self._profiles) > 1
+
+    def describe_profiles(self) -> str:
+        return "; ".join(f"{profile.name}: {profile.description}" for profile in self._profiles.values())
+
     def profiles(self) -> list[ModelProfile]:
         return list(self._profiles.values())
 

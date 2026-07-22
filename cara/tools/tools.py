@@ -7,6 +7,7 @@ from cara.audio import AudioPlayer
 from cara.file_system import FileSystem, LocalFileSystem, Workspace
 from cara.llm import LanguageModels
 from cara.skills import Skills
+from cara.tools.binding import described, provided, requires
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
 from cara.tools.handler import (
@@ -35,39 +36,6 @@ from cara.tools.params import (
 )
 from cara.tools.schemas import ToolSchema
 from cara.tools.views import ActionKind, ActionResult, Tool, ToolAvailability, ToolDescription
-
-
-def _multiple_audio_outputs_available(context: ToolContext) -> bool:
-    player = context.resolve(AudioPlayer)
-    return player is not None and len(player.available_outputs) > 1
-
-
-def _audio_player_available(context: ToolContext) -> bool:
-    return context.resolve(AudioPlayer) is not None
-
-
-def _audio_output_tool_description(context: ToolContext) -> str:
-    player = context.resolve(AudioPlayer)
-    if player is None:
-        return "Switch audio playback to another configured output strategy."
-    available = ", ".join(output.value for output in player.available_outputs)
-    return f"Switch audio playback to another configured output strategy. Available output names: {available}."
-
-
-def _multiple_language_models_available(context: ToolContext) -> bool:
-    models = context.resolve(LanguageModels)
-    return models is not None and len(models.names()) > 1
-
-
-def _language_model_tool_description(context: ToolContext) -> str:
-    models = context.resolve(LanguageModels)
-    if models is None:
-        return "Switch the language model used to generate responses."
-    options = "; ".join(profile.catalog_entry().removeprefix("- ") for profile in models.profiles())
-    return (
-        "Switch the language model used to generate your responses. "
-        f"Currently active: {models.active().name!r}. Available profiles: {options}."
-    )
 
 
 def _default_workspace() -> Workspace:
@@ -189,9 +157,14 @@ class Tools:
             return ActionResult.success(skill.instructions)
 
         @self.action(
-            description=_language_model_tool_description,
+            description=described(
+                LanguageModels,
+                lambda models: "Switch the language model used to generate your responses. "
+                f"Currently active: {models.active().name!r}. Available profiles: {models.describe_profiles()}.",
+                default="Switch the language model used to generate responses.",
+            ),
             params=SetLanguageModelParams,
-            available_when=_multiple_language_models_available,
+            available_when=requires(LanguageModels, lambda models: models.has_alternatives()),
         )
         async def set_language_model(
             params: SetLanguageModelParams,
@@ -205,9 +178,14 @@ class Tools:
             return ActionResult.success(f"Language model switched to {profile.name!r}.")
 
         @self.action(
-            description=_audio_output_tool_description,
+            description=described(
+                AudioPlayer,
+                lambda player: "Switch audio playback to another configured output strategy. "
+                f"Available output names: {player.describe_outputs()}.",
+                default="Switch audio playback to another configured output strategy.",
+            ),
             params=SetAudioOutputParams,
-            available_when=_multiple_audio_outputs_available,
+            available_when=requires(AudioPlayer, lambda player: player.has_multiple_outputs),
         )
         async def set_audio_output(
             params: SetAudioOutputParams,
@@ -221,7 +199,7 @@ class Tools:
                 "Frage die aktuelle Wiedergabelautstärke des aktiven Audio-Ausgangs ab, als Wert von 0.0 bis 1.0."
             ),
             kind=ActionKind.READ,
-            available_when=_audio_player_available,
+            available_when=provided(AudioPlayer),
         )
         async def get_volume(player: Inject[AudioPlayer]) -> ActionResult:
             level = await player.get_volume()
@@ -234,7 +212,7 @@ class Tools:
                 "lauter oder leiser zu machen."
             ),
             params=SetVolumeParams,
-            available_when=_audio_player_available,
+            available_when=provided(AudioPlayer),
         )
         async def set_volume(params: SetVolumeParams, player: Inject[AudioPlayer]) -> ActionResult:
             await player.set_volume(params.level)

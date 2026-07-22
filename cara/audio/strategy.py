@@ -28,6 +28,13 @@ class AudioPlayer(AudioPlayback):
     def available_outputs(self) -> tuple[AudioOutput, ...]:
         return tuple(self._strategies)
 
+    @property
+    def has_multiple_outputs(self) -> bool:
+        return len(self._strategies) > 1
+
+    def describe_outputs(self) -> str:
+        return ", ".join(output.value for output in self._strategies)
+
     def register_output(
         self,
         strategy: AudioOutputStrategy,

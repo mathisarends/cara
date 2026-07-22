@@ -8,6 +8,3 @@ class ModelProfile:
     name: str
     description: str
     model: ChatModel
-
-    def catalog_entry(self) -> str:
-        return f"- {self.name}: {self.description}"
