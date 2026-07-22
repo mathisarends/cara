@@ -5,6 +5,7 @@ from typing import Any
 
 from cara.audio import AudioPlayer
 from cara.file_system import FileSystem, LocalFileSystem, Workspace
+from cara.llm import LanguageModels
 from cara.skills import Skills
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
@@ -25,6 +26,7 @@ from cara.tools.params import (
     LoadSkillParams,
     ReadFileParams,
     SetAudioOutputParams,
+    SetLanguageModelParams,
     SetVolumeParams,
     ToolParams,
     WeatherParams,
@@ -50,6 +52,22 @@ def _audio_output_tool_description(context: ToolContext) -> str:
         return "Switch audio playback to another configured output strategy."
     available = ", ".join(output.value for output in player.available_outputs)
     return f"Switch audio playback to another configured output strategy. Available output names: {available}."
+
+
+def _multiple_language_models_available(context: ToolContext) -> bool:
+    models = context.resolve(LanguageModels)
+    return models is not None and len(models.names()) > 1
+
+
+def _language_model_tool_description(context: ToolContext) -> str:
+    models = context.resolve(LanguageModels)
+    if models is None:
+        return "Switch the language model used to generate responses."
+    options = "; ".join(profile.catalog_entry().removeprefix("- ") for profile in models.profiles())
+    return (
+        "Switch the language model used to generate your responses. "
+        f"Currently active: {models.active().name!r}. Available profiles: {options}."
+    )
 
 
 def _default_workspace() -> Workspace:
@@ -169,6 +187,22 @@ class Tools:
                 available = ", ".join(skills.names())
                 return ActionResult.fail(f"Unknown skill '{params.name}'. Available: {available}")
             return ActionResult.success(skill.instructions)
+
+        @self.action(
+            description=_language_model_tool_description,
+            params=SetLanguageModelParams,
+            available_when=_multiple_language_models_available,
+        )
+        async def set_language_model(
+            params: SetLanguageModelParams,
+            models: Inject[LanguageModels],
+        ) -> ActionResult:
+            profile = models.get(params.name)
+            if profile is None:
+                available = ", ".join(models.names())
+                return ActionResult.fail(f"Unknown language model '{params.name}'. Available: {available}")
+            models.select(profile.name)
+            return ActionResult.success(f"Language model switched to {profile.name!r}.")
 
         @self.action(
             description=_audio_output_tool_description,
