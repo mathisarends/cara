@@ -23,7 +23,7 @@ async def main() -> None:
     audio_player = AudioPlayer(
         WavAudioPlayer(),
         SonosAudioPlayer(),
-        active_output=AudioOutput.LOCAL,
+        active_output=AudioOutput.SONOS,
     )
 
     skills = Skills.from_directory(LocalFileSystem(Workspace(Path(__file__).parent)), "skills")
