@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import logging
 import socket
 import threading
@@ -8,7 +7,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from soco import SoCo, discovery
+from sonosify import SonosClient, SonosController, TransportState
 
 from cara.audio.ports import AudioOutput, AudioOutputStrategy
 
@@ -104,81 +103,75 @@ class _AudioClipServer:
 
 
 class SonosAudioPlayer(AudioOutputStrategy):
-    """Plays WAV audio on a Sonos speaker via SoCo."""
+    """Plays WAV audio on a Sonos speaker via sonosify."""
 
     def __init__(
         self,
         *,
-        device: SoCo | None = None,
+        client: SonosClient | None = None,
         settings: SonosSettings | None = None,
     ) -> None:
-        self._device = device
+        self._client = client
         self._settings = settings or SonosSettings()
         self._local_host = self._settings.local_host
+        self._ip: str | None = None
         self._server: _AudioClipServer | None = None
-        self._lock = threading.Lock()
+        self._server_lock = threading.Lock()
+        self._ip_lock = asyncio.Lock()
 
     @property
     def output(self) -> AudioOutput:
         return AudioOutput.SONOS
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, functools.partial(self._play_sync, audio, cancel=cancel))
-
-    async def get_volume(self) -> float:
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self._get_volume_sync)
-
-    async def set_volume(self, volume: float) -> None:
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, functools.partial(self._set_volume_sync, volume))
-
-    def _get_volume_sync(self) -> float:
-        return self._resolve_device().volume / 100
-
-    def _set_volume_sync(self, volume: float) -> None:
-        self._resolve_device().volume = round(max(_MIN_VOLUME, min(_MAX_VOLUME, volume)) * 100)
-
-    def close(self) -> None:
-        """Shut down the local HTTP server. Safe to call multiple times."""
-        with self._lock:
-            if self._server is not None:
-                self._server.close()
-                self._server = None
-
-    def _play_sync(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        device = self._resolve_device()
-        host = self._resolve_local_host(device)
+        client = await self._resolve_client()
+        host = self._resolve_local_host(client.ip)
         server = self._ensure_server()
 
         token = server.add(audio)
         uri = f"http://{host}:{server.port}/{token}"
         try:
-            logger.info("Playing audio on Sonos %r via %s", device.player_name, uri)
-            device.play_uri(uri, title="Cara")
-            self._wait_until_finished(device, cancel=cancel)
+            logger.info("Playing audio on Sonos %s via %s", client.ip, uri)
+            await client.play_uri(uri, title="Cara")
+            await self._wait_until_finished(client, cancel=cancel)
         finally:
             server.remove(token)
 
-    def _resolve_device(self) -> SoCo:
-        if self._device is not None:
-            return self._device
-        if self._settings.ip_address:
-            self._device = SoCo(self._settings.ip_address)
-            return self._device
-        if self._settings.speaker_name:
-            device = discovery.by_name(self._settings.speaker_name)
-            if device is None:
-                raise RuntimeError(f"Sonos speaker {self._settings.speaker_name!r} not found on the network.")
-        else:
-            device = discovery.any_soco()
-            if device is None:
-                raise RuntimeError("No Sonos devices found on the network.")
-        self._device = device
-        return device
+    async def get_volume(self) -> float:
+        client = await self._resolve_client()
+        return await client.get_volume() / 100
 
-    def _resolve_local_host(self, device: SoCo) -> str:
+    async def set_volume(self, volume: float) -> None:
+        client = await self._resolve_client()
+        await client.set_volume(round(max(_MIN_VOLUME, min(_MAX_VOLUME, volume)) * 100))
+
+    def close(self) -> None:
+        """Shut down the local HTTP server. Safe to call multiple times."""
+        with self._server_lock:
+            if self._server is not None:
+                self._server.close()
+                self._server = None
+
+    async def _resolve_client(self) -> SonosClient:
+        if self._client is not None:
+            return self._client
+        async with self._ip_lock:
+            if self._client is not None:
+                return self._client
+            self._client = SonosClient(await self._resolve_ip())
+            return self._client
+
+    async def _resolve_ip(self) -> str:
+        if self._ip is not None:
+            return self._ip
+        if self._settings.ip_address:
+            self._ip = self._settings.ip_address
+            return self._ip
+        system = await SonosController().discover()
+        self._ip = system.find(self._settings.speaker_name).ip
+        return self._ip
+
+    def _resolve_local_host(self, device_ip: str) -> str:
         """Find the local IP that the Sonos device can reach us on."""
         if self._local_host:
             return self._local_host
@@ -186,41 +179,41 @@ class SonosAudioPlayer(AudioOutputStrategy):
         try:
             # Connecting a UDP socket performs no traffic but picks the routable
             # source address for the device's subnet.
-            sock.connect((device.ip_address, 1400))
+            sock.connect((device_ip, 1400))
             self._local_host = sock.getsockname()[0]
         finally:
             sock.close()
         return self._local_host
 
     def _ensure_server(self) -> _AudioClipServer:
-        with self._lock:
+        with self._server_lock:
             if self._server is None:
                 self._server = _AudioClipServer()
             return self._server
 
-    def _wait_until_finished(self, device: SoCo, *, cancel: asyncio.Event | None = None) -> None:
+    async def _wait_until_finished(self, client: SonosClient, *, cancel: asyncio.Event | None = None) -> None:
         has_started = False
         start = time.monotonic()
         while True:
             if cancel is not None and cancel.is_set():
                 logger.info("Sonos playback cancelled.")
-                _safe_stop(device)
+                await _safe_stop(client)
                 return
 
-            state = device.get_current_transport_info().get("current_transport_state")
-            if state in ("PLAYING", "TRANSITIONING"):
+            state = (await client.get_transport_info()).state
+            if state in (TransportState.PLAYING, TransportState.TRANSITIONING):
                 has_started = True
-            elif has_started and state in ("STOPPED", "PAUSED_PLAYBACK"):
+            elif has_started and state in (TransportState.STOPPED, TransportState.PAUSED_PLAYBACK):
                 return
             elif not has_started and time.monotonic() - start > _PLAYBACK_START_TIMEOUT:
                 logger.warning("Sonos playback did not start within %.1fs.", _PLAYBACK_START_TIMEOUT)
                 return
 
-            time.sleep(self._settings.poll_interval)
+            await asyncio.sleep(self._settings.poll_interval)
 
 
-def _safe_stop(device: SoCo) -> None:
+async def _safe_stop(client: SonosClient) -> None:
     try:
-        device.stop()
+        await client.stop()
     except Exception:
         logger.exception("Failed to stop Sonos playback.")

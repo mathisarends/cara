@@ -15,15 +15,13 @@ dependencies = [
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
     "pyyaml>=6.0",
+    "sonosify>=0.2.0",
     "tavily-python>=0.7.26",
     "tzdata>=2024.1",
     "vocalbin>=0.1.0",
 ]
 
 [project.optional-dependencies]
-sonos = [
-    "soco>=0.31.1",
-]
 elevenlabs = [
     "elevenlabs>=2.58.0",
 ]
