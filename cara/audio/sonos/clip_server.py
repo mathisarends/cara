@@ -40,13 +40,11 @@ class _AudioClipServer:
         with self._lock:
             self._clips.pop(token, None)
 
-    def wait_served(self, token: str, timeout: float) -> bool:
-        """Block until the Sonos device has fetched the clip, or the timeout lapses."""
+    def was_served(self, token: str) -> bool:
+        """Return whether the Sonos device has already fetched the clip."""
         with self._lock:
             clip = self._clips.get(token)
-        if clip is None:
-            return False
-        return clip.served.wait(timeout)
+        return clip is not None and clip.served.is_set()
 
     def close(self) -> None:
         self._server.shutdown()

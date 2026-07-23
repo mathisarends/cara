@@ -56,6 +56,8 @@ class SonosAudioPlayer(AudioOutputStrategy):
         return AudioOutput.SONOS
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
+        if cancel is not None and cancel.is_set():
+            return
         client = self._resolve_client()
         player_id = await self._resolve_player_id(client)
         host = self._resolve_local_host()
@@ -65,14 +67,15 @@ class SonosAudioPlayer(AudioOutputStrategy):
         uri = f"http://{host}:{server.port}/{token}"
         try:
             logger.info("Playing audio clip on Sonos %s via %s", player_id, uri)
-            await client.load_audio_clip(
+            clip = await client.play_audio_clip(
                 player_id,
                 uri,
                 name=_CLIP_NAME,
                 priority=ClipPriority.HIGH,
                 clip_type=ClipType.CUSTOM,
             )
-            await self._wait_until_finished(audio, server, token, cancel=cancel)
+            if await self._wait_until_finished(audio, server, token, cancel=cancel):
+                await _cancel_clip(client, player_id, clip.id)
         finally:
             server.remove(token)
 
@@ -138,21 +141,43 @@ class SonosAudioPlayer(AudioOutputStrategy):
         token: str,
         *,
         cancel: asyncio.Event | None = None,
-    ) -> None:
-        fetched = await asyncio.to_thread(server.wait_served, token, _CLIP_FETCH_TIMEOUT)
-        if not fetched:
-            logger.warning("Sonos did not fetch the audio clip within %.1fs.", _CLIP_FETCH_TIMEOUT)
-            return
+    ) -> bool:
+        """Wait for the clip to finish; return whether it was cancelled early."""
+        poll = self._settings.poll_interval
+        started = time.monotonic()
+        while not server.was_served(token):
+            if cancel is not None and cancel.is_set():
+                logger.info("Sonos playback cancelled.")
+                return True
+            if time.monotonic() - started > _CLIP_FETCH_TIMEOUT:
+                logger.warning("Sonos did not fetch the audio clip within %.1fs.", _CLIP_FETCH_TIMEOUT)
+                return False
+            await asyncio.sleep(poll)
 
         end = time.monotonic() + _wav_duration(audio)
         while (remaining := end - time.monotonic()) > 0:
             if cancel is not None and cancel.is_set():
                 logger.info("Sonos playback cancelled.")
-                return
-            await asyncio.sleep(min(remaining, self._settings.poll_interval))
+                return True
+            await asyncio.sleep(min(remaining, poll))
+        return False
+
+
+async def _cancel_clip(client: SonosCloudClient, player_id: str, clip_id: str) -> None:
+    try:
+        await client.cancel_audio_clip(player_id, clip_id)
+    except Exception:
+        logger.exception("Failed to cancel Sonos audio clip.")
 
 
 def _wav_duration(audio: bytes) -> float:
     with wave.open(io.BytesIO(audio), "rb") as wav:
         rate = wav.getframerate()
-        return wav.getnframes() / rate if rate else 0.0
+        frame_size = wav.getnchannels() * wav.getsampwidth()
+        declared = wav.getnframes()
+    if rate <= 0 or frame_size <= 0:
+        return 0.0
+    # Streaming WAV headers (e.g. OpenAI TTS) can declare a bogus frame count,
+    # so bound it by the frames that actually fit in the payload.
+    available = len(audio) // frame_size
+    return min(declared, available) / rate

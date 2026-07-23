@@ -80,7 +80,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "sonosify", specifier = ">=0.3.0" },
+    { name = "sonosify", specifier = ">=0.3.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "tzdata", specifier = ">=2024.1" },
@@ -698,16 +698,16 @@ wheels = [
 
 [[package]]
 name = "sonosify"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/69/63249888f7aa866f94a809a33b164cb7b3691367e866d3157eedaf67fd08/sonosify-0.3.0.tar.gz", hash = "sha256:b80868513a506bed74e42fa5354f5371cc23143c7a8acd4240b13128e8d753e8", size = 9838470, upload-time = "2026-07-23T11:17:39.563Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/51/2b4362b1371bd91c5282dfe0ccde2c13dcdabff35cde11fb01b4cfd5ba9d/sonosify-0.3.1.tar.gz", hash = "sha256:90fe0edffdd2c2d81e39321fb3596f4ea89239216379cfc182d7feaca36254d9", size = 9838637, upload-time = "2026-07-23T11:47:28.382Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/bd/56c6a9c50a4f7a9942043b05cae73c7a1750c5a7f3f087b00b5556f8b972/sonosify-0.3.0-py3-none-any.whl", hash = "sha256:687e50271a583fe52bd84037e0c4ba4c7e91dfb266762725cadbc9430476ef6a", size = 61576, upload-time = "2026-07-23T11:17:36.97Z" },
+    { url = "https://files.pythonhosted.org/packages/38/8e/367cf1462938f182d21da3c51a10f58983ba66714dd7051ed0e5310de28e/sonosify-0.3.1-py3-none-any.whl", hash = "sha256:50587ef445f68604b564b72bfe05559512bb6ee65111d484cd472316b0a98e86", size = 61647, upload-time = "2026-07-23T11:47:25.68Z" },
 ]
 
 [[package]]
