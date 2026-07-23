@@ -48,6 +48,7 @@ dependencies = [
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "vocalbin", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -80,6 +81,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "sonosify", specifier = ">=0.2.0" },
+    { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "tzdata", specifier = ">=2024.1" },
     { name = "vocalbin", specifier = ">=0.1.0" },
@@ -705,6 +707,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1f/11/c18892620213ccb244f45ce6335626e8e93186584c826532b96b822dc5c3/sonosify-0.2.0.tar.gz", hash = "sha256:fedbb8853df057278d90bd269ca4ae2ea6a6752c0244ea4fcd9fe63bedf35ce1", size = 9822917, upload-time = "2026-07-23T07:41:57.838Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/97/34/536c52e6e4990f1e4fd1b07d4d4259f11fb16c5de3eeee46c5b7216ee405/sonosify-0.2.0-py3-none-any.whl", hash = "sha256:26040f208d303a13065fac803accd928af091a57568320e8ca8822804414fd45", size = 46950, upload-time = "2026-07-23T07:41:55.177Z" },
+]
+
+[[package]]
+name = "spotifyify"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/99/53/8007fd8323003c759fe0d5fb8950de06a684cd30909dd06cc5ba302daa56/spotifyify-0.7.0.tar.gz", hash = "sha256:1882e1dc28d963dee32dcd0ddebc78bcc6bb9489ebde20356b7f4530de2c4736", size = 53252, upload-time = "2026-06-26T19:28:56.406Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/01/4f/3219bff18a9f2053e389ea705f43f8c7734c7b9d3aba2ed51c59d3146015/spotifyify-0.7.0-py3-none-any.whl", hash = "sha256:3ab257a444d304394a77d6a13418bff00fa3fa3c3856872e49ef25d671f39d97", size = 57400, upload-time = "2026-06-26T19:28:55.357Z" },
 ]
 
 [[package]]
