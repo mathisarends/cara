@@ -41,7 +41,6 @@ dependencies = [
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "openwakeword", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "py-llmify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -50,8 +49,10 @@ dependencies = [
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "transitbus", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "vocalbin", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.optional-dependencies]
@@ -74,7 +75,6 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.100.0" },
-    { name = "openwakeword", specifier = ">=0.6.0" },
     { name = "py-llmify", specifier = ">=0.6.0" },
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
@@ -83,8 +83,10 @@ requires-dist = [
     { name = "sonosify", specifier = ">=0.3.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
+    { name = "transitbus", specifier = ">=0.1.0" },
     { name = "tzdata", specifier = ">=2024.1" },
     { name = "vocalbin", specifier = ">=0.1.0" },
+    { name = "wakewordkit", specifier = ">=0.1.0" },
 ]
 provides-extras = ["elevenlabs"]
 
@@ -778,6 +780,18 @@ wheels = [
 ]
 
 [[package]]
+name = "transitbus"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/a1/9d5ac2a329ea20b29746a06c51897691675f000165b3707036c9d2dd8a8c/transitbus-0.1.0.tar.gz", hash = "sha256:2a9fbbc82c20ddc9134949294612f6afaccc21f9bc010ec765a6c6c0b46e3ff7", size = 13427, upload-time = "2026-07-24T05:35:27.222Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/76/8152513d16ee43a235a582392e1f1a1ec6b23d8b099628f8072aaf64cc89/transitbus-0.1.0-py3-none-any.whl", hash = "sha256:c78c277670d95080e055f6d7a86890d74c260ddf3b209683b28d038ff85f3613", size = 8692, upload-time = "2026-07-24T05:35:26.015Z" },
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -843,6 +857,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1e/28/c600b1b99dff8a5a4da04e64e59f8d0baede62bd23689850e1997fb13329/vocalbin-0.1.0.tar.gz", hash = "sha256:ffa881e6e8a3415c6ba38987b94ab13c77d48f73741503726a7bd2639f121d15", size = 5246939, upload-time = "2026-07-21T19:33:32.784Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/42/8e942378155ef5ec0111b4146679ac47e8d2ee1896edacfa8193ece83dc4/vocalbin-0.1.0-py3-none-any.whl", hash = "sha256:cbc94d8b3c53a1ca915411dedeb25112433e3ec3c4523c155e84ff8d22abb6b9", size = 8090, upload-time = "2026-07-21T19:33:31.572Z" },
+]
+
+[[package]]
+name = "wakewordkit"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "openwakeword", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/58/5f/2039e2bf6748514422779cd83a7731f6433036d50341c6d53c2f1dbdb9ad/wakewordkit-0.1.0.tar.gz", hash = "sha256:1fbb71ee3a636ffb7fc881c68afc818678ff5d2be6be76dc9bda6b74df9bebc0", size = 45525, upload-time = "2026-07-24T05:47:27.049Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/29/c1/7749516bda5b64899ad4ede448f09e7bb7f4489a75f58c84ad13a99bbd5e/wakewordkit-0.1.0-py3-none-any.whl", hash = "sha256:4d011ed8500f47413075469ca465d97c0f290ced6c36ba74b4c2e797b83fb2ee", size = 6746, upload-time = "2026-07-24T05:47:25.267Z" },
 ]
 
 [[package]]

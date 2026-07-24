@@ -1,19 +1,5 @@
-from enum import StrEnum
-
 from pydantic import BaseModel, ConfigDict, Field
-
-
-class WakeWord(StrEnum):
-    ALEXA = "alexa"
-    HEY_MYCROFT = "hey mycroft"
-    HEY_RHASSPY = "hey rhasspy"
-
-
-WAKE_WORD_MODEL: dict[WakeWord, str] = {
-    WakeWord.ALEXA: "alexa",
-    WakeWord.HEY_MYCROFT: "hey_mycroft",
-    WakeWord.HEY_RHASSPY: "hey_rhasspy",
-}
+from wakewordkit import WakeWord
 
 
 class WakeWordSettings(BaseModel):
