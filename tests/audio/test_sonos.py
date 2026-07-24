@@ -1,6 +1,7 @@
 import asyncio
 import struct
 
+import cara.audio.sonos.player as player_module
 from cara.audio.sonos import SonosAudioPlayer, SonosSettings
 from cara.audio.sonos.player import _wav_duration
 
@@ -51,8 +52,25 @@ class FakeSonosCloudClient:
         self.cancelled.append(clip_id)
 
 
-def _player(client: FakeSonosCloudClient) -> SonosAudioPlayer:
-    return SonosAudioPlayer(client=client, settings=SonosSettings(speaker_name="Zimmer"))
+class FakeVolumeMonitor:
+    def __init__(self, host: str) -> None:
+        self.host = host
+        self.volume: float | None = None
+        self.started = False
+        self.stopped = False
+
+    async def start(self) -> None:
+        self.started = True
+
+    async def stop(self) -> None:
+        self.stopped = True
+
+
+def _player(client: FakeSonosCloudClient, *, speaker_host: str | None = None) -> SonosAudioPlayer:
+    return SonosAudioPlayer(
+        client=client,
+        settings=SonosSettings(speaker_name="Zimmer", speaker_host=speaker_host),
+    )
 
 
 def test_get_volume_converts_from_the_sonos_0_100_scale() -> None:
@@ -103,3 +121,44 @@ def test_play_skips_when_already_cancelled() -> None:
 
     assert client.played == []
     assert client.cancelled == []
+
+
+def test_get_volume_without_speaker_host_does_not_start_a_monitor(monkeypatch) -> None:
+    monkeypatch.setattr(player_module, "SonosVolumeMonitor", FakeVolumeMonitor)
+    client = FakeSonosCloudClient(volume=40)
+    player = _player(client, speaker_host=None)
+
+    assert asyncio.run(player.get_volume()) == 0.4
+
+
+def test_get_volume_prefers_the_cached_monitor_value(monkeypatch) -> None:
+    monkeypatch.setattr(player_module, "SonosVolumeMonitor", FakeVolumeMonitor)
+    client = FakeSonosCloudClient(volume=40)
+    player = _player(client, speaker_host="192.168.1.42")
+
+    monitor = asyncio.run(player._resolve_volume_monitor())
+    assert monitor is not None
+    assert monitor.started
+    monitor.volume = 0.9
+
+    assert asyncio.run(player.get_volume()) == 0.9
+
+
+def test_get_volume_falls_back_to_the_cloud_api_before_the_first_event(monkeypatch) -> None:
+    monkeypatch.setattr(player_module, "SonosVolumeMonitor", FakeVolumeMonitor)
+    client = FakeSonosCloudClient(volume=40)
+    player = _player(client, speaker_host="192.168.1.42")
+
+    assert asyncio.run(player.get_volume()) == 0.4
+
+
+def test_close_stops_the_volume_monitor(monkeypatch) -> None:
+    monkeypatch.setattr(player_module, "SonosVolumeMonitor", FakeVolumeMonitor)
+    client = FakeSonosCloudClient()
+    player = _player(client, speaker_host="192.168.1.42")
+
+    monitor = asyncio.run(player._resolve_volume_monitor())
+    assert monitor is not None
+    asyncio.run(player.close())
+
+    assert monitor.stopped

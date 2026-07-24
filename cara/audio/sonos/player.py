@@ -11,6 +11,7 @@ from sonosify import ClipPriority, ClipType, SonosCloudAuth, SonosCloudClient
 
 from cara.audio.ports import AudioOutput, AudioOutputStrategy
 from cara.audio.sonos.clip_server import _AudioClipServer
+from cara.audio.sonos.volume_monitor import SonosVolumeMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class SonosSettings(BaseSettings):
     )
 
     speaker_name: str | None = None
+    speaker_host: str | None = None
     local_host: str | None = None
     poll_interval: float = 0.25
 
@@ -50,6 +52,8 @@ class SonosAudioPlayer(AudioOutputStrategy):
         self._server: _AudioClipServer | None = None
         self._server_lock = threading.Lock()
         self._player_lock = asyncio.Lock()
+        self._volume_monitor: SonosVolumeMonitor | None = None
+        self._volume_monitor_lock = asyncio.Lock()
 
     @property
     def output(self) -> AudioOutput:
@@ -58,6 +62,7 @@ class SonosAudioPlayer(AudioOutputStrategy):
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         if cancel is not None and cancel.is_set():
             return
+        await self._resolve_volume_monitor()
         client = self._resolve_client()
         player_id = await self._resolve_player_id(client)
         host = self._resolve_local_host()
@@ -80,22 +85,29 @@ class SonosAudioPlayer(AudioOutputStrategy):
             server.remove(token)
 
     async def get_volume(self) -> float:
+        monitor = await self._resolve_volume_monitor()
+        if monitor is not None and monitor.volume is not None:
+            return monitor.volume
         client = self._resolve_client()
         player_id = await self._resolve_player_id(client)
         return (await client.get_player_volume(player_id)).volume / 100
 
     async def set_volume(self, volume: float) -> None:
+        await self._resolve_volume_monitor()
         client = self._resolve_client()
         player_id = await self._resolve_player_id(client)
         level = round(max(_MIN_VOLUME, min(_MAX_VOLUME, volume)) * 100)
         await client.set_player_volume(player_id, volume=level)
 
-    def close(self) -> None:
-        """Shut down the local HTTP server. Safe to call multiple times."""
+    async def close(self) -> None:
+        """Shut down the local HTTP server and volume monitor. Safe to call multiple times."""
         with self._server_lock:
             if self._server is not None:
                 self._server.close()
                 self._server = None
+        if self._volume_monitor is not None:
+            await self._volume_monitor.stop()
+            self._volume_monitor = None
 
     def _resolve_client(self) -> SonosCloudClient:
         if self._client is None:
@@ -127,6 +139,19 @@ class SonosAudioPlayer(AudioOutputStrategy):
         finally:
             sock.close()
         return self._local_host
+
+    async def _resolve_volume_monitor(self) -> SonosVolumeMonitor | None:
+        """Lazily start the local volume monitor, if a speaker host is configured."""
+        if not self._settings.speaker_host:
+            return None
+        if self._volume_monitor is not None:
+            return self._volume_monitor
+        async with self._volume_monitor_lock:
+            if self._volume_monitor is None:
+                monitor = SonosVolumeMonitor(self._settings.speaker_host)
+                await monitor.start()
+                self._volume_monitor = monitor
+            return self._volume_monitor
 
     def _ensure_server(self) -> _AudioClipServer:
         with self._server_lock:
