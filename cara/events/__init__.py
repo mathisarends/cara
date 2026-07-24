@@ -1,4 +1,5 @@
-from .bus import Event, EventBus, EventHandler, WildcardEventHandler
+from transitbus import Event, EventBus
+
 from .views import (
     AnswerGenerated,
     AssistantState,
@@ -15,12 +16,10 @@ __all__ = [
     "AssistantState",
     "Event",
     "EventBus",
-    "EventHandler",
     "Interrupted",
     "SessionEnded",
     "SessionStarted",
     "StateChanged",
     "Transcribed",
     "TurnStarted",
-    "WildcardEventHandler",
 ]

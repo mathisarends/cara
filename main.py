@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from cara import SpeechSettings, VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer, WavAudioPlayer
 from cara.audio.sonos import SonosAudioPlayer
-from cara.events.bus import EventBus
+from cara.events import EventBus
 from cara.file_system import LocalFileSystem, Workspace
 from cara.listener import HueListener
 from cara.skills import Skills

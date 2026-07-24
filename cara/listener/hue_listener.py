@@ -89,9 +89,9 @@ class HueListener:
         self._active_tint = _ZERO_TINT
         self._jobs: asyncio.Queue[Callable[[], Awaitable[None]]] = asyncio.Queue()
         self._worker: asyncio.Task[None] | None = None
-        self._event_bus.subscribe(SessionStarted, self._on_session_started)
-        self._event_bus.subscribe(SessionEnded, self._on_session_ended)
-        self._event_bus.subscribe(StateChanged, self._on_state_changed)
+        self._event_bus.subscribe(self._on_session_started)
+        self._event_bus.subscribe(self._on_session_ended)
+        self._event_bus.subscribe(self._on_state_changed)
         self._hue.on(GroupedLightEvent, self._on_bridge_event)
 
     async def _on_session_started(self, event: SessionStarted) -> None:

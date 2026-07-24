@@ -148,7 +148,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         async def capture_interruption(event: Interrupted) -> None:
             interruptions.append(event)
 
-        event_bus.subscribe(Interrupted, capture_interruption)
+        event_bus.subscribe(capture_interruption)
         assistant = VoiceAssistant(
             llm=llm,
             recorder=recorder,

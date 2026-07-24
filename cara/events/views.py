@@ -1,15 +1,6 @@
-import time
-import uuid
-from dataclasses import dataclass, field
 from enum import StrEnum
 
-
-@dataclass(frozen=True, kw_only=True)
-class Event:
-    """Common root for events dispatched through the bus."""
-
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: float = field(default_factory=time.time)
+from transitbus import Event
 
 
 class AssistantState(StrEnum):
@@ -22,14 +13,12 @@ class AssistantState(StrEnum):
     SPEAKING = "speaking"
 
 
-@dataclass(frozen=True, kw_only=True)
 class StateChanged(Event):
     """Emitted on every phase transition, including the return to ``IDLE``."""
 
     state: AssistantState
 
 
-@dataclass(frozen=True, kw_only=True)
 class TurnStarted(Event):
     """Emitted when a turn begins, before recording starts.
 
@@ -38,31 +27,26 @@ class TurnStarted(Event):
     """
 
 
-@dataclass(frozen=True, kw_only=True)
 class SessionStarted(Event):
     """Emitted when a multi-turn voice session begins."""
 
 
-@dataclass(frozen=True, kw_only=True)
 class SessionEnded(Event):
     """Emitted when a multi-turn voice session ends."""
 
 
-@dataclass(frozen=True, kw_only=True)
 class Transcribed(Event):
     """Emitted once a non-empty transcript is available."""
 
     transcript: str
 
 
-@dataclass(frozen=True, kw_only=True)
 class AnswerGenerated(Event):
     """Emitted once the full answer is known; streamed speech may already be playing."""
 
     answer: str
 
 
-@dataclass(frozen=True, kw_only=True)
 class Interrupted(Event):
     """Emitted when a repeated wake word interrupts an in-flight assistant response."""
 

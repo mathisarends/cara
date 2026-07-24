@@ -195,7 +195,7 @@ def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> N
         async def capture_answer(event: AnswerGenerated) -> None:
             answers.append(event.answer)
 
-        assistant.event_bus.subscribe(AnswerGenerated, capture_answer)
+        assistant.event_bus.subscribe(capture_answer)
         answer, end_session = await asyncio.wait_for(assistant._think(), timeout=2)
         return answer, end_session, tts, player, answers
 
@@ -237,7 +237,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
         async def capture_answer(event: AnswerGenerated) -> None:
             answers.append(event.answer)
 
-        assistant.event_bus.subscribe(AnswerGenerated, capture_answer)
+        assistant.event_bus.subscribe(capture_answer)
         answer, end_session = await assistant._think()
         assert end_session is False
         return answer, llm, tts, answers

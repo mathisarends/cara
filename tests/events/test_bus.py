@@ -1,226 +1,91 @@
-from __future__ import annotations
-
 import asyncio
 
 import pytest
 
-from cara.events.bus import Event, EventBus
+from cara.events import (
+    AssistantState,
+    EventBus,
+    SessionEnded,
+    StateChanged,
+    Transcribed,
+)
 
 
-class SampleEvent(Event):
-    pass
+def test_subscribe_infers_event_type_from_annotation() -> None:
+    async def scenario() -> list[AssistantState]:
+        bus = EventBus()
+        received: list[AssistantState] = []
 
+        async def handler(event: StateChanged) -> None:
+            received.append(event.state)
 
-class OtherEvent(Event):
-    pass
+        bus.subscribe(handler)
+        await bus.dispatch(StateChanged(state=AssistantState.LISTENING))
+        return received
 
-
-def test_dispatch_calls_subscribed_handler() -> None:
-    bus = EventBus()
-    received: list[SampleEvent] = []
-
-    async def handler(event: SampleEvent) -> None:
-        received.append(event)
-
-    bus.subscribe(SampleEvent, handler)
-    event = SampleEvent()
-
-    result = asyncio.run(bus.dispatch(event))
-
-    assert received == [event]
-    assert result is event
-
-
-def test_dispatch_without_subscribers_returns_event() -> None:
-    bus = EventBus()
-    event = SampleEvent()
-
-    result = asyncio.run(bus.dispatch(event))
-
-    assert result is event
+    assert asyncio.run(scenario()) == [AssistantState.LISTENING]
 
 
 def test_dispatch_only_calls_handlers_for_matching_type() -> None:
-    bus = EventBus()
-    sample_calls: list[SampleEvent] = []
-    other_calls: list[OtherEvent] = []
+    async def scenario() -> tuple[int, int]:
+        bus = EventBus()
+        state_calls = 0
+        transcribed_calls = 0
 
-    async def sample_handler(event: SampleEvent) -> None:
-        sample_calls.append(event)
+        async def on_state(event: StateChanged) -> None:
+            nonlocal state_calls
+            state_calls += 1
 
-    async def other_handler(event: OtherEvent) -> None:
-        other_calls.append(event)
+        async def on_transcribed(event: Transcribed) -> None:
+            nonlocal transcribed_calls
+            transcribed_calls += 1
 
-    bus.subscribe(SampleEvent, sample_handler)
-    bus.subscribe(OtherEvent, other_handler)
+        bus.subscribe(on_state)
+        bus.subscribe(on_transcribed)
+        await bus.dispatch(StateChanged(state=AssistantState.THINKING))
+        return state_calls, transcribed_calls
 
-    asyncio.run(bus.dispatch(SampleEvent()))
-
-    assert len(sample_calls) == 1
-    assert other_calls == []
+    assert asyncio.run(scenario()) == (1, 0)
 
 
 def test_dispatch_calls_all_handlers_for_same_type() -> None:
-    bus = EventBus()
-    calls: list[str] = []
-
-    async def first(event: SampleEvent) -> None:
-        calls.append("first")
-
-    async def second(event: SampleEvent) -> None:
-        calls.append("second")
-
-    bus.subscribe(SampleEvent, first)
-    bus.subscribe(SampleEvent, second)
-
-    asyncio.run(bus.dispatch(SampleEvent()))
-
-    assert set(calls) == {"first", "second"}
-
-
-def test_wildcard_handler_receives_every_event_type() -> None:
-    bus = EventBus()
-    received: list[Event] = []
-
-    async def handler(event: Event) -> None:
-        received.append(event)
-
-    bus.subscribe_all(handler)
-
-    sample = SampleEvent()
-    other = OtherEvent()
-    asyncio.run(bus.dispatch(sample))
-    asyncio.run(bus.dispatch(other))
-
-    assert received == [sample, other]
-
-
-def test_unsubscribe_stops_handler_from_receiving_events() -> None:
-    bus = EventBus()
-    calls: list[SampleEvent] = []
-
-    async def handler(event: SampleEvent) -> None:
-        calls.append(event)
-
-    bus.subscribe(SampleEvent, handler)
-    bus.unsubscribe(SampleEvent, handler)
-
-    asyncio.run(bus.dispatch(SampleEvent()))
-
-    assert calls == []
-
-
-def test_unsubscribe_unknown_handler_is_a_noop() -> None:
-    bus = EventBus()
-
-    async def handler(event: SampleEvent) -> None:
-        pass
-
-    bus.unsubscribe(SampleEvent, handler)
-
-
-def test_unsubscribe_all_stops_wildcard_handler() -> None:
-    bus = EventBus()
-    calls: list[Event] = []
-
-    async def handler(event: Event) -> None:
-        calls.append(event)
-
-    bus.subscribe_all(handler)
-    bus.unsubscribe_all(handler)
-
-    asyncio.run(bus.dispatch(SampleEvent()))
-
-    assert calls == []
-
-
-def test_has_subscribers_reflects_specific_and_wildcard_subscriptions() -> None:
-    bus = EventBus()
-    assert bus.has_subscribers(SampleEvent) is False
-
-    async def handler(event: SampleEvent) -> None:
-        pass
-
-    bus.subscribe(SampleEvent, handler)
-    assert bus.has_subscribers(SampleEvent) is True
-    assert bus.has_subscribers(OtherEvent) is False
-
-    bus.unsubscribe(SampleEvent, handler)
-    assert bus.has_subscribers(SampleEvent) is False
-
-    async def wildcard(event: Event) -> None:
-        pass
-
-    bus.subscribe_all(wildcard)
-    assert bus.has_subscribers(OtherEvent) is True
-
-
-def test_dispatch_swallows_handler_exceptions_and_still_calls_others() -> None:
-    bus = EventBus()
-    calls: list[str] = []
-
-    async def failing(event: SampleEvent) -> None:
-        raise RuntimeError("boom")
-
-    async def succeeding(event: SampleEvent) -> None:
-        calls.append("ok")
-
-    bus.subscribe(SampleEvent, failing)
-    bus.subscribe(SampleEvent, succeeding)
-
-    result = asyncio.run(bus.dispatch(SampleEvent()))
-
-    assert calls == ["ok"]
-    assert isinstance(result, SampleEvent)
-
-
-def test_wait_for_event_returns_matching_dispatched_event() -> None:
-    async def scenario() -> None:
+    async def scenario() -> set[str]:
         bus = EventBus()
-        event = SampleEvent()
+        calls: set[str] = set()
 
-        waiter = asyncio.create_task(bus.wait_for_event(SampleEvent))
+        async def first(event: SessionEnded) -> None:
+            calls.add("first")
+
+        async def second(event: SessionEnded) -> None:
+            calls.add("second")
+
+        bus.subscribe(first)
+        bus.subscribe(second)
+        await bus.dispatch(SessionEnded())
+        return calls
+
+    assert asyncio.run(scenario()) == {"first", "second"}
+
+
+def test_expect_returns_matching_dispatched_event() -> None:
+    async def scenario() -> str:
+        bus = EventBus()
+        waiter = asyncio.create_task(bus.expect(Transcribed, where=lambda e: e.transcript == "wanted"))
         await asyncio.sleep(0)
 
-        await bus.dispatch(event)
-
-        assert await waiter is event
-
-    asyncio.run(scenario())
-
-
-def test_wait_for_event_applies_predicate() -> None:
-    async def scenario() -> None:
-        bus = EventBus()
-
-        waiter = asyncio.create_task(bus.wait_for_event(SampleEvent, predicate=lambda e: e.id == "wanted"))
-        await asyncio.sleep(0)
-
-        await bus.dispatch(SampleEvent(id="ignored"))
-        await bus.dispatch(SampleEvent(id="wanted"))
+        await bus.dispatch(Transcribed(transcript="ignored"))
+        await bus.dispatch(Transcribed(transcript="wanted"))
 
         result = await waiter
-        assert result.id == "wanted"
+        return result.transcript
 
-    asyncio.run(scenario())
+    assert asyncio.run(scenario()) == "wanted"
 
 
-def test_wait_for_event_times_out() -> None:
+def test_expect_times_out() -> None:
     async def scenario() -> None:
         bus = EventBus()
         with pytest.raises(TimeoutError):
-            await bus.wait_for_event(SampleEvent, timeout=0.01)
-
-    asyncio.run(scenario())
-
-
-def test_wait_for_event_unsubscribes_after_resolving() -> None:
-    async def scenario() -> None:
-        bus = EventBus()
-        event = SampleEvent()
-
-        await asyncio.gather(bus.wait_for_event(SampleEvent), bus.dispatch(event))
-
-        assert bus.has_subscribers(SampleEvent) is False
+            await bus.expect(Transcribed, timeout=0.01)
 
     asyncio.run(scenario())
