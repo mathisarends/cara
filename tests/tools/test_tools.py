@@ -10,7 +10,7 @@ from pydantic import Field
 from cara.audio import AudioOutput, AudioPlayer
 from cara.file_system import Workspace
 from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolContext, ToolParams, Tools
-from cara.tools.handler import (
+from cara.tools.sandbox import (
     BashSandboxConfig,
     BashSandboxError,
     BashSandboxRequest,
@@ -50,6 +50,11 @@ class SearchParams(ToolParams):
 
 def test_tools_does_not_accept_additional_middlewares() -> None:
     assert "middlewares" not in inspect.signature(Tools).parameters
+
+
+def test_allowed_commands_are_configured_on_the_sandbox() -> None:
+    assert "bash_allowed_commands" not in inspect.signature(Tools).parameters
+    assert BashSandboxConfig(allowed_commands=("git",)).allowed_commands == ("git",)
 
 
 def test_default_end_session_tool_returns_farewell() -> None:
@@ -174,7 +179,11 @@ def test_default_bash_tool_runs_without_an_allow_list(tmp_path: Path) -> None:
             return BashSandboxResult(return_code=0, output="hello from sandbox")
 
     workspace = Workspace(tmp_path)
-    config = BashSandboxConfig(image="custom-bash:local", network="private")
+    config = BashSandboxConfig(
+        image="custom-bash:local",
+        network="private",
+        allowed_commands=("printf",),
+    )
     tools = Tools(
         workspace=workspace,
         bash_sandbox=Sandbox(),

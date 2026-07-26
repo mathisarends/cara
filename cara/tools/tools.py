@@ -11,12 +11,6 @@ from cara.tools.binding import described, provided, requires
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
 from cara.tools.handler import (
-    BashCommandPolicy,
-    BashSandbox,
-    BashSandboxConfig,
-    BashSandboxError,
-    BashSandboxRequest,
-    DockerBashSandbox,
     IpLocationClient,
     OpenMeteoClient,
     TavilySearchClient,
@@ -37,6 +31,14 @@ from cara.tools.params import (
     WebSearchParams,
     WriteFileParams,
 )
+from cara.tools.sandbox import (
+    BashCommandPolicy,
+    BashSandbox,
+    BashSandboxConfig,
+    BashSandboxError,
+    BashSandboxRequest,
+    DockerBashSandbox,
+)
 from cara.tools.schemas import ToolSchema
 from cara.tools.views import ActionKind, ActionResult, Tool, ToolAvailability, ToolDescription
 
@@ -53,7 +55,6 @@ class Tools:
         context: ToolContext | None = None,
         *,
         workspace: Workspace | None = None,
-        bash_allowed_commands: tuple[str, ...] = (),
         bash_sandbox: BashSandbox | None = None,
         bash_sandbox_config: BashSandboxConfig | None = None,
     ) -> None:
@@ -62,10 +63,11 @@ class Tools:
         configured_workspace = initial_context.resolve(Workspace)
         if workspace is not None and configured_workspace is not None and workspace.root != configured_workspace.root:
             raise ValueError("ToolContext and Tools specify different workspaces")
+
         self._workspace = workspace or configured_workspace or _default_workspace()
         self._bash_sandbox = bash_sandbox if bash_sandbox is not None else DockerBashSandbox()
         self._bash_sandbox_config = bash_sandbox_config or BashSandboxConfig()
-        self._bash_policy = BashCommandPolicy(bash_allowed_commands)
+        self._bash_policy = BashCommandPolicy(self._bash_sandbox_config)
         self._context = self._prepare_context(initial_context)
 
         self._executor = ToolExecutor(self._tools, self._context, default_tool_middlewares())

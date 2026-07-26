@@ -8,7 +8,7 @@ from llmify import AssistantMessage, ChatInvokeCompletion, ChatModel, Function, 
 from cara.file_system import Workspace
 from cara.subagent import Subagent
 from cara.tools import Tools
-from cara.tools.handler import BashSandboxRequest, BashSandboxResult
+from cara.tools.sandbox import BashSandboxRequest, BashSandboxResult
 
 
 class _BashSandbox:

@@ -65,8 +65,8 @@ The order is intentional: custom tracing sees policy denials and the original re
 result limit truncates it.
 
 Command policy is not part of that chain. It belongs to the `bash` tool alone, so `BashCommandPolicy`
-lives beside the sandbox in `cara.tools.handler.bash` and is consulted by the tool itself. It currently
-allows every command; `bash_allowed_commands` is accepted but not yet enforced.
+lives in `cara.tools.sandbox` and reads `BashSandboxConfig.allowed_commands`. It currently allows every
+command; the configured allow-list is not yet enforced.
 
 The built-in `bash` tool runs in a short-lived Docker container. The container has no network access,
 uses a read-only root filesystem, drops Linux capabilities, and has CPU, memory, process, output, and

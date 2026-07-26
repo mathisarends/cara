@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from llmify import CerebrasModel, ChatCerebras
 
 from cara.file_system import Workspace
 from cara.subagent import Subagent
@@ -49,8 +48,7 @@ async def main() -> None:
     if workspace is None:
         raise RuntimeError("Tools did not configure a workspace.")
 
-    llm = ChatCerebras(model=CerebrasModel.ZAI_GLM_4_7_PREVIEW)
-    agent = Subagent(llm=llm, tools=tools, system_prompt=_SYSTEM_PROMPT)
+    agent = Subagent(tools=tools, system_prompt=_SYSTEM_PROMPT)
 
     print("Cara Bash sandbox")
     print(f"Workspace: {workspace.root}")

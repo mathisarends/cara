@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from cara.file_system import Workspace
-from cara.tools.handler import (
+from cara.tools.sandbox import (
     BashSandboxConfig,
     BashSandboxError,
     BashSandboxMount,

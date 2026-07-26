@@ -1,13 +1,4 @@
 from .di import Inject, ToolContext
-from .handler import (
-    BashSandbox,
-    BashSandboxConfig,
-    BashSandboxError,
-    BashSandboxMount,
-    BashSandboxRequest,
-    BashSandboxResult,
-    DockerBashSandbox,
-)
 from .middleware import (
     ContentSizeMiddleware,
     ErrorBoundaryMiddleware,
@@ -31,6 +22,15 @@ from .params import (
     SetVolumeParams,
     ToolParams,
     WritablePath,
+)
+from .sandbox import (
+    BashSandbox,
+    BashSandboxConfig,
+    BashSandboxError,
+    BashSandboxMount,
+    BashSandboxRequest,
+    BashSandboxResult,
+    DockerBashSandbox,
 )
 from .schemas import ToolSchema, ToolSchemaBuilder
 from .tools import Tools
