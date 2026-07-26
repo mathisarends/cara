@@ -87,7 +87,36 @@ From PowerShell on Windows, Git Bash can be selected explicitly to avoid the WSL
 & 'C:\Program Files\Git\usr\bin\bash.exe' scripts/prepare_bash_sandbox.sh
 ```
 
-The setup script explicitly pulls the Python base image, builds `cara-bash-sandbox:latest`, and verifies
-Bash and Python with Docker's `--pull=never` mode. The resulting image contains Python 3.13, available as
-both `python` and `python3`. It is never pulled or built automatically during a tool call. The current
-temporary Bash policy permits every command because the Docker container is the security boundary.
+The setup script explicitly pulls the Python and Go build images, builds `cara-bash-sandbox:latest`, and
+verifies Bash, Python, and the bundled `cara-tool` with Docker's `--pull=never` mode. The resulting runtime
+image contains Python 3.13, available as both `python` and `python3`, plus the compiled Go binary. It does
+not contain the Go toolchain. Images are never pulled or built automatically during a tool call. The
+current temporary Bash policy permits every command because the Docker container is the security boundary.
+
+### Adding a CLI to the sandbox
+
+`docker/bash-sandbox.Dockerfile` uses a multi-stage build for the dependency-free example under
+`docker/tools/cara-tool`. The Go builder compiles the CLI, then the runtime stage copies only its binary
+to `/usr/local/bin`, which is already on `PATH`:
+
+```dockerfile
+FROM golang:1.24-alpine AS cara-tool-builder
+WORKDIR /src/cara-tool
+COPY tools/cara-tool/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/cara-tool .
+
+FROM python:3.13-alpine
+COPY --from=cara-tool-builder /out/cara-tool /usr/local/bin/cara-tool
+```
+
+After rebuilding the image, the agent can invoke it through the existing Bash tool:
+
+```bash
+cara-tool hello Agent
+cara-tool upper "hello from the sandbox"
+cara-tool slug "A Useful Sandbox Command"
+```
+
+Run `uv run python examples/bash_tools.py` to try this interactively. For another standalone Go CLI,
+add its source below `docker/tools`, give it another builder stage, and copy its binary into
+`/usr/local/bin` in the final image.
