@@ -16,8 +16,26 @@ def _tools_with_pdf() -> Tools:
     return tools
 
 
-def test_load_skill_tool_is_always_registered() -> None:
-    assert Tools().get("load_skill") is not None
+def test_load_skill_tool_is_unavailable_without_skills() -> None:
+    tools = Tools()
+
+    assert tools.get("load_skill") is None
+    assert all(schema["function"]["name"] != "load_skill" for schema in tools.to_schema())
+
+
+def test_load_skill_tool_is_unavailable_with_empty_skills() -> None:
+    tools = Tools()
+    tools.provide(Skills())
+
+    assert tools.get("load_skill") is None
+    assert all(schema["function"]["name"] != "load_skill" for schema in tools.to_schema())
+
+
+def test_load_skill_tool_is_available_with_at_least_one_skill() -> None:
+    tools = _tools_with_pdf()
+
+    assert tools.get("load_skill") is not None
+    assert any(schema["function"]["name"] == "load_skill" for schema in tools.to_schema())
 
 
 def test_remove_skill_tool_no_longer_exists() -> None:

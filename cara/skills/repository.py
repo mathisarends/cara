@@ -27,6 +27,10 @@ class Skills:
     def add(self, skill: Skill) -> None:
         self._skills[skill.name] = skill
 
+    @property
+    def has_skills(self) -> bool:
+        return bool(self._skills)
+
     def load_directory(self, filesystem: FileSystem, root: str) -> None:
         for skill in _discover(filesystem, root):
             self._skills[skill.name] = skill

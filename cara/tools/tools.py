@@ -152,6 +152,7 @@ class Tools:
                 "skills listed under <available_skills>, then follow the loaded instructions."
             ),
             params=LoadSkillParams,
+            available_when=requires(Skills, predicate=lambda skills: skills.has_skills),
         )
         async def load_skill(params: LoadSkillParams, skills: Inject[Skills]) -> ActionResult:
             skill = skills.get(params.name)

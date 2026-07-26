@@ -18,9 +18,14 @@ _FAREWELL = Skill(
 def test_holds_directly_provided_skills() -> None:
     skills = Skills([_GREET, _FAREWELL])
 
+    assert skills.has_skills is True
     assert skills.get("greet") == _GREET
     assert skills.names() == ["farewell", "greet"]
     assert skills.get("unknown") is None
+
+
+def test_empty_collection_has_no_skills() -> None:
+    assert Skills().has_skills is False
 
 
 def test_render_catalog_lists_name_and_description() -> None:
