@@ -10,7 +10,12 @@ from pydantic import Field
 from cara.audio import AudioOutput, AudioPlayer
 from cara.file_system import Workspace
 from cara.tools import ActionKind, ActionResult, EndSessionParams, Inject, ToolContext, ToolParams, Tools
-from cara.tools.handler import BashSandboxError, BashSandboxResult
+from cara.tools.handler import (
+    BashSandboxConfig,
+    BashSandboxError,
+    BashSandboxRequest,
+    BashSandboxResult,
+)
 
 
 class Greeting:
@@ -164,13 +169,17 @@ def test_default_bash_tool_runs_without_an_allow_list(tmp_path: Path) -> None:
     invocation: dict[str, object] = {}
 
     class Sandbox:
-        async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
-            invocation["command"] = command
-            invocation["workspace"] = workspace
+        async def run(self, request: BashSandboxRequest) -> BashSandboxResult:
+            invocation["request"] = request
             return BashSandboxResult(return_code=0, output="hello from sandbox")
 
     workspace = Workspace(tmp_path)
-    tools = Tools(workspace=workspace, bash_sandbox=Sandbox())
+    config = BashSandboxConfig(image="custom-bash:local", network="private")
+    tools = Tools(
+        workspace=workspace,
+        bash_sandbox=Sandbox(),
+        bash_sandbox_config=config,
+    )
 
     result = asyncio.run(
         tools.execute(
@@ -180,7 +189,13 @@ def test_default_bash_tool_runs_without_an_allow_list(tmp_path: Path) -> None:
     )
 
     assert result == ActionResult.success("hello from sandbox")
-    assert invocation == {"command": "printf 'hello from bash'", "workspace": workspace}
+    assert invocation == {
+        "request": BashSandboxRequest(
+            command="printf 'hello from bash'",
+            workspace=workspace,
+            config=config,
+        )
+    }
 
 
 def test_unknown_tool_is_logged(caplog) -> None:
@@ -197,8 +212,8 @@ def test_bash_tool_passes_shell_syntax_to_sandbox() -> None:
     invocation: dict[str, str] = {}
 
     class Sandbox:
-        async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
-            invocation["command"] = command
+        async def run(self, request: BashSandboxRequest) -> BashSandboxResult:
+            invocation["command"] = request.command
             return BashSandboxResult(return_code=7, output="failure details")
 
     tools = Tools(bash_sandbox=Sandbox())
@@ -216,7 +231,7 @@ def test_bash_tool_passes_shell_syntax_to_sandbox() -> None:
 
 def test_bash_tool_returns_sandbox_startup_error() -> None:
     class Sandbox:
-        async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
+        async def run(self, request: BashSandboxRequest) -> BashSandboxResult:
             raise BashSandboxError("Docker is unavailable.")
 
     result = asyncio.run(Tools(bash_sandbox=Sandbox()).execute("bash", {"command": "rg needle"}))

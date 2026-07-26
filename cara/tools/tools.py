@@ -13,7 +13,9 @@ from cara.tools.executor import ToolExecutor
 from cara.tools.handler import (
     BashCommandPolicy,
     BashSandbox,
+    BashSandboxConfig,
     BashSandboxError,
+    BashSandboxRequest,
     DockerBashSandbox,
     IpLocationClient,
     OpenMeteoClient,
@@ -53,6 +55,7 @@ class Tools:
         workspace: Workspace | None = None,
         bash_allowed_commands: tuple[str, ...] = (),
         bash_sandbox: BashSandbox | None = None,
+        bash_sandbox_config: BashSandboxConfig | None = None,
     ) -> None:
         self._tools: dict[str, Tool] = {}
         initial_context = context or ToolContext()
@@ -61,6 +64,7 @@ class Tools:
             raise ValueError("ToolContext and Tools specify different workspaces")
         self._workspace = workspace or configured_workspace or _default_workspace()
         self._bash_sandbox = bash_sandbox if bash_sandbox is not None else DockerBashSandbox()
+        self._bash_sandbox_config = bash_sandbox_config or BashSandboxConfig()
         self._bash_policy = BashCommandPolicy(bash_allowed_commands)
         self._context = self._prepare_context(initial_context)
 
@@ -157,8 +161,10 @@ class Tools:
         @self.action(
             description=described(
                 LanguageModels,
-                render=lambda models: "Switch the language model used to generate your responses. "
-                f"Currently active: {models.active().name!r}. Available profiles: {models.describe_profiles()}",
+                render=lambda models: (
+                    "Switch the language model used to generate your responses. "
+                    f"Currently active: {models.active().name!r}. Available profiles: {models.describe_profiles()}"
+                ),
                 default="Switch the language model used to generate responses.",
             ),
             params=SetLanguageModelParams,
@@ -178,8 +184,10 @@ class Tools:
         @self.action(
             description=described(
                 AudioPlayer,
-                render=lambda player: "Switch audio playback to another configured output strategy. "
-                f"Available output names: {player.describe_outputs()}.",
+                render=lambda player: (
+                    "Switch audio playback to another configured output strategy. "
+                    f"Available output names: {player.describe_outputs()}."
+                ),
                 default="Switch audio playback to another configured output strategy.",
             ),
             params=SetAudioOutputParams,
@@ -244,8 +252,8 @@ class Tools:
 
         @self.action(
             description=(
-                "Execute a Bash command in an isolated Docker container. The container has no network, "
-                "has limited resources, and can only write to the workspace."
+                "Execute a Bash command in an isolated container with the configured image, network, "
+                "environment, and mounts. The container can write to the workspace."
             ),
             params=BashParams,
             kind=ActionKind.DESTRUCTIVE,
@@ -255,7 +263,13 @@ class Tools:
             if denial is not None:
                 return ActionResult.fail(denial)
             try:
-                result = await self._bash_sandbox.run(params.command, workspace)
+                result = await self._bash_sandbox.run(
+                    BashSandboxRequest(
+                        command=params.command,
+                        workspace=workspace,
+                        config=self._bash_sandbox_config,
+                    )
+                )
             except BashSandboxError as error:
                 return ActionResult.fail(error)
             if result.return_code != 0:

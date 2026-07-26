@@ -1,4 +1,13 @@
 from .di import Inject, ToolContext
+from .handler import (
+    BashSandbox,
+    BashSandboxConfig,
+    BashSandboxError,
+    BashSandboxMount,
+    BashSandboxRequest,
+    BashSandboxResult,
+    DockerBashSandbox,
+)
 from .middleware import (
     ContentSizeMiddleware,
     ErrorBoundaryMiddleware,
@@ -31,7 +40,14 @@ __all__ = [
     "ActionKind",
     "ActionResult",
     "AccessMode",
+    "BashSandbox",
+    "BashSandboxConfig",
+    "BashSandboxError",
+    "BashSandboxMount",
+    "BashSandboxRequest",
+    "BashSandboxResult",
     "ContentSizeMiddleware",
+    "DockerBashSandbox",
     "EndSessionParams",
     "ErrorBoundaryMiddleware",
     "FilePath",

@@ -4,11 +4,20 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from llmify import CerebrasModel, ChatCerebras
 
 from cara.file_system import Workspace
 from cara.subagent import Subagent
-from cara.tools import Tools
-from cara.tools.handler import DockerBashSandbox
+from cara.tools import BashSandboxConfig, BashSandboxMount, Tools
+
+_SPOTIFY_ENVIRONMENT = (
+    "SPOTIFY_CLIENT_ID",
+    "SPOTIFY_CLIENT_SECRET",
+    "SPOTIFY_REDIRECT_URI",
+    "SPOTIFY_ACCESS_TOKEN",
+    "SPOTIFY_REFRESH_TOKEN",
+    "SPOTIFY_TOKEN_EXPIRES_AT",
+)
 
 _SYSTEM_PROMPT = """
 You are an interactive test agent for a Bash sandbox. Use the bash tool for
@@ -27,16 +36,21 @@ async def main() -> None:
 
     default_spotify_cache = Path(__file__).resolve().parents[2] / "spotifyify" / ".cache"
     spotify_cache = Path(os.environ.get("SPOTIFY_CACHE_PATH", default_spotify_cache))
+    mounts = (BashSandboxMount(spotify_cache, "/workspace/.cache", read_only=False),) if spotify_cache.is_file() else ()
     tools = Tools(
-        bash_sandbox=DockerBashSandbox(
-            spotify_cache_path=spotify_cache if spotify_cache.is_file() else None,
-        )
+        bash_sandbox_config=BashSandboxConfig(
+            image="cara-bash-sandbox:latest",
+            network="bridge",
+            forwarded_environment=_SPOTIFY_ENVIRONMENT,
+            mounts=mounts,
+        ),
     )
     workspace = tools.resolve(Workspace)
     if workspace is None:
         raise RuntimeError("Tools did not configure a workspace.")
 
-    agent = Subagent(tools=tools, system_prompt=_SYSTEM_PROMPT)
+    llm = ChatCerebras(model=CerebrasModel.ZAI_GLM_4_7_PREVIEW)
+    agent = Subagent(llm=llm, tools=tools, system_prompt=_SYSTEM_PROMPT)
 
     print("Cara Bash sandbox")
     print(f"Workspace: {workspace.root}")

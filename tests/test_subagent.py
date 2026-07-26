@@ -8,15 +8,15 @@ from llmify import AssistantMessage, ChatInvokeCompletion, ChatModel, Function, 
 from cara.file_system import Workspace
 from cara.subagent import Subagent
 from cara.tools import Tools
-from cara.tools.handler import BashSandboxResult
+from cara.tools.handler import BashSandboxRequest, BashSandboxResult
 
 
 class _BashSandbox:
     def __init__(self) -> None:
         self.commands: list[str] = []
 
-    async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
-        self.commands.append(command)
+    async def run(self, request: BashSandboxRequest) -> BashSandboxResult:
+        self.commands.append(request.command)
         return BashSandboxResult(return_code=0, output="hello from sandbox")
 
 

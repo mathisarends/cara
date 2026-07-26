@@ -1,46 +1,9 @@
 import asyncio
 import os
 import uuid
-from collections.abc import Sequence
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Protocol
 
-from cara.file_system import Workspace
-
-_SPOTIFY_ENVIRONMENT_VARIABLES = (
-    "SPOTIFY_CLIENT_ID",
-    "SPOTIFY_CLIENT_SECRET",
-    "SPOTIFY_REDIRECT_URI",
-    "SPOTIFY_ACCESS_TOKEN",
-    "SPOTIFY_REFRESH_TOKEN",
-    "SPOTIFY_TOKEN_EXPIRES_AT",
-)
-
-
-class BashCommandPolicy:
-    """Temporarily allows every command; `allowed_commands` is not enforced yet."""
-
-    def __init__(self, allowed_commands: Sequence[str] = ()) -> None:
-        self._allowed_commands = tuple(allowed_commands)
-
-    def check(self, command: str) -> str | None:
-        del command
-        return None
-
-
-class BashSandboxError(RuntimeError):
-    """Failure to start or control the Bash sandbox."""
-
-
-@dataclass(frozen=True)
-class BashSandboxResult:
-    return_code: int
-    output: str
-
-
-class BashSandbox(Protocol):
-    async def run(self, command: str, workspace: Workspace) -> BashSandboxResult: ...
+from cara.tools.sandbox.models import BashSandboxMount, BashSandboxRequest, BashSandboxResult
+from cara.tools.sandbox.ports import BashSandboxError
 
 
 async def _read_limited_output(
@@ -64,40 +27,25 @@ class DockerBashSandbox:
     def __init__(
         self,
         *,
-        image: str = "cara-bash-sandbox:latest",
         executable: str = "docker",
         timeout_seconds: float = 15.0,
         max_output_bytes: int = 1_000_000,
-        network: str = "bridge",
-        forwarded_environment: Sequence[str] = _SPOTIFY_ENVIRONMENT_VARIABLES,
-        spotify_cache_path: str | Path | None = None,
     ) -> None:
-        if not image:
-            raise ValueError("Docker sandbox image must not be empty")
         if not executable:
             raise ValueError("Docker executable must not be empty")
         if timeout_seconds <= 0:
             raise ValueError("Bash sandbox timeout must be positive")
         if max_output_bytes < 1:
             raise ValueError("Bash sandbox output limit must be positive")
-        if not network:
-            raise ValueError("Docker network must not be empty")
-        invalid_environment = [name for name in forwarded_environment if not _valid_environment_name(name)]
-        if invalid_environment:
-            raise ValueError(f"Invalid environment variable names: {', '.join(invalid_environment)}")
-        self._image = image
         self._executable = executable
         self._timeout_seconds = timeout_seconds
         self._max_output_bytes = max_output_bytes
-        self._network = network
-        self._forwarded_environment = tuple(forwarded_environment)
-        self._spotify_cache_path = _resolve_cache_path(spotify_cache_path)
 
-    async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
-        await self._ensure_runtime_available()
+    async def run(self, request: BashSandboxRequest) -> BashSandboxResult:
+        await self._ensure_runtime_available(request.config.image)
         container_name = f"cara-bash-{uuid.uuid4().hex}"
         process = await asyncio.create_subprocess_exec(
-            *self._docker_arguments(container_name, command, workspace.root),
+            *self._docker_arguments(container_name, request),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
@@ -127,17 +75,17 @@ class DockerBashSandbox:
             detail = f"\n{content}" if content else ""
             raise BashSandboxError(
                 "Docker could not start the Bash sandbox. Ensure Docker Desktop is running and "
-                f"the image '{self._image}' is installed.{detail}"
+                f"the image '{request.config.image}' is installed.{detail}"
             )
         return BashSandboxResult(return_code=return_code, output=content)
 
-    async def _ensure_runtime_available(self) -> None:
+    async def _ensure_runtime_available(self, image: str) -> None:
         try:
             process = await asyncio.create_subprocess_exec(
                 self._executable,
                 "image",
                 "inspect",
-                self._image,
+                image,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
@@ -159,11 +107,11 @@ class DockerBashSandbox:
             detail = f"\n{content}" if content else ""
             raise BashSandboxError(
                 "The Bash sandbox is unavailable. Start Docker Desktop and make sure the image "
-                f"'{self._image}' is installed.{detail}"
+                f"'{image}' is installed.{detail}"
             )
 
-    def _docker_arguments(self, container_name: str, command: str, workspace: Path) -> tuple[str, ...]:
-        mount = f"type=bind,source={workspace},target=/workspace"
+    def _docker_arguments(self, container_name: str, request: BashSandboxRequest) -> tuple[str, ...]:
+        workspace_mount = f"type=bind,source={request.workspace.root},target=/workspace"
         arguments = [
             self._executable,
             "run",
@@ -171,7 +119,7 @@ class DockerBashSandbox:
             "--name",
             container_name,
             "--pull=never",
-            f"--network={self._network}",
+            f"--network={request.config.network}",
             "--read-only",
             "--cap-drop=ALL",
             "--security-opt=no-new-privileges=true",
@@ -183,17 +131,16 @@ class DockerBashSandbox:
             "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=64m",
             "--env=HOME=/tmp",
             "--workdir=/workspace",
-            f"--mount={mount}",
+            f"--mount={workspace_mount}",
         ]
-        arguments.extend(f"--env={name}" for name in self._forwarded_environment if name in os.environ)
-        if self._spotify_cache_path is not None:
-            arguments.append(f"--mount=type=bind,source={self._spotify_cache_path},target=/workspace/.cache")
+        arguments.extend(f"--env={name}" for name in request.config.forwarded_environment if name in os.environ)
+        arguments.extend(f"--mount={_format_mount(mount)}" for mount in request.config.mounts)
         arguments.extend(
             (
-                self._image,
+                request.config.image,
                 "bash",
                 "-lc",
-                command,
+                request.command,
             )
         )
         return tuple(arguments)
@@ -213,18 +160,6 @@ class DockerBashSandbox:
         await process.wait()
 
 
-def _valid_environment_name(name: str) -> bool:
-    return (
-        bool(name)
-        and (name[0].isalpha() or name[0] == "_")
-        and all(character.isalnum() or character == "_" for character in name)
-    )
-
-
-def _resolve_cache_path(cache_path: str | Path | None) -> Path | None:
-    if cache_path is None:
-        return None
-    resolved = Path(cache_path).resolve(strict=True)
-    if not resolved.is_file():
-        raise ValueError(f"Spotify cache path is not a file: {resolved}")
-    return resolved
+def _format_mount(mount: BashSandboxMount) -> str:
+    option = f"type=bind,source={mount.source},target={mount.target}"
+    return f"{option},readonly" if mount.read_only else option
