@@ -11,6 +11,7 @@ from cara.tools.binding import described, provided, requires
 from cara.tools.di import Inject, ToolContext
 from cara.tools.executor import ToolExecutor
 from cara.tools.handler import (
+    BashCommandPolicy,
     BashSandbox,
     BashSandboxError,
     DockerBashSandbox,
@@ -60,13 +61,10 @@ class Tools:
             raise ValueError("ToolContext and Tools specify different workspaces")
         self._workspace = workspace or configured_workspace or _default_workspace()
         self._bash_sandbox = bash_sandbox if bash_sandbox is not None else DockerBashSandbox()
+        self._bash_policy = BashCommandPolicy(bash_allowed_commands)
         self._context = self._prepare_context(initial_context)
 
-        self._executor = ToolExecutor(
-            self._tools,
-            self._context,
-            default_tool_middlewares(bash_allowed_commands=bash_allowed_commands),
-        )
+        self._executor = ToolExecutor(self._tools, self._context, default_tool_middlewares())
         self._register_default_tools()
 
     def set_context(self, context: ToolContext) -> None:
@@ -253,6 +251,9 @@ class Tools:
             kind=ActionKind.DESTRUCTIVE,
         )
         async def bash(params: BashParams, workspace: Inject[Workspace]) -> ActionResult:
+            denial = self._bash_policy.check(params.command)
+            if denial is not None:
+                return ActionResult.fail(denial)
             try:
                 result = await self._bash_sandbox.run(params.command, workspace)
             except BashSandboxError as error:

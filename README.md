@@ -60,9 +60,13 @@ missing. A middleware chain adds configurable path policies, write-size limits, 
 shared error boundary before invoking tools.
 
 Tool execution uses an onion-style middleware chain. The default order is
-`ErrorBoundary -> ResultLimit -> custom middleware -> PathPolicy -> ContentSize -> BashPolicy -> tool`.
+`CallLogging -> ErrorBoundary -> ResultLimit -> custom middleware -> PathPolicy -> ContentSize -> tool`.
 The order is intentional: custom tracing sees policy denials and the original response before the outer
 result limit truncates it.
+
+Command policy is not part of that chain. It belongs to the `bash` tool alone, so `BashCommandPolicy`
+lives beside the sandbox in `cara.tools.handler.bash` and is consulted by the tool itself. It currently
+allows every command; `bash_allowed_commands` is accepted but not yet enforced.
 
 The built-in `bash` tool runs in a short-lived Docker container. The container has no network access,
 uses a read-only root filesystem, drops Linux capabilities, and has CPU, memory, process, output, and

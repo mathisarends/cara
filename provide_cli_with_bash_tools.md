@@ -233,7 +233,7 @@ bekommt der Handler pro Aufruf ein Profil, das drei Dinge festlegt:
 3. **Welche Netzwerkstufe** gilt.
 
 Das fügt sich in deinen bestehenden Aufbau ein: Es gibt bereits
-`BashPolicyMiddleware` (heute ein No-Op) und `skills/` mit `SKILL.md`. Der Fluss
+`BashCommandPolicy` (heute ein No-Op) und `skills/` mit `SKILL.md`. Der Fluss
 wird dann:
 
 ```

@@ -1,10 +1,22 @@
 import asyncio
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 from cara.file_system import Workspace
+
+
+class BashCommandPolicy:
+    """Temporarily allows every command; `allowed_commands` is not enforced yet."""
+
+    def __init__(self, allowed_commands: Sequence[str] = ()) -> None:
+        self._allowed_commands = tuple(allowed_commands)
+
+    def check(self, command: str) -> str | None:
+        del command
+        return None
 
 
 class BashSandboxError(RuntimeError):
