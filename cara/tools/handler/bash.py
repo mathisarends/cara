@@ -1,4 +1,5 @@
 import asyncio
+import os
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -6,6 +7,15 @@ from pathlib import Path
 from typing import Protocol
 
 from cara.file_system import Workspace
+
+_SPOTIFY_ENVIRONMENT_VARIABLES = (
+    "SPOTIFY_CLIENT_ID",
+    "SPOTIFY_CLIENT_SECRET",
+    "SPOTIFY_REDIRECT_URI",
+    "SPOTIFY_ACCESS_TOKEN",
+    "SPOTIFY_REFRESH_TOKEN",
+    "SPOTIFY_TOKEN_EXPIRES_AT",
+)
 
 
 class BashCommandPolicy:
@@ -49,7 +59,7 @@ async def _read_limited_output(
 
 
 class DockerBashSandbox:
-    """Run Bash in a short-lived, networkless Docker container."""
+    """Run Bash in a short-lived Docker container."""
 
     def __init__(
         self,
@@ -58,6 +68,9 @@ class DockerBashSandbox:
         executable: str = "docker",
         timeout_seconds: float = 15.0,
         max_output_bytes: int = 1_000_000,
+        network: str = "bridge",
+        forwarded_environment: Sequence[str] = _SPOTIFY_ENVIRONMENT_VARIABLES,
+        spotify_cache_path: str | Path | None = None,
     ) -> None:
         if not image:
             raise ValueError("Docker sandbox image must not be empty")
@@ -67,10 +80,18 @@ class DockerBashSandbox:
             raise ValueError("Bash sandbox timeout must be positive")
         if max_output_bytes < 1:
             raise ValueError("Bash sandbox output limit must be positive")
+        if not network:
+            raise ValueError("Docker network must not be empty")
+        invalid_environment = [name for name in forwarded_environment if not _valid_environment_name(name)]
+        if invalid_environment:
+            raise ValueError(f"Invalid environment variable names: {', '.join(invalid_environment)}")
         self._image = image
         self._executable = executable
         self._timeout_seconds = timeout_seconds
         self._max_output_bytes = max_output_bytes
+        self._network = network
+        self._forwarded_environment = tuple(forwarded_environment)
+        self._spotify_cache_path = _resolve_cache_path(spotify_cache_path)
 
     async def run(self, command: str, workspace: Workspace) -> BashSandboxResult:
         await self._ensure_runtime_available()
@@ -143,14 +164,14 @@ class DockerBashSandbox:
 
     def _docker_arguments(self, container_name: str, command: str, workspace: Path) -> tuple[str, ...]:
         mount = f"type=bind,source={workspace},target=/workspace"
-        return (
+        arguments = [
             self._executable,
             "run",
             "--rm",
             "--name",
             container_name,
             "--pull=never",
-            "--network=none",
+            f"--network={self._network}",
             "--read-only",
             "--cap-drop=ALL",
             "--security-opt=no-new-privileges=true",
@@ -163,11 +184,19 @@ class DockerBashSandbox:
             "--env=HOME=/tmp",
             "--workdir=/workspace",
             f"--mount={mount}",
-            self._image,
-            "bash",
-            "-lc",
-            command,
+        ]
+        arguments.extend(f"--env={name}" for name in self._forwarded_environment if name in os.environ)
+        if self._spotify_cache_path is not None:
+            arguments.append(f"--mount=type=bind,source={self._spotify_cache_path},target=/workspace/.cache")
+        arguments.extend(
+            (
+                self._image,
+                "bash",
+                "-lc",
+                command,
+            )
         )
+        return tuple(arguments)
 
     async def _remove_container(self, container_name: str) -> None:
         try:
@@ -182,3 +211,20 @@ class DockerBashSandbox:
         except FileNotFoundError:
             return
         await process.wait()
+
+
+def _valid_environment_name(name: str) -> bool:
+    return (
+        bool(name)
+        and (name[0].isalpha() or name[0] == "_")
+        and all(character.isalnum() or character == "_" for character in name)
+    )
+
+
+def _resolve_cache_path(cache_path: str | Path | None) -> Path | None:
+    if cache_path is None:
+        return None
+    resolved = Path(cache_path).resolve(strict=True)
+    if not resolved.is_file():
+        raise ValueError(f"Spotify cache path is not a file: {resolved}")
+    return resolved

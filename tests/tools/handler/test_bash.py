@@ -45,7 +45,7 @@ def test_docker_sandbox_runs_command_with_isolation_flags(monkeypatch, tmp_path:
     arguments, kwargs = invocations[1]
     assert arguments[0:2] == ("docker", "run")
     assert "--pull=never" in arguments
-    assert "--network=none" in arguments
+    assert "--network=bridge" in arguments
     assert "--read-only" in arguments
     assert "--cap-drop=ALL" in arguments
     assert "--security-opt=no-new-privileges=true" in arguments
@@ -56,6 +56,62 @@ def test_docker_sandbox_runs_command_with_isolation_flags(monkeypatch, tmp_path:
     assert f"--mount=type=bind,source={tmp_path.resolve()},target=/workspace" in arguments
     assert arguments[-3:] == ("bash", "-lc", "echo hello | sed s/h/H/")
     assert kwargs["stderr"] is asyncio.subprocess.STDOUT
+
+
+def test_docker_sandbox_forwards_spotify_credentials_without_command_line_values(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    invocations: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    cache_path = tmp_path / "spotify.cache"
+    cache_path.write_text("{}")
+    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("SPOTIFY_CLIENT_SECRET", "super-secret")
+
+    async def create_process(*args, **kwargs):
+        invocations.append((args, kwargs))
+        if args[1:3] == ("image", "inspect"):
+            return _Process(b"image details")
+        return _Process(b"spotify output\n")
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", create_process)
+
+    sandbox = DockerBashSandbox(spotify_cache_path=cache_path)
+    result = asyncio.run(sandbox.run("spotifyify users me", Workspace(tmp_path)))
+
+    assert result == BashSandboxResult(return_code=0, output="spotify output")
+    arguments = invocations[1][0]
+    assert "--env=SPOTIFY_CLIENT_ID" in arguments
+    assert "--env=SPOTIFY_CLIENT_SECRET" in arguments
+    assert "client-id" not in arguments
+    assert "super-secret" not in arguments
+    assert f"--mount=type=bind,source={cache_path.resolve()},target=/workspace/.cache" in arguments
+
+
+def test_docker_sandbox_does_not_forward_unset_credentials(monkeypatch, tmp_path: Path) -> None:
+    invocations: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    for name in (
+        "SPOTIFY_CLIENT_ID",
+        "SPOTIFY_CLIENT_SECRET",
+        "SPOTIFY_REDIRECT_URI",
+        "SPOTIFY_ACCESS_TOKEN",
+        "SPOTIFY_REFRESH_TOKEN",
+        "SPOTIFY_TOKEN_EXPIRES_AT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    async def create_process(*args, **kwargs):
+        invocations.append((args, kwargs))
+        if args[1:3] == ("image", "inspect"):
+            return _Process(b"image details")
+        return _Process(b"output\n")
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", create_process)
+
+    asyncio.run(DockerBashSandbox().run("env", Workspace(tmp_path)))
+
+    arguments = invocations[1][0]
+    assert not any(str(argument).startswith("--env=SPOTIFY_") for argument in arguments)
 
 
 def test_docker_sandbox_limits_captured_output(monkeypatch, tmp_path: Path) -> None:
