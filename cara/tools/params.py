@@ -9,12 +9,6 @@ class ToolParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class EndSessionParams(ToolParams):
-    farewell: str = Field(
-        description="A short, friendly spoken goodbye in the user's language.",
-    )
-
-
 class SetAudioOutputParams(ToolParams):
     output: AudioOutput = Field(
         description="Configured audio sink to activate.",

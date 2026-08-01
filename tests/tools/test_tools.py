@@ -6,7 +6,7 @@ from agenttoolkit import ActionResult, ToolEffect, Tools
 from agenttoolkit.builtins import LocalWorkspace, SandboxPolicy, SandboxResult, Workspace
 
 from cara.audio import AudioOutput, AudioPlayer
-from cara.tools import EndSessionParams, create_tool_context, create_tools, register_tools
+from cara.tools import create_tool_context, create_tools
 
 
 class SilentOutput:
@@ -26,19 +26,6 @@ class SilentOutput:
 
     async def set_volume(self, volume: float) -> None:
         self.volume = volume
-
-
-def test_default_end_session_tool_returns_farewell_and_has_tag() -> None:
-    tools = Tools(context=create_tool_context())
-    register_tools(tools)
-
-    result = asyncio.run(tools.execute("end_session", {"farewell": "Bis bald!"}))
-    end_session = tools.get("end_session")
-
-    assert result == ActionResult.success("Bis bald!")
-    assert end_session is not None
-    assert end_session.param_model is EndSessionParams
-    assert "end_session" in end_session.tags
 
 
 def test_audio_tools_follow_injected_player_availability() -> None:

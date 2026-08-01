@@ -26,7 +26,6 @@ from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchCl
 from cara.tools.params import (
     BashParams,
     EditFileParams,
-    EndSessionParams,
     ListFilesParams,
     LoadSkillParams,
     ReadFileParams,
@@ -38,7 +37,6 @@ from cara.tools.params import (
 )
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
-_END_SESSION_TAG = "end_session"
 
 
 def _default_workspace() -> LocalWorkspace:
@@ -81,17 +79,6 @@ def create_tools(context: ToolContext | None = None) -> agenttoolkit.Tools:
 
 
 def register_tools(tools: agenttoolkit.Tools) -> None:
-    @tools.action(
-        description=(
-            "End the conversation when the user says goodbye or otherwise signals "
-            "they are finished. Provide a short spoken farewell."
-        ),
-        params=EndSessionParams,
-        tags=(_END_SESSION_TAG,),
-    )
-    async def end_session(params: EndSessionParams) -> ActionResult:
-        return ActionResult.success(params.farewell)
-
     @tools.action(
         description=(
             "Load a skill's full instructions into context before carrying out a task it covers. "

@@ -175,7 +175,7 @@ class VoiceAgent:
                 self._message_manager.add_user(transcript)
                 async with WakeWordBargeIn(wake_word_listener) as barge_in:
                     try:
-                        answer, end_session = await self._think(interrupt=barge_in.interrupt)
+                        answer = await self._think(interrupt=barge_in.interrupt)
                     except _ResponseInterrupted:
                         pending_audio = await self._receive_barge_in(phase=self._state)
                         if pending_audio is None:
@@ -189,9 +189,6 @@ class VoiceAgent:
                     follow_up = False
                     continue
                 self._message_manager.add_assistant(answer)
-
-                if end_session:
-                    break
                 follow_up = True
         finally:
             wake_earcon.cancel()
@@ -236,7 +233,7 @@ class VoiceAgent:
             await self._event_bus.dispatch(Transcribed(transcript=transcript))
         return transcript
 
-    async def _think(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
+    async def _think(self, *, interrupt: asyncio.Event | None = None) -> str:
         await self._set_state(AssistantState.THINKING)
         if interrupt is None:
             return await self._stream_response()
@@ -257,7 +254,7 @@ class VoiceAgent:
                     task.cancel()
             await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
 
-    async def _stream_response(self, *, interrupt: asyncio.Event | None = None) -> tuple[str, bool]:
+    async def _stream_response(self, *, interrupt: asyncio.Event | None = None) -> str:
         while True:
             reply = StreamingReply(
                 self._reply(),
@@ -271,45 +268,39 @@ class VoiceAgent:
                 reply_task = task_group.create_task(self._resolve_streaming_reply(reply))
                 task_group.create_task(self._speak(reply.text_chunks, interrupt=interrupt))
 
-            answer, end_session, called_tools = reply_task.result()
-            if end_session or not called_tools:
+            answer, called_tools = reply_task.result()
+            if not called_tools:
                 await self._event_bus.dispatch(AnswerGenerated(answer=answer))
-                return answer, end_session
+                return answer
             await self._set_state(AssistantState.THINKING)
 
-    async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool, bool]:
+    async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool]:
         try:
             completion = await reply.collect()
-            answer, end_session, called_tools = await self._resolve_completion(completion)
+            answer, called_tools = await self._resolve_completion(completion)
             reply.finish(answer)
-            return answer, end_session, called_tools
+            return answer, called_tools
         finally:
             reply.close()
 
     async def _resolve_completion(
         self,
         completion: ChatInvokeCompletion[str],
-    ) -> tuple[str, bool, bool]:
+    ) -> tuple[str, bool]:
         answer = completion.completion.strip()
-        end_session = False
         tool_results: list[tuple[ToolCall, str]] = []
         for tool_call in completion.tool_calls:
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
-            tool = self._tools.get(name)
 
             await self._set_state(AssistantState.CALLING_TOOL)
             result = await self._tools.execute(name, arguments)
             fallback = "Tool completed successfully." if result.ok else "Tool failed."
             content = str(result.result or result.error or fallback)
             tool_results.append((tool_call, content))
-            if tool is not None and "end_session" in tool.tags:
-                end_session = True
-                if result.result:
-                    answer = str(result.result).strip()
 
         self._message_manager.add_tool_results(tool_results)
-        return answer, end_session, bool(completion.tool_calls)
+        return answer, bool(completion.tool_calls)
 
     async def _speak(
         self,

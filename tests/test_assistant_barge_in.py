@@ -1,7 +1,7 @@
 import asyncio
 import threading
 
-from llmify import Function, StreamEnd, StreamToolCall, ToolCall, UserMessage
+from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, UserMessage
 from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
@@ -31,8 +31,10 @@ class BargeInRecorder:
     ) -> bytes | None:
         while ready is not None and not ready.is_set():
             await asyncio.sleep(0)
-        self.recordings += 1
         self._events.append("record")
+        if self.recordings >= 2:
+            return None
+        self.recordings += 1
         return b"initial request" if self.recordings == 1 else b"corrected request"
 
 
@@ -103,16 +105,13 @@ class TwoTurnChatModel:
                 id="slow-tool",
                 function=Function(name="slow_tool", arguments="{}"),
             )
-        else:
-            tool_call = ToolCall(
-                id="end-session",
-                function=Function(
-                    name="end_session",
-                    arguments='{"farewell":"Erledigt."}',
-                ),
-            )
-        yield StreamToolCall(tool_call=tool_call)
-        yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
+            yield StreamToolCall(tool_call=tool_call)
+            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
+            return
+
+        answer = "Erledigt."
+        yield StreamTextDelta(delta=answer)
+        yield StreamEnd(completion=answer)
 
 
 def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:

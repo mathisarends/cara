@@ -97,19 +97,6 @@ class CoordinatedChatModel:
         yield StreamEnd(completion=_STREAMED_ANSWER)
 
 
-class EndSessionChatModel:
-    async def stream(self, messages, *, tools):
-        tool_call = ToolCall(
-            id="end-session",
-            function=Function(
-                name="end_session",
-                arguments='{"farewell":"Bis bald!"}',
-            ),
-        )
-        yield StreamToolCall(tool_call=tool_call)
-        yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
-
-
 class MultiRoundToolChatModel:
     def __init__(self) -> None:
         self.messages: list[list[object]] = []
@@ -197,7 +184,7 @@ def test_assistant_logs_transcript_through_console_listener(caplog) -> None:
 
 
 def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> None:
-    async def run() -> tuple[str, bool, RecordingTextToSpeech, CoordinatedAudioPlayer, list[str], list[str]]:
+    async def run() -> tuple[str, RecordingTextToSpeech, CoordinatedAudioPlayer, list[str], list[str]]:
         player = CoordinatedAudioPlayer()
         tts = RecordingTextToSpeech()
         assistant = _assistant(llm=CoordinatedChatModel(player), tts=tts, player=player)
@@ -212,13 +199,12 @@ def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> N
 
         assistant.event_bus.subscribe(capture_answer)
         assistant.event_bus.subscribe(capture_speech_chunk)
-        answer, end_session = await asyncio.wait_for(assistant._think(), timeout=2)
-        return answer, end_session, tts, player, answers, speech_chunks
+        answer = await asyncio.wait_for(assistant._think(), timeout=2)
+        return answer, tts, player, answers, speech_chunks
 
-    answer, end_session, tts, player, answers, speech_chunks = asyncio.run(run())
+    answer, tts, player, answers, speech_chunks = asyncio.run(run())
 
     assert answer == _STREAMED_ANSWER
-    assert end_session is False
     assert tts.texts == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
     assert player.audio == [_FIRST_SPEECH_CHUNK.encode(), _FINAL_SPEECH_CHUNK.encode()]
     assert answers == [answer]
@@ -255,8 +241,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
             answers.append(event.answer)
 
         assistant.event_bus.subscribe(capture_answer)
-        answer, end_session = await assistant._think()
-        assert end_session is False
+        answer = await assistant._think()
         return answer, llm, tts, answers
 
     answer, llm, tts, answers = asyncio.run(run())
@@ -308,20 +293,3 @@ def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> Non
     assert len(tool_results) == 1
     assert tool_results[0].tool_call_id == "write-outside-workspace"
     assert tool_results[0].content == "Internal tool error."
-
-
-def test_assistant_speaks_end_session_tool_result() -> None:
-    async def run() -> tuple[str, bool, RecordingTextToSpeech, CoordinatedAudioPlayer]:
-        player = CoordinatedAudioPlayer()
-        player.second_delta_generated.set()
-        tts = RecordingTextToSpeech()
-        assistant = _assistant(llm=EndSessionChatModel(), tts=tts, player=player)
-        answer, end_session = await asyncio.wait_for(assistant._think(), timeout=2)
-        return answer, end_session, tts, player
-
-    answer, end_session, tts, player = asyncio.run(run())
-
-    assert answer == "Bis bald!"
-    assert end_session is True
-    assert tts.texts == ["Bis bald!"]
-    assert player.audio == [b"Bis bald!"]
