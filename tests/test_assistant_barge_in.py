@@ -2,7 +2,7 @@ import asyncio
 import threading
 from collections.abc import Awaitable, Callable
 
-from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, UserMessage
+from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
@@ -101,7 +101,7 @@ class TwoTurnChatModel:
         self.calls = 0
         self.messages: list[list[object]] = []
 
-    async def stream(self, messages, *, tools):
+    async def invoke(self, messages, *, tools):
         self.calls += 1
         self.messages.append(messages)
         if self.calls == 1:
@@ -109,13 +109,9 @@ class TwoTurnChatModel:
                 id="slow-tool",
                 function=Function(name="slow_tool", arguments="{}"),
             )
-            yield StreamToolCall(tool_call=tool_call)
-            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
-            return
+            return ChatInvokeCompletion(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
 
-        answer = "Erledigt."
-        yield StreamTextDelta(delta=answer)
-        yield StreamEnd(completion=answer)
+        return ChatInvokeCompletion(completion="Erledigt.")
 
 
 def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:

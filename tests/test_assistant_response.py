@@ -6,7 +6,7 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 from agenttoolkit.builtins import LocalWorkspace
-from llmify import AssistantMessage, Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, ToolResultMessage
+from llmify import AssistantMessage, ChatInvokeCompletion, Function, ToolCall, ToolResultMessage
 from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
@@ -17,12 +17,7 @@ from cara.tools import ActionResult, create_tools
 from cara.tools.params import WeatherParams
 from cara.wakeword import WakeWordSettings
 
-_FIRST_SENTENCE = f"{'A' * 339}."
-_SECOND_SENTENCE = f"{'B' * 139}."
-_THIRD_SENTENCE = f"{'C' * 319}."
-_FIRST_SPEECH_CHUNK = f"{_FIRST_SENTENCE} {_SECOND_SENTENCE}"
-_FINAL_SPEECH_CHUNK = f"{_THIRD_SENTENCE} Abschluss."
-_STREAMED_ANSWER = f"{_FIRST_SPEECH_CHUNK} {_FINAL_SPEECH_CHUNK}"
+_ANSWER = "Hallo, wie kann ich helfen?"
 
 
 def _skills(root: Path) -> Skills:
@@ -76,11 +71,9 @@ class RecordingTextToSpeech:
         )
 
 
-class CoordinatedAudioPlayer:
+class RecordingAudioPlayer:
     def __init__(self) -> None:
         self.audio: list[bytes] = []
-        self.first_playback_started = asyncio.Event()
-        self.second_delta_generated = asyncio.Event()
 
     @property
     def output(self) -> AudioOutput:
@@ -88,28 +81,18 @@ class CoordinatedAudioPlayer:
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         self.audio.append(audio)
-        if len(self.audio) == 1:
-            self.first_playback_started.set()
-            await asyncio.wait_for(self.second_delta_generated.wait(), timeout=1)
 
 
-class CoordinatedChatModel:
-    def __init__(self, player: CoordinatedAudioPlayer) -> None:
-        self._player = player
-
-    async def stream(self, messages, *, tools):
-        yield StreamTextDelta(delta=f"{_FIRST_SPEECH_CHUNK} {_THIRD_SENTENCE}")
-        await asyncio.wait_for(self._player.first_playback_started.wait(), timeout=1)
-        self._player.second_delta_generated.set()
-        yield StreamTextDelta(delta=" Abschluss.")
-        yield StreamEnd(completion=_STREAMED_ANSWER)
+class StaticChatModel:
+    async def invoke(self, messages, *, tools):
+        return ChatInvokeCompletion(completion=_ANSWER)
 
 
 class MultiRoundToolChatModel:
     def __init__(self) -> None:
         self.messages: list[list[object]] = []
 
-    async def stream(self, messages, *, tools):
+    async def invoke(self, messages, *, tools):
         self.messages.append(messages)
         if len(self.messages) == 1:
             tool_call = ToolCall(
@@ -119,9 +102,7 @@ class MultiRoundToolChatModel:
                     arguments='{"name":"weather"}',
                 ),
             )
-            yield StreamToolCall(tool_call=tool_call)
-            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
-            return
+            return ChatInvokeCompletion(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
         if len(self.messages) == 2:
             tool_call = ToolCall(
                 id="fetch-weather",
@@ -130,20 +111,16 @@ class MultiRoundToolChatModel:
                     arguments="{}",
                 ),
             )
-            yield StreamToolCall(tool_call=tool_call)
-            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
-            return
+            return ChatInvokeCompletion(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
 
-        answer = "Heute sind es 22 Grad und es ist sonnig."
-        yield StreamTextDelta(delta=answer)
-        yield StreamEnd(completion=answer)
+        return ChatInvokeCompletion(completion="Heute sind es 22 Grad und es ist sonnig.")
 
 
 class DeniedPathChatModel:
     def __init__(self) -> None:
         self.messages: list[list[object]] = []
 
-    async def stream(self, messages, *, tools):
+    async def invoke(self, messages, *, tools):
         self.messages.append(messages)
         if len(self.messages) == 1:
             tool_call = ToolCall(
@@ -153,16 +130,12 @@ class DeniedPathChatModel:
                     arguments=('{"path":"../outside.txt","content":"unsafe"}'),
                 ),
             )
-            yield StreamToolCall(tool_call=tool_call)
-            yield StreamEnd(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
-            return
+            return ChatInvokeCompletion(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
 
-        answer = "Ich kann nur innerhalb des Arbeitsbereichs schreiben."
-        yield StreamTextDelta(delta=answer)
-        yield StreamEnd(completion=answer)
+        return ChatInvokeCompletion(completion="Ich kann nur innerhalb des Arbeitsbereichs schreiben.")
 
 
-def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer, stt=None) -> VoiceAgent:
+def _assistant(*, llm, tts: RecordingTextToSpeech, player: RecordingAudioPlayer, stt=None) -> VoiceAgent:
     return VoiceAgent(
         llm=llm,
         recorder=UnusedRecorder(),
@@ -175,10 +148,10 @@ def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlaye
 
 
 def test_assistant_logs_transcript_directly(caplog) -> None:
-    player = CoordinatedAudioPlayer()
+    player = RecordingAudioPlayer()
     tts = RecordingTextToSpeech()
     assistant = _assistant(
-        llm=CoordinatedChatModel(player),
+        llm=StaticChatModel(),
         tts=tts,
         player=player,
         stt=StaticSpeechToText(),
@@ -191,11 +164,11 @@ def test_assistant_logs_transcript_directly(caplog) -> None:
     assert "[heard] Hallo Welt" in caplog.messages
 
 
-def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> None:
-    async def run() -> tuple[str, RecordingTextToSpeech, CoordinatedAudioPlayer, int]:
-        player = CoordinatedAudioPlayer()
+def test_assistant_generates_full_answer_then_speaks_it_once() -> None:
+    async def run() -> tuple[str, RecordingTextToSpeech, RecordingAudioPlayer, int]:
+        player = RecordingAudioPlayer()
         tts = RecordingTextToSpeech()
-        assistant = _assistant(llm=CoordinatedChatModel(player), tts=tts, player=player)
+        assistant = _assistant(llm=StaticChatModel(), tts=tts, player=player)
         speech_starts = 0
 
         async def capture_speech_start(event: AssistantSpeechStarted) -> None:
@@ -204,20 +177,20 @@ def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> N
 
         assistant.event_bus.subscribe(capture_speech_start)
         answer = await asyncio.wait_for(assistant._think(), timeout=2)
+        await assistant._speak(answer)
         return answer, tts, player, speech_starts
 
     answer, tts, player, speech_starts = asyncio.run(run())
 
-    assert answer == _STREAMED_ANSWER
-    assert tts.texts == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
-    assert player.audio == [_FIRST_SPEECH_CHUNK.encode(), _FINAL_SPEECH_CHUNK.encode()]
+    assert answer == _ANSWER
+    assert tts.texts == [_ANSWER]
+    assert player.audio == [_ANSWER.encode()]
     assert speech_starts == 1
 
 
 def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
     async def run() -> tuple[str, MultiRoundToolChatModel, RecordingTextToSpeech]:
-        player = CoordinatedAudioPlayer()
-        player.second_delta_generated.set()
+        player = RecordingAudioPlayer()
         tts = RecordingTextToSpeech()
         llm = MultiRoundToolChatModel()
         tools = create_tools()
@@ -245,7 +218,6 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
 
     assert answer == "Heute sind es 22 Grad und es ist sonnig."
     assert len(llm.messages) == 3
-    assert tts.texts == [answer]
 
     second_round_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
     assert [(result.tool_call_id, result.content) for result in second_round_results] == [
@@ -265,8 +237,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
 
 def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> None:
     async def run() -> DeniedPathChatModel:
-        player = CoordinatedAudioPlayer()
-        player.second_delta_generated.set()
+        player = RecordingAudioPlayer()
         llm = DeniedPathChatModel()
         assistant = VoiceAgent(
             llm=llm,

@@ -2,11 +2,10 @@ import asyncio
 import json
 import logging
 import threading
-from collections.abc import AsyncIterator
 
 from agenttoolkit import Skills
 from agenttoolkit.builtins import Workspace
-from llmify import ChatInvokeCompletion, ChatModel, StreamEvent, ToolCall
+from llmify import ChatInvokeCompletion, ChatModel, ToolCall
 from transitbus import EventBus
 
 from cara.audio import (
@@ -29,15 +28,15 @@ from cara.events import (
 )
 from cara.listener import SoundListener
 from cara.messages import MessageManager, SystemPrompt
-from cara.replies import StreamingReply
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
     SpeechToText,
     SpeechToTextRequest,
     TextToSpeech,
+    TextToSpeechFormat,
+    TextToSpeechRequest,
 )
-from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
 from cara.tools import Tools, build_tools
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
@@ -79,15 +78,9 @@ class VoiceAgent:
         self._recorder = recorder or MicrophoneRecorder(self._microphone)
         self._player = player or AudioPlayer(LocalAudioSink(device=self._audio_device))
         self._stt = stt or OpenAISpeechToText(api_key)
-        tts = tts or OpenAITextToSpeech(api_key)
+        self._tts = tts or OpenAITextToSpeech(api_key)
         self._tools = build_tools(self._player, skills=skills, workspace=workspace, tools=tools)
         self._speech_settings = speech_settings or SpeechSettings()
-        self._speech_stream = StreamingTextToSpeech(
-            tts=tts,
-            player=self._player,
-            voice=self._speech_settings.tts_voice,
-            instructions=self._speech_settings.tts_voice_instructions,
-        )
         self._wake_word_settings = wake_word_settings
         self._system_prompt = self._build_system_prompt(
             system_prompt=system_prompt,
@@ -166,6 +159,14 @@ class VoiceAgent:
                             break
                         follow_up = False
                         continue
+                    if barge_in.interrupt.is_set():
+                        pending_audio = await self._receive_barge_in()
+                        if pending_audio is None:
+                            break
+                        follow_up = False
+                        continue
+                    if answer:
+                        await self._speak(answer, interrupt=barge_in.interrupt)
                 if barge_in.interrupt.is_set():
                     pending_audio = await self._receive_barge_in()
                     if pending_audio is None:
@@ -222,9 +223,9 @@ class VoiceAgent:
 
     async def _think(self, *, interrupt: asyncio.Event | None = None) -> str:
         if interrupt is None:
-            return await self._stream_response()
+            return await self._generate_answer()
 
-        response_task = asyncio.create_task(self._stream_response(interrupt=interrupt))
+        response_task = asyncio.create_task(self._generate_answer())
         interrupt_task = asyncio.create_task(interrupt.wait())
         try:
             done, _ = await asyncio.wait(
@@ -240,32 +241,15 @@ class VoiceAgent:
                     task.cancel()
             await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
 
-    async def _stream_response(self, *, interrupt: asyncio.Event | None = None) -> str:
+    async def _generate_answer(self) -> str:
         while True:
-            reply = StreamingReply(
-                self._reply(),
-                NaturalPauseChunker(
-                    min_chunk_chars=300,
-                    target_chunk_chars=500,
-                    max_chunk_chars=800,
-                ),
+            completion = await self._llm.invoke(
+                self._message_manager.to_llm_messages(),
+                tools=self._tools.get_schema("openai"),
             )
-            async with asyncio.TaskGroup() as task_group:
-                reply_task = task_group.create_task(self._resolve_streaming_reply(reply))
-                task_group.create_task(self._speak(reply.text_chunks, interrupt=interrupt))
-
-            answer, called_tools = reply_task.result()
+            answer, called_tools = await self._resolve_completion(completion)
             if not called_tools:
                 return answer
-
-    async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool]:
-        try:
-            completion = await reply.collect()
-            answer, called_tools = await self._resolve_completion(completion)
-            reply.finish(answer)
-            return answer, called_tools
-        finally:
-            reply.close()
 
     async def _resolve_completion(
         self,
@@ -285,26 +269,15 @@ class VoiceAgent:
         self._message_manager.add_tool_results(tool_results)
         return answer, bool(completion.tool_calls)
 
-    async def _speak(
-        self,
-        sentences: AsyncIterator[str],
-        *,
-        interrupt: asyncio.Event | None = None,
-    ) -> None:
-        await self._speech_stream.speak(
-            self._log_speech_chunks(sentences),
-            cancel=interrupt,
-            on_started=lambda: self._event_bus.dispatch(AssistantSpeechStarted()),
+    async def _speak(self, text: str, *, interrupt: asyncio.Event | None = None) -> None:
+        logger.info("[says] %s", text)
+        response = await self._tts.synthesize(
+            TextToSpeechRequest(
+                text=text,
+                voice=self._speech_settings.tts_voice,
+                response_format=TextToSpeechFormat.WAV,
+                instructions=self._speech_settings.tts_voice_instructions,
+            )
         )
-
-    async def _log_speech_chunks(self, sentences: AsyncIterator[str]) -> AsyncIterator[str]:
-        async for text in sentences:
-            logger.info("[says] %s", text)
-            yield text
-
-    async def _reply(self) -> AsyncIterator[StreamEvent]:
-        async for event in self._llm.stream(
-            self._message_manager.to_llm_messages(),
-            tools=self._tools.get_schema("openai"),
-        ):
-            yield event
+        await self._event_bus.dispatch(AssistantSpeechStarted())
+        await self._player.play(response.audio, cancel=interrupt)
