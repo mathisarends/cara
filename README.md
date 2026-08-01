@@ -39,7 +39,7 @@ load it.
 ## Audio outputs
 
 `AudioPlayer` delegates playback to a named audio sink. Register every sink that should be
-available at runtime and pass the player to `VoiceAgent`:
+available at runtime and pass the player to `SpeechOutput` and the tool context:
 
 ```python
 audio_player = AudioPlayer(
@@ -47,6 +47,9 @@ audio_player = AudioPlayer(
     SonosAudioSink(),
     active_output=AudioOutput.SONOS,
 )
+
+speech_output = SpeechOutput(tts, audio_player, speech_settings, event_bus)
+tools = build_tools(audio_player)
 ```
 
 The built-in `set_audio_output` tool receives this player through the tool context and can switch to

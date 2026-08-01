@@ -8,14 +8,14 @@ from collections.abc import AsyncIterator
 from wakewordkit import CallableInput, WakeWord, WakeWordDetector
 
 from cara.audio import MicrophoneStream
-from cara.wakeword.ports import WakeWordDetectionSource
+from cara.wakeword.ports import WakeWordSessionSource
 
 logger = logging.getLogger(__name__)
 
 _PREDICTION_CHUNK = 1280
 
 
-class WakeWordListener(WakeWordDetectionSource):
+class WakeWordListener(WakeWordSessionSource):
     def __init__(
         self,
         microphone: MicrophoneStream,

@@ -1,9 +1,9 @@
 from transitbus import Event, EventBus
 
 from .agent import Agent
-from .assistant import VoiceAgent
 from .listener import HueListener
 from .messages import MessageManager, SystemPrompt
+from .sessions import VoiceSession
 from .speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -30,5 +30,5 @@ __all__ = [
     "TextToSpeechFormat",
     "TextToSpeechRequest",
     "TextToSpeechResponse",
-    "VoiceAgent",
+    "VoiceSession",
 ]

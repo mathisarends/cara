@@ -5,18 +5,21 @@ from collections.abc import Awaitable, Callable
 from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 from transitbus import EventBus
 
-from cara.assistant import VoiceAgent
-from cara.audio import AudioOutput, AudioPlayer
+from cara.agent import Agent
+from cara.audio import AudioOutput, AudioPlayer, EarconPlayer
 from cara.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
+from cara.sessions import VoiceSession
 from cara.speech import (
+    SpeechInput,
+    SpeechOutput,
+    SpeechSettings,
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from cara.tools import ActionResult, create_tools
-from cara.wakeword import WakeWordSettings
-from cara.wakeword.ports import WakeWordDetectionSource
+from cara.tools import ActionResult, build_tools, create_tools
+from cara.wakeword.ports import WakeWordSessionSource
 
 
 class BargeInRecorder:
@@ -42,14 +45,17 @@ class BargeInRecorder:
         return b"initial request" if self.recordings == 1 else b"corrected request"
 
 
-class RepeatedWakeWordListener(WakeWordDetectionSource):
+class RepeatedWakeWordListener(WakeWordSessionSource):
     def __init__(self, tool_started: asyncio.Event) -> None:
         self._tool_started = tool_started
-        self.detections = 0
+        self.detection_calls = 0
+
+    async def detections(self):
+        yield 0.9
 
     async def detect_once(self, *, cancel: asyncio.Event | None = None) -> float | None:
-        self.detections += 1
-        if self.detections == 1:
+        self.detection_calls += 1
+        if self.detection_calls == 1:
             await self._tool_started.wait()
             return 0.9
 
@@ -159,18 +165,31 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         event_bus.subscribe(capture_interruption)
         event_bus.subscribe(capture_speech_started)
         event_bus.subscribe(capture_speech_ended)
-        assistant = VoiceAgent(
-            llm=llm,
-            recorder=recorder,
-            player=AudioPlayer(ImmediateAudioPlayer(events)),
-            stt=stt,
-            tts=ImmediateTextToSpeech(),
+        player = AudioPlayer(ImmediateAudioPlayer(events))
+        speech_settings = SpeechSettings()
+        session = VoiceSession(
+            agent=Agent(
+                llm=llm,
+                tools=build_tools(player, tools=tools),
+            ),
+            speech_input=SpeechInput(
+                recorder,
+                stt,
+                speech_settings,
+                event_bus,
+            ),
+            speech_output=SpeechOutput(
+                ImmediateTextToSpeech(),
+                player,
+                speech_settings,
+                event_bus,
+            ),
+            wake_word_listener=wake_word_listener,
             event_bus=event_bus,
-            wake_word_settings=WakeWordSettings(),
-            tools=tools,
+            earcons=EarconPlayer(player),
         )
 
-        await asyncio.wait_for(assistant._run(wake_word_listener), timeout=2)
+        await asyncio.wait_for(session.run_once(), timeout=2)
         return (
             recorder,
             wake_word_listener,
@@ -185,7 +204,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
     recorder, wake_word_listener, stt, llm, interruptions, speech_lifecycle, tool_cancelled, events = asyncio.run(run())
 
     assert recorder.recordings == 2
-    assert wake_word_listener.detections == 2
+    assert wake_word_listener.detection_calls == 2
     assert stt.audio == [b"initial request", b"corrected request"]
     assert tool_cancelled is True
     assert events[:4] == ["play", "record", "play", "record"]
