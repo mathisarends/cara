@@ -10,11 +10,20 @@ Wake-word driven local voice loop:
 
 ## Run
 
-Set `OPENAI_API_KEY`, connect a microphone and speakers, then run:
+Set `OPENAI_API_KEY`, connect a microphone and speakers, then run the default voice mode:
 
 ```powershell
 uv run python main.py
 ```
+
+For a traditional text conversation in the terminal, run:
+
+```powershell
+uv run python main.py --mode terminal
+```
+
+Terminal input, including short replies such as `1`, `2`, or `3`, is sent to the same conversation
+agent as transcribed speech. Use `/exit`, `/quit`, Ctrl+C, or EOF to leave terminal mode.
 
 The default wake word is `hey_mycroft`. Runtime recordings and TTS files are written below the system temp directory in `cara`.
 While Cara is responding, say the wake word again to interrupt the response and start a new turn.

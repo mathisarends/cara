@@ -1,0 +1,41 @@
+import asyncio
+from collections.abc import Callable
+
+from cara.agent import Agent
+
+_EXIT_COMMANDS = frozenset({"/exit", "/quit"})
+
+
+class TerminalSession:
+    """Runs a text conversation through a terminal."""
+
+    def __init__(
+        self,
+        agent: Agent,
+        *,
+        prompt: str = "> ",
+        input_reader: Callable[[str], str] = input,
+        output_writer: Callable[[str], None] = print,
+    ) -> None:
+        self._agent = agent
+        self._prompt = prompt
+        self._input_reader = input_reader
+        self._output_writer = output_writer
+
+    async def run(self) -> None:
+        """Process terminal input until EOF or an explicit exit command."""
+        while True:
+            try:
+                text = await asyncio.to_thread(self._input_reader, self._prompt)
+            except EOFError:
+                return
+
+            text = text.strip()
+            if text in _EXIT_COMMANDS:
+                return
+            if not text:
+                continue
+
+            answer = await self._agent.respond(text)
+            if answer:
+                self._output_writer(answer)
