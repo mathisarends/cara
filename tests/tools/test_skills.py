@@ -3,7 +3,7 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 
-from cara.tools import Tools
+from cara.tools import create_tool_context, create_tools
 
 
 def _skills(tmp_path: Path) -> Skills:
@@ -17,22 +17,20 @@ def _skills(tmp_path: Path) -> Skills:
 
 
 def test_load_skill_tool_is_unavailable_without_skills() -> None:
-    tools = Tools()
+    tools = create_tools()
 
     assert tools.get("load_skill") is not None
     assert all(schema["function"]["name"] != "load_skill" for schema in tools.get_schema("openai"))
 
 
 def test_load_skill_tool_is_available_with_skills(tmp_path: Path) -> None:
-    tools = Tools()
-    tools.provide(_skills(tmp_path))
+    tools = create_tools(create_tool_context(_skills(tmp_path)))
 
     assert tools.get("load_skill") in tools.get_available()
 
 
 def test_load_skill_returns_full_instructions(tmp_path: Path) -> None:
-    tools = Tools()
-    tools.provide(_skills(tmp_path))
+    tools = create_tools(create_tool_context(_skills(tmp_path)))
 
     result = asyncio.run(tools.execute("load_skill", {"name": "pdf"}))
 
@@ -40,11 +38,9 @@ def test_load_skill_returns_full_instructions(tmp_path: Path) -> None:
 
 
 def test_loading_unknown_skill_fails(tmp_path: Path) -> None:
-    tools = Tools()
-    tools.provide(_skills(tmp_path))
+    tools = create_tools(create_tool_context(_skills(tmp_path)))
 
     result = asyncio.run(tools.execute("load_skill", {"name": "missing"}))
 
     assert not result.ok
-    assert result.error is not None
-    assert "not found" in result.error
+    assert result.error == "Internal tool error."

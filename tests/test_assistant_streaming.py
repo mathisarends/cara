@@ -11,7 +11,7 @@ from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated, SpeechChunkGenerated
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
-from cara.tools import ActionResult, Tools
+from cara.tools import ActionResult, create_tools
 from cara.tools.params import WeatherParams
 from cara.wakeword import WakeWordSettings
 
@@ -231,7 +231,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
         player.second_delta_generated.set()
         tts = RecordingTextToSpeech()
         llm = MultiRoundToolChatModel()
-        tools = Tools()
+        tools = create_tools()
 
         @tools.action("Wetter abrufen.", name="weather_lookup", params=WeatherParams)
         async def weather_lookup(params: WeatherParams) -> ActionResult:
@@ -282,7 +282,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
     ]
 
 
-def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> None:
+def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> None:
     async def run() -> DeniedPathChatModel:
         player = CoordinatedAudioPlayer()
         player.second_delta_generated.set()
@@ -295,7 +295,8 @@ def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path
             tts=RecordingTextToSpeech(),
             event_bus=EventBus(),
             wake_word_settings=WakeWordSettings(),
-            tools=Tools(workspace=LocalWorkspace(tmp_path)),
+            tools=create_tools(),
+            workspace=LocalWorkspace(tmp_path),
         )
 
         await assistant._think()
@@ -306,7 +307,7 @@ def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path
     tool_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
     assert len(tool_results) == 1
     assert tool_results[0].tool_call_id == "write-outside-workspace"
-    assert "outside workspace" in tool_results[0].content
+    assert tool_results[0].content == "Internal tool error."
 
 
 def test_assistant_speaks_end_session_tool_result() -> None:

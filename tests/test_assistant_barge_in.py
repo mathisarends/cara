@@ -13,7 +13,7 @@ from cara.speech import (
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from cara.tools import ActionResult, Tools
+from cara.tools import ActionResult, create_tools
 from cara.wakeword import WakeWordSettings
 from cara.wakeword.ports import WakeWordDetectionSource
 
@@ -127,7 +127,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
     ]:
         tool_started = asyncio.Event()
         tool_cancelled = asyncio.Event()
-        tools = Tools()
+        tools = create_tools()
 
         @tools.action("Wait until released.", name="slow_tool")
         async def slow_tool() -> ActionResult:

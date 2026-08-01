@@ -2,11 +2,11 @@ import asyncio
 from pathlib import Path
 from tempfile import gettempdir
 
-from agenttoolkit import ActionResult, ToolContext, ToolEffect
-from agenttoolkit.builtins import LocalWorkspace, SandboxPolicy, SandboxResult
+from agenttoolkit import ActionResult, ToolEffect, Tools
+from agenttoolkit.builtins import LocalWorkspace, SandboxPolicy, SandboxResult, Workspace
 
 from cara.audio import AudioOutput, AudioPlayer
-from cara.tools import EndSessionParams, Tools
+from cara.tools import EndSessionParams, create_tool_context, create_tools, register_tools
 
 
 class SilentOutput:
@@ -29,7 +29,8 @@ class SilentOutput:
 
 
 def test_default_end_session_tool_returns_farewell_and_has_tag() -> None:
-    tools = Tools()
+    tools = Tools(context=create_tool_context())
+    register_tools(tools)
 
     result = asyncio.run(tools.execute("end_session", {"farewell": "Bis bald!"}))
     end_session = tools.get("end_session")
@@ -41,14 +42,14 @@ def test_default_end_session_tool_returns_farewell_and_has_tag() -> None:
 
 
 def test_audio_tools_follow_injected_player_availability() -> None:
-    tools = Tools()
-    tools.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL)))
+    context = create_tool_context(AudioPlayer(SilentOutput(AudioOutput.LOCAL)))
+    tools = create_tools(context)
 
     available = tools.get_available()
     assert tools.get("get_volume") in available
     assert tools.get("set_audio_output") not in available
 
-    tools.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS)))
+    context.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS)))
 
     assert tools.get("set_audio_output") in tools.get_available()
 
@@ -67,7 +68,7 @@ def test_custom_action_uses_agenttoolkit_execution() -> None:
 
 def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> None:
     workspace = LocalWorkspace(tmp_path)
-    tools = Tools(workspace=workspace)
+    tools = create_tools(create_tool_context(workspace=workspace))
 
     write_result = asyncio.run(tools.execute("write_file", {"path": "notes/a.txt", "content": "hello"}))
     read_result = asyncio.run(tools.execute("read_file", {"path": "notes/a.txt"}))
@@ -84,17 +85,16 @@ def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> Non
     assert asyncio.run(workspace.read_file("notes/a.txt")) == "hello toolkit"
 
 
-def test_workspace_rejects_paths_outside_root(tmp_path: Path) -> None:
+def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> None:
     result = asyncio.run(
-        Tools(workspace=LocalWorkspace(tmp_path)).execute(
+        create_tools(create_tool_context(workspace=LocalWorkspace(tmp_path))).execute(
             "write_file",
             {"path": "../outside.txt", "content": "blocked"},
         )
     )
 
     assert not result.ok
-    assert result.error is not None
-    assert "outside workspace" in result.error
+    assert result.error == "Internal tool error."
 
 
 def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
@@ -114,7 +114,8 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
             )
 
     sandbox = RecordingSandbox()
-    tools = Tools(workspace=LocalWorkspace(tmp_path), sandbox=sandbox)
+    context = create_tool_context(workspace=LocalWorkspace(tmp_path), sandbox=sandbox)
+    tools = create_tools(context)
 
     result = asyncio.run(tools.execute("bash", {"command": "printf hello"}))
 
@@ -126,15 +127,15 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
 
 
 def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
-    workspace = LocalWorkspace(Path(gettempdir()) / "cara" / "workspace")
-    tools = Tools(context=ToolContext(workspace))
+    context = create_tool_context()
+    workspace = context.resolve(Workspace)
 
-    assert tools.get("read_file") in tools.get_available()
+    assert workspace is not None
     assert workspace.root == (Path(gettempdir()) / "cara" / "workspace").resolve()
 
 
 def test_to_schema_returns_openai_function_schema() -> None:
-    schema = next(item for item in Tools().get_schema("openai") if item["function"]["name"] == "bash")
+    schema = next(item for item in create_tools().get_schema("openai") if item["function"]["name"] == "bash")
 
     assert schema["type"] == "function"
     assert schema["function"]["parameters"]["properties"]["command"]["type"] == "string"

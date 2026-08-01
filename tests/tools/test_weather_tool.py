@@ -1,6 +1,6 @@
 import asyncio
 
-from cara.tools import Tools
+from cara.tools import create_tool_context, create_tools
 from cara.tools.handler import IpLocationClient
 from cara.tools.handler.weather import Location, OpenMeteoClient, WeatherReport
 
@@ -39,14 +39,12 @@ class _StubLocationClient(IpLocationClient):
         return self._location
 
 
-def _tools(client: OpenMeteoClient, location_client: IpLocationClient) -> Tools:
-    tools = Tools()
-    tools.provide(client, location_client)
-    return tools
+def _tools(client: OpenMeteoClient, location_client: IpLocationClient):
+    return create_tools(create_tool_context(client, location_client))
 
 
 def test_weather_tool_is_registered_without_availability_checks() -> None:
-    assert Tools().get("weather") is not None
+    assert create_tools().get("weather") is not None
 
 
 def test_weather_tool_description_uses_the_current_location_implicitly() -> None:

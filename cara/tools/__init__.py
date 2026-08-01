@@ -1,7 +1,7 @@
-from agenttoolkit import ActionResult, Inject, Tool, ToolContext, ToolEffect
+from agenttoolkit import ActionResult, Inject, Tool, ToolContext, ToolEffect, Tools
 
+from .catalog import create_tool_context, create_tools, register_tools
 from .params import EndSessionParams, SetAudioOutputParams, SetVolumeParams, ToolParams
-from .tools import Tools
 
 __all__ = [
     "ActionResult",
@@ -14,4 +14,7 @@ __all__ = [
     "ToolEffect",
     "ToolParams",
     "Tools",
+    "create_tool_context",
+    "create_tools",
+    "register_tools",
 ]

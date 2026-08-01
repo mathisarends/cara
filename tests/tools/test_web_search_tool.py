@@ -1,6 +1,6 @@
 import asyncio
 
-from cara.tools import Tools
+from cara.tools import create_tool_context, create_tools
 from cara.tools.handler.web_search import SearchResponse, SearchResult, TavilySearchClient
 
 
@@ -14,14 +14,12 @@ class _StubClient(TavilySearchClient):
         return self._response
 
 
-def _tools(client: TavilySearchClient) -> Tools:
-    tools = Tools()
-    tools.provide(client)
-    return tools
+def _tools(client: TavilySearchClient):
+    return create_tools(create_tool_context(client))
 
 
 def test_web_search_tool_is_registered_without_availability_checks() -> None:
-    assert Tools().get("web_search") is not None
+    assert create_tools().get("web_search") is not None
 
 
 def test_web_search_returns_the_client_summary() -> None:

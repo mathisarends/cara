@@ -41,7 +41,7 @@ from cara.speech import (
     TextToSpeech,
 )
 from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
-from cara.tools import Tools
+from cara.tools import Tools, create_tool_context, create_tools
 from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
@@ -84,12 +84,15 @@ class VoiceAgent:
         self._player = player or AudioPlayer(LocalAudioSink(device=self._audio_device))
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
-        if tools is not None and workspace is not None:
-            raise ValueError("Pass either tools or workspace, not both.")
-        self._tools = tools or Tools(workspace=workspace)
-        self._tools.provide(self._player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient())
+        dependencies: list[object] = [self._player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
         if skills is not None:
-            self._tools.provide(skills)
+            dependencies.append(skills)
+        tool_context = create_tool_context(*dependencies, workspace=workspace)
+        if tools is None:
+            self._tools = create_tools(tool_context)
+        else:
+            self._tools = tools
+            self._tools.set_context(tool_context)
         self._speech_settings = speech_settings or SpeechSettings()
         self._speech_stream = StreamingTextToSpeech(
             tts=tts,
