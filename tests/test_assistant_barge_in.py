@@ -2,10 +2,11 @@ import asyncio
 import threading
 
 from llmify import Function, StreamEnd, StreamToolCall, ToolCall, UserMessage
+from transitbus import EventBus
 
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
-from cara.events import AssistantState, EventBus, Interrupted
+from cara.events import AssistantState, Interrupted
 from cara.speech import (
     SpeechToTextRequest,
     SpeechToTextResponse,

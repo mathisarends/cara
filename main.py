@@ -3,13 +3,12 @@ import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
+from transitbus import EventBus
 
 from cara import SpeechSettings, VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer, WavAudioPlayer
 from cara.audio.sonos import SonosAudioPlayer
-from cara.events import EventBus
 from cara.file_system import LocalFileSystem, Workspace
-from cara.listener import HueListener
 from cara.skills import Skills
 from cara.wakeword import WakeWord, WakeWordSettings
 
@@ -35,8 +34,6 @@ async def main() -> None:
         player=audio_player,
         skills=skills,
     )
-
-    HueListener(event_bus=event_bus, room_name="Mein Zimmer")
 
     await assistant.start()
 

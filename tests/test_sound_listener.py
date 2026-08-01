@@ -1,7 +1,9 @@
 import asyncio
 
+from transitbus import EventBus
+
 from cara.audio import Earcon
-from cara.events import AssistantState, EventBus, Interrupted, SessionEnded
+from cara.events import AssistantState, Interrupted, SessionEnded
 from cara.listener import SoundListener
 
 

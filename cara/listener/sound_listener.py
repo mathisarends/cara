@@ -1,5 +1,7 @@
+from transitbus import EventBus
+
 from cara.audio.earcons import Earcon, EarconPlayer
-from cara.events import EventBus, Interrupted, SessionEnded
+from cara.events import Interrupted, SessionEnded
 
 
 class SoundListener:

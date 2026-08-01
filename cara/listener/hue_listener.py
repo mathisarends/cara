@@ -7,10 +7,10 @@ from functools import partial
 from hueify import Hueify
 from hueify.grouped_lights import GroupedLights
 from hueify.sse.views import GroupedLightEvent
+from transitbus import EventBus
 
 from cara.events import (
     AssistantState,
-    EventBus,
     SessionEnded,
     SessionStarted,
     StateChanged,

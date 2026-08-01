@@ -1,10 +1,10 @@
 import asyncio
 
 import pytest
+from transitbus import EventBus
 
 from cara.events import (
     AssistantState,
-    EventBus,
     SessionEnded,
     StateChanged,
     Transcribed,

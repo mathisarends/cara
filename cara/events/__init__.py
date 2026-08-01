@@ -1,5 +1,3 @@
-from transitbus import Event, EventBus
-
 from .views import (
     AnswerGenerated,
     AssistantState,
@@ -14,8 +12,6 @@ from .views import (
 __all__ = [
     "AnswerGenerated",
     "AssistantState",
-    "Event",
-    "EventBus",
     "Interrupted",
     "SessionEnded",
     "SessionStarted",

@@ -1,9 +1,10 @@
 import asyncio
 import threading
 
+from transitbus import EventBus
+
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
-from cara.events import EventBus
 from cara.wakeword import WakeWordSettings
 from cara.wakeword.ports import WakeWordDetectionSource
 

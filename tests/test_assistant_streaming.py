@@ -3,10 +3,11 @@ import logging
 from pathlib import Path
 
 from llmify import AssistantMessage, Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, ToolResultMessage
+from transitbus import EventBus
 
 from cara.assistant import VoiceAssistant
 from cara.audio import AudioOutput, AudioPlayer
-from cara.events import AnswerGenerated, EventBus
+from cara.events import AnswerGenerated
 from cara.file_system import Workspace
 from cara.skills import Skill, Skills
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse

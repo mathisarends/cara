@@ -5,6 +5,7 @@ import threading
 from collections.abc import AsyncIterator
 
 from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent, ToolCall
+from transitbus import EventBus
 
 from cara.audio import (
     AudioPlayer,
@@ -20,7 +21,6 @@ from cara.console_logging import _log_user_transcript
 from cara.events import (
     AnswerGenerated,
     AssistantState,
-    EventBus,
     Interrupted,
     SessionEnded,
     SessionStarted,

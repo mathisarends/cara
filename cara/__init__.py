@@ -1,9 +1,9 @@
+from transitbus import Event, EventBus
+
 from .assistant import VoiceAssistant
 from .events import (
     AnswerGenerated,
     AssistantState,
-    Event,
-    EventBus,
     Interrupted,
     SessionEnded,
     SessionStarted,
