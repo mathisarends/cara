@@ -5,7 +5,6 @@ from typing import Any
 
 from cara.audio import AudioPlayer
 from cara.file_system import FileSystem, LocalFileSystem, Workspace
-from cara.llm import LanguageModels
 from cara.skills import Skills
 from cara.tools.binding import described, provided, requires
 from cara.tools.di import Inject, ToolContext
@@ -24,7 +23,6 @@ from cara.tools.params import (
     LoadSkillParams,
     ReadFileParams,
     SetAudioOutputParams,
-    SetLanguageModelParams,
     SetVolumeParams,
     ToolParams,
     WeatherParams,
@@ -160,29 +158,6 @@ class Tools:
                 available = ", ".join(skills.names())
                 return ActionResult.fail(f"Unknown skill '{params.name}'. Available: {available}")
             return ActionResult.success(skill.instructions)
-
-        @self.action(
-            description=described(
-                LanguageModels,
-                render=lambda models: (
-                    "Switch the language model used to generate your responses. "
-                    f"Currently active: {models.active().name!r}. Available profiles: {models.describe_profiles()}"
-                ),
-                default="Switch the language model used to generate responses.",
-            ),
-            params=SetLanguageModelParams,
-            available_when=requires(LanguageModels, predicate=lambda models: models.has_alternatives()),
-        )
-        async def set_language_model(
-            params: SetLanguageModelParams,
-            models: Inject[LanguageModels],
-        ) -> ActionResult:
-            profile = models.get(params.name)
-            if profile is None:
-                available = ", ".join(models.names())
-                return ActionResult.fail(f"Unknown language model '{params.name}'. Available: {available}")
-            models.select(profile.name)
-            return ActionResult.success(f"Language model switched to {profile.name!r}.")
 
         @self.action(
             description=described(

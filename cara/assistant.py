@@ -4,7 +4,7 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 
-from llmify import ChatInvokeCompletion, ChatModel, ChatOpenAI, StreamEvent, ToolCall
+from llmify import ChatInvokeCompletion, ChatModel, StreamEvent, ToolCall
 from transitbus import EventBus
 
 from cara.audio import (
@@ -30,7 +30,6 @@ from cara.events import (
 )
 from cara.file_system import FileSystem
 from cara.listener import SoundListener
-from cara.llm import LanguageModels
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
 from cara.skills import Skills
@@ -61,8 +60,7 @@ class VoiceAgent:
     def __init__(
         self,
         *,
-        llm: ChatModel | None = None,
-        models: LanguageModels | None = None,
+        llm: ChatModel,
         api_key: str | None = None,
         recorder: SpeechRecorder | None = None,
         player: AudioPlayer | None = None,
@@ -79,11 +77,7 @@ class VoiceAgent:
         extend_system_prompt: str | None = None,
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
     ) -> None:
-        if models is not None and llm is not None:
-            raise ValueError("Use models or llm, not both.")
-        self._models = models or LanguageModels.single(
-            llm or ChatOpenAI(model="gpt-5.6-terra", reasoning_effort="none")
-        )
+        self._llm = llm
         self._audio_device = PortAudioDevice()
         self._microphone = MicrophoneStream(device=self._audio_device)
         self._recorder = recorder or MicrophoneRecorder(self._microphone)
@@ -91,7 +85,7 @@ class VoiceAgent:
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()
-        self._tools.provide(self._models, self._player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient())
+        self._tools.provide(self._player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient())
         if skills is not None:
             self._tools.provide(skills)
         if file_system is not None:
@@ -326,7 +320,7 @@ class VoiceAgent:
         )
 
     async def _reply(self) -> AsyncIterator[StreamEvent]:
-        async for event in self._models.current().stream(
+        async for event in self._llm.stream(
             self._message_manager.to_llm_messages(),
             tools=self._tools.to_schema(),
         ):
