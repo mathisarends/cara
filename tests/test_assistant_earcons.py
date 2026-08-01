@@ -1,5 +1,6 @@
 import asyncio
 import threading
+from collections.abc import Awaitable, Callable
 
 from transitbus import EventBus
 
@@ -30,6 +31,7 @@ class EmptyRecorder:
         *,
         initial_silence_timeout: float | None = None,
         ready: threading.Event | None = None,
+        on_speech_started: Callable[[], Awaitable[None]] | None = None,
     ) -> bytes | None:
         while ready is not None and not ready.is_set():
             await asyncio.sleep(0)

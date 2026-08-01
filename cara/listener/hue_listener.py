@@ -2,7 +2,6 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
-from functools import partial
 
 from hueify import Hueify
 from hueify.grouped_lights import GroupedLights
@@ -10,10 +9,11 @@ from hueify.sse.views import GroupedLightEvent
 from transitbus import EventBus
 
 from cara.events import (
-    AssistantState,
+    AssistantSpeechStarted,
     SessionEnded,
     SessionStarted,
-    StateChanged,
+    UserSpeechEnded,
+    UserSpeechStarted,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,17 +32,8 @@ class _Tint:
 
 
 _ZERO_TINT = _Tint(brightness_delta=0, temperature_delta=0)
-
-# Noticeable but not extreme shifts per phase.
-_STATE_TINTS: dict[AssistantState, _Tint] = {
-    AssistantState.LISTENING: _Tint(brightness_delta=+15, temperature_delta=-20),
-    AssistantState.WAITING_FOLLOW_UP: _Tint(brightness_delta=+6, temperature_delta=-12),
-    AssistantState.TRANSCRIBING: _Tint(brightness_delta=+10, temperature_delta=-18),
-    AssistantState.THINKING: _Tint(brightness_delta=-12, temperature_delta=+22),
-    AssistantState.CALLING_TOOL: _Tint(brightness_delta=-18, temperature_delta=+28),
-    AssistantState.SPEAKING: _Tint(brightness_delta=+20, temperature_delta=-25),
-}
-# IDLE has no tint - it means "back to baseline", handled explicitly below.
+_USER_SPEAKING_TINT = _Tint(brightness_delta=+15, temperature_delta=-20)
+_ASSISTANT_SPEAKING_TINT = _Tint(brightness_delta=+20, temperature_delta=-25)
 
 _BRIGHTNESS_RANGE = (0, 100)
 _TEMPERATURE_RANGE = (0, 100)
@@ -63,9 +54,9 @@ class HueListener:
     """Nudges a Hue room's existing lighting to reflect the assistant lifecycle.
 
     Rather than driving the room to fixed colors, this captures the room's
-    state at session start as a baseline and applies a relative shift on top
-    of it per phase, restoring exactly that baseline once idle or the session
-    ends. A room that's off stays off.
+    state at session start as a baseline and applies a relative shift while
+    the user or assistant speaks. It restores that baseline while processing
+    and when the session ends. A room that's off stays off.
 
     Every Hue API call runs on a single background worker fed by an internal
     queue, so the event handlers only enqueue and return: bridge I/O never
@@ -91,7 +82,9 @@ class HueListener:
         self._worker: asyncio.Task[None] | None = None
         self._event_bus.subscribe(self._on_session_started)
         self._event_bus.subscribe(self._on_session_ended)
-        self._event_bus.subscribe(self._on_state_changed)
+        self._event_bus.subscribe(self._on_user_speech_started)
+        self._event_bus.subscribe(self._on_user_speech_ended)
+        self._event_bus.subscribe(self._on_assistant_speech_started)
         self._hue.on(GroupedLightEvent, self._on_bridge_event)
 
     async def _on_session_started(self, event: SessionStarted) -> None:
@@ -100,8 +93,14 @@ class HueListener:
     async def _on_session_ended(self, event: SessionEnded) -> None:
         self._submit(self._restore_baseline)
 
-    async def _on_state_changed(self, event: StateChanged) -> None:
-        self._submit(partial(self._apply_state, event.state))
+    async def _on_user_speech_started(self, event: UserSpeechStarted) -> None:
+        self._submit(self._apply_user_speaking_tint)
+
+    async def _on_user_speech_ended(self, event: UserSpeechEnded) -> None:
+        self._submit(self._restore_baseline)
+
+    async def _on_assistant_speech_started(self, event: AssistantSpeechStarted) -> None:
+        self._submit(self._apply_assistant_speaking_tint)
 
     def _submit(self, job: Callable[[], Awaitable[None]]) -> None:
         """Enqueue a Hue operation for the background worker and return at once."""
@@ -128,14 +127,15 @@ class HueListener:
             temperature=_read_temperature(room),
         )
 
-    async def _apply_state(self, state: AssistantState) -> None:
-        if state is AssistantState.IDLE:
-            await self._restore_baseline()
-            return
+    async def _apply_user_speaking_tint(self) -> None:
+        await self._apply_tint(_USER_SPEAKING_TINT)
 
-        tint = _STATE_TINTS.get(state)
+    async def _apply_assistant_speaking_tint(self) -> None:
+        await self._apply_tint(_ASSISTANT_SPEAKING_TINT)
+
+    async def _apply_tint(self, tint: _Tint) -> None:
         baseline = self._baseline
-        if tint is None or baseline is None or not baseline.on:
+        if baseline is None or not baseline.on:
             return
 
         self._active_tint = tint

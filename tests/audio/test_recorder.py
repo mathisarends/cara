@@ -1,3 +1,4 @@
+import asyncio
 import io
 import threading
 import time
@@ -145,6 +146,46 @@ def test_complete_turn_ends_at_the_first_candidate_pause() -> None:
     assert len(detector.utterances) == 1
     assert microphone.reads < 8
     assert _frame_count(audio) == microphone.reads * _FRAME_SAMPLES
+
+
+def test_recorder_detects_speech_start_on_the_first_voice_frame() -> None:
+    microphone = SequenceMicrophone()
+    recorder = MicrophoneRecorder(
+        microphone,
+        _settings(),
+        vad=SequenceVoiceActivityDetector([False, True, True, False, False, False]),
+        turn_detector=SequenceTurnDetector([True]),
+    )
+    detected_at: list[int] = []
+
+    audio = recorder._record_until_silence_sync(on_speech_started=lambda: detected_at.append(microphone.reads))
+
+    assert audio is not None
+    assert detected_at == [2]
+
+
+def test_recorder_delivers_speech_start_before_returning_audio() -> None:
+    async def run() -> tuple[bytes | None, list[str]]:
+        microphone = SequenceMicrophone()
+        recorder = MicrophoneRecorder(
+            microphone,
+            _settings(),
+            vad=SequenceVoiceActivityDetector([False, True, True, False, False, False]),
+            turn_detector=SequenceTurnDetector([True]),
+        )
+        lifecycle: list[str] = []
+
+        async def on_speech_started() -> None:
+            lifecycle.append("started")
+
+        audio = await recorder.record_until_silence(on_speech_started=on_speech_started)
+        lifecycle.append("ended")
+        return audio, lifecycle
+
+    audio, lifecycle = asyncio.run(run())
+
+    assert audio is not None
+    assert lifecycle == ["started", "ended"]
 
 
 def test_incomplete_turn_keeps_recording_across_a_thought_pause() -> None:

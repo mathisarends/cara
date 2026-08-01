@@ -133,8 +133,8 @@ class StreamingTextToSpeech:
         audio_chunks: asyncio.Queue[bytes | None] = asyncio.Queue()
         try:
             async with asyncio.TaskGroup() as task_group:
-                task_group.create_task(self._synthesize(text_chunks, audio_chunks, on_started=on_started))
-                task_group.create_task(self._play(audio_chunks, cancel=cancel))
+                task_group.create_task(self._synthesize(text_chunks, audio_chunks))
+                task_group.create_task(self._play(audio_chunks, cancel=cancel, on_started=on_started))
         finally:
             logger.info("Streaming text-to-speech pipeline finished.")
 
@@ -142,18 +142,11 @@ class StreamingTextToSpeech:
         self,
         text_chunks: AsyncIterator[str],
         audio_chunks: asyncio.Queue[bytes | None],
-        *,
-        on_started: _SpeechStartedHandler | None,
     ) -> None:
-        started = False
         chunk_number = 0
         try:
             async for text in text_chunks:
                 chunk_number += 1
-                if not started:
-                    if on_started is not None:
-                        await on_started()
-                    started = True
                 logger.info(
                     "Synthesizing speech chunk %d with %d characters.",
                     chunk_number,
@@ -176,12 +169,18 @@ class StreamingTextToSpeech:
         audio_chunks: asyncio.Queue[bytes | None],
         *,
         cancel: asyncio.Event | None,
+        on_started: _SpeechStartedHandler | None,
     ) -> None:
+        started = False
         chunk_number = 0
         while (audio := await audio_chunks.get()) is not None:
             if cancel is not None and cancel.is_set():
                 logger.info("Streaming speech playback cancelled before the next chunk.")
                 return
             chunk_number += 1
+            if not started:
+                if on_started is not None:
+                    await on_started()
+                started = True
             logger.info("Playing speech chunk %d with %d bytes.", chunk_number, len(audio))
             await self._player.play(audio, cancel=cancel)

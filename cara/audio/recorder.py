@@ -7,6 +7,7 @@ import threading
 import time
 import wave
 from collections import deque
+from collections.abc import Awaitable, Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 
@@ -61,9 +62,17 @@ class MicrophoneRecorder(SpeechRecorder):
         *,
         initial_silence_timeout: float | None = None,
         ready: threading.Event | None = None,
+        on_speech_started: Callable[[], Awaitable[None]] | None = None,
     ) -> bytes | None:
         loop = asyncio.get_running_loop()
         cancelled = threading.Event()
+        speech_started_notification: Future[None] | None = None
+
+        def notify_speech_started() -> None:
+            nonlocal speech_started_notification
+            if on_speech_started is not None:
+                speech_started_notification = asyncio.run_coroutine_threadsafe(on_speech_started(), loop)
+
         recording = loop.run_in_executor(
             None,
             functools.partial(
@@ -71,14 +80,18 @@ class MicrophoneRecorder(SpeechRecorder):
                 initial_silence_timeout=initial_silence_timeout,
                 cancel=cancelled,
                 ready=ready,
+                on_speech_started=notify_speech_started,
             ),
         )
         try:
-            return await asyncio.shield(recording)
+            audio = await asyncio.shield(recording)
         except asyncio.CancelledError:
             cancelled.set()
             await asyncio.shield(recording)
             raise
+        if speech_started_notification is not None:
+            await asyncio.wrap_future(speech_started_notification)
+        return audio
 
     def _record_until_silence_sync(
         self,
@@ -86,6 +99,7 @@ class MicrophoneRecorder(SpeechRecorder):
         initial_silence_timeout: float | None = None,
         cancel: threading.Event | None = None,
         ready: threading.Event | None = None,
+        on_speech_started: Callable[[], None] | None = None,
     ) -> bytes | None:
         config = self._config
         mic = self._microphone
@@ -124,6 +138,8 @@ class MicrophoneRecorder(SpeechRecorder):
                     if is_speech:
                         voice_started = True
                         voice_chunks = 1
+                        if on_speech_started is not None:
+                            on_speech_started()
                         frames.extend(preroll)
                         preroll.clear()
                     elif (

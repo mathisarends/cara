@@ -1,23 +1,17 @@
-from .views import (
-    AnswerGenerated,
-    AssistantState,
-    Interrupted,
+from .lifecycle import (
+    AssistantInterrupted,
+    AssistantSpeechStarted,
     SessionEnded,
     SessionStarted,
-    SpeechChunkGenerated,
-    StateChanged,
-    Transcribed,
-    TurnStarted,
+    UserSpeechEnded,
+    UserSpeechStarted,
 )
 
 __all__ = [
-    "AnswerGenerated",
-    "AssistantState",
-    "Interrupted",
+    "AssistantInterrupted",
+    "AssistantSpeechStarted",
     "SessionEnded",
     "SessionStarted",
-    "SpeechChunkGenerated",
-    "StateChanged",
-    "Transcribed",
-    "TurnStarted",
+    "UserSpeechEnded",
+    "UserSpeechStarted",
 ]

@@ -1,12 +1,13 @@
 import asyncio
 import threading
+from collections.abc import Awaitable, Callable
 
 from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, UserMessage
 from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
-from cara.events import AssistantState, Interrupted
+from cara.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
 from cara.speech import (
     SpeechToTextRequest,
     SpeechToTextResponse,
@@ -28,6 +29,7 @@ class BargeInRecorder:
         *,
         initial_silence_timeout: float | None = None,
         ready: threading.Event | None = None,
+        on_speech_started: Callable[[], Awaitable[None]] | None = None,
     ) -> bytes | None:
         while ready is not None and not ready.is_set():
             await asyncio.sleep(0)
@@ -35,6 +37,8 @@ class BargeInRecorder:
         if self.recordings >= 2:
             return None
         self.recordings += 1
+        if on_speech_started is not None:
+            await on_speech_started()
         return b"initial request" if self.recordings == 1 else b"corrected request"
 
 
@@ -120,7 +124,8 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         RepeatedWakeWordListener,
         MappingSpeechToText,
         TwoTurnChatModel,
-        list[Interrupted],
+        list[AssistantInterrupted],
+        list[str],
         bool,
         list[str],
     ]:
@@ -143,12 +148,21 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         stt = MappingSpeechToText()
         llm = TwoTurnChatModel()
         event_bus = EventBus()
-        interruptions: list[Interrupted] = []
+        interruptions: list[AssistantInterrupted] = []
+        speech_lifecycle: list[str] = []
 
-        async def capture_interruption(event: Interrupted) -> None:
+        async def capture_interruption(event: AssistantInterrupted) -> None:
             interruptions.append(event)
 
+        async def capture_speech_started(event: UserSpeechStarted) -> None:
+            speech_lifecycle.append("started")
+
+        async def capture_speech_ended(event: UserSpeechEnded) -> None:
+            speech_lifecycle.append("ended")
+
         event_bus.subscribe(capture_interruption)
+        event_bus.subscribe(capture_speech_started)
+        event_bus.subscribe(capture_speech_ended)
         assistant = VoiceAgent(
             llm=llm,
             recorder=recorder,
@@ -161,16 +175,26 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         )
 
         await asyncio.wait_for(assistant._run(wake_word_listener), timeout=2)
-        return recorder, wake_word_listener, stt, llm, interruptions, tool_cancelled.is_set(), events
+        return (
+            recorder,
+            wake_word_listener,
+            stt,
+            llm,
+            interruptions,
+            speech_lifecycle,
+            tool_cancelled.is_set(),
+            events,
+        )
 
-    recorder, wake_word_listener, stt, llm, interruptions, tool_cancelled, events = asyncio.run(run())
+    recorder, wake_word_listener, stt, llm, interruptions, speech_lifecycle, tool_cancelled, events = asyncio.run(run())
 
     assert recorder.recordings == 2
     assert wake_word_listener.detections == 2
     assert stt.audio == [b"initial request", b"corrected request"]
     assert tool_cancelled is True
     assert events[:4] == ["play", "record", "play", "record"]
-    assert [event.phase for event in interruptions] == [AssistantState.CALLING_TOOL]
+    assert len(interruptions) == 1
+    assert speech_lifecycle == ["started", "ended", "started", "ended"]
     assert [message.content for message in llm.messages[1] if isinstance(message, UserMessage)] == [
         "initial request",
         "corrected request",

@@ -20,17 +20,14 @@ from cara.audio import (
 )
 from cara.audio.device import PortAudioDevice
 from cara.events import (
-    AnswerGenerated,
-    AssistantState,
-    Interrupted,
+    AssistantInterrupted,
+    AssistantSpeechStarted,
     SessionEnded,
     SessionStarted,
-    SpeechChunkGenerated,
-    StateChanged,
-    Transcribed,
-    TurnStarted,
+    UserSpeechEnded,
+    UserSpeechStarted,
 )
-from cara.listener import ConsoleListener, SoundListener
+from cara.listener import SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
 from cara.speech import (
@@ -104,9 +101,7 @@ class VoiceAgent:
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
         self._earcons = EarconPlayer(self._player)
-        self._console_listener = ConsoleListener(self._event_bus)
         self._sound_listener = SoundListener(self._event_bus, self._earcons)
-        self._state = AssistantState.IDLE
 
     @property
     def event_bus(self) -> EventBus:
@@ -149,8 +144,6 @@ class VoiceAgent:
         wake_earcon = asyncio.create_task(self._announce_wake(ready))
         try:
             while True:
-                await self._event_bus.dispatch(TurnStarted())
-
                 audio = pending_audio
                 pending_audio = None
                 if audio is None:
@@ -168,13 +161,13 @@ class VoiceAgent:
                     try:
                         answer = await self._think(interrupt=barge_in.interrupt)
                     except _ResponseInterrupted:
-                        pending_audio = await self._receive_barge_in(phase=self._state)
+                        pending_audio = await self._receive_barge_in()
                         if pending_audio is None:
                             break
                         follow_up = False
                         continue
                 if barge_in.interrupt.is_set():
-                    pending_audio = await self._receive_barge_in(phase=self._state)
+                    pending_audio = await self._receive_barge_in()
                     if pending_audio is None:
                         break
                     follow_up = False
@@ -185,7 +178,6 @@ class VoiceAgent:
             wake_earcon.cancel()
             await asyncio.gather(wake_earcon, return_exceptions=True)
             await self._event_bus.dispatch(SessionEnded())
-            await self._set_state(AssistantState.IDLE)
 
     async def _announce_wake(self, ready: threading.Event) -> None:
         try:
@@ -193,12 +185,8 @@ class VoiceAgent:
         finally:
             ready.set()
 
-    async def _receive_barge_in(
-        self,
-        *,
-        phase: AssistantState,
-    ) -> bytes | None:
-        await self._event_bus.dispatch(Interrupted(phase=phase))
+    async def _receive_barge_in(self) -> bytes | None:
+        await self._event_bus.dispatch(AssistantInterrupted())
         return await self._record()
 
     async def _record(
@@ -208,24 +196,31 @@ class VoiceAgent:
         ready: threading.Event | None = None,
     ) -> bytes | None:
         if follow_up:
-            await self._set_state(AssistantState.WAITING_FOLLOW_UP)
-            return await self._recorder.record_until_silence(
+            audio = await self._recorder.record_until_silence(
                 initial_silence_timeout=self._follow_up_timeout_seconds,
                 ready=ready,
+                on_speech_started=self._on_user_speech_started,
             )
-        await self._set_state(AssistantState.LISTENING)
-        return await self._recorder.record_until_silence(ready=ready)
+        else:
+            audio = await self._recorder.record_until_silence(
+                ready=ready,
+                on_speech_started=self._on_user_speech_started,
+            )
+        if audio is not None:
+            await self._event_bus.dispatch(UserSpeechEnded())
+        return audio
+
+    async def _on_user_speech_started(self) -> None:
+        await self._event_bus.dispatch(UserSpeechStarted())
 
     async def _transcribe(self, audio: bytes) -> str:
-        await self._set_state(AssistantState.TRANSCRIBING)
         response = await self._stt.transcribe(SpeechToTextRequest(audio=audio, language=self._speech_settings.language))
         transcript = response.text.strip()
         if transcript:
-            await self._event_bus.dispatch(Transcribed(transcript=transcript))
+            logger.info("[heard] %s", transcript)
         return transcript
 
     async def _think(self, *, interrupt: asyncio.Event | None = None) -> str:
-        await self._set_state(AssistantState.THINKING)
         if interrupt is None:
             return await self._stream_response()
 
@@ -261,9 +256,7 @@ class VoiceAgent:
 
             answer, called_tools = reply_task.result()
             if not called_tools:
-                await self._event_bus.dispatch(AnswerGenerated(answer=answer))
                 return answer
-            await self._set_state(AssistantState.THINKING)
 
     async def _resolve_streaming_reply(self, reply: StreamingReply) -> tuple[str, bool]:
         try:
@@ -284,7 +277,6 @@ class VoiceAgent:
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
 
-            await self._set_state(AssistantState.CALLING_TOOL)
             result = await self._tools.execute(name, arguments)
             fallback = "Tool completed successfully." if result.ok else "Tool failed."
             content = str(result.result or result.error or fallback)
@@ -300,14 +292,14 @@ class VoiceAgent:
         interrupt: asyncio.Event | None = None,
     ) -> None:
         await self._speech_stream.speak(
-            self._publish_speech_chunks(sentences),
+            self._log_speech_chunks(sentences),
             cancel=interrupt,
-            on_started=lambda: self._set_state(AssistantState.SPEAKING),
+            on_started=lambda: self._event_bus.dispatch(AssistantSpeechStarted()),
         )
 
-    async def _publish_speech_chunks(self, sentences: AsyncIterator[str]) -> AsyncIterator[str]:
+    async def _log_speech_chunks(self, sentences: AsyncIterator[str]) -> AsyncIterator[str]:
         async for text in sentences:
-            await self._event_bus.dispatch(SpeechChunkGenerated(text=text))
+            logger.info("[says] %s", text)
             yield text
 
     async def _reply(self) -> AsyncIterator[StreamEvent]:
@@ -316,7 +308,3 @@ class VoiceAgent:
             tools=self._tools.get_schema("openai"),
         ):
             yield event
-
-    async def _set_state(self, state: AssistantState) -> None:
-        self._state = state
-        await self._event_bus.dispatch(StateChanged(state=state))

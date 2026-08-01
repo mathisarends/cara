@@ -11,6 +11,6 @@
 - Keep class attributes and instance variables private by default. Expose public attributes only when they are intentionally part of the public API.
 - Prefer private module-level helper functions for module-local or cross-module logic instead of static methods that do not need class state.
 - When renaming an API, complete the rename throughout the codebase instead of leaving compatibility aliases or other transitional shims unless explicitly requested.
-- Keep the event system as simple as possible. Do not introduce new event types unless explicitly requested; prefer the existing events (e.g. `StateChanged`) to signal lifecycle changes.
+- Keep the event system limited to stable lifecycle facts consumed outside their producer. Do not expose internal state transitions as events.
 - Write comments and docstrings only when they add information the code does not already convey. Do not restate what class names, field names, defaults, or config already make obvious; prefer no docstring over a redundant one.
 - Order module-level definitions top-down: public API first, then the private `_`-prefixed helpers it relies on, so the module reads like a book from high-level to low-level (stepdown rule).

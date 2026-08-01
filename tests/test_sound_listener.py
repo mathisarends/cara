@@ -3,7 +3,7 @@ import asyncio
 from transitbus import EventBus
 
 from cara.audio import Earcon
-from cara.events import AssistantState, Interrupted, SessionEnded
+from cara.events import AssistantInterrupted, SessionEnded
 from cara.listener import SoundListener
 
 
@@ -23,7 +23,7 @@ def test_interrupted_plays_interrupt_earcon_before_dispatch_completes() -> None:
         event_bus = EventBus()
         earcons = RecordingEarconPlayer()
         SoundListener(event_bus, earcons)
-        await event_bus.dispatch(Interrupted(phase=AssistantState.SPEAKING))
+        await event_bus.dispatch(AssistantInterrupted())
         return earcons.earcons
 
     assert asyncio.run(run()) == [Earcon.INTERRUPT]

@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import threading
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from agenttoolkit import Skills
@@ -9,7 +11,7 @@ from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
-from cara.events import AnswerGenerated, SpeechChunkGenerated
+from cara.events import AssistantSpeechStarted
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
 from cara.tools import ActionResult, create_tools
 from cara.tools.params import WeatherParams
@@ -34,7 +36,13 @@ def _skills(root: Path) -> Skills:
 
 
 class UnusedRecorder:
-    async def record_until_silence(self, *, initial_silence_timeout: float | None = None) -> bytes | None:
+    async def record_until_silence(
+        self,
+        *,
+        initial_silence_timeout: float | None = None,
+        ready: threading.Event | None = None,
+        on_speech_started: Callable[[], Awaitable[None]] | None = None,
+    ) -> bytes | None:
         raise AssertionError("recorder should not be used")
 
 
@@ -166,7 +174,7 @@ def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlaye
     )
 
 
-def test_assistant_logs_transcript_through_console_listener(caplog) -> None:
+def test_assistant_logs_transcript_directly(caplog) -> None:
     player = CoordinatedAudioPlayer()
     tts = RecordingTextToSpeech()
     assistant = _assistant(
@@ -176,43 +184,38 @@ def test_assistant_logs_transcript_through_console_listener(caplog) -> None:
         stt=StaticSpeechToText(),
     )
 
-    with caplog.at_level(logging.INFO, logger="cara.listener.console_listener"):
+    with caplog.at_level(logging.INFO, logger="cara.assistant"):
         transcript = asyncio.run(assistant._transcribe(b"audio"))
 
     assert transcript == "Hallo Welt"
-    assert "\x1b[96m[heard] Hallo Welt\x1b[0m" in caplog.messages
+    assert "[heard] Hallo Welt" in caplog.messages
 
 
 def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> None:
-    async def run() -> tuple[str, RecordingTextToSpeech, CoordinatedAudioPlayer, list[str], list[str]]:
+    async def run() -> tuple[str, RecordingTextToSpeech, CoordinatedAudioPlayer, int]:
         player = CoordinatedAudioPlayer()
         tts = RecordingTextToSpeech()
         assistant = _assistant(llm=CoordinatedChatModel(player), tts=tts, player=player)
-        answers: list[str] = []
-        speech_chunks: list[str] = []
+        speech_starts = 0
 
-        async def capture_answer(event: AnswerGenerated) -> None:
-            answers.append(event.answer)
+        async def capture_speech_start(event: AssistantSpeechStarted) -> None:
+            nonlocal speech_starts
+            speech_starts += 1
 
-        async def capture_speech_chunk(event: SpeechChunkGenerated) -> None:
-            speech_chunks.append(event.text)
-
-        assistant.event_bus.subscribe(capture_answer)
-        assistant.event_bus.subscribe(capture_speech_chunk)
+        assistant.event_bus.subscribe(capture_speech_start)
         answer = await asyncio.wait_for(assistant._think(), timeout=2)
-        return answer, tts, player, answers, speech_chunks
+        return answer, tts, player, speech_starts
 
-    answer, tts, player, answers, speech_chunks = asyncio.run(run())
+    answer, tts, player, speech_starts = asyncio.run(run())
 
     assert answer == _STREAMED_ANSWER
     assert tts.texts == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
     assert player.audio == [_FIRST_SPEECH_CHUNK.encode(), _FINAL_SPEECH_CHUNK.encode()]
-    assert answers == [answer]
-    assert speech_chunks == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
+    assert speech_starts == 1
 
 
 def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
-    async def run() -> tuple[str, MultiRoundToolChatModel, RecordingTextToSpeech, list[str]]:
+    async def run() -> tuple[str, MultiRoundToolChatModel, RecordingTextToSpeech]:
         player = CoordinatedAudioPlayer()
         player.second_delta_generated.set()
         tts = RecordingTextToSpeech()
@@ -235,21 +238,14 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
             tools=tools,
             skills=skills,
         )
-        answers: list[str] = []
-
-        async def capture_answer(event: AnswerGenerated) -> None:
-            answers.append(event.answer)
-
-        assistant.event_bus.subscribe(capture_answer)
         answer = await assistant._think()
-        return answer, llm, tts, answers
+        return answer, llm, tts
 
-    answer, llm, tts, answers = asyncio.run(run())
+    answer, llm, tts = asyncio.run(run())
 
     assert answer == "Heute sind es 22 Grad und es ist sonnig."
     assert len(llm.messages) == 3
     assert tts.texts == [answer]
-    assert answers == [answer]
 
     second_round_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
     assert [(result.tool_call_id, result.content) for result in second_round_results] == [

@@ -69,14 +69,13 @@ def test_natural_pause_chunker_groups_sentences_near_the_target_size() -> None:
 
 
 def test_streaming_tts_synthesizes_ahead_while_preserving_playback_order() -> None:
-    async def run() -> tuple[RecordingTextToSpeech, BlockingFirstAudioPlayer, int]:
+    async def run() -> tuple[RecordingTextToSpeech, BlockingFirstAudioPlayer, list[tuple[list[str], list[bytes]]]]:
         tts = RecordingTextToSpeech()
         player = BlockingFirstAudioPlayer(tts)
-        started = 0
+        started: list[tuple[list[str], list[bytes]]] = []
 
         async def on_started() -> None:
-            nonlocal started
-            started += 1
+            started.append((list(tts.texts), list(player.audio)))
 
         stream = StreamingTextToSpeech(
             tts=tts,
@@ -90,4 +89,6 @@ def test_streaming_tts_synthesizes_ahead_while_preserving_playback_order() -> No
 
     assert tts.texts == ["Erster Satz.", "Zweiter Satz."]
     assert player.audio == [b"Erster Satz.", b"Zweiter Satz."]
-    assert started == 1
+    assert len(started) == 1
+    assert started[0][0]
+    assert started[0][1] == []
