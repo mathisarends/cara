@@ -17,19 +17,19 @@ from cara.audio import (
     SpeechRecorder,
 )
 from cara.audio.device import PortAudioDevice
-from cara.console_logging import _log_user_transcript
 from cara.events import (
     AnswerGenerated,
     AssistantState,
     Interrupted,
     SessionEnded,
     SessionStarted,
+    SpeechChunkGenerated,
     StateChanged,
     Transcribed,
     TurnStarted,
 )
 from cara.file_system import FileSystem
-from cara.listener import SoundListener
+from cara.listener import ConsoleListener, SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
 from cara.skills import Skills
@@ -110,6 +110,7 @@ class VoiceAgent:
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
         self._earcons = EarconPlayer(self._player)
+        self._console_listener = ConsoleListener(self._event_bus)
         self._sound_listener = SoundListener(self._event_bus, self._earcons)
         self._state = AssistantState.IDLE
 
@@ -229,7 +230,6 @@ class VoiceAgent:
         response = await self._stt.transcribe(SpeechToTextRequest(audio=audio, language=self._speech_settings.language))
         transcript = response.text.strip()
         if transcript:
-            _log_user_transcript(logger, transcript)
             await self._event_bus.dispatch(Transcribed(transcript=transcript))
         return transcript
 
@@ -314,10 +314,15 @@ class VoiceAgent:
         interrupt: asyncio.Event | None = None,
     ) -> None:
         await self._speech_stream.speak(
-            sentences,
+            self._publish_speech_chunks(sentences),
             cancel=interrupt,
             on_started=lambda: self._set_state(AssistantState.SPEAKING),
         )
+
+    async def _publish_speech_chunks(self, sentences: AsyncIterator[str]) -> AsyncIterator[str]:
+        async for text in sentences:
+            await self._event_bus.dispatch(SpeechChunkGenerated(text=text))
+            yield text
 
     async def _reply(self) -> AsyncIterator[StreamEvent]:
         async for event in self._llm.stream(

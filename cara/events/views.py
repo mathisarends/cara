@@ -41,6 +41,12 @@ class Transcribed(Event):
     transcript: str
 
 
+class SpeechChunkGenerated(Event):
+    """Emitted when a text chunk is ready to enter the speech pipeline."""
+
+    text: str
+
+
 class AnswerGenerated(Event):
     """Emitted once the full answer is known; streamed speech may already be playing."""
 

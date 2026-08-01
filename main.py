@@ -8,7 +8,6 @@ from transitbus import EventBus
 
 from cara import SpeechSettings, VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer, LocalAudioSink
-from cara.audio.sonos import SonosAudioSink
 from cara.file_system import LocalFileSystem, Workspace
 from cara.skills import Skills
 from cara.wakeword import WakeWord, WakeWordSettings
@@ -22,8 +21,7 @@ async def main() -> None:
     event_bus = EventBus()
     audio_player = AudioPlayer(
         LocalAudioSink(),
-        SonosAudioSink(),
-        active_output=AudioOutput.SONOS,
+        active_output=AudioOutput.LOCAL,
     )
 
     skills = Skills.from_directory(LocalFileSystem(Workspace(Path(__file__).parent)), "skills")

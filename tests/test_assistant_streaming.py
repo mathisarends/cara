@@ -7,7 +7,7 @@ from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
-from cara.events import AnswerGenerated
+from cara.events import AnswerGenerated, SpeechChunkGenerated
 from cara.file_system import Workspace
 from cara.skills import Skill, Skills
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
@@ -169,7 +169,7 @@ def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlaye
     )
 
 
-def test_assistant_logs_transcript_without_event_subscribers(caplog) -> None:
+def test_assistant_logs_transcript_through_console_listener(caplog) -> None:
     player = CoordinatedAudioPlayer()
     tts = RecordingTextToSpeech()
     assistant = _assistant(
@@ -179,7 +179,7 @@ def test_assistant_logs_transcript_without_event_subscribers(caplog) -> None:
         stt=StaticSpeechToText(),
     )
 
-    with caplog.at_level(logging.INFO, logger="cara.assistant"):
+    with caplog.at_level(logging.INFO, logger="cara.listener.console_listener"):
         transcript = asyncio.run(assistant._transcribe(b"audio"))
 
     assert transcript == "Hallo Welt"
@@ -187,26 +187,32 @@ def test_assistant_logs_transcript_without_event_subscribers(caplog) -> None:
 
 
 def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> None:
-    async def run() -> tuple[str, bool, RecordingTextToSpeech, CoordinatedAudioPlayer, list[str]]:
+    async def run() -> tuple[str, bool, RecordingTextToSpeech, CoordinatedAudioPlayer, list[str], list[str]]:
         player = CoordinatedAudioPlayer()
         tts = RecordingTextToSpeech()
         assistant = _assistant(llm=CoordinatedChatModel(player), tts=tts, player=player)
         answers: list[str] = []
+        speech_chunks: list[str] = []
 
         async def capture_answer(event: AnswerGenerated) -> None:
             answers.append(event.answer)
 
-        assistant.event_bus.subscribe(capture_answer)
-        answer, end_session = await asyncio.wait_for(assistant._think(), timeout=2)
-        return answer, end_session, tts, player, answers
+        async def capture_speech_chunk(event: SpeechChunkGenerated) -> None:
+            speech_chunks.append(event.text)
 
-    answer, end_session, tts, player, answers = asyncio.run(run())
+        assistant.event_bus.subscribe(capture_answer)
+        assistant.event_bus.subscribe(capture_speech_chunk)
+        answer, end_session = await asyncio.wait_for(assistant._think(), timeout=2)
+        return answer, end_session, tts, player, answers, speech_chunks
+
+    answer, end_session, tts, player, answers, speech_chunks = asyncio.run(run())
 
     assert answer == _STREAMED_ANSWER
     assert end_session is False
     assert tts.texts == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
     assert player.audio == [_FIRST_SPEECH_CHUNK.encode(), _FINAL_SPEECH_CHUNK.encode()]
     assert answers == [answer]
+    assert speech_chunks == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
 
 
 def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
