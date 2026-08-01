@@ -1,4 +1,4 @@
-"""Speech interfaces backed by the vocalbin library."""
+"""Speech services and text/audio input-output adapters."""
 
 from vocalbin import (
     OpenAISpeechToText,

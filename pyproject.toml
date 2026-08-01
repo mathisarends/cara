@@ -1,7 +1,7 @@
 [project]
 name = "cara"
 version = "0.1.0"
-description = "Small OpenAI speech wrappers for Cara."
+description = "Input-agnostic conversational agent with terminal and voice sessions."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "httpx>=0.28.0",

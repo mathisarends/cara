@@ -1,6 +1,8 @@
 # Cara
 
-Wake-word driven local voice loop:
+Input-agnostic conversational agent with terminal and wake-word-driven voice sessions. The shared
+agent handles text, conversation history, skills, and tools. Voice mode wraps it in this local audio
+pipeline:
 
 1. listens for the wake word
 2. records one microphone utterance until silence

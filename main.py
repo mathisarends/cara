@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from llmify import ChatCodex, ChatModel
 from transitbus import EventBus
 
-from cara import Agent, SpeechSettings, TerminalSession, VoiceSession
+from cara import Agent, SpeechInput, SpeechOutput, SpeechSettings, TerminalSession, VoiceSession
 from cara.audio import (
     AudioOutput,
     AudioPlayer,
@@ -18,7 +18,7 @@ from cara.audio import (
     MicrophoneStream,
 )
 from cara.audio.device import PortAudioDevice
-from cara.speech import OpenAISpeechToText, OpenAITextToSpeech, SpeechInput, SpeechOutput
+from cara.speech import OpenAISpeechToText, OpenAITextToSpeech
 from cara.tools import build_tools
 from cara.wakeword import WakeWord, WakeWordListener
 

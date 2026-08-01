@@ -1,10 +1,9 @@
 import json
 
-from agenttoolkit import Skills
+from agenttoolkit import Skills, Tools
 from llmify import ChatInvokeCompletion, ChatModel, ToolCall
 
 from cara.messages import MessageManager, SystemPrompt
-from cara.tools import Tools
 
 
 class Agent:

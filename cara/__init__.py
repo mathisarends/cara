@@ -7,6 +7,8 @@ from .sessions import TerminalSession, VoiceSession
 from .speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
+    SpeechInput,
+    SpeechOutput,
     SpeechSettings,
     SpeechToTextRequest,
     SpeechToTextResponse,
@@ -17,19 +19,21 @@ from .speech import (
 
 __all__ = [
     "Agent",
-    "OpenAISpeechToText",
-    "OpenAITextToSpeech",
     "Event",
     "EventBus",
     "HueListener",
     "MessageManager",
+    "OpenAISpeechToText",
+    "OpenAITextToSpeech",
+    "SpeechInput",
+    "SpeechOutput",
     "SpeechSettings",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
     "SystemPrompt",
+    "TerminalSession",
     "TextToSpeechFormat",
     "TextToSpeechRequest",
     "TextToSpeechResponse",
-    "TerminalSession",
     "VoiceSession",
 ]
