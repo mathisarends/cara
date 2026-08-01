@@ -83,16 +83,15 @@ def create_tools(context: ToolContext | None = None) -> agenttoolkit.Tools:
 
 
 def build_tools(
-    player: AudioPlayer,
-    *,
+    *dependencies: object,
     skills: Skills | None = None,
     workspace: Workspace | None = None,
     tools: agenttoolkit.Tools | None = None,
 ) -> agenttoolkit.Tools:
-    dependencies: list[object] = [player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
+    configured_dependencies = [*dependencies, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
     if skills is not None:
-        dependencies.append(skills)
-    tool_context = create_tool_context(*dependencies, workspace=workspace)
+        configured_dependencies.append(skills)
+    tool_context = create_tool_context(*configured_dependencies, workspace=workspace)
     if tools is None:
         return create_tools(tool_context)
     tools.set_context(tool_context)

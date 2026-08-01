@@ -1,5 +1,6 @@
 from transitbus import Event, EventBus
 
+from .agent import Agent
 from .assistant import VoiceAgent
 from .listener import HueListener
 from .messages import MessageManager, SystemPrompt
@@ -15,6 +16,7 @@ from .speech import (
 from .views import SpeechSettings
 
 __all__ = [
+    "Agent",
     "OpenAISpeechToText",
     "OpenAITextToSpeech",
     "Event",

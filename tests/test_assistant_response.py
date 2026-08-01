@@ -9,11 +9,12 @@ from agenttoolkit.builtins import LocalWorkspace
 from llmify import AssistantMessage, ChatInvokeCompletion, Function, ToolCall, ToolResultMessage
 from transitbus import EventBus
 
+from cara.agent import Agent
 from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AssistantSpeechStarted
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
-from cara.tools import ActionResult, create_tools
+from cara.tools import ActionResult, build_tools, create_tools
 from cara.tools.params import WeatherParams
 from cara.wakeword import WakeWordSettings
 
@@ -176,7 +177,7 @@ def test_assistant_generates_full_answer_then_speaks_it_once() -> None:
             speech_starts += 1
 
         assistant.event_bus.subscribe(capture_speech_start)
-        answer = await asyncio.wait_for(assistant._think(), timeout=2)
+        answer = await asyncio.wait_for(assistant._respond("Hallo"), timeout=2)
         await assistant._speak(answer)
         return answer, tts, player, speech_starts
 
@@ -188,10 +189,8 @@ def test_assistant_generates_full_answer_then_speaks_it_once() -> None:
     assert speech_starts == 1
 
 
-def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
-    async def run() -> tuple[str, MultiRoundToolChatModel, RecordingTextToSpeech]:
-        player = RecordingAudioPlayer()
-        tts = RecordingTextToSpeech()
+def test_agent_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
+    async def run() -> tuple[str, MultiRoundToolChatModel]:
         llm = MultiRoundToolChatModel()
         tools = create_tools()
 
@@ -200,21 +199,15 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
             return ActionResult.success("22 Grad und sonnig.")
 
         skills = _skills(tmp_path)
-        assistant = VoiceAgent(
+        agent = Agent(
             llm=llm,
-            recorder=UnusedRecorder(),
-            player=AudioPlayer(player),
-            stt=UnusedSpeechToText(),
-            tts=tts,
-            event_bus=EventBus(),
-            wake_word_settings=WakeWordSettings(),
-            tools=tools,
+            tools=build_tools(skills=skills, tools=tools),
             skills=skills,
         )
-        answer = await assistant._think()
-        return answer, llm, tts
+        answer = await agent.respond("Wie wird das Wetter?")
+        return answer, llm
 
-    answer, llm, tts = asyncio.run(run())
+    answer, llm = asyncio.run(run())
 
     assert answer == "Heute sind es 22 Grad und es ist sonnig."
     assert len(llm.messages) == 3
@@ -237,21 +230,13 @@ def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: 
 
 def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> None:
     async def run() -> DeniedPathChatModel:
-        player = RecordingAudioPlayer()
         llm = DeniedPathChatModel()
-        assistant = VoiceAgent(
+        agent = Agent(
             llm=llm,
-            recorder=UnusedRecorder(),
-            player=AudioPlayer(player),
-            stt=UnusedSpeechToText(),
-            tts=RecordingTextToSpeech(),
-            event_bus=EventBus(),
-            wake_word_settings=WakeWordSettings(),
-            tools=create_tools(),
-            workspace=LocalWorkspace(tmp_path),
+            tools=build_tools(tools=create_tools(), workspace=LocalWorkspace(tmp_path)),
         )
 
-        await assistant._think()
+        await agent.respond("Schreibe außerhalb des Arbeitsbereichs.")
         return llm
 
     llm = asyncio.run(run())

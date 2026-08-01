@@ -1,13 +1,13 @@
 import asyncio
-import json
 import logging
 import threading
 
 from agenttoolkit import Skills
 from agenttoolkit.builtins import Workspace
-from llmify import ChatInvokeCompletion, ChatModel, ToolCall
+from llmify import ChatModel
 from transitbus import EventBus
 
+from cara.agent import Agent
 from cara.audio import (
     AudioPlayer,
     Earcon,
@@ -27,7 +27,7 @@ from cara.events import (
     UserSpeechStarted,
 )
 from cara.listener import SoundListener
-from cara.messages import MessageManager, SystemPrompt
+from cara.messages import SystemPrompt
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -72,24 +72,22 @@ class VoiceAgent:
         extend_system_prompt: str | None = None,
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
     ) -> None:
-        self._llm = llm
         self._audio_device = PortAudioDevice()
         self._microphone = MicrophoneStream(device=self._audio_device)
         self._recorder = recorder or MicrophoneRecorder(self._microphone)
         self._player = player or AudioPlayer(LocalAudioSink(device=self._audio_device))
         self._stt = stt or OpenAISpeechToText(api_key)
         self._tts = tts or OpenAITextToSpeech(api_key)
-        self._tools = build_tools(self._player, skills=skills, workspace=workspace, tools=tools)
+        configured_tools = build_tools(self._player, skills=skills, workspace=workspace, tools=tools)
         self._speech_settings = speech_settings or SpeechSettings()
         self._wake_word_settings = wake_word_settings
-        self._system_prompt = self._build_system_prompt(
+        self._agent = Agent(
+            llm=llm,
+            tools=configured_tools,
+            skills=skills,
             system_prompt=system_prompt,
             override_system_prompt=override_system_prompt,
             extend_system_prompt=extend_system_prompt,
-        )
-        self._message_manager = MessageManager(
-            system_prompt=self._system_prompt,
-            skills=skills,
         )
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
         self._event_bus = event_bus or EventBus()
@@ -99,22 +97,6 @@ class VoiceAgent:
     @property
     def event_bus(self) -> EventBus:
         return self._event_bus
-
-    def _build_system_prompt(
-        self,
-        *,
-        system_prompt: str | SystemPrompt | None,
-        override_system_prompt: str | None,
-        extend_system_prompt: str | None,
-    ) -> str | SystemPrompt:
-        if system_prompt is not None and (override_system_prompt is not None or extend_system_prompt is not None):
-            raise ValueError("Use system_prompt or override_system_prompt/extend_system_prompt, not both.")
-        if system_prompt is not None:
-            return system_prompt
-        return SystemPrompt(
-            override_system_prompt=override_system_prompt,
-            extend_system_prompt=extend_system_prompt,
-        )
 
     async def start(self) -> None:
         listener = WakeWordListener(
@@ -149,10 +131,9 @@ class VoiceAgent:
                     logger.info("Ignoring empty transcription")
                     break
 
-                self._message_manager.add_user(transcript)
                 async with WakeWordBargeIn(wake_word_listener) as barge_in:
                     try:
-                        answer = await self._think(interrupt=barge_in.interrupt)
+                        answer = await self._respond(transcript, interrupt=barge_in.interrupt)
                     except _ResponseInterrupted:
                         pending_audio = await self._receive_barge_in()
                         if pending_audio is None:
@@ -173,7 +154,6 @@ class VoiceAgent:
                         break
                     follow_up = False
                     continue
-                self._message_manager.add_assistant(answer)
                 follow_up = True
         finally:
             wake_earcon.cancel()
@@ -221,11 +201,11 @@ class VoiceAgent:
             logger.info("[heard] %s", transcript)
         return transcript
 
-    async def _think(self, *, interrupt: asyncio.Event | None = None) -> str:
+    async def _respond(self, text: str, *, interrupt: asyncio.Event | None = None) -> str:
         if interrupt is None:
-            return await self._generate_answer()
+            return await self._agent.respond(text)
 
-        response_task = asyncio.create_task(self._generate_answer())
+        response_task = asyncio.create_task(self._agent.respond(text))
         interrupt_task = asyncio.create_task(interrupt.wait())
         try:
             done, _ = await asyncio.wait(
@@ -240,34 +220,6 @@ class VoiceAgent:
                 if not task.done():
                     task.cancel()
             await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
-
-    async def _generate_answer(self) -> str:
-        while True:
-            completion = await self._llm.invoke(
-                self._message_manager.to_llm_messages(),
-                tools=self._tools.get_schema("openai"),
-            )
-            answer, called_tools = await self._resolve_completion(completion)
-            if not called_tools:
-                return answer
-
-    async def _resolve_completion(
-        self,
-        completion: ChatInvokeCompletion[str],
-    ) -> tuple[str, bool]:
-        answer = completion.completion.strip()
-        tool_results: list[tuple[ToolCall, str]] = []
-        for tool_call in completion.tool_calls:
-            name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments or "{}")
-
-            result = await self._tools.execute(name, arguments)
-            fallback = "Tool completed successfully." if result.ok else "Tool failed."
-            content = str(result.result or result.error or fallback)
-            tool_results.append((tool_call, content))
-
-        self._message_manager.add_tool_results(tool_results)
-        return answer, bool(completion.tool_calls)
 
     async def _speak(self, text: str, *, interrupt: asyncio.Event | None = None) -> None:
         logger.info("[says] %s", text)
