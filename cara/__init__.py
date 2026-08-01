@@ -7,13 +7,13 @@ from .messages import MessageManager, SystemPrompt
 from .speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
+    SpeechSettings,
     SpeechToTextRequest,
     SpeechToTextResponse,
     TextToSpeechFormat,
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from .views import SpeechSettings
 
 __all__ = [
     "Agent",

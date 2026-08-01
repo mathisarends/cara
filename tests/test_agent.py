@@ -1,22 +1,13 @@
 import asyncio
-import logging
-import threading
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from agenttoolkit import Skills
 from agenttoolkit.builtins import LocalWorkspace
-from llmify import AssistantMessage, ChatInvokeCompletion, Function, ToolCall, ToolResultMessage
-from transitbus import EventBus
+from llmify import AssistantMessage, ChatInvokeCompletion, Function, ToolCall, ToolResultMessage, UserMessage
 
 from cara.agent import Agent
-from cara.assistant import VoiceAgent
-from cara.audio import AudioOutput, AudioPlayer
-from cara.events import AssistantSpeechStarted
-from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
 from cara.tools import ActionResult, build_tools, create_tools
 from cara.tools.params import WeatherParams
-from cara.wakeword import WakeWordSettings
 
 _ANSWER = "Hallo, wie kann ich helfen?"
 
@@ -31,61 +22,12 @@ def _skills(root: Path) -> Skills:
     return Skills.from_local_dir(root)
 
 
-class UnusedRecorder:
-    async def record_until_silence(
-        self,
-        *,
-        initial_silence_timeout: float | None = None,
-        ready: threading.Event | None = None,
-        on_speech_started: Callable[[], Awaitable[None]] | None = None,
-    ) -> bytes | None:
-        raise AssertionError("recorder should not be used")
-
-
-class UnusedSpeechToText:
-    async def transcribe(self, request) -> None:
-        raise AssertionError("speech-to-text should not be used")
-
-
-class StaticSpeechToText:
-    async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
-        return SpeechToTextResponse(
-            text=" Hallo Welt ",
-            model=request.model,
-            response_format=request.response_format,
-            raw={},
-        )
-
-
-class RecordingTextToSpeech:
-    def __init__(self) -> None:
-        self.texts: list[str] = []
-
-    async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
-        self.texts.append(request.text)
-        return TextToSpeechResponse(
-            audio=request.text.encode(),
-            model=request.model,
-            voice=request.voice,
-            response_format=request.response_format,
-            content_type="audio/wav",
-        )
-
-
-class RecordingAudioPlayer:
-    def __init__(self) -> None:
-        self.audio: list[bytes] = []
-
-    @property
-    def output(self) -> AudioOutput:
-        return AudioOutput.LOCAL
-
-    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        self.audio.append(audio)
-
-
 class StaticChatModel:
+    def __init__(self) -> None:
+        self.messages: list[list[object]] = []
+
     async def invoke(self, messages, *, tools):
+        self.messages.append(messages)
         return ChatInvokeCompletion(completion=_ANSWER)
 
 
@@ -128,7 +70,7 @@ class DeniedPathChatModel:
                 id="write-outside-workspace",
                 function=Function(
                     name="write_file",
-                    arguments=('{"path":"../outside.txt","content":"unsafe"}'),
+                    arguments='{"path":"../outside.txt","content":"unsafe"}',
                 ),
             )
             return ChatInvokeCompletion(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
@@ -136,57 +78,15 @@ class DeniedPathChatModel:
         return ChatInvokeCompletion(completion="Ich kann nur innerhalb des Arbeitsbereichs schreiben.")
 
 
-def _assistant(*, llm, tts: RecordingTextToSpeech, player: RecordingAudioPlayer, stt=None) -> VoiceAgent:
-    return VoiceAgent(
-        llm=llm,
-        recorder=UnusedRecorder(),
-        player=AudioPlayer(player),
-        stt=stt or UnusedSpeechToText(),
-        tts=tts,
-        event_bus=EventBus(),
-        wake_word_settings=WakeWordSettings(),
-    )
+def test_agent_responds_to_normalized_text() -> None:
+    llm = StaticChatModel()
+    agent = Agent(llm=llm, tools=create_tools())
 
-
-def test_assistant_logs_transcript_directly(caplog) -> None:
-    player = RecordingAudioPlayer()
-    tts = RecordingTextToSpeech()
-    assistant = _assistant(
-        llm=StaticChatModel(),
-        tts=tts,
-        player=player,
-        stt=StaticSpeechToText(),
-    )
-
-    with caplog.at_level(logging.INFO, logger="cara.assistant"):
-        transcript = asyncio.run(assistant._transcribe(b"audio"))
-
-    assert transcript == "Hallo Welt"
-    assert "[heard] Hallo Welt" in caplog.messages
-
-
-def test_assistant_generates_full_answer_then_speaks_it_once() -> None:
-    async def run() -> tuple[str, RecordingTextToSpeech, RecordingAudioPlayer, int]:
-        player = RecordingAudioPlayer()
-        tts = RecordingTextToSpeech()
-        assistant = _assistant(llm=StaticChatModel(), tts=tts, player=player)
-        speech_starts = 0
-
-        async def capture_speech_start(event: AssistantSpeechStarted) -> None:
-            nonlocal speech_starts
-            speech_starts += 1
-
-        assistant.event_bus.subscribe(capture_speech_start)
-        answer = await asyncio.wait_for(assistant._respond("Hallo"), timeout=2)
-        await assistant._speak(answer)
-        return answer, tts, player, speech_starts
-
-    answer, tts, player, speech_starts = asyncio.run(run())
+    answer = asyncio.run(agent.respond("  Hallo  "))
 
     assert answer == _ANSWER
-    assert tts.texts == [_ANSWER]
-    assert player.audio == [_ANSWER.encode()]
-    assert speech_starts == 1
+    user_messages = [message for message in llm.messages[0] if isinstance(message, UserMessage)]
+    assert [message.content for message in user_messages] == ["Hallo"]
 
 
 def test_agent_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:

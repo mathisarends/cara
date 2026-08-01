@@ -1,12 +1,11 @@
 from pydantic import BaseModel, ConfigDict
-
-from cara.speech import TextToSpeechVoice
+from vocalbin import TextToSpeechVoice
 
 DEFAULT_TTS_VOICE_INSTRUCTIONS = "Sprich freundlich, ruhig und klar auf Deutsch."
 
 
 class SpeechSettings(BaseModel):
-    """Language and voice settings shared by speech-to-text and text-to-speech."""
+    """Language and voice settings shared by speech input and output."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

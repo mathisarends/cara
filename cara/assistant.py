@@ -20,25 +20,21 @@ from cara.audio import (
 from cara.audio.device import PortAudioDevice
 from cara.events import (
     AssistantInterrupted,
-    AssistantSpeechStarted,
     SessionEnded,
     SessionStarted,
-    UserSpeechEnded,
-    UserSpeechStarted,
 )
 from cara.listener import SoundListener
 from cara.messages import SystemPrompt
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
+    SpeechInput,
+    SpeechOutput,
+    SpeechSettings,
     SpeechToText,
-    SpeechToTextRequest,
     TextToSpeech,
-    TextToSpeechFormat,
-    TextToSpeechRequest,
 )
 from cara.tools import Tools, build_tools
-from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
 from cara.wakeword.barge_in import WakeWordBargeIn
 
@@ -76,11 +72,22 @@ class VoiceAgent:
         self._microphone = MicrophoneStream(device=self._audio_device)
         self._recorder = recorder or MicrophoneRecorder(self._microphone)
         self._player = player or AudioPlayer(LocalAudioSink(device=self._audio_device))
-        self._stt = stt or OpenAISpeechToText(api_key)
-        self._tts = tts or OpenAITextToSpeech(api_key)
         configured_tools = build_tools(self._player, skills=skills, workspace=workspace, tools=tools)
         self._speech_settings = speech_settings or SpeechSettings()
         self._wake_word_settings = wake_word_settings
+        self._event_bus = event_bus or EventBus()
+        self._speech_input = SpeechInput(
+            self._recorder,
+            stt or OpenAISpeechToText(api_key),
+            self._speech_settings,
+            self._event_bus,
+        )
+        self._speech_output = SpeechOutput(
+            tts or OpenAITextToSpeech(api_key),
+            self._player,
+            self._speech_settings,
+            self._event_bus,
+        )
         self._agent = Agent(
             llm=llm,
             tools=configured_tools,
@@ -90,7 +97,6 @@ class VoiceAgent:
             extend_system_prompt=extend_system_prompt,
         )
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
-        self._event_bus = event_bus or EventBus()
         self._earcons = EarconPlayer(self._player)
         self._sound_listener = SoundListener(self._event_bus, self._earcons)
 
@@ -113,20 +119,20 @@ class VoiceAgent:
 
     async def _run(self, wake_word_listener: WakeWordListener) -> None:
         follow_up = False
-        pending_audio: bytes | None = None
+        pending_transcript: str | None = None
         ready: threading.Event | None = threading.Event()
         await self._event_bus.dispatch(SessionStarted())
         wake_earcon = asyncio.create_task(self._announce_wake(ready))
         try:
             while True:
-                audio = pending_audio
-                pending_audio = None
-                if audio is None:
-                    audio = await self._record(follow_up=follow_up, ready=ready)
+                if pending_transcript is not None:
+                    transcript = pending_transcript
+                    pending_transcript = None
+                else:
+                    transcript = await self._receive(follow_up=follow_up, ready=ready)
                     ready = None
-                if audio is None:
+                if transcript is None:
                     break
-                transcript = await self._transcribe(audio)
                 if not transcript:
                     logger.info("Ignoring empty transcription")
                     break
@@ -135,22 +141,22 @@ class VoiceAgent:
                     try:
                         answer = await self._respond(transcript, interrupt=barge_in.interrupt)
                     except _ResponseInterrupted:
-                        pending_audio = await self._receive_barge_in()
-                        if pending_audio is None:
+                        pending_transcript = await self._receive_barge_in()
+                        if pending_transcript is None:
                             break
                         follow_up = False
                         continue
                     if barge_in.interrupt.is_set():
-                        pending_audio = await self._receive_barge_in()
-                        if pending_audio is None:
+                        pending_transcript = await self._receive_barge_in()
+                        if pending_transcript is None:
                             break
                         follow_up = False
                         continue
                     if answer:
-                        await self._speak(answer, interrupt=barge_in.interrupt)
+                        await self._speech_output.send(answer, cancel=barge_in.interrupt)
                 if barge_in.interrupt.is_set():
-                    pending_audio = await self._receive_barge_in()
-                    if pending_audio is None:
+                    pending_transcript = await self._receive_barge_in()
+                    if pending_transcript is None:
                         break
                     follow_up = False
                     continue
@@ -166,40 +172,21 @@ class VoiceAgent:
         finally:
             ready.set()
 
-    async def _receive_barge_in(self) -> bytes | None:
+    async def _receive_barge_in(self) -> str | None:
         await self._event_bus.dispatch(AssistantInterrupted())
-        return await self._record()
+        return await self._speech_input.receive()
 
-    async def _record(
+    async def _receive(
         self,
         *,
         follow_up: bool = False,
         ready: threading.Event | None = None,
-    ) -> bytes | None:
-        if follow_up:
-            audio = await self._recorder.record_until_silence(
-                initial_silence_timeout=self._follow_up_timeout_seconds,
-                ready=ready,
-                on_speech_started=self._on_user_speech_started,
-            )
-        else:
-            audio = await self._recorder.record_until_silence(
-                ready=ready,
-                on_speech_started=self._on_user_speech_started,
-            )
-        if audio is not None:
-            await self._event_bus.dispatch(UserSpeechEnded())
-        return audio
-
-    async def _on_user_speech_started(self) -> None:
-        await self._event_bus.dispatch(UserSpeechStarted())
-
-    async def _transcribe(self, audio: bytes) -> str:
-        response = await self._stt.transcribe(SpeechToTextRequest(audio=audio, language=self._speech_settings.language))
-        transcript = response.text.strip()
-        if transcript:
-            logger.info("[heard] %s", transcript)
-        return transcript
+    ) -> str | None:
+        initial_silence_timeout = self._follow_up_timeout_seconds if follow_up else None
+        return await self._speech_input.receive(
+            initial_silence_timeout=initial_silence_timeout,
+            ready=ready,
+        )
 
     async def _respond(self, text: str, *, interrupt: asyncio.Event | None = None) -> str:
         if interrupt is None:
@@ -220,16 +207,3 @@ class VoiceAgent:
                 if not task.done():
                     task.cancel()
             await asyncio.gather(response_task, interrupt_task, return_exceptions=True)
-
-    async def _speak(self, text: str, *, interrupt: asyncio.Event | None = None) -> None:
-        logger.info("[says] %s", text)
-        response = await self._tts.synthesize(
-            TextToSpeechRequest(
-                text=text,
-                voice=self._speech_settings.tts_voice,
-                response_format=TextToSpeechFormat.WAV,
-                instructions=self._speech_settings.tts_voice_instructions,
-            )
-        )
-        await self._event_bus.dispatch(AssistantSpeechStarted())
-        await self._player.play(response.audio, cancel=interrupt)
