@@ -5,7 +5,7 @@ from pathlib import Path
 from llmify import AssistantMessage, Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, ToolResultMessage
 from transitbus import EventBus
 
-from cara.assistant import VoiceAssistant
+from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated
 from cara.file_system import Workspace
@@ -157,8 +157,8 @@ class DeniedPathChatModel:
         yield StreamEnd(completion=answer)
 
 
-def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer, stt=None) -> VoiceAssistant:
-    return VoiceAssistant(
+def _assistant(*, llm, tts: RecordingTextToSpeech, player: CoordinatedAudioPlayer, stt=None) -> VoiceAgent:
+    return VoiceAgent(
         llm=llm,
         recorder=UnusedRecorder(),
         player=AudioPlayer(player),
@@ -222,7 +222,7 @@ def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
             return ActionResult.success("22 Grad und sonnig.")
 
         skills = Skills([Skill(name="weather", description="Wetter abrufen.", instructions="Rufe weather_lookup auf.")])
-        assistant = VoiceAssistant(
+        assistant = VoiceAgent(
             llm=llm,
             recorder=UnusedRecorder(),
             player=AudioPlayer(player),
@@ -271,7 +271,7 @@ def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path
         player = CoordinatedAudioPlayer()
         player.second_delta_generated.set()
         llm = DeniedPathChatModel()
-        assistant = VoiceAssistant(
+        assistant = VoiceAgent(
             llm=llm,
             recorder=UnusedRecorder(),
             player=AudioPlayer(player),

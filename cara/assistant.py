@@ -57,7 +57,7 @@ class _ResponseInterrupted(Exception):
     pass
 
 
-class VoiceAssistant:
+class VoiceAgent:
     def __init__(
         self,
         *,

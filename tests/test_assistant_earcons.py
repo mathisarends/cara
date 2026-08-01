@@ -3,7 +3,7 @@ import threading
 
 from transitbus import EventBus
 
-from cara.assistant import VoiceAssistant
+from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
 from cara.wakeword import WakeWordSettings
 from cara.wakeword.ports import WakeWordDetectionSource
@@ -51,7 +51,7 @@ class NoWakeWordListener(WakeWordDetectionSource):
 def test_first_recording_arms_after_wake_earcon() -> None:
     async def run() -> list[str]:
         events: list[str] = []
-        assistant = VoiceAssistant(
+        assistant = VoiceAgent(
             llm=UnusedDependency(),
             recorder=EmptyRecorder(events),
             player=AudioPlayer(RecordingPlayer(events)),

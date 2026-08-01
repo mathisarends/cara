@@ -4,7 +4,7 @@ import threading
 from llmify import Function, StreamEnd, StreamToolCall, ToolCall, UserMessage
 from transitbus import EventBus
 
-from cara.assistant import VoiceAssistant
+from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AssistantState, Interrupted
 from cara.speech import (
@@ -150,7 +150,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
             interruptions.append(event)
 
         event_bus.subscribe(capture_interruption)
-        assistant = VoiceAssistant(
+        assistant = VoiceAgent(
             llm=llm,
             recorder=recorder,
             player=AudioPlayer(ImmediateAudioPlayer(events)),

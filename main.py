@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from transitbus import EventBus
 
-from cara import SpeechSettings, VoiceAssistant
+from cara import SpeechSettings, VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer, WavAudioPlayer
 from cara.audio.sonos import SonosAudioPlayer
 from cara.file_system import LocalFileSystem, Workspace
@@ -27,7 +27,7 @@ async def main() -> None:
 
     skills = Skills.from_directory(LocalFileSystem(Workspace(Path(__file__).parent)), "skills")
 
-    assistant = VoiceAssistant(
+    assistant = VoiceAgent(
         speech_settings=SpeechSettings(language="de"),
         wake_word_settings=WakeWordSettings(wake_word=WakeWord.HEY_MYCROFT, sensitivity=0.5),
         event_bus=event_bus,

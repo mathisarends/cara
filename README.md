@@ -39,7 +39,7 @@ load it.
 ## Audio outputs
 
 `AudioPlayer` delegates playback to a named output strategy. Register every output that should be
-available at runtime and pass the player to `VoiceAssistant`:
+available at runtime and pass the player to `VoiceAgent`:
 
 ```python
 audio_player = AudioPlayer(

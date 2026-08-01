@@ -1,6 +1,6 @@
 from transitbus import Event, EventBus
 
-from .assistant import VoiceAssistant
+from .assistant import VoiceAgent
 from .events import (
     AnswerGenerated,
     AssistantState,
@@ -50,6 +50,6 @@ __all__ = [
     "TextToSpeechResponse",
     "Transcribed",
     "TurnStarted",
-    "VoiceAssistant",
+    "VoiceAgent",
     "Workspace",
 ]
