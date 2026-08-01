@@ -1,10 +1,11 @@
 import asyncio
+import functools
 import logging
 import signal
 import sys
 from collections.abc import AsyncIterator
 
-from wakewordkit import WakeWord, WakeWordDetector
+from wakewordkit import CallableInput, WakeWord, WakeWordDetector
 
 from cara.audio import MicrophoneStream
 from cara.wakeword.ports import WakeWordDetectionSource
@@ -51,17 +52,8 @@ class WakeWordListener(WakeWordDetectionSource):
     async def detect_once(self, *, cancel: asyncio.Event | None = None) -> float | None:
         """Listen until the wake word is detected or cancellation is requested."""
         self._detector.reset()
-        loop = asyncio.get_running_loop()
-        while cancel is None or not cancel.is_set():
-            pcm = await loop.run_in_executor(None, self._microphone.read, _PREDICTION_CHUNK)
-
-            if cancel is not None and cancel.is_set():
-                break
-
-            detection = self._detector.process(pcm)
-            if detection is None:
-                continue
-
+        audio = CallableInput(functools.partial(_read_frame, self._microphone, cancel))
+        async for detection in self._detector.alisten(audio):
             logger.info("Wake word detected (score=%.2f).", detection.score)
             return detection.score
 
@@ -71,3 +63,10 @@ class WakeWordListener(WakeWordDetectionSource):
         logger.info("Shutting down...")
         self._microphone.close()
         sys.exit(0)
+
+
+def _read_frame(microphone: MicrophoneStream, cancel: asyncio.Event | None) -> bytes:
+    frame = microphone.read(_PREDICTION_CHUNK)
+    if cancel is not None and cancel.is_set():
+        raise StopIteration
+    return frame

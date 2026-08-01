@@ -85,8 +85,8 @@ requires-dist = [
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "transitbus", specifier = ">=0.1.0" },
     { name = "tzdata", specifier = ">=2024.1" },
-    { name = "vocalbin", specifier = ">=0.1.0" },
-    { name = "wakewordkit", specifier = ">=0.1.0" },
+    { name = "vocalbin", specifier = ">=0.3.0" },
+    { name = "wakewordkit", specifier = ">=0.2.0" },
 ]
 provides-extras = ["elevenlabs"]
 
@@ -408,18 +408,17 @@ wheels = [
 
 [[package]]
 name = "openwakeword"
-version = "0.6.0"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "scikit-learn", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "scipy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tqdm", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/9b/73b7d98b07f4e1f525ad39703e0c5f30ff61c3fa16c8bfe4d99eadc0567a/openwakeword-0.6.0.tar.gz", hash = "sha256:36858d90f1183e307485597a912a4e3c3384b14ea9923f83feaffae7c1565565", size = 70830, upload-time = "2024-02-11T20:56:17.854Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/40/2afdab3146f08fa51ca74eba6f44ce4f26bd2bd88e255f34b42b0f495ef0/openwakeword-0.4.0.tar.gz", hash = "sha256:58714db20d9fdc6a089e4ef714c98807519ba00822bd32e156ad4f2a00ec9d23", size = 9289877, upload-time = "2023-04-22T22:07:31.767Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/33/dafd6822bebe463a9098951d06a0d88fb4f8c946ce087025bc4fa132e533/openwakeword-0.6.0-py3-none-any.whl", hash = "sha256:6f423a4e3ae9dd0e3cd12b50ff8abf69679f687b4ab349d7c82c021c0e2abc9d", size = 60690, upload-time = "2024-02-11T20:56:16.179Z" },
+    { url = "https://files.pythonhosted.org/packages/18/0f/6b22ebf0808363d0c71f7e5d0880b1c13c6a2cdcae2dc2cb8adfbdbcc278/openwakeword-0.4.0-py3-none-any.whl", hash = "sha256:2c353f49a35d384507403efde3db439353d8281a52d08a0e42a5b493e5145075", size = 9285483, upload-time = "2023-04-22T22:07:28.766Z" },
 ]
 
 [[package]]
@@ -855,29 +854,29 @@ wheels = [
 
 [[package]]
 name = "vocalbin"
-version = "0.1.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/28/c600b1b99dff8a5a4da04e64e59f8d0baede62bd23689850e1997fb13329/vocalbin-0.1.0.tar.gz", hash = "sha256:ffa881e6e8a3415c6ba38987b94ab13c77d48f73741503726a7bd2639f121d15", size = 5246939, upload-time = "2026-07-21T19:33:32.784Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/13/85be8217aed2fed4a6a1f55cced252fa9209a58d3c00f97ac66de20790de/vocalbin-0.3.0.tar.gz", hash = "sha256:f0ac8d166612c129387cfa009324711108a756b73b638d6753b2f4a23af44993", size = 5668085, upload-time = "2026-08-01T09:24:18.772Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/42/8e942378155ef5ec0111b4146679ac47e8d2ee1896edacfa8193ece83dc4/vocalbin-0.1.0-py3-none-any.whl", hash = "sha256:cbc94d8b3c53a1ca915411dedeb25112433e3ec3c4523c155e84ff8d22abb6b9", size = 8090, upload-time = "2026-07-21T19:33:31.572Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/58/fa688cf6888438ef0566d5e9d487789f0203c84dec3b04ebcc812106d57d/vocalbin-0.3.0-py3-none-any.whl", hash = "sha256:38eb532534078ef8906eacae6e3951f39be3f439f6cb125b86d689bc355d8c02", size = 24682, upload-time = "2026-08-01T09:24:12.323Z" },
 ]
 
 [[package]]
 name = "wakewordkit"
-version = "0.1.0"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "openwakeword", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/58/5f/2039e2bf6748514422779cd83a7731f6433036d50341c6d53c2f1dbdb9ad/wakewordkit-0.1.0.tar.gz", hash = "sha256:1fbb71ee3a636ffb7fc881c68afc818678ff5d2be6be76dc9bda6b74df9bebc0", size = 45525, upload-time = "2026-07-24T05:47:27.049Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/e9/ed559f922857de104b1bcffe5eacadded0ce97abd2b7b5535385bf6eafbe/wakewordkit-0.2.0.tar.gz", hash = "sha256:2848c0c00d5d1c7dc97c3c0055876c265655d363125eed15c340c81e30073edf", size = 47921, upload-time = "2026-08-01T09:35:54.218Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/c1/7749516bda5b64899ad4ede448f09e7bb7f4489a75f58c84ad13a99bbd5e/wakewordkit-0.1.0-py3-none-any.whl", hash = "sha256:4d011ed8500f47413075469ca465d97c0f290ced6c36ba74b4c2e797b83fb2ee", size = 6746, upload-time = "2026-07-24T05:47:25.267Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/94/223fb05460ea8a43325b297b2a96a72c181a11ea4e1674d72cf7fb97cc7e/wakewordkit-0.2.0-py3-none-any.whl", hash = "sha256:07ea85f6840a6056b0646e0e7e2bf233a35d8fd02af8595dc380c7d2f63d6c42", size = 7987, upload-time = "2026-08-01T09:35:53.08Z" },
 ]
 
 [[package]]
