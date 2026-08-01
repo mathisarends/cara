@@ -7,8 +7,8 @@ from llmify import ChatOpenAI
 from transitbus import EventBus
 
 from cara import SpeechSettings, VoiceAgent
-from cara.audio import AudioOutput, AudioPlayer, WavAudioPlayer
-from cara.audio.sonos import SonosAudioPlayer
+from cara.audio import AudioOutput, AudioPlayer, LocalAudioSink
+from cara.audio.sonos import SonosAudioSink
 from cara.file_system import LocalFileSystem, Workspace
 from cara.skills import Skills
 from cara.wakeword import WakeWord, WakeWordSettings
@@ -21,8 +21,8 @@ load_dotenv(override=True)
 async def main() -> None:
     event_bus = EventBus()
     audio_player = AudioPlayer(
-        WavAudioPlayer(),
-        SonosAudioPlayer(),
+        LocalAudioSink(),
+        SonosAudioSink(),
         active_output=AudioOutput.SONOS,
     )
 

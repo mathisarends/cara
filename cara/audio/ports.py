@@ -71,13 +71,13 @@ class AudioPlayback(ABC):
         """Play the given WAV audio and return once playback is finished."""
 
 
-class AudioOutputStrategy(AudioPlayback):
-    """Plays audio through a specific, selectable output implementation."""
+class AudioSink(AudioPlayback):
+    """Plays audio through a specific, selectable destination."""
 
     @property
     @abstractmethod
     def output(self) -> AudioOutput:
-        """Return the output represented by this strategy."""
+        """Return the output represented by this sink."""
 
     @abstractmethod
     async def get_volume(self) -> float:

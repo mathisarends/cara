@@ -5,8 +5,8 @@ import wave
 
 from cara.audio import device as device_module
 from cara.audio.device import PortAudioDevice
+from cara.audio.local import LocalAudioSink
 from cara.audio.microphone import MicrophoneStream
-from cara.audio.player import WavAudioPlayer
 
 
 class RecordingOutputStream:
@@ -52,12 +52,12 @@ def _wav_audio(*, frames: bytes, frame_rate: int = 8000, channels: int = 1, samp
     return output.getvalue()
 
 
-def test_wav_player_writes_trailing_silence_before_closing(monkeypatch) -> None:
+def test_local_audio_sink_writes_trailing_silence_before_closing(monkeypatch) -> None:
     pa = RecordingPyAudio()
     monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: pa)
     speech = b"\x01\x02" * 4
 
-    WavAudioPlayer(trailing_silence_seconds=0.2)._play_sync(_wav_audio(frames=speech))
+    LocalAudioSink(trailing_silence_seconds=0.2)._play_sync(_wav_audio(frames=speech))
 
     assert pa.stream.writes == [speech, bytes(8000 * 2 // 5)]
     assert pa.stream.stopped is True
@@ -65,39 +65,39 @@ def test_wav_player_writes_trailing_silence_before_closing(monkeypatch) -> None:
     assert pa.terminated is True
 
 
-def test_wav_player_default_volume_is_full() -> None:
-    assert asyncio.run(WavAudioPlayer().get_volume()) == 1.0
+def test_local_audio_sink_default_volume_is_full() -> None:
+    assert asyncio.run(LocalAudioSink().get_volume()) == 1.0
 
 
-def test_wav_player_set_volume_clamps_to_0_1_range() -> None:
-    player = WavAudioPlayer()
+def test_local_audio_sink_set_volume_clamps_to_0_1_range() -> None:
+    sink = LocalAudioSink()
 
-    asyncio.run(player.set_volume(1.5))
-    assert asyncio.run(player.get_volume()) == 1.0
+    asyncio.run(sink.set_volume(1.5))
+    assert asyncio.run(sink.get_volume()) == 1.0
 
-    asyncio.run(player.set_volume(-0.5))
-    assert asyncio.run(player.get_volume()) == 0.0
+    asyncio.run(sink.set_volume(-0.5))
+    assert asyncio.run(sink.get_volume()) == 0.0
 
 
-def test_wav_player_scales_pcm_samples_by_volume(monkeypatch) -> None:
+def test_local_audio_sink_scales_pcm_samples_by_volume(monkeypatch) -> None:
     pa = RecordingPyAudio()
     monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: pa)
-    player = WavAudioPlayer(trailing_silence_seconds=0)
-    asyncio.run(player.set_volume(0.5))
+    sink = LocalAudioSink(trailing_silence_seconds=0)
+    asyncio.run(sink.set_volume(0.5))
     samples = struct.pack("<4h", 100, -100, 32767, -32768)
 
-    player._play_sync(_wav_audio(frames=samples))
+    sink._play_sync(_wav_audio(frames=samples))
 
     assert pa.stream.writes == [struct.pack("<4h", 50, -50, 16384, -16384)]
 
 
-def test_wav_player_does_not_delay_cancelled_playback(monkeypatch) -> None:
+def test_local_audio_sink_does_not_delay_cancelled_playback(monkeypatch) -> None:
     pa = RecordingPyAudio()
     monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: pa)
     cancel = asyncio.Event()
     cancel.set()
 
-    WavAudioPlayer()._play_sync(_wav_audio(frames=b"\x01\x02"), cancel=cancel)
+    LocalAudioSink()._play_sync(_wav_audio(frames=b"\x01\x02"), cancel=cancel)
 
     assert pa.stream.writes == []
 
@@ -129,7 +129,7 @@ class FullDuplexPyAudio(RecordingPyAudio):
         return self.stream
 
 
-def test_microphone_and_player_share_one_portaudio_lifecycle(monkeypatch) -> None:
+def test_microphone_and_local_audio_sink_share_one_portaudio_lifecycle(monkeypatch) -> None:
     pa = FullDuplexPyAudio()
     constructions = 0
 
@@ -141,10 +141,10 @@ def test_microphone_and_player_share_one_portaudio_lifecycle(monkeypatch) -> Non
     monkeypatch.setattr(device_module.pyaudio, "PyAudio", create_pyaudio)
     device = PortAudioDevice()
     microphone = MicrophoneStream(device=device)
-    player = WavAudioPlayer(device=device, trailing_silence_seconds=0)
+    sink = LocalAudioSink(device=device, trailing_silence_seconds=0)
 
     microphone.read(1)
-    player._play_sync(_wav_audio(frames=b"\x01\x02"))
+    sink._play_sync(_wav_audio(frames=b"\x01\x02"))
 
     assert constructions == 1
     assert [opened.get("input") for opened in pa.opens] == [True, None]

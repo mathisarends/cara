@@ -5,7 +5,7 @@ import pytest
 from cara.audio import AudioOutput, AudioPlayer
 
 
-class RecordingOutput:
+class RecordingSink:
     def __init__(self, output: AudioOutput) -> None:
         self._output = output
         self.audio: list[bytes] = []
@@ -26,9 +26,9 @@ class RecordingOutput:
 
 
 def test_audio_player_delegates_to_the_active_output() -> None:
-    async def run() -> tuple[RecordingOutput, RecordingOutput]:
-        local = RecordingOutput(AudioOutput.LOCAL)
-        sonos = RecordingOutput(AudioOutput.SONOS)
+    async def run() -> tuple[RecordingSink, RecordingSink]:
+        local = RecordingSink(AudioOutput.LOCAL)
+        sonos = RecordingSink(AudioOutput.SONOS)
         player = AudioPlayer(local, sonos)
 
         await player.play(b"local")
@@ -44,7 +44,7 @@ def test_audio_player_delegates_to_the_active_output() -> None:
 
 
 def test_audio_player_reports_when_an_output_is_not_configured() -> None:
-    player = AudioPlayer(RecordingOutput(AudioOutput.LOCAL))
+    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL))
 
     with pytest.raises(ValueError, match="Available outputs: local"):
         player.set_output(AudioOutput.SONOS)
@@ -52,8 +52,8 @@ def test_audio_player_reports_when_an_output_is_not_configured() -> None:
 
 def test_audio_player_delegates_volume_control_to_the_active_output() -> None:
     async def run() -> tuple[float, float]:
-        local = RecordingOutput(AudioOutput.LOCAL)
-        sonos = RecordingOutput(AudioOutput.SONOS)
+        local = RecordingSink(AudioOutput.LOCAL)
+        sonos = RecordingSink(AudioOutput.SONOS)
         player = AudioPlayer(local, sonos)
 
         await player.set_volume(0.3)
@@ -69,23 +69,23 @@ def test_audio_player_delegates_volume_control_to_the_active_output() -> None:
 
 
 def test_audio_player_can_register_and_activate_an_output() -> None:
-    player = AudioPlayer(RecordingOutput(AudioOutput.LOCAL))
+    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL))
 
-    player.register_output(RecordingOutput(AudioOutput.SONOS), activate=True)
+    player.register_output(RecordingSink(AudioOutput.SONOS), activate=True)
 
     assert player.active_output is AudioOutput.SONOS
     assert player.available_outputs == (AudioOutput.LOCAL, AudioOutput.SONOS)
 
 
 def test_audio_player_reports_whether_multiple_outputs_are_configured() -> None:
-    assert AudioPlayer(RecordingOutput(AudioOutput.LOCAL)).has_multiple_outputs is False
+    assert AudioPlayer(RecordingSink(AudioOutput.LOCAL)).has_multiple_outputs is False
 
-    player = AudioPlayer(RecordingOutput(AudioOutput.LOCAL), RecordingOutput(AudioOutput.SONOS))
+    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS))
 
     assert player.has_multiple_outputs is True
 
 
 def test_audio_player_describes_its_configured_outputs() -> None:
-    player = AudioPlayer(RecordingOutput(AudioOutput.LOCAL), RecordingOutput(AudioOutput.SONOS))
+    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS))
 
     assert player.describe_outputs() == "local, sonos"

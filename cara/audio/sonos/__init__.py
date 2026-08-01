@@ -1,6 +1,6 @@
-from .player import SonosAudioPlayer, SonosSettings
+from .sink import SonosAudioSink, SonosSettings
 
 __all__ = [
-    "SonosAudioPlayer",
+    "SonosAudioSink",
     "SonosSettings",
 ]

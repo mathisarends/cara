@@ -35,7 +35,7 @@ class EndSessionParams(ToolParams):
 
 class SetAudioOutputParams(ToolParams):
     output: AudioOutput = Field(
-        description="Configured audio output strategy to activate.",
+        description="Configured audio sink to activate.",
     )
 
 

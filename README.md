@@ -38,13 +38,13 @@ load it.
 
 ## Audio outputs
 
-`AudioPlayer` delegates playback to a named output strategy. Register every output that should be
+`AudioPlayer` delegates playback to a named audio sink. Register every sink that should be
 available at runtime and pass the player to `VoiceAgent`:
 
 ```python
 audio_player = AudioPlayer(
-    WavAudioPlayer(),
-    SonosAudioPlayer(),
+    LocalAudioSink(),
+    SonosAudioSink(),
     active_output=AudioOutput.SONOS,
 )
 ```

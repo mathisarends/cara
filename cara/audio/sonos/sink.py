@@ -9,7 +9,7 @@ import wave
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sonosify import ClipPriority, ClipType, SonosCloudAuth, SonosCloudClient
 
-from cara.audio.ports import AudioOutput, AudioOutputStrategy
+from cara.audio.ports import AudioOutput, AudioSink
 from cara.audio.sonos.clip_server import _AudioClipServer
 from cara.audio.sonos.volume_monitor import SonosVolumeMonitor
 
@@ -36,7 +36,7 @@ class SonosSettings(BaseSettings):
     poll_interval: float = 0.25
 
 
-class SonosAudioPlayer(AudioOutputStrategy):
+class SonosAudioSink(AudioSink):
     """Plays WAV audio on a Sonos speaker via the Sonos cloud control API."""
 
     def __init__(

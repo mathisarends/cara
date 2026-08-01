@@ -163,10 +163,10 @@ class Tools:
             description=described(
                 AudioPlayer,
                 render=lambda player: (
-                    "Switch audio playback to another configured output strategy. "
+                    "Switch audio playback to another configured audio sink. "
                     f"Available output names: {player.describe_outputs()}."
                 ),
-                default="Switch audio playback to another configured output strategy.",
+                default="Switch audio playback to another configured audio sink.",
             ),
             params=SetAudioOutputParams,
             available_when=requires(AudioPlayer, predicate=lambda player: player.has_multiple_outputs),

@@ -11,10 +11,10 @@ from cara.audio import (
     AudioPlayer,
     Earcon,
     EarconPlayer,
+    LocalAudioSink,
     MicrophoneRecorder,
     MicrophoneStream,
     SpeechRecorder,
-    WavAudioPlayer,
 )
 from cara.audio.device import PortAudioDevice
 from cara.console_logging import _log_user_transcript
@@ -81,7 +81,7 @@ class VoiceAgent:
         self._audio_device = PortAudioDevice()
         self._microphone = MicrophoneStream(device=self._audio_device)
         self._recorder = recorder or MicrophoneRecorder(self._microphone)
-        self._player = player or AudioPlayer(WavAudioPlayer(device=self._audio_device))
+        self._player = player or AudioPlayer(LocalAudioSink(device=self._audio_device))
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
         self._tools = tools or Tools()

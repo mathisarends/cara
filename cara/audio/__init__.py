@@ -1,24 +1,24 @@
 from .earcons import Earcon, EarconPlayer
+from .local import LocalAudioSink
 from .microphone import MicrophoneStream
-from .player import WavAudioPlayer
+from .player import AudioPlayer
 from .ports import (
     AudioOutput,
-    AudioOutputStrategy,
     AudioPlayback,
+    AudioSink,
     SpeechRecorder,
     TurnDetector,
     VoiceActivityDetector,
 )
 from .recorder import MicrophoneInputSettings, MicrophoneRecorder
-from .strategy import AudioPlayer
 from .turn_detection import SmartTurnDetector
 from .vad import SileroVoiceActivityDetector
 
 __all__ = [
     "AudioPlayer",
     "AudioOutput",
-    "AudioOutputStrategy",
     "AudioPlayback",
+    "AudioSink",
     "Earcon",
     "EarconPlayer",
     "MicrophoneRecorder",
@@ -29,5 +29,5 @@ __all__ = [
     "SileroVoiceActivityDetector",
     "TurnDetector",
     "VoiceActivityDetector",
-    "WavAudioPlayer",
+    "LocalAudioSink",
 ]
