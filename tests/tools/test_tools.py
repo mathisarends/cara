@@ -72,6 +72,39 @@ def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> Non
     assert asyncio.run(workspace.read_file("notes/a.txt")) == "hello toolkit"
 
 
+def test_glob_tool_uses_agenttoolkit_workspace_matching(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path)
+    asyncio.run(workspace.write_file("src/app.py", "print('app')\n"))
+    asyncio.run(workspace.write_file("src/readme.md", "docs\n"))
+    asyncio.run(workspace.write_file("tests/test_app.py", "def test_app(): pass\n"))
+    tools = create_tools(create_tool_context(workspace=workspace))
+
+    result = asyncio.run(tools.execute("glob", {"pattern": "**/*.py", "max_results": 1}))
+
+    assert result == ActionResult.success("src/app.py")
+
+
+def test_grep_tool_uses_agenttoolkit_workspace_search(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path)
+    asyncio.run(workspace.write_file("src/app.py", "before\nNeedle here\nafter\n"))
+    asyncio.run(workspace.write_file("src/readme.md", "needle in docs\n"))
+    tools = create_tools(create_tool_context(workspace=workspace))
+
+    result = asyncio.run(
+        tools.execute(
+            "grep",
+            {
+                "pattern": "needle",
+                "glob": "**/*.py",
+                "case_sensitive": False,
+                "context_lines": 1,
+            },
+        )
+    )
+
+    assert result == ActionResult.success("src/app.py-1-before\nsrc/app.py:2:Needle here\nsrc/app.py-3-after")
+
+
 def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> None:
     result = asyncio.run(
         create_tools(create_tool_context(workspace=LocalWorkspace(tmp_path))).execute(

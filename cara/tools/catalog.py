@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from tempfile import gettempdir
 
@@ -20,12 +21,15 @@ from agenttoolkit.builtins import (
     SandboxPolicy,
     Workspace,
 )
+from agenttoolkit.builtins.fs import Entry
 
 from cara.audio import AudioPlayer
 from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
 from cara.tools.params import (
     BashParams,
     EditFileParams,
+    GlobParams,
+    GrepParams,
     ListFilesParams,
     LoadSkillParams,
     ReadFileParams,
@@ -37,6 +41,16 @@ from cara.tools.params import (
 )
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
+
+
+def create_tool_context(
+    *dependencies: object,
+    workspace: Workspace | None = None,
+    sandbox: Sandbox | None = None,
+) -> ToolContext:
+    selected_workspace = workspace or _default_workspace()
+    selected_sandbox = sandbox or _default_sandbox(selected_workspace)
+    return ToolContext(selected_workspace, selected_sandbox, *dependencies)
 
 
 def _default_workspace() -> LocalWorkspace:
@@ -61,20 +75,27 @@ def _default_sandbox(workspace: Workspace) -> DockerSandbox:
     )
 
 
-def create_tool_context(
-    *dependencies: object,
-    workspace: Workspace | None = None,
-    sandbox: Sandbox | None = None,
-) -> ToolContext:
-    selected_workspace = workspace or _default_workspace()
-    selected_sandbox = sandbox or _default_sandbox(selected_workspace)
-    return ToolContext(selected_workspace, selected_sandbox, *dependencies)
-
-
 def create_tools(context: ToolContext | None = None) -> agenttoolkit.Tools:
     selected_context = context if context is not None else create_tool_context()
     tools = agenttoolkit.Tools(context=selected_context)
     register_tools(tools)
+    return tools
+
+
+def build_tools(
+    player: AudioPlayer,
+    *,
+    skills: Skills | None = None,
+    workspace: Workspace | None = None,
+    tools: agenttoolkit.Tools | None = None,
+) -> agenttoolkit.Tools:
+    dependencies: list[object] = [player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
+    if skills is not None:
+        dependencies.append(skills)
+    tool_context = create_tool_context(*dependencies, workspace=workspace)
+    if tools is None:
+        return create_tools(tool_context)
+    tools.set_context(tool_context)
     return tools
 
 
@@ -134,7 +155,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         params=WeatherParams,
         effects=(ToolEffect.NETWORK,),
     )
-    async def weather(
+    async def weather_report(
         params: WeatherParams,
         location_client: Inject[IpLocationClient],
         client: Inject[OpenMeteoClient],
@@ -170,8 +191,43 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     )
     async def list_files(params: ListFilesParams, workspace: Inject[Workspace]) -> ActionResult:
         entries = await workspace.list_dir(params.path)
-        rendered = [f"{entry.path}/" if entry.is_dir else entry.path for entry in entries]
-        return ActionResult.success("\n".join(rendered) if rendered else "(empty)")
+        return ActionResult.success(_render_entries(entries, empty="(empty)"))
+
+    @tools.action(
+        description="Find workspace files and directories whose paths match a glob pattern.",
+        params=GlobParams,
+        effects=(ToolEffect.READS_WORKSPACE,),
+    )
+    async def glob(params: GlobParams, workspace: Inject[Workspace]) -> ActionResult:
+        entries = await workspace.glob(params.pattern)
+        return ActionResult.success(_render_entries(entries[: params.max_results], empty="(no matches)"))
+
+    @tools.action(
+        description="Search workspace file contents with a regular expression.",
+        params=GrepParams,
+        effects=(ToolEffect.READS_WORKSPACE,),
+    )
+    async def grep(params: GrepParams, workspace: Inject[Workspace]) -> ActionResult:
+        matches = await workspace.grep(
+            params.pattern,
+            glob=params.glob,
+            case_sensitive=params.case_sensitive,
+            context_lines=params.context_lines,
+            max_matches=params.max_matches,
+        )
+        rendered: list[str] = []
+        for match in matches:
+            first_context_line = match.line_number - len(match.context_before)
+            rendered.extend(
+                f"{match.path}-{line_number}-{line}"
+                for line_number, line in enumerate(match.context_before, start=first_context_line)
+            )
+            rendered.append(f"{match.path}:{match.line_number}:{match.line}")
+            rendered.extend(
+                f"{match.path}-{line_number}-{line}"
+                for line_number, line in enumerate(match.context_after, start=match.line_number + 1)
+            )
+        return ActionResult.success("\n".join(rendered) if rendered else "(no matches)")
 
     @tools.action(
         description="Read a text file's full contents.",
@@ -199,3 +255,8 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     async def edit_file(params: EditFileParams, workspace: Inject[Workspace]) -> ActionResult:
         await workspace.edit_file(params.path, params.old_text, params.new_text)
         return ActionResult.success(f"Edited {params.path}.")
+
+
+def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:
+    rendered = [f"{entry.path}/" if entry.is_dir else entry.path for entry in entries]
+    return "\n".join(rendered) if rendered else empty

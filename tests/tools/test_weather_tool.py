@@ -44,12 +44,12 @@ def _tools(client: OpenMeteoClient, location_client: IpLocationClient):
 
 
 def test_weather_tool_is_registered_without_availability_checks() -> None:
-    assert create_tools().get("weather") is not None
+    assert create_tools().get("weather_report") is not None
 
 
 def test_weather_tool_description_uses_the_current_location_implicitly() -> None:
     tools = _tools(_StubClient(), _StubLocationClient(_HOME))
-    schema = next(item for item in tools.get_schema("openai") if item["function"]["name"] == "weather")
+    schema = next(item for item in tools.get_schema("openai") if item["function"]["name"] == "weather_report")
 
     assert schema["function"]["description"] == "Frage das aktuelle Wetter ab. Uses the current location."
     assert schema["function"]["parameters"] == {
@@ -65,7 +65,7 @@ def test_weather_uses_the_ip_location() -> None:
     location_client = _StubLocationClient(_HOME)
     tools = _tools(client, location_client)
 
-    result = asyncio.run(tools.execute("weather"))
+    result = asyncio.run(tools.execute("weather_report"))
 
     assert result.ok
     assert result.result == _report("Berlin").summary()

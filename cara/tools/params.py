@@ -54,6 +54,34 @@ class ListFilesParams(ToolParams):
     )
 
 
+class GlobParams(ToolParams):
+    pattern: str = Field(description="Glob pattern relative to the workspace root, for example '**/*.py'.")
+    max_results: int = Field(
+        default=200,
+        ge=1,
+        le=1_000,
+        description="Maximum number of matching paths to return.",
+    )
+
+
+class GrepParams(ToolParams):
+    pattern: str = Field(description="Regular expression to search for in workspace files.")
+    glob: str | None = Field(default=None, description="Optional glob restricting which files are searched.")
+    case_sensitive: bool = Field(default=True, description="Whether matching is case-sensitive.")
+    context_lines: int = Field(
+        default=0,
+        ge=0,
+        le=10,
+        description="Number of surrounding lines to include before and after each match.",
+    )
+    max_matches: int = Field(
+        default=100,
+        ge=1,
+        le=1_000,
+        description="Maximum number of matches to return.",
+    )
+
+
 class ReadFileParams(ToolParams):
     path: str = Field(description="Path of the file to read, relative to the workspace root.")
 
