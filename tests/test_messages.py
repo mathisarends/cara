@@ -1,11 +1,12 @@
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
+from agenttoolkit import Skills
 from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
 from cara.messages import MessageManager, RuntimeContext, SystemPrompt
-from cara.skills import Skill, Skills
 
 
 def _tool_call() -> ToolCall:
@@ -18,6 +19,16 @@ def _fixed_context() -> RuntimeContext:
         timezone="Europe/Berlin",
         clock=lambda: datetime(2026, 7, 21, 14, 30, tzinfo=ZoneInfo("Europe/Berlin")),
     )
+
+
+def _skills(root: Path, name: str = "pdf", description: str = "Read PDFs.") -> Skills:
+    directory = root / name
+    directory.mkdir()
+    (directory / "SKILL.md").write_text(
+        f"---\nname: {name}\ndescription: {description}\n---\nInstructions.\n",
+        encoding="utf-8",
+    )
+    return Skills.from_local_dir(root)
 
 
 def test_message_manager_builds_llm_messages_with_system_prompt() -> None:
@@ -79,17 +90,21 @@ def test_multiple_tool_results_share_one_assistant_tool_call_message() -> None:
     ]
 
 
-def test_available_skills_are_appended_to_the_system_prompt() -> None:
-    skills = Skills([Skill(name="pdf", description="Read PDFs.", instructions="...")])
+def test_available_skills_are_appended_to_the_system_prompt(tmp_path: Path) -> None:
+    skills = _skills(tmp_path)
     messages = MessageManager(system_prompt="System", skills=skills)
 
     rendered = messages.to_llm_messages()[0].content
 
-    assert rendered == "System\n\n<available_skills>\n- pdf: Read PDFs.\n</available_skills>"
+    assert rendered == (
+        "System\n\n<available_skills>\n"
+        "<skill>\n<name>pdf</name>\n<description>Read PDFs.</description>\n</skill>\n"
+        "</available_skills>"
+    )
 
 
-def test_empty_skills_leaves_the_system_prompt_untouched() -> None:
-    messages = MessageManager(system_prompt="System", skills=Skills())
+def test_empty_skills_leaves_the_system_prompt_untouched(tmp_path: Path) -> None:
+    messages = MessageManager(system_prompt="System", skills=Skills.from_local_dir(tmp_path))
 
     assert messages.to_llm_messages()[0].content == "System"
 
@@ -112,8 +127,8 @@ def test_runtime_context_is_wrapped_in_a_context_block() -> None:
     )
 
 
-def test_context_precedes_available_skills_in_the_system_prompt() -> None:
-    skills = Skills([Skill(name="weather", description="Wetter ansagen.", instructions="...")])
+def test_context_precedes_available_skills_in_the_system_prompt(tmp_path: Path) -> None:
+    skills = _skills(tmp_path, "weather", "Wetter ansagen.")
     messages = MessageManager(system_prompt="System", skills=skills, context=_fixed_context())
 
     rendered = messages.to_llm_messages()[0].content

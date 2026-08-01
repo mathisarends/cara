@@ -54,26 +54,16 @@ another registered output, such as `local` or `sonos`, while the assistant is ru
 
 ## Tool safety
 
-File tools resolve every path through a `Workspace` root jail in the filesystem adapter. Absolute paths,
-parent traversal, and symlinks that resolve outside that root are rejected even if a policy middleware is
-missing. A middleware chain adds configurable path policies, write-size limits, result truncation, and a
-shared error boundary before invoking tools.
+Tool registration, dependency injection, schema generation, validation, middleware, skills, workspace
+access, and sandboxing come from `mm-agenttoolkit`. Cara only defines its application-specific tool
+catalog. File tools use `agenttoolkit.builtins.LocalWorkspace`, whose root jail rejects absolute paths,
+parent traversal, and symlinks that resolve outside the workspace.
 
-Tool execution uses an onion-style middleware chain. The default order is
-`CallLogging -> ErrorBoundary -> ResultLimit -> custom middleware -> PathPolicy -> ContentSize -> tool`.
-The order is intentional: custom tracing sees policy denials and the original response before the outer
-result limit truncates it.
-
-Command policy is not part of that chain. It belongs to the `bash` tool alone, so `BashCommandPolicy`
-lives in `cara.tools.sandbox` and reads `BashSandboxConfig.allowed_commands`. It currently allows every
-command; the configured allow-list is not yet enforced.
-
-The built-in `bash` tool runs in a short-lived Docker container. The container has no network access,
-uses a read-only root filesystem, drops Linux capabilities, and has CPU, memory, process, output, and
-execution-time limits. Only the workspace is mounted read-write, so Bash commands can still modify or
-delete any file inside that workspace. By default, `Tools()` uses a dedicated scratch workspace below
-the system temporary directory instead of mounting the project directory and its `.env` file. Callers
-can still provide an explicit trusted `Workspace` when required.
+The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: the container
+has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU, memory,
+process, output, and execution-time limits. Only the workspace is mounted read-write. By default,
+`Tools()` uses a dedicated `LocalWorkspace` below the system temporary directory instead of mounting the
+project directory and its `.env` file. Callers can provide another `Workspace` or `Sandbox` explicitly.
 
 Start Docker Desktop and prepare the local sandbox image once before using the tool:
 

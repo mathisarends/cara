@@ -38,6 +38,7 @@ source = { editable = "." }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -72,6 +73,7 @@ requires-dist = [
     { name = "elevenlabs", marker = "extra == 'elevenlabs'", specifier = ">=2.58.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "hueify", specifier = ">=0.2.0" },
+    { name = "mm-agenttoolkit", specifier = ">=0.1.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.100.0" },
@@ -336,6 +338,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/41/f2/d34e8b3a08a9cc79a50b2208a93dce981fe615b64d5a4d4abee421d898df/joblib-1.5.3.tar.gz", hash = "sha256:8561a3269e6801106863fd0d6d84bb737be9e7631e33aaed3fb9ce5953688da3", size = 331603, upload-time = "2025-12-15T08:41:46.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7b/91/984aca2ec129e2757d1e4e3c81c3fcda9d0f85b74670a094cc443d9ee949/joblib-1.5.3-py3-none-any.whl", hash = "sha256:5fc3c5039fc5ca8c0276333a188bbd59d6b7ab37fe6632daa76bc7f9ec18e713", size = 309071, upload-time = "2025-12-15T08:41:44.973Z" },
+]
+
+[[package]]
+name = "mm-agenttoolkit"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2b/9b/2e133424a6a83efe7de70cb516d82fde73792bb5d6809a318981812a541a/mm_agenttoolkit-0.1.0.tar.gz", hash = "sha256:33ff0404f98d0e38069959de9bc0548a3c31d2912d673c8afde03dc4cf55583b", size = 99575, upload-time = "2026-08-01T11:37:51.196Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/12/0463ea4d7a502e80b97dd49aee14cde082853bc590f61d459dd9ccd1822b/mm_agenttoolkit-0.1.0-py3-none-any.whl", hash = "sha256:34f8f6da5b0a123dc5ba519832078b42907d80f051dbb68ef65c8da3322dc002", size = 42164, upload-time = "2026-08-01T11:37:49.816Z" },
 ]
 
 [[package]]

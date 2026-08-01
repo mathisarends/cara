@@ -1,3 +1,4 @@
+from agenttoolkit import Skills
 from llmify import (
     AssistantMessage,
     Message,
@@ -9,7 +10,6 @@ from llmify import (
 
 from cara.messages.context import RuntimeContext
 from cara.messages.system_prompt import SystemPrompt
-from cara.skills import Skills
 
 
 class MessageManager:
@@ -64,6 +64,6 @@ class MessageManager:
         sections = [base]
         if self._context is not None and (rendered := self._context.render()):
             sections.append(f"<context>\n{rendered}\n</context>")
-        if self._skills is not None and (catalog := self._skills.render_catalog()):
-            sections.append(f"<available_skills>\n{catalog}\n</available_skills>")
+        if self._skills is not None and (catalog := self._skills.render_prompt()):
+            sections.append(catalog)
         return "\n\n".join(sections)

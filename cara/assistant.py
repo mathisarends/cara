@@ -4,6 +4,8 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 
+from agenttoolkit import Skills
+from agenttoolkit.builtins import Workspace
 from llmify import ChatInvokeCompletion, ChatModel, StreamEvent, ToolCall
 from transitbus import EventBus
 
@@ -28,11 +30,9 @@ from cara.events import (
     Transcribed,
     TurnStarted,
 )
-from cara.file_system import FileSystem
 from cara.listener import ConsoleListener, SoundListener
 from cara.messages import MessageManager, SystemPrompt
 from cara.replies import StreamingReply
-from cara.skills import Skills
 from cara.speech import (
     OpenAISpeechToText,
     OpenAITextToSpeech,
@@ -41,7 +41,7 @@ from cara.speech import (
     TextToSpeech,
 )
 from cara.speech.streaming import NaturalPauseChunker, StreamingTextToSpeech
-from cara.tools import ActionKind, Tools
+from cara.tools import Tools
 from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
 from cara.views import SpeechSettings
 from cara.wakeword import WakeWordListener, WakeWordSettings
@@ -70,7 +70,7 @@ class VoiceAgent:
         wake_word_settings: WakeWordSettings,
         tools: Tools | None = None,
         skills: Skills | None = None,
-        file_system: FileSystem | None = None,
+        workspace: Workspace | None = None,
         speech_settings: SpeechSettings | None = None,
         system_prompt: str | SystemPrompt | None = None,
         override_system_prompt: str | None = None,
@@ -84,12 +84,12 @@ class VoiceAgent:
         self._player = player or AudioPlayer(LocalAudioSink(device=self._audio_device))
         self._stt = stt or OpenAISpeechToText(api_key)
         tts = tts or OpenAITextToSpeech(api_key)
-        self._tools = tools or Tools()
+        if tools is not None and workspace is not None:
+            raise ValueError("Pass either tools or workspace, not both.")
+        self._tools = tools or Tools(workspace=workspace)
         self._tools.provide(self._player, IpLocationClient(), OpenMeteoClient(), TavilySearchClient())
         if skills is not None:
             self._tools.provide(skills)
-        if file_system is not None:
-            self._tools.provide(file_system)
         self._speech_settings = speech_settings or SpeechSettings()
         self._speech_stream = StreamingTextToSpeech(
             tts=tts,
@@ -297,12 +297,13 @@ class VoiceAgent:
 
             await self._set_state(AssistantState.CALLING_TOOL)
             result = await self._tools.execute(name, arguments)
-            content = result.content or ("Tool completed successfully." if result.ok else "Tool failed.")
+            fallback = "Tool completed successfully." if result.ok else "Tool failed."
+            content = str(result.result or result.error or fallback)
             tool_results.append((tool_call, content))
-            if tool is not None and tool.kind is ActionKind.END_SESSION:
+            if tool is not None and "end_session" in tool.tags:
                 end_session = True
-                if result.content:
-                    answer = result.content.strip()
+                if result.result:
+                    answer = str(result.result).strip()
 
         self._message_manager.add_tool_results(tool_results)
         return answer, end_session, bool(completion.tool_calls)
@@ -327,7 +328,7 @@ class VoiceAgent:
     async def _reply(self) -> AsyncIterator[StreamEvent]:
         async for event in self._llm.stream(
             self._message_manager.to_llm_messages(),
-            tools=self._tools.to_schema(),
+            tools=self._tools.get_schema("openai"),
         ):
             yield event
 

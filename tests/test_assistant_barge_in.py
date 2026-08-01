@@ -129,7 +129,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         tool_cancelled = asyncio.Event()
         tools = Tools()
 
-        @tools.action(name="slow_tool")
+        @tools.action("Wait until released.", name="slow_tool")
         async def slow_tool() -> ActionResult:
             tool_started.set()
             try:

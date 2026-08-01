@@ -2,14 +2,14 @@ import asyncio
 import logging
 from pathlib import Path
 
+from agenttoolkit import Skills
+from agenttoolkit.builtins import LocalWorkspace
 from llmify import AssistantMessage, Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, ToolResultMessage
 from transitbus import EventBus
 
 from cara.assistant import VoiceAgent
 from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AnswerGenerated, SpeechChunkGenerated
-from cara.file_system import Workspace
-from cara.skills import Skill, Skills
 from cara.speech import SpeechToTextRequest, SpeechToTextResponse, TextToSpeechRequest, TextToSpeechResponse
 from cara.tools import ActionResult, Tools
 from cara.tools.params import WeatherParams
@@ -21,6 +21,16 @@ _THIRD_SENTENCE = f"{'C' * 319}."
 _FIRST_SPEECH_CHUNK = f"{_FIRST_SENTENCE} {_SECOND_SENTENCE}"
 _FINAL_SPEECH_CHUNK = f"{_THIRD_SENTENCE} Abschluss."
 _STREAMED_ANSWER = f"{_FIRST_SPEECH_CHUNK} {_FINAL_SPEECH_CHUNK}"
+
+
+def _skills(root: Path) -> Skills:
+    directory = root / "weather"
+    directory.mkdir()
+    (directory / "SKILL.md").write_text(
+        "---\nname: weather\ndescription: Wetter abrufen.\n---\nRufe weather_lookup auf.\n",
+        encoding="utf-8",
+    )
+    return Skills.from_local_dir(root)
 
 
 class UnusedRecorder:
@@ -215,7 +225,7 @@ def test_assistant_plays_first_natural_chunk_while_llm_generates_the_rest() -> N
     assert speech_chunks == [_FIRST_SPEECH_CHUNK, _FINAL_SPEECH_CHUNK]
 
 
-def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
+def test_assistant_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
     async def run() -> tuple[str, MultiRoundToolChatModel, RecordingTextToSpeech, list[str]]:
         player = CoordinatedAudioPlayer()
         player.second_delta_generated.set()
@@ -223,11 +233,11 @@ def test_assistant_continues_after_each_tool_round_until_final_answer() -> None:
         llm = MultiRoundToolChatModel()
         tools = Tools()
 
-        @tools.action(name="weather_lookup", params=WeatherParams)
+        @tools.action("Wetter abrufen.", name="weather_lookup", params=WeatherParams)
         async def weather_lookup(params: WeatherParams) -> ActionResult:
             return ActionResult.success("22 Grad und sonnig.")
 
-        skills = Skills([Skill(name="weather", description="Wetter abrufen.", instructions="Rufe weather_lookup auf.")])
+        skills = _skills(tmp_path)
         assistant = VoiceAgent(
             llm=llm,
             recorder=UnusedRecorder(),
@@ -285,7 +295,7 @@ def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path
             tts=RecordingTextToSpeech(),
             event_bus=EventBus(),
             wake_word_settings=WakeWordSettings(),
-            tools=Tools(workspace=Workspace(tmp_path)),
+            tools=Tools(workspace=LocalWorkspace(tmp_path)),
         )
 
         await assistant._think()
@@ -294,12 +304,9 @@ def test_path_policy_denial_is_sent_to_the_model_as_a_tool_result(tmp_path: Path
     llm = asyncio.run(run())
 
     tool_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
-    assert [(result.tool_call_id, result.content) for result in tool_results] == [
-        (
-            "write-outside-workspace",
-            "Path '../outside.txt' is outside the workspace. Use a relative path below the workspace root.",
-        )
-    ]
+    assert len(tool_results) == 1
+    assert tool_results[0].tool_call_id == "write-outside-workspace"
+    assert "outside workspace" in tool_results[0].content
 
 
 def test_assistant_speaks_end_session_tool_result() -> None:
