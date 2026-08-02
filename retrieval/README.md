@@ -25,6 +25,7 @@ results = await hybrid.retrieve("How do I talk to Cara?", limit=5)
   - [Strategies](#strategies)
   - [Token-aware sizing](#token-aware-sizing)
 - [Dense retrieval](#dense-retrieval)
+- [Persistent SQLite retrieval](#persistent-sqlite-retrieval)
 - [Lexical retrieval](#lexical-retrieval)
   - [BM25 parameters](#bm25-parameters)
   - [Tokenization, stemming and stop words](#tokenization-stemming-and-stop-words)
@@ -310,6 +311,10 @@ Besides `index()` and `retrieve()`, the persistent index provides:
 
 The embedding dimensions are part of the vector-table schema. Open an existing
 database with the same `dimensions` value and embedding model configuration.
+
+The connection runs in WAL mode, so a process reading the index does not block
+the process writing to it — which is what an index kept current by a file
+watcher needs.
 
 ---
 
