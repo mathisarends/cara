@@ -3,6 +3,7 @@ import asyncio
 from dotenv import load_dotenv
 
 from retrieval import Document
+from retrieval.chunking import MarkdownChunker
 from retrieval.memory import InMemoryVectorIndex
 from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
 
@@ -17,14 +18,21 @@ async def main() -> None:
     )
     index = InMemoryVectorIndex(embedding_provider)
 
-    await index.index(
-        [
-            Document(
-                id="cara",
-                text="Cara ist ein sprachgesteuerter Assistent mit Terminal- und Voice-Sessions.",
-            )
-        ]
+    source = Document(
+        id="cara",
+        text="""# Bedienung
+Cara ist ein sprachgesteuerter Assistent mit Terminal- und Voice-Sessions.
+
+# Persönlichkeit
+Cara antwortet freundlich, direkt und prägnant.
+""",
     )
+    chunker = MarkdownChunker(chunk_size=100, chunk_overlap=15)
+    chunks = [
+        Document(id=f"{source.id}:{number}", text=text)
+        for number, text in enumerate(chunker.chunk(source.text), start=1)
+    ]
+    await index.index(chunks)
 
     results = await index.retrieve("Wie kann ich mit Cara sprechen?", limit=1)
     for result in results:
