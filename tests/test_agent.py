@@ -89,6 +89,17 @@ def test_agent_responds_to_normalized_text() -> None:
     assert [message.content for message in user_messages] == ["Hallo"]
 
 
+def test_agent_always_sends_the_memory_along() -> None:
+    llm = StaticChatModel()
+    agent = Agent(llm=llm, tools=create_tools())
+
+    asyncio.run(agent.respond("Hallo"))
+
+    system_message = llm.messages[0][0]
+    assert "<memory>" in system_message.content
+    assert "<soul>" in system_message.content
+
+
 def test_agent_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
     async def run() -> tuple[str, MultiRoundToolChatModel]:
         llm = MultiRoundToolChatModel()

@@ -20,7 +20,8 @@ async def main() -> None:
         skills=skills,
     )
 
-    await TerminalSession(agent).run()
+    terminal_session = TerminalSession(agent)
+    await terminal_session.run()
 
 
 if __name__ == "__main__":

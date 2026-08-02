@@ -3,12 +3,11 @@ import json
 from agenttoolkit import Skills, Tools
 from llmify import ChatInvokeCompletion, ChatModel
 
+from cara.memory import MemoryStore
 from cara.messages import MessageManager, SystemPrompt
 
 
 class Agent:
-    """Runs one text conversation independently of its input and output channel."""
-
     def __init__(
         self,
         *,
@@ -28,6 +27,7 @@ class Agent:
                 extend_system_prompt=extend_system_prompt,
             ),
             skills=skills,
+            memory=MemoryStore(),
         )
 
     async def respond(self, text: str) -> str:

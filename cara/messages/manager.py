@@ -8,6 +8,7 @@ from llmify import (
     UserMessage,
 )
 
+from cara.memory import MemoryStore
 from cara.messages.context import RuntimeContext
 from cara.messages.system_prompt import SystemPrompt
 
@@ -16,11 +17,13 @@ class MessageManager:
     def __init__(
         self,
         *,
+        memory: MemoryStore,
         system_prompt: str | SystemPrompt | None = None,
         messages: list[Message] | None = None,
         skills: Skills | None = None,
         context: RuntimeContext | None = None,
     ) -> None:
+        self._memory = memory
         self._system_prompt = system_prompt if system_prompt is not None else SystemPrompt()
         self._messages = messages if messages is not None else []
         self._skills = skills
@@ -46,6 +49,8 @@ class MessageManager:
         sections = [base]
         if self._context is not None and (rendered := self._context.render()):
             sections.append(f"<context>\n{rendered}\n</context>")
+        if memory := self._memory.render():
+            sections.append(f"<memory>\n{memory}\n</memory>")
         if self._skills is not None and (catalog := self._skills.render_prompt()):
             sections.append(catalog)
         return "\n\n".join(sections)
