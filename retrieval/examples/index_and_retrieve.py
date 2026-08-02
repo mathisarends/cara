@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 from retrieval import Document
 from retrieval.memory import InMemoryVectorIndex
-from retrieval.openai import OpenAICredentials, OpenAIEmbeddingProvider
+from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
 
 load_dotenv(override=True)
 
@@ -12,7 +12,7 @@ load_dotenv(override=True)
 async def main() -> None:
     credentials = OpenAICredentials()
     embedding_provider = OpenAIEmbeddingProvider(
-        "text-embedding-3-small",
+        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
         credentials=credentials,
     )
     index = InMemoryVectorIndex(embedding_provider)

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 from openai import AsyncOpenAI
 from pydantic import SecretStr
 
-from retrieval.openai import OpenAICredentials, OpenAIEmbeddingProvider
+from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
 
 
 def _credentials() -> OpenAICredentials:
@@ -16,7 +16,7 @@ def _credentials() -> OpenAICredentials:
 def test_provider_builds_client_with_configured_api_key() -> None:
     with patch("retrieval.openai.provider.AsyncOpenAI") as client_type:
         OpenAIEmbeddingProvider(
-            "text-embedding-3-small",
+            OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
             credentials=_credentials(),
         )
 
@@ -34,7 +34,7 @@ def test_embed_returns_vectors_in_input_order() -> None:
     )
     client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
     provider = OpenAIEmbeddingProvider(
-        "text-embedding-3-small",
+        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
         credentials=_credentials(),
         client=client,
     )
@@ -53,7 +53,7 @@ def test_embed_passes_configured_dimensions() -> None:
     create = AsyncMock(return_value=SimpleNamespace(data=[]))
     client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
     provider = OpenAIEmbeddingProvider(
-        "text-embedding-3-small",
+        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
         credentials=_credentials(),
         client=client,
         dimensions=256,

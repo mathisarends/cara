@@ -4,12 +4,13 @@ from openai import AsyncOpenAI
 
 from retrieval import Embedding, EmbeddingProvider
 from retrieval.openai.credentials import OpenAICredentials
+from retrieval.openai.models import OpenAIEmbeddingModel
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
     def __init__(
         self,
-        model: str,
+        model: OpenAIEmbeddingModel,
         *,
         credentials: OpenAICredentials,
         client: AsyncOpenAI | None = None,
@@ -24,13 +25,13 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         if self._dimensions is None:
             response = await self._client.embeddings.create(
                 input=inputs,
-                model=self._model,
+                model=self._model.value,
                 encoding_format="float",
             )
         else:
             response = await self._client.embeddings.create(
                 input=inputs,
-                model=self._model,
+                model=self._model.value,
                 dimensions=self._dimensions,
                 encoding_format="float",
             )
