@@ -4,7 +4,7 @@ from collections.abc import Sequence
 import pytest
 
 from retrieval import Document, Embedding, EmbeddingProvider
-from retrieval.memory import InMemoryVectorIndex
+from retrieval.vector import InMemoryVectorIndex
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):

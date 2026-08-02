@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 from retrieval import Document
 from retrieval.chunking import MarkdownChunker
-from retrieval.memory import InMemoryVectorIndex
 from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
+from retrieval.vector import InMemoryVectorIndex
 
 load_dotenv(override=True)
 
