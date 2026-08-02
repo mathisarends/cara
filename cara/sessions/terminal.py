@@ -1,4 +1,5 @@
 import asyncio
+import json
 from collections.abc import Callable
 
 from cara.agent import Agent
@@ -36,6 +37,10 @@ class TerminalSession:
             if not text:
                 continue
 
-            answer = await self._agent.respond(text)
+            answer = await self._agent.respond(text, on_tool_call=self._show_tool_call)
             if answer:
                 self._output_writer(answer)
+
+    def _show_tool_call(self, name: str, arguments: dict[str, object]) -> None:
+        rendered_arguments = json.dumps(arguments, ensure_ascii=False, sort_keys=True)
+        self._output_writer(f"[tool] {name} {rendered_arguments}")

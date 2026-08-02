@@ -1,10 +1,10 @@
 import asyncio
 
-from llmify import ChatInvokeCompletion, UserMessage
+from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 
 from cara.agent import Agent
 from cara.sessions import TerminalSession
-from cara.tools import create_tools
+from cara.tools import ActionResult, create_tools
 
 
 class EchoChatModel:
@@ -50,3 +50,48 @@ def test_terminal_session_stops_at_end_of_input() -> None:
     )
 
     asyncio.run(session.run())
+
+
+def test_terminal_session_shows_tool_calls() -> None:
+    class ToolCallingChatModel:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def invoke(self, messages, *, tools):
+            self.calls += 1
+            if self.calls == 1:
+                return ChatInvokeCompletion(
+                    completion="",
+                    tool_calls=[
+                        ToolCall(
+                            id="weather-call",
+                            function=Function(
+                                name="weather_lookup",
+                                arguments='{"location":"Aurich"}',
+                            ),
+                        )
+                    ],
+                    stop_reason="tool_calls",
+                )
+            return ChatInvokeCompletion(completion="15 Grad und teils bewölkt.")
+
+    inputs = iter(("Wie wird das Wetter?", "/exit"))
+    outputs: list[str] = []
+    tools = create_tools()
+
+    @tools.action("Wetter abrufen.", name="weather_lookup")
+    async def weather_lookup(location: str) -> ActionResult:
+        return ActionResult.success(f"Wetter für {location}")
+
+    session = TerminalSession(
+        Agent(llm=ToolCallingChatModel(), tools=tools),
+        input_reader=lambda prompt: next(inputs),
+        output_writer=outputs.append,
+    )
+
+    asyncio.run(session.run())
+
+    assert outputs == [
+        '[tool] weather_lookup {"location": "Aurich"}',
+        "15 Grad und teils bewölkt.",
+    ]

@@ -2,7 +2,7 @@ from transitbus import Event, EventBus
 
 from .agent import Agent
 from .listener import HueListener
-from .messages import MessageManager, SystemPrompt
+from .prompt import Conversation, SystemPromptComposer
 from .sessions import TerminalSession, VoiceSession
 from .speech import (
     OpenAISpeechToText,
@@ -19,10 +19,10 @@ from .speech import (
 
 __all__ = [
     "Agent",
+    "Conversation",
     "Event",
     "EventBus",
     "HueListener",
-    "MessageManager",
     "OpenAISpeechToText",
     "OpenAITextToSpeech",
     "SpeechInput",
@@ -30,7 +30,7 @@ __all__ = [
     "SpeechSettings",
     "SpeechToTextRequest",
     "SpeechToTextResponse",
-    "SystemPrompt",
+    "SystemPromptComposer",
     "TerminalSession",
     "TextToSpeechFormat",
     "TextToSpeechRequest",

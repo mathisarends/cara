@@ -1,10 +1,10 @@
 import json
+from collections.abc import Callable
 
 from agenttoolkit import Skills, Tools
 from llmify import ChatInvokeCompletion, ChatModel
 
-from cara.memory import MemoryStore
-from cara.messages import MessageManager, SystemPrompt
+from cara.prompt import Conversation, SystemPromptComposer
 
 
 class Agent:
@@ -14,72 +14,68 @@ class Agent:
         llm: ChatModel,
         tools: Tools,
         skills: Skills | None = None,
-        system_prompt: str | SystemPrompt | None = None,
+        system_prompt: str | None = None,
         override_system_prompt: str | None = None,
         extend_system_prompt: str | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
-        self._message_manager = MessageManager(
-            system_prompt=_build_system_prompt(
+        self._conversation = Conversation(
+            system_prompt=SystemPromptComposer(
                 system_prompt=system_prompt,
                 override_system_prompt=override_system_prompt,
                 extend_system_prompt=extend_system_prompt,
+                skills=skills,
             ),
-            skills=skills,
-            memory=MemoryStore(),
         )
 
-    async def respond(self, text: str) -> str:
+    async def respond(
+        self,
+        text: str,
+        *,
+        on_tool_call: Callable[[str, dict[str, object]], None] | None = None,
+    ) -> str:
         """Add a user turn, run the model and tools, and return the final answer."""
         text = text.strip()
         if not text:
             return ""
 
-        self._message_manager.add_user(text)
-        answer = await self._generate_answer()
-        self._message_manager.add_assistant(answer)
+        self._conversation.add_user(text)
+        answer = await self._generate_answer(on_tool_call=on_tool_call)
+        self._conversation.add_assistant(answer)
         return answer
 
-    async def _generate_answer(self) -> str:
+    async def _generate_answer(
+        self,
+        *,
+        on_tool_call: Callable[[str, dict[str, object]], None] | None,
+    ) -> str:
         while True:
             completion = await self._llm.invoke(
-                self._message_manager.to_llm_messages(),
+                self._conversation.to_llm_messages(),
                 tools=self._tools.get_schema("openai"),
             )
-            answer, called_tools = await self._resolve_completion(completion)
+            answer, called_tools = await self._resolve_completion(completion, on_tool_call=on_tool_call)
             if not called_tools:
                 return answer
 
     async def _resolve_completion(
         self,
         completion: ChatInvokeCompletion[str],
+        *,
+        on_tool_call: Callable[[str, dict[str, object]], None] | None,
     ) -> tuple[str, bool]:
         answer = completion.completion.strip()
         for tool_call in completion.tool_calls:
-            self._message_manager.add_tool_call(tool_call)
+            self._conversation.add_tool_call(tool_call)
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
+            if on_tool_call is not None:
+                on_tool_call(name, arguments)
 
             result = await self._tools.execute(name, arguments)
             fallback = "Tool completed successfully." if result.ok else "Tool failed."
             content = str(result.result or result.error or fallback)
-            self._message_manager.add_tool_result(tool_call.id, content)
+            self._conversation.add_tool_result(tool_call.id, content)
 
         return answer, bool(completion.tool_calls)
-
-
-def _build_system_prompt(
-    *,
-    system_prompt: str | SystemPrompt | None,
-    override_system_prompt: str | None,
-    extend_system_prompt: str | None,
-) -> str | SystemPrompt:
-    if system_prompt is not None and (override_system_prompt is not None or extend_system_prompt is not None):
-        raise ValueError("Use system_prompt or override_system_prompt/extend_system_prompt, not both.")
-    if system_prompt is not None:
-        return system_prompt
-    return SystemPrompt(
-        override_system_prompt=override_system_prompt,
-        extend_system_prompt=extend_system_prompt,
-    )
