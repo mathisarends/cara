@@ -70,3 +70,57 @@ def test_retrieve_rejects_non_positive_limit() -> None:
 def test_fusion_requires_at_least_one_retriever() -> None:
     with pytest.raises(ValueError, match="At least one retriever is required"):
         ReciprocalRankFusion([])
+
+
+def test_weights_decide_between_otherwise_equal_rankings() -> None:
+    dense = FakeRetriever([_result("dense-only", 0.9)])
+    lexical = FakeRetriever([_result("lexical-only", 42.0)])
+
+    balanced = asyncio.run(ReciprocalRankFusion([dense, lexical]).retrieve("query"))
+    dense_favoured = asyncio.run(ReciprocalRankFusion([dense, lexical], weights=[0.7, 0.3]).retrieve("query"))
+
+    assert [result.score for result in balanced] == pytest.approx([1 / 61, 1 / 61])
+    assert [result.document.id for result in dense_favoured] == ["dense-only", "lexical-only"]
+
+
+def test_a_weighted_retriever_cannot_outrank_agreement_on_its_own() -> None:
+    dense = FakeRetriever([_result("dense-only", 0.9), _result("shared", 0.8)])
+    lexical = FakeRetriever([_result("shared", 42.0)])
+    fusion = ReciprocalRankFusion([dense, lexical], weights=[0.7, 0.3])
+
+    results = asyncio.run(fusion.retrieve("query"))
+
+    assert [result.document.id for result in results] == ["shared", "dense-only"]
+
+
+def test_candidate_multiplier_scales_the_over_fetch_with_the_limit() -> None:
+    retriever = FakeRetriever([])
+    fusion = ReciprocalRankFusion([retriever], candidates_per_retriever=1, candidate_multiplier=4)
+
+    asyncio.run(fusion.retrieve("query", limit=10))
+
+    assert retriever.requested_limit == 40
+
+
+def test_candidate_multiplier_never_fetches_below_the_candidate_floor() -> None:
+    retriever = FakeRetriever([])
+    fusion = ReciprocalRankFusion([retriever], candidates_per_retriever=60, candidate_multiplier=4)
+
+    asyncio.run(fusion.retrieve("query", limit=5))
+
+    assert retriever.requested_limit == 60
+
+
+def test_fusion_rejects_weights_that_do_not_match_the_retrievers() -> None:
+    with pytest.raises(ValueError, match="weights must contain one value per retriever"):
+        ReciprocalRankFusion([FakeRetriever([])], weights=[0.7, 0.3])
+
+
+def test_fusion_rejects_non_positive_weights() -> None:
+    with pytest.raises(ValueError, match="weights must be positive"):
+        ReciprocalRankFusion([FakeRetriever([])], weights=[0.0])
+
+
+def test_fusion_rejects_a_non_positive_candidate_multiplier() -> None:
+    with pytest.raises(ValueError, match="candidate_multiplier must be at least 1"):
+        ReciprocalRankFusion([FakeRetriever([])], candidate_multiplier=0)

@@ -478,8 +478,8 @@ from retrieval.fusion import ReciprocalRankFusion
 
 Dense and lexical retrieval fail in different places, which makes them worth
 combining. Their scores are not comparable, so `ReciprocalRankFusion` combines
-their *rankings* instead: each retriever contributes `1 / (rank_constant + rank)`
-per document, and the sums are re-sorted.
+their *rankings* instead: each retriever contributes
+`weight / (rank_constant + rank)` per document, and the sums are re-sorted.
 
 ```python
 hybrid = ReciprocalRankFusion([vector_index, lexical_index])
@@ -493,11 +493,52 @@ Retrievers are queried concurrently via `asyncio.gather`.
 
 | Parameter | Default | Effect |
 | --- | --- | --- |
+| `weights` | equal | One positive weight per retriever, scaling everything that retriever contributes. |
 | `rank_constant` | `60` | Dampens the influence of top ranks. The standard value from the original RRF paper. Lower values make rank 1 dominate. |
-| `candidates_per_retriever` | `60` | How many results to request from each retriever. Depth matters: a document ranked 40th by both retrievers can only outrank a one-sided winner if both lists reach that far. |
+| `candidates_per_retriever` | `60` | Lower bound on how many results to request from each retriever. Depth matters: a document ranked 40th by both retrievers can only outrank a one-sided winner if both lists reach that far. |
+| `candidate_multiplier` | `1` | Over-fetch relative to the requested limit. Each retriever is asked for `max(limit * candidate_multiplier, candidates_per_retriever)`. |
 
 A document found by one retriever still surfaces — fusion rewards agreement
 without requiring it.
+
+### Weighting retrievers
+
+Weights let you say that one retriever is generally more trustworthy for your
+corpus without letting it decide alone:
+
+```python
+hybrid = ReciprocalRankFusion([vector_index, lexical_index], weights=[0.7, 0.3])
+```
+
+Weighting happens on the rank contributions, not on retriever scores, so it
+stays immune to the scale problem that motivates rank fusion in the first
+place. What the numbers control is how much one retriever's opinion is worth
+relative to another's — only their ratio matters, so `[0.7, 0.3]` and `[7, 3]`
+behave identically.
+
+Two retrievers that agree still outrank a single weighted favourite, which is
+usually what you want: with `[0.7, 0.3]`, a document ranked first by the
+lexical index alone scores `0.0049`, while one ranked second by both scores
+`0.0161`.
+
+### Over-fetching
+
+`candidate_multiplier` scales the over-fetch with the request rather than
+pinning it to a constant. It matters when a stage after the fusion narrows the
+results further — a [reranker](#reranking) that sees only five candidates
+cannot do much:
+
+```python
+hybrid = ReciprocalRankFusion(
+    [vector_index, lexical_index],
+    candidates_per_retriever=1,
+    candidate_multiplier=4,
+)
+```
+
+Keep `candidates_per_retriever` as the floor for small limits and let the
+multiplier take over for large ones; the effective depth is the larger of the
+two.
 
 ---
 
