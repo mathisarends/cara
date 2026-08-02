@@ -156,16 +156,22 @@ def test_context_precedes_available_skills_in_the_system_prompt(tmp_path: Path) 
     assert rendered.index("<context>") < rendered.index("<available_skills>")
 
 
-def test_system_prompt_reads_default_markdown() -> None:
+def test_system_prompt_is_assembled_from_the_packaged_markdown_files() -> None:
     prompt = SystemPrompt().render()
 
-    assert "<memory>" in prompt
+    assert prompt.index("<soul>") < prompt.index("<user>")
+
+
+def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
+    (tmp_path / "USER.md").write_text("Mathis lebt in Berlin.", encoding="utf-8")
+
+    assert SystemPrompt(root=tmp_path).render() == "<user>\nMathis lebt in Berlin.\n</user>"
 
 
 def test_system_prompt_can_extend_default_prompt() -> None:
     prompt = SystemPrompt(extend_system_prompt="Nutze Tools sparsam.").render()
 
-    assert "<memory>" in prompt
+    assert "<soul>" in prompt
     assert prompt.endswith("Nutze Tools sparsam.")
 
 

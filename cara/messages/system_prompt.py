@@ -1,21 +1,23 @@
-from importlib import resources
+from pathlib import Path
 
+from cara.markdown import render_tagged_section
 
-def _read_default_system_prompt() -> str:
-    return resources.files("cara.messages").joinpath("system_prompt.md").read_text(encoding="utf-8").strip()
+_PROMPT_FILES = ("SOUL.md", "USER.md")
 
 
 class SystemPrompt:
-    """System prompt loaded from the package markdown file."""
+    """System prompt assembled from the markdown files next to this module."""
 
     def __init__(
         self,
         *,
+        root: Path | None = None,
         override_system_prompt: str | None = None,
         extend_system_prompt: str | None = None,
     ) -> None:
         if override_system_prompt is not None and extend_system_prompt is not None:
             raise ValueError("Use either override_system_prompt or extend_system_prompt, not both.")
+        self._root = root if root is not None else Path(__file__).parent
         self._override_system_prompt = override_system_prompt
         self._extend_system_prompt = extend_system_prompt
 
@@ -23,7 +25,7 @@ class SystemPrompt:
         if self._override_system_prompt is not None:
             return self._override_system_prompt.strip()
 
-        prompt = _read_default_system_prompt()
+        prompt = self._assemble()
         if self._extend_system_prompt is None:
             return prompt
 
@@ -34,3 +36,11 @@ class SystemPrompt:
 
     def __str__(self) -> str:
         return self.render()
+
+    def _assemble(self) -> str:
+        sections = [
+            section
+            for file_name in _PROMPT_FILES
+            if (section := render_tagged_section(self._root / file_name, tag=Path(file_name).stem.lower()))
+        ]
+        return "\n\n".join(sections)

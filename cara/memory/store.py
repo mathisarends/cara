@@ -2,7 +2,9 @@ from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
-_CORE_FILES = ("SOUL.md", "USER.md", "MEMORY.md", "DREAMS.md")
+from cara.markdown import render_tagged_section
+
+_MEMORY_FILES = ("MEMORY.md", "DREAMS.md")
 _DAILY_DIR = "daily"
 
 
@@ -16,19 +18,10 @@ class MemoryStore:
     def render(self) -> str:
         sections = [
             section
-            for file_name in _CORE_FILES
-            if (section := _render_file(self._root / file_name, tag=Path(file_name).stem.lower()))
+            for file_name in _MEMORY_FILES
+            if (section := render_tagged_section(self._root / file_name, tag=Path(file_name).stem.lower()))
         ]
         daily_path = self._root / _DAILY_DIR / f"{self._today():%Y-%m-%d}.md"
-        if daily := _render_file(daily_path, tag=_DAILY_DIR):
+        if daily := render_tagged_section(daily_path, tag=_DAILY_DIR):
             sections.append(daily)
         return "\n\n".join(sections)
-
-
-def _render_file(path: Path, *, tag: str) -> str:
-    if not path.is_file():
-        return ""
-    content = path.read_text(encoding="utf-8").strip()
-    if not content:
-        return ""
-    return f"<{tag}>\n{content}\n</{tag}>"
