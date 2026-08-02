@@ -63,12 +63,13 @@ class HybridMemorySearch:
                 vector.retrieve(query, limit=candidates),
                 lexical.retrieve(query, limit=candidates),
             )
-            return _merge_results(
+            results = _merge_results(
                 vector_results,
                 text_results,
                 vector_weight=vector_weight,
                 text_weight=text_weight,
-            )[:limit]
+            )
+            return _select_memory_chunks(results, limit=limit)
         finally:
             await vector.close()
             await lexical.close()
@@ -237,6 +238,15 @@ def _merge_results(
         for document, vector_score, text_score in by_id.values()
     ]
     return sorted(merged, key=lambda result: result.score, reverse=True)
+
+
+def _select_memory_chunks(
+    results: Sequence[HybridMemoryResult],
+    *,
+    limit: int,
+) -> list[HybridMemoryResult]:
+    chunks = [result for result in results if result.document.parent_id is not None]
+    return (chunks or list(results))[:limit]
 
 
 class _DeletionOnlyEmbeddingProvider(EmbeddingProvider):

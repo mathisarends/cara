@@ -37,9 +37,10 @@ uv run python experiments/talk_with_voice.py
 ## Hybrid memory experiment
 
 The `search_memory` tool searches Markdown memory chunks in `temp/cara-memory.db`
-and returns `vectorScore`, `textScore`, and their weighted `score`. A separate
-mock corpus contains one durable `MEMORY.md` and fourteen daily notes. Seed it
-with an `OPENAI_API_KEY` configured in `.env`:
+and returns concise original excerpts grouped by source and date. Hybrid relevance
+scores are used internally for ranking but are not added to the conversation. A
+separate mock corpus contains one durable `MEMORY.md` and fourteen daily notes.
+Seed it with an `OPENAI_API_KEY` configured in `.env`:
 
 ```bash
 bash scripts/seed_database_mock_data.sh

@@ -1,4 +1,3 @@
-import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from tempfile import gettempdir
@@ -25,7 +24,7 @@ from agenttoolkit.builtins import (
 from agenttoolkit.builtins.fs import Entry
 
 from cara.audio import AudioPlayer
-from cara.memory import HybridMemorySearch
+from cara.memory import HybridMemoryResult, HybridMemorySearch
 from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
 from cara.tools.params import (
     BashParams,
@@ -199,8 +198,8 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
 
     @tools.action(
         description=(
-            "Search older daily notes and durable memory. Returns weighted hybrid results "
-            "with vectorScore, textScore, score, source metadata, and the retrieved text."
+            "Search older daily notes and durable memory. Returns concise original excerpts "
+            "with their source and date, ordered by relevance."
         ),
         params=SearchMemoryParams,
         available_when=provided(HybridMemorySearch),
@@ -215,22 +214,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
             vector_weight=params.vector_weight,
             text_weight=params.text_weight,
         )
-        payload = [
-            {
-                "id": result.document.id,
-                "parentId": result.document.parent_id,
-                "text": result.document.text,
-                "metadata": dict(result.document.metadata),
-                "createdAt": (
-                    result.document.created_at.isoformat() if result.document.created_at is not None else None
-                ),
-                "vectorScore": result.vector_score,
-                "textScore": result.text_score,
-                "score": result.score,
-            }
-            for result in results
-        ]
-        return ActionResult.success(json.dumps(payload, ensure_ascii=False))
+        return ActionResult.success(_render_memory_results(results))
 
     @tools.action(
         description="Execute a Bash command in the isolated workspace sandbox.",
@@ -322,3 +306,29 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
 def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:
     rendered = [f"{entry.path}/" if entry.is_dir else entry.path for entry in entries]
     return "\n".join(rendered) if rendered else empty
+
+
+def _render_memory_results(results: Sequence[HybridMemoryResult]) -> str:
+    if not results:
+        return "(no relevant memories found)"
+
+    grouped: dict[str, tuple[str, str | None, list[str]]] = {}
+    for result in results:
+        document = result.document
+        path = document.metadata.get("path")
+        source = path if isinstance(path, str) else document.parent_id or document.id
+        group_key = document.parent_id or document.id
+        created_at = document.created_at.date().isoformat() if document.created_at is not None else None
+        text = document.text.strip()
+
+        group = grouped.get(group_key)
+        if group is None:
+            grouped[group_key] = (source, created_at, [text])
+        elif text not in group[2]:
+            group[2].append(text)
+
+    rendered = ["Memory excerpts, ordered by relevance:"]
+    for source, created_at, excerpts in grouped.values():
+        heading = f"[{source}]" if created_at is None else f"[{source} | {created_at}]"
+        rendered.append(f"{heading}\n" + "\n\n".join(excerpts))
+    return "\n\n".join(rendered)
