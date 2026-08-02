@@ -4,6 +4,12 @@ from collections.abc import Sequence
 from retrieval.types import Document, Embedding, RetrievalResult
 
 
+class Chunker(ABC):
+    @abstractmethod
+    def chunk(self, text: str) -> list[str]:
+        raise NotImplementedError
+
+
 class EmbeddingProvider(ABC):
     @abstractmethod
     async def embed(self, texts: Sequence[str]) -> list[Embedding]:
