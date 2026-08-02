@@ -34,7 +34,9 @@ def test_embed_returns_vectors_in_input_order() -> None:
             ]
         )
     )
-    client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
+    client = cast(
+        AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create))
+    )
     provider = OpenAIEmbeddingProvider(
         "text-embedding-3-small",
         client=client,
@@ -52,7 +54,9 @@ def test_embed_returns_vectors_in_input_order() -> None:
 
 def test_embed_passes_configured_dimensions() -> None:
     create = AsyncMock(return_value=SimpleNamespace(data=[]))
-    client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
+    client = cast(
+        AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create))
+    )
     provider = OpenAIEmbeddingProvider(
         "custom-embedding-model",
         client=client,

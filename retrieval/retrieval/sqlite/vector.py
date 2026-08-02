@@ -50,9 +50,13 @@ class SQLiteVectorIndex(TextIndex):
 
         rows = document_rows(items)
 
-        embeddings = await self._embedding_provider.embed([document.text for document in items])
+        embeddings = await self._embedding_provider.embed(
+            [document.text for document in items]
+        )
         if len(embeddings) != len(items):
-            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+            raise ValueError(
+                "Embedding provider returned an unexpected number of embeddings"
+            )
         self._validate_embeddings(embeddings)
 
         with self._connection:
@@ -63,8 +67,13 @@ class SQLiteVectorIndex(TextIndex):
                     (document.id,),
                 )
                 self._connection.execute(
-                    f"INSERT INTO {_EMBEDDINGS} (document_id, embedding, parent_key) VALUES (?, ?, ?)",
-                    (document.id, sqlite_vec.serialize_float32(embedding), _parent_key(document.parent_id)),
+                    f"INSERT INTO {_EMBEDDINGS} "
+                    "(document_id, embedding, parent_key) VALUES (?, ?, ?)",
+                    (
+                        document.id,
+                        sqlite_vec.serialize_float32(embedding),
+                        _parent_key(document.parent_id),
+                    ),
                 )
 
     async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
@@ -84,7 +93,9 @@ class SQLiteVectorIndex(TextIndex):
 
         embeddings = await self._embedding_provider.embed([query])
         if len(embeddings) != 1:
-            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+            raise ValueError(
+                "Embedding provider returned an unexpected number of embeddings"
+            )
         self._validate_embeddings(embeddings)
 
         parameters: list[object] = [sqlite_vec.serialize_float32(embeddings[0]), limit]
@@ -109,7 +120,12 @@ class SQLiteVectorIndex(TextIndex):
             """,
             parameters,
         ).fetchall()
-        return [RetrievalResult(document=document_from_row(row), score=1.0 - row["distance"]) for row in rows]
+        return [
+            RetrievalResult(
+                document=document_from_row(row), score=1.0 - row["distance"]
+            )
+            for row in rows
+        ]
 
     async def get(self, document_id: str) -> Document | None:
         row = self._connection.execute(
@@ -118,7 +134,9 @@ class SQLiteVectorIndex(TextIndex):
         ).fetchone()
         return None if row is None else document_from_row(row)
 
-    async def list_documents(self, *, parent_id: str | None = None, limit: int = 100) -> list[Document]:
+    async def list_documents(
+        self, *, parent_id: str | None = None, limit: int = 100
+    ) -> list[Document]:
         if limit < 1:
             raise ValueError("limit must be at least 1")
 
@@ -150,7 +168,9 @@ class SQLiteVectorIndex(TextIndex):
             return
 
         with self._connection:
-            self._connection.executemany(f"DELETE FROM {_EMBEDDINGS} WHERE document_id = ?", ids)
+            self._connection.executemany(
+                f"DELETE FROM {_EMBEDDINGS} WHERE document_id = ?", ids
+            )
             self._connection.executemany(f"DELETE FROM {_DOCUMENTS} WHERE id = ?", ids)
 
     def close(self) -> None:
@@ -195,15 +215,21 @@ class SQLiteVectorIndex(TextIndex):
         ).fetchone()
         expected = f"float[{self._dimensions}]"
         if row is None or expected not in row["sql"].casefold():
-            raise ValueError(f"The existing {_EMBEDDINGS} table uses different embedding dimensions")
+            raise ValueError(
+                f"The existing {_EMBEDDINGS} table uses different embedding dimensions"
+            )
 
     def _validate_embeddings(self, embeddings: Sequence[Embedding]) -> None:
         if any(len(embedding) != self._dimensions for embedding in embeddings):
-            raise ValueError(f"Embedding vectors must have {self._dimensions} dimensions")
+            raise ValueError(
+                f"Embedding vectors must have {self._dimensions} dimensions"
+            )
 
     def _has_embeddings(self, parent_id: str | None) -> bool:
         if parent_id is None:
-            row = self._connection.execute(f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS})").fetchone()
+            row = self._connection.execute(
+                f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS})"
+            ).fetchone()
         else:
             row = self._connection.execute(
                 f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS} WHERE parent_key = ?)",

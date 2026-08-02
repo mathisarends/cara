@@ -43,11 +43,17 @@ def _result(text: str, score: float) -> RetrievalResult:
 
 
 def _candidates() -> list[RetrievalResult]:
-    return [_result("best", 1.0), _result("near-duplicate", 0.99), _result("different", 0.1)]
+    return [
+        _result("best", 1.0),
+        _result("near-duplicate", 0.99),
+        _result("different", 0.1),
+    ]
 
 
 def test_retrieve_drops_a_near_duplicate_in_favour_of_a_different_document() -> None:
-    reranker = MaximalMarginalRelevance(FakeRetriever(_candidates()), FakeEmbeddingProvider())
+    reranker = MaximalMarginalRelevance(
+        FakeRetriever(_candidates()), FakeEmbeddingProvider()
+    )
 
     results = asyncio.run(reranker.retrieve("query", limit=2))
 
@@ -55,7 +61,9 @@ def test_retrieve_drops_a_near_duplicate_in_favour_of_a_different_document() -> 
 
 
 def test_full_relevance_keeps_the_underlying_relevance_order() -> None:
-    reranker = MaximalMarginalRelevance(FakeRetriever(_candidates()), FakeEmbeddingProvider(), relevance=1.0)
+    reranker = MaximalMarginalRelevance(
+        FakeRetriever(_candidates()), FakeEmbeddingProvider(), relevance=1.0
+    )
 
     results = asyncio.run(reranker.retrieve("query", limit=2))
 
@@ -63,16 +71,22 @@ def test_full_relevance_keeps_the_underlying_relevance_order() -> None:
 
 
 def test_scores_describe_the_ranking_the_reranker_produced() -> None:
-    reranker = MaximalMarginalRelevance(FakeRetriever(_candidates()), FakeEmbeddingProvider(), relevance=0.5)
+    reranker = MaximalMarginalRelevance(
+        FakeRetriever(_candidates()), FakeEmbeddingProvider(), relevance=0.5
+    )
 
     results = asyncio.run(reranker.retrieve("query", limit=2))
 
-    assert [result.score for result in results] == pytest.approx([0.45, 0.045], abs=0.0001)
+    assert [result.score for result in results] == pytest.approx(
+        [0.45, 0.045], abs=0.0001
+    )
 
 
 def test_retrieve_over_fetches_relative_to_the_limit() -> None:
     retriever = FakeRetriever(_candidates())
-    reranker = MaximalMarginalRelevance(retriever, FakeEmbeddingProvider(), candidates=1, candidate_multiplier=4)
+    reranker = MaximalMarginalRelevance(
+        retriever, FakeEmbeddingProvider(), candidates=1, candidate_multiplier=4
+    )
 
     asyncio.run(reranker.retrieve("query", limit=3))
 

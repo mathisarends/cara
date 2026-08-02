@@ -18,7 +18,9 @@ class CountingEmbeddingProvider(EmbeddingProvider):
         return [self._embeddings[text] for text in texts]
 
 
-def _cache(database: Path, provider: EmbeddingProvider, *, namespace: str = "model") -> SQLiteEmbeddingCache:
+def _cache(
+    database: Path, provider: EmbeddingProvider, *, namespace: str = "model"
+) -> SQLiteEmbeddingCache:
     return SQLiteEmbeddingCache(database, provider, namespace=namespace)
 
 
@@ -46,7 +48,9 @@ def test_embed_survives_reopening_the_database(tmp_path: Path) -> None:
     assert provider.calls == [["text"]]
 
 
-def test_embed_returns_one_embedding_per_input_including_duplicates(tmp_path: Path) -> None:
+def test_embed_returns_one_embedding_per_input_including_duplicates(
+    tmp_path: Path,
+) -> None:
     provider = CountingEmbeddingProvider({"repeated": [1.0, 0.0], "other": [0.0, 1.0]})
     with _cache(tmp_path / "duplicates.db", provider) as cache:
         embeddings = asyncio.run(cache.embed(["repeated", "other", "repeated"]))

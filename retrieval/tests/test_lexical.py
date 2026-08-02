@@ -41,14 +41,18 @@ def test_retrieve_prefers_the_shorter_document_on_equal_term_frequency() -> None
 
 def test_retrieve_ignores_documents_without_matching_terms() -> None:
     index = InMemoryBM25Index()
-    asyncio.run(index.index([Document(id="berlin", text="Berlin is the capital of Germany.")]))
+    asyncio.run(
+        index.index([Document(id="berlin", text="Berlin is the capital of Germany.")])
+    )
 
     assert asyncio.run(index.retrieve("quantum chromodynamics")) == []
 
 
 def test_retrieve_returns_nothing_for_a_query_without_terms() -> None:
     index = InMemoryBM25Index()
-    asyncio.run(index.index([Document(id="berlin", text="Berlin is the capital of Germany.")]))
+    asyncio.run(
+        index.index([Document(id="berlin", text="Berlin is the capital of Germany.")])
+    )
 
     assert asyncio.run(index.retrieve("!?!")) == []
 
@@ -119,7 +123,9 @@ def test_delete_removes_documents_and_their_term_statistics() -> None:
     reference = asyncio.run(index_without_history.retrieve("shared"))
 
     assert [result.document.id for result in kept_alone] == ["kept"]
-    assert asyncio.run(index.retrieve("shared"))[0].score == pytest.approx(reference[0].score)
+    assert asyncio.run(index.retrieve("shared"))[0].score == pytest.approx(
+        reference[0].score
+    )
 
 
 def test_delete_ignores_unknown_ids() -> None:
@@ -128,4 +134,6 @@ def test_delete_ignores_unknown_ids() -> None:
 
     asyncio.run(index.delete(["never-indexed"]))
 
-    assert [result.document.id for result in asyncio.run(index.retrieve("shared"))] == ["kept"]
+    assert [result.document.id for result in asyncio.run(index.retrieve("shared"))] == [
+        "kept"
+    ]

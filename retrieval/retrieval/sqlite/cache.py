@@ -19,7 +19,13 @@ class SQLiteEmbeddingCache(EmbeddingProvider):
     changed, at the cost of one SQLite lookup per text.
     """
 
-    def __init__(self, database: str | Path, embedding_provider: EmbeddingProvider, *, namespace: str) -> None:
+    def __init__(
+        self,
+        database: str | Path,
+        embedding_provider: EmbeddingProvider,
+        *,
+        namespace: str,
+    ) -> None:
         if not namespace:
             raise ValueError("namespace must not be empty")
 
@@ -43,7 +49,9 @@ class SQLiteEmbeddingCache(EmbeddingProvider):
         if missing:
             embeddings = await self._embedding_provider.embed(missing)
             if len(embeddings) != len(missing):
-                raise ValueError("Embedding provider returned an unexpected number of embeddings")
+                raise ValueError(
+                    "Embedding provider returned an unexpected number of embeddings"
+                )
 
             fresh = dict(zip(missing, embeddings, strict=True))
             self._store(fresh)
@@ -87,10 +95,17 @@ class SQLiteEmbeddingCache(EmbeddingProvider):
             batch = keys[start : start + _LOOKUP_BATCH]
             placeholders = ", ".join("?" * len(batch))
             rows = self._connection.execute(
-                f"SELECT text_digest, embedding FROM {_CACHE} WHERE namespace = ? AND text_digest IN ({placeholders})",
+                f"SELECT text_digest, embedding FROM {_CACHE} "
+                "WHERE namespace = ? "
+                f"AND text_digest IN ({placeholders})",
                 [self._namespace, *batch],
             ).fetchall()
-            cached.update({digests[row["text_digest"]]: _deserialize(row["embedding"]) for row in rows})
+            cached.update(
+                {
+                    digests[row["text_digest"]]: _deserialize(row["embedding"])
+                    for row in rows
+                }
+            )
 
         return cached
 
@@ -100,9 +115,13 @@ class SQLiteEmbeddingCache(EmbeddingProvider):
                 f"""
                 INSERT INTO {_CACHE} (namespace, text_digest, embedding)
                 VALUES (?, ?, ?)
-                ON CONFLICT(namespace, text_digest) DO UPDATE SET embedding = excluded.embedding
+                ON CONFLICT(namespace, text_digest) DO UPDATE SET
+                    embedding = excluded.embedding
                 """,
-                [(self._namespace, _digest(text), _serialize(embedding)) for text, embedding in embeddings.items()],
+                [
+                    (self._namespace, _digest(text), _serialize(embedding))
+                    for text, embedding in embeddings.items()
+                ],
             )
 
 

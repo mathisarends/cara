@@ -14,16 +14,25 @@ class InMemoryVectorIndex(TextIndex):
         if not items:
             return
 
-        embeddings = await self._embedding_provider.embed([document.text for document in items])
+        embeddings = await self._embedding_provider.embed(
+            [document.text for document in items]
+        )
         if len(embeddings) != len(items):
-            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+            raise ValueError(
+                "Embedding provider returned an unexpected number of embeddings"
+            )
 
-        expected_dimensions = len(next(iter(self._documents.values()))[1]) if self._documents else len(embeddings[0])
+        expected_dimensions = (
+            len(next(iter(self._documents.values()))[1])
+            if self._documents
+            else len(embeddings[0])
+        )
         if any(len(embedding) != expected_dimensions for embedding in embeddings):
             raise ValueError("Embedding vectors must have the same dimensions")
 
         indexed_documents = {
-            document.id: (document, normalize(embedding)) for document, embedding in zip(items, embeddings, strict=True)
+            document.id: (document, normalize(embedding))
+            for document, embedding in zip(items, embeddings, strict=True)
         }
         self._documents.update(indexed_documents)
 
@@ -39,7 +48,9 @@ class InMemoryVectorIndex(TextIndex):
 
         embeddings = await self._embedding_provider.embed([query])
         if len(embeddings) != 1:
-            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+            raise ValueError(
+                "Embedding provider returned an unexpected number of embeddings"
+            )
 
         query_embedding = normalize(embeddings[0])
         results = [

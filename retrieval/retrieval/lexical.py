@@ -15,7 +15,13 @@ class InMemoryBM25Index(TextIndex):
     when no embedding model has ever seen them.
     """
 
-    def __init__(self, tokenizer: LexicalTokenizer | None = None, *, k1: float = 1.5, b: float = 0.75) -> None:
+    def __init__(
+        self,
+        tokenizer: LexicalTokenizer | None = None,
+        *,
+        k1: float = 1.5,
+        b: float = 0.75,
+    ) -> None:
         if k1 < 0:
             raise ValueError("k1 must not be negative")
         if not 0.0 <= b <= 1.0:
@@ -76,10 +82,17 @@ class InMemoryBM25Index(TextIndex):
             else:
                 del self._document_frequencies[term]
 
-    def _score(self, query_terms: set[str], indexed: "_IndexedDocument", average_length: float) -> float:
-        length_penalty = self._k1 * (1 - self._b + self._b * indexed.length / average_length)
+    def _score(
+        self, query_terms: set[str], indexed: "_IndexedDocument", average_length: float
+    ) -> float:
+        length_penalty = self._k1 * (
+            1 - self._b + self._b * indexed.length / average_length
+        )
         return sum(
-            self._inverse_document_frequency(term) * frequency * (self._k1 + 1) / (frequency + length_penalty)
+            self._inverse_document_frequency(term)
+            * frequency
+            * (self._k1 + 1)
+            / (frequency + length_penalty)
             for term in query_terms
             if (frequency := indexed.term_frequencies[term])
         )
@@ -87,7 +100,9 @@ class InMemoryBM25Index(TextIndex):
     def _inverse_document_frequency(self, term: str) -> float:
         document_frequency = self._document_frequencies[term]
         total = len(self._documents)
-        return math.log(1 + (total - document_frequency + 0.5) / (document_frequency + 0.5))
+        return math.log(
+            1 + (total - document_frequency + 0.5) / (document_frequency + 0.5)
+        )
 
 
 class WordTokenizer(LexicalTokenizer):

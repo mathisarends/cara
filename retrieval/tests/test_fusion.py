@@ -17,7 +17,9 @@ class FakeRetriever(Retriever):
 
 
 def _result(document_id: str, score: float) -> RetrievalResult:
-    return RetrievalResult(document=Document(id=document_id, text=document_id), score=score)
+    return RetrievalResult(
+        document=Document(id=document_id, text=document_id), score=score
+    )
 
 
 def test_retrieve_prefers_documents_ranked_well_by_every_retriever() -> None:
@@ -77,10 +79,15 @@ def test_weights_decide_between_otherwise_equal_rankings() -> None:
     lexical = FakeRetriever([_result("lexical-only", 42.0)])
 
     balanced = asyncio.run(ReciprocalRankFusion([dense, lexical]).retrieve("query"))
-    dense_favoured = asyncio.run(ReciprocalRankFusion([dense, lexical], weights=[0.7, 0.3]).retrieve("query"))
+    dense_favoured = asyncio.run(
+        ReciprocalRankFusion([dense, lexical], weights=[0.7, 0.3]).retrieve("query")
+    )
 
     assert [result.score for result in balanced] == pytest.approx([1 / 61, 1 / 61])
-    assert [result.document.id for result in dense_favoured] == ["dense-only", "lexical-only"]
+    assert [result.document.id for result in dense_favoured] == [
+        "dense-only",
+        "lexical-only",
+    ]
 
 
 def test_a_weighted_retriever_cannot_outrank_agreement_on_its_own() -> None:
@@ -95,7 +102,9 @@ def test_a_weighted_retriever_cannot_outrank_agreement_on_its_own() -> None:
 
 def test_candidate_multiplier_scales_the_over_fetch_with_the_limit() -> None:
     retriever = FakeRetriever([])
-    fusion = ReciprocalRankFusion([retriever], candidates_per_retriever=1, candidate_multiplier=4)
+    fusion = ReciprocalRankFusion(
+        [retriever], candidates_per_retriever=1, candidate_multiplier=4
+    )
 
     asyncio.run(fusion.retrieve("query", limit=10))
 
@@ -104,7 +113,9 @@ def test_candidate_multiplier_scales_the_over_fetch_with_the_limit() -> None:
 
 def test_candidate_multiplier_never_fetches_below_the_candidate_floor() -> None:
     retriever = FakeRetriever([])
-    fusion = ReciprocalRankFusion([retriever], candidates_per_retriever=60, candidate_multiplier=4)
+    fusion = ReciprocalRankFusion(
+        [retriever], candidates_per_retriever=60, candidate_multiplier=4
+    )
 
     asyncio.run(fusion.retrieve("query", limit=5))
 
@@ -112,7 +123,9 @@ def test_candidate_multiplier_never_fetches_below_the_candidate_floor() -> None:
 
 
 def test_fusion_rejects_weights_that_do_not_match_the_retrievers() -> None:
-    with pytest.raises(ValueError, match="weights must contain one value per retriever"):
+    with pytest.raises(
+        ValueError, match="weights must contain one value per retriever"
+    ):
         ReciprocalRankFusion([FakeRetriever([])], weights=[0.7, 0.3])
 
 

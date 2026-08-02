@@ -68,7 +68,9 @@ async def main() -> None:
         OpenAIEmbeddingProvider(EMBEDDING_MODEL),
         namespace=EMBEDDING_MODEL,
     )
-    vector_index = SQLiteVectorIndex(DATABASE, embedding_provider, dimensions=EMBEDDING_DIMENSIONS)
+    vector_index = SQLiteVectorIndex(
+        DATABASE, embedding_provider, dimensions=EMBEDDING_DIMENSIONS
+    )
     lexical_index = SQLiteFts5Index(DATABASE)
 
     await synchronize(NOTES_DIRECTORY, [vector_index, lexical_index])
@@ -77,7 +79,9 @@ async def main() -> None:
     # identifiers an embedding model has never seen. The weights say which one
     # this corpus trusts more; MMR stops one loud note taking every place.
     search = MaximalMarginalRelevance(
-        ReciprocalRankFusion([vector_index, lexical_index], weights=[0.7, 0.3], candidate_multiplier=4),
+        ReciprocalRankFusion(
+            [vector_index, lexical_index], weights=[0.7, 0.3], candidate_multiplier=4
+        ),
         embedding_provider,
         relevance=0.7,
     )
@@ -85,7 +89,10 @@ async def main() -> None:
     for query in ("what did we decide about ranking?", "OPENAI_API_KEY"):
         print(f"\n{query}")
         for result in await search.retrieve(query, limit=3):
-            print(f"  {result.score:+.4f}  {result.document.parent_id}  {_summarize(result.document.text)}")
+            print(
+                f"  {result.score:+.4f}  {result.document.parent_id}  "
+                f"{_summarize(result.document.text)}"
+            )
 
     # The newest notes are wanted whole and in order, which is a database
     # query rather than a retrieval problem. Search is for everything older,
@@ -108,7 +115,11 @@ async def synchronize(directory: Path, indexes: list[TextIndex]) -> None:
     startup, on a debounced watcher event, or on a timer.
     """
     chunker = MarkdownChunker(chunk_size=400, chunk_overlap=40)
-    documents = [document for path in sorted(directory.glob("*.md")) for document in _chunk_note(path, chunker)]
+    documents = [
+        document
+        for path in sorted(directory.glob("*.md"))
+        for document in _chunk_note(path, chunker)
+    ]
     stale = await _stale_ids(indexes[0], {document.id for document in documents})
 
     for index in indexes:

@@ -1,7 +1,12 @@
 from collections.abc import Sequence
 
 from retrieval import Chunker
-from retrieval.chunking._common import largest_prefix, overlap_start, token_count, validate_sizes
+from retrieval.chunking._common import (
+    largest_prefix,
+    overlap_start,
+    token_count,
+    validate_sizes,
+)
 from retrieval.chunking.tokenizers import CharacterTokenizer, TextTokenizer
 
 _DEFAULT_SEPARATORS = ("\n\n", "\n", ". ", " ")
@@ -37,7 +42,11 @@ class RecursiveChunker(Chunker):
 
             prefix_end = largest_prefix(remaining, self._chunk_size, self._tokenizer)
             chunk_end = _preferred_break(remaining[:prefix_end], self._separators)
-            if chunk_end == 0 or token_count(remaining[:chunk_end], self._tokenizer) <= self._chunk_overlap:
+            if (
+                chunk_end == 0
+                or token_count(remaining[:chunk_end], self._tokenizer)
+                <= self._chunk_overlap
+            ):
                 chunk_end = prefix_end
 
             chunk = remaining[:chunk_end]

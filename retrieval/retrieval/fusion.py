@@ -40,9 +40,14 @@ class ReciprocalRankFusion(Retriever):
         if limit < 1:
             raise ValueError("limit must be at least 1")
 
-        candidates = max(limit * self._candidate_multiplier, self._candidates_per_retriever)
+        candidates = max(
+            limit * self._candidate_multiplier, self._candidates_per_retriever
+        )
         rankings = await asyncio.gather(
-            *(retriever.retrieve(query, limit=candidates) for retriever in self._retrievers)
+            *(
+                retriever.retrieve(query, limit=candidates)
+                for retriever in self._retrievers
+            )
         )
 
         documents: dict[str, Document] = {}
@@ -51,15 +56,20 @@ class ReciprocalRankFusion(Retriever):
             for rank, result in enumerate(ranking, start=1):
                 documents[result.document.id] = result.document
                 contribution = weight / (self._rank_constant + rank)
-                scores[result.document.id] = scores.get(result.document.id, 0.0) + contribution
+                scores[result.document.id] = (
+                    scores.get(result.document.id, 0.0) + contribution
+                )
 
         results = [
-            RetrievalResult(document=documents[document_id], score=score) for document_id, score in scores.items()
+            RetrievalResult(document=documents[document_id], score=score)
+            for document_id, score in scores.items()
         ]
         return sorted(results, key=lambda result: result.score, reverse=True)[:limit]
 
 
-def _validate_weights(weights: Sequence[float] | None, retriever_count: int) -> list[float]:
+def _validate_weights(
+    weights: Sequence[float] | None, retriever_count: int
+) -> list[float]:
     if weights is None:
         return [1.0] * retriever_count
     if len(weights) != retriever_count:

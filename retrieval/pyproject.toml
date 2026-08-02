@@ -21,3 +21,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["retrieval"]
+
+[tool.ruff]
+extend = "../pyproject.toml"
+line-length = 88

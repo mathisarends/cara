@@ -43,14 +43,21 @@ class MaximalMarginalRelevance(Retriever):
         if len(results) <= 1:
             return results[:limit]
 
-        embeddings = await self._embedding_provider.embed([query, *(result.document.text for result in results)])
+        embeddings = await self._embedding_provider.embed(
+            [query, *(result.document.text for result in results)]
+        )
         if len(embeddings) != len(results) + 1:
-            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+            raise ValueError(
+                "Embedding provider returned an unexpected number of embeddings"
+            )
 
         query_embedding = normalize(embeddings[0])
         candidates = [normalize(embedding) for embedding in embeddings[1:]]
         selected = _select(query_embedding, candidates, self._relevance, limit)
-        return [RetrievalResult(document=results[position].document, score=score) for position, score in selected]
+        return [
+            RetrievalResult(document=results[position].document, score=score)
+            for position, score in selected
+        ]
 
 
 def _select(
@@ -72,7 +79,8 @@ def _select(
 
     while remaining and len(selected) < limit:
         scores = {
-            position: relevance * relevances[position] - (1.0 - relevance) * redundancies[position]
+            position: relevance * relevances[position]
+            - (1.0 - relevance) * redundancies[position]
             for position in remaining
         }
         best = max(remaining, key=lambda position: scores[position])
@@ -80,6 +88,8 @@ def _select(
         remaining.remove(best)
 
         for position in remaining:
-            redundancies[position] = max(redundancies[position], cosine(candidates[position], candidates[best]))
+            redundancies[position] = max(
+                redundancies[position], cosine(candidates[position], candidates[best])
+            )
 
     return selected

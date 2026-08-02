@@ -81,13 +81,21 @@ def test_index_rejects_inconsistent_dimensions() -> None:
 
 
 def test_delete_removes_documents_from_the_rankings() -> None:
-    provider = FakeEmbeddingProvider({"first": [1.0, 0.0], "second": [0.0, 1.0], "query": [1.0, 0.0]})
+    provider = FakeEmbeddingProvider(
+        {"first": [1.0, 0.0], "second": [0.0, 1.0], "query": [1.0, 0.0]}
+    )
     index = InMemoryVectorIndex(provider)
-    asyncio.run(index.index([Document(id="first", text="first"), Document(id="second", text="second")]))
+    asyncio.run(
+        index.index(
+            [Document(id="first", text="first"), Document(id="second", text="second")]
+        )
+    )
 
     asyncio.run(index.delete(["first", "never-indexed"]))
 
-    assert [result.document.id for result in asyncio.run(index.retrieve("query"))] == ["second"]
+    assert [result.document.id for result in asyncio.run(index.retrieve("query"))] == [
+        "second"
+    ]
 
 
 def test_delete_leaves_an_empty_index_queryable() -> None:

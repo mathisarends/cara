@@ -67,9 +67,19 @@ def test_index_uses_requested_documents_schema(tmp_path: Path) -> None:
 def test_index_replaces_content_but_preserves_created_at(tmp_path: Path) -> None:
     database = tmp_path / "replace.db"
     original_time = datetime(2026, 1, 1, tzinfo=UTC)
-    index = _index(database, {"old": [1.0, 0.0], "new": [0.0, 1.0], "query": [1.0, 0.0]})
+    index = _index(
+        database, {"old": [1.0, 0.0], "new": [0.0, 1.0], "query": [1.0, 0.0]}
+    )
 
-    asyncio.run(index.index([Document("document", "old", metadata={"version": 1}, created_at=original_time)]))
+    asyncio.run(
+        index.index(
+            [
+                Document(
+                    "document", "old", metadata={"version": 1}, created_at=original_time
+                )
+            ]
+        )
+    )
     asyncio.run(index.index([Document("document", "new", metadata={"version": 2})]))
 
     stored = asyncio.run(index.get("document"))
@@ -86,9 +96,15 @@ def test_index_replaces_content_but_preserves_created_at(tmp_path: Path) -> None
 def test_list_documents_supports_conversation_hierarchy(tmp_path: Path) -> None:
     database = tmp_path / "hierarchy.db"
     documents = [
-        Document("conversation", "SQLite experiment", metadata={"kind": "conversation"}),
-        Document("z-message", "Hello", parent_id="conversation", metadata={"role": "user"}),
-        Document("a-message", "Hi", parent_id="conversation", metadata={"role": "assistant"}),
+        Document(
+            "conversation", "SQLite experiment", metadata={"kind": "conversation"}
+        ),
+        Document(
+            "z-message", "Hello", parent_id="conversation", metadata={"role": "user"}
+        ),
+        Document(
+            "a-message", "Hi", parent_id="conversation", metadata={"role": "assistant"}
+        ),
     ]
     index = _index(database, {document.text: [1.0, 0.0] for document in documents})
     asyncio.run(index.index(documents))
@@ -140,7 +156,9 @@ def test_index_rejects_non_json_metadata_without_writing(tmp_path: Path) -> None
     index = _index(database, {"text": [1.0, 0.0]})
 
     with pytest.raises(ValueError, match="JSON-serializable"):
-        asyncio.run(index.index([Document("document", "text", metadata={"bad": object()})]))
+        asyncio.run(
+            index.index([Document("document", "text", metadata={"bad": object()})])
+        )
 
     assert asyncio.run(index.get("document")) is None
     index.close()

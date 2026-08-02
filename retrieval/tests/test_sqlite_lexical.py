@@ -50,7 +50,9 @@ def test_reindexing_replaces_the_searchable_text(tmp_path: Path) -> None:
         asyncio.run(index.index([Document(id="note", text="the replacement wording")]))
 
         assert asyncio.run(index.retrieve("original")) == []
-        assert [result.document.id for result in asyncio.run(index.retrieve("replacement"))] == ["note"]
+        assert [
+            result.document.id for result in asyncio.run(index.retrieve("replacement"))
+        ] == ["note"]
 
 
 def test_delete_removes_documents_from_the_search_index(tmp_path: Path) -> None:
@@ -92,7 +94,10 @@ def test_retrieve_treats_fts5_operators_as_plain_words(tmp_path: Path) -> None:
     with SQLiteFts5Index(tmp_path / "operators.db") as index:
         asyncio.run(index.index([Document(id="note", text="a note about retrieval")]))
 
-        assert [result.document.id for result in asyncio.run(index.retrieve('retrieval OR "'))] == ["note"]
+        assert [
+            result.document.id
+            for result in asyncio.run(index.retrieve('retrieval OR "'))
+        ] == ["note"]
         assert asyncio.run(index.retrieve("NOT")) == []
 
 
@@ -104,5 +109,8 @@ def test_retrieve_without_usable_query_terms_returns_nothing(tmp_path: Path) -> 
 
 
 def test_retrieve_rejects_non_positive_limit(tmp_path: Path) -> None:
-    with SQLiteFts5Index(tmp_path / "limit.db") as index, pytest.raises(ValueError, match="limit must be at least 1"):
+    with (
+        SQLiteFts5Index(tmp_path / "limit.db") as index,
+        pytest.raises(ValueError, match="limit must be at least 1"),
+    ):
         asyncio.run(index.retrieve("query", limit=0))

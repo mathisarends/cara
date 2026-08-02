@@ -25,7 +25,11 @@ class MarkdownChunker(Chunker):
         )
 
     def chunk(self, text: str) -> list[str]:
-        return [chunk for section in _split_sections(text) for chunk in self._section_chunker.chunk(section)]
+        return [
+            chunk
+            for section in _split_sections(text)
+            for chunk in self._section_chunker.chunk(section)
+        ]
 
 
 def _split_sections(text: str) -> list[str]:

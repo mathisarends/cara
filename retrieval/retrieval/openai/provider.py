@@ -40,4 +40,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
                 encoding_format="float",
             )
 
-        return [list(item.embedding) for item in sorted(response.data, key=lambda item: item.index)]
+        return [
+            list(item.embedding)
+            for item in sorted(response.data, key=lambda item: item.index)
+        ]

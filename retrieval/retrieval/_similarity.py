@@ -14,4 +14,7 @@ def cosine(left: Embedding, right: Embedding) -> float:
     """Cosine similarity of two vectors that are already normalized."""
     if len(left) != len(right):
         raise ValueError("Embedding vectors must have the same dimensions")
-    return sum(left_value * right_value for left_value, right_value in zip(left, right, strict=True))
+    return sum(
+        left_value * right_value
+        for left_value, right_value in zip(left, right, strict=True)
+    )

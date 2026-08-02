@@ -3,7 +3,12 @@ from collections.abc import Sequence
 import pytest
 
 from retrieval import Chunker
-from retrieval.chunking import FixedSizeChunker, MarkdownChunker, RecursiveChunker, TextTokenizer
+from retrieval.chunking import (
+    FixedSizeChunker,
+    MarkdownChunker,
+    RecursiveChunker,
+    TextTokenizer,
+)
 
 
 def test_fixed_size_chunks_with_overlap() -> None:
@@ -15,7 +20,11 @@ def test_fixed_size_chunks_with_overlap() -> None:
 def test_fixed_size_uses_injected_tokenizer_for_size_and_overlap() -> None:
     class DoubleCharacterTokenizer(TextTokenizer):
         def encode(self, text: str) -> Sequence[int]:
-            return [token for character in text for token in (ord(character), ord(character))]
+            return [
+                token
+                for character in text
+                for token in (ord(character), ord(character))
+            ]
 
         def decode(self, tokens: Sequence[int]) -> str:
             return "".join(chr(tokens[index]) for index in range(0, len(tokens), 2))
@@ -47,7 +56,9 @@ def test_empty_text_has_no_chunks() -> None:
         (10, 10, "chunk_overlap must be smaller than chunk_size"),
     ],
 )
-def test_invalid_sizes_are_rejected(chunk_size: int, chunk_overlap: int, message: str) -> None:
+def test_invalid_sizes_are_rejected(
+    chunk_size: int, chunk_overlap: int, message: str
+) -> None:
     with pytest.raises(ValueError, match=message):
         FixedSizeChunker(chunk_size, chunk_overlap=chunk_overlap)
 

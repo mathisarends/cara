@@ -27,7 +27,9 @@ class SQLiteFts5Index(TextIndex):
     tokenizer specification instead of a Python object.
     """
 
-    def __init__(self, database: str | Path, *, tokenizer: str = "unicode61 remove_diacritics 2") -> None:
+    def __init__(
+        self, database: str | Path, *, tokenizer: str = "unicode61 remove_diacritics 2"
+    ) -> None:
         self._connection = open_database(database)
         self._tokenizer = tokenizer
 
@@ -82,7 +84,10 @@ class SQLiteFts5Index(TextIndex):
             """,
             parameters,
         ).fetchall()
-        return [RetrievalResult(document=document_from_row(row), score=-row["relevance"]) for row in rows]
+        return [
+            RetrievalResult(document=document_from_row(row), score=-row["relevance"])
+            for row in rows
+        ]
 
     async def get(self, document_id: str) -> Document | None:
         row = self._connection.execute(
@@ -152,16 +157,21 @@ def _synchronization_triggers() -> str:
     delete() need no FTS5-specific code.
     """
     return f"""
-        CREATE TRIGGER IF NOT EXISTS {_DOCUMENTS}_after_insert AFTER INSERT ON {_DOCUMENTS} BEGIN
+        CREATE TRIGGER IF NOT EXISTS {_DOCUMENTS}_after_insert
+        AFTER INSERT ON {_DOCUMENTS} BEGIN
             INSERT INTO {_SEARCH}(rowid, text) VALUES (new.rowid, new.text);
         END;
 
-        CREATE TRIGGER IF NOT EXISTS {_DOCUMENTS}_after_delete AFTER DELETE ON {_DOCUMENTS} BEGIN
-            INSERT INTO {_SEARCH}({_SEARCH}, rowid, text) VALUES ('delete', old.rowid, old.text);
+        CREATE TRIGGER IF NOT EXISTS {_DOCUMENTS}_after_delete
+        AFTER DELETE ON {_DOCUMENTS} BEGIN
+            INSERT INTO {_SEARCH}({_SEARCH}, rowid, text)
+            VALUES ('delete', old.rowid, old.text);
         END;
 
-        CREATE TRIGGER IF NOT EXISTS {_DOCUMENTS}_after_update AFTER UPDATE ON {_DOCUMENTS} BEGIN
-            INSERT INTO {_SEARCH}({_SEARCH}, rowid, text) VALUES ('delete', old.rowid, old.text);
+        CREATE TRIGGER IF NOT EXISTS {_DOCUMENTS}_after_update
+        AFTER UPDATE ON {_DOCUMENTS} BEGIN
+            INSERT INTO {_SEARCH}({_SEARCH}, rowid, text)
+            VALUES ('delete', old.rowid, old.text);
             INSERT INTO {_SEARCH}(rowid, text) VALUES (new.rowid, new.text);
         END;
     """

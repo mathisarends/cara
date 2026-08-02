@@ -41,7 +41,9 @@ async def main() -> None:
             print(f"[{message.metadata['role']}] {message.text}")
 
         print("\nMost relevant memory:")
-        for result in await index.retrieve("How is conversation history stored?", limit=1):
+        for result in await index.retrieve(
+            "How is conversation history stored?", limit=1
+        ):
             print(f"{result.score:.3f}: {result.document.text}")
 
 

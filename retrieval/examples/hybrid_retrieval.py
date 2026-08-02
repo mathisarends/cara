@@ -11,9 +11,15 @@ from retrieval.vector import InMemoryVectorIndex
 load_dotenv(override=True)
 
 DOCUMENTS = [
-    Document(id="voice", text="Cara listens for a wake word and answers over the speaker."),
-    Document(id="terminal", text="Cara can also run as a text session in the terminal."),
-    Document(id="wakewordkit", text="The wakewordkit package detects the activation phrase."),
+    Document(
+        id="voice", text="Cara listens for a wake word and answers over the speaker."
+    ),
+    Document(
+        id="terminal", text="Cara can also run as a text session in the terminal."
+    ),
+    Document(
+        id="wakewordkit", text="The wakewordkit package detects the activation phrase."
+    ),
 ]
 
 

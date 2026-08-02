@@ -28,7 +28,9 @@ def largest_prefix(text: str, size: int, tokenizer: TextTokenizer) -> int:
             high = middle - 1
 
     if best == 0:
-        raise ValueError("tokenizer cannot encode any non-empty prefix within chunk_size")
+        raise ValueError(
+            "tokenizer cannot encode any non-empty prefix within chunk_size"
+        )
     return best
 
 

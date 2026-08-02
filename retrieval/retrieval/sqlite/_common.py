@@ -56,7 +56,9 @@ def document_rows(documents: Sequence[Document]) -> list[DocumentRow]:
             document.parent_id,
             document.text,
             serialize_metadata(document.metadata),
-            serialize_datetime(document.created_at or indexed_at + timedelta(microseconds=position)),
+            serialize_datetime(
+                document.created_at or indexed_at + timedelta(microseconds=position)
+            ),
         )
         for position, document in enumerate(documents)
     ]
@@ -80,7 +82,9 @@ def serialize_metadata(metadata: Mapping[str, object]) -> str:
     try:
         return json.dumps(dict(metadata), ensure_ascii=False, separators=(",", ":"))
     except (TypeError, ValueError) as error:
-        raise ValueError("metadata must contain only JSON-serializable values") from error
+        raise ValueError(
+            "metadata must contain only JSON-serializable values"
+        ) from error
 
 
 def deserialize_metadata(value: str | None) -> Mapping[str, object]:
