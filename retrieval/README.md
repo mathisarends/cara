@@ -316,6 +316,39 @@ The connection runs in WAL mode, so a process reading the index does not block
 the process writing to it — which is what an index kept current by a file
 watcher needs.
 
+### Persistent lexical retrieval
+
+`SQLiteFts5Index` is the lexical counterpart, built on SQLite's FTS5
+extension. It needs no embedding provider and no optional dependency beyond
+the standard library:
+
+```python
+from retrieval.sqlite import SQLiteFts5Index
+
+with SQLiteFts5Index("cara.db") as index:
+    await index.index(documents)
+    matches = await index.search("wakewordkit setup", parent_id="daily-notes")
+```
+
+Text lives in a `lexical_documents` table and is mirrored into an
+external-content FTS5 table by triggers, so `index()` and `delete()` stay
+ordinary SQL writes and the search index can never drift from the content.
+Both persistent indexes can share one database file — their tables do not
+overlap.
+
+Two differences from `InMemoryBM25Index` are worth knowing:
+
+- **Tokenization happens inside SQLite,** so it is configured with an FTS5
+  tokenizer string rather than a `LexicalTokenizer`. The default is
+  `unicode61 remove_diacritics 2`. Pass `tokenizer="porter unicode61"` for
+  English stemming, or a custom one you registered on the connection.
+- **FTS5 owns the BM25 implementation,** so `k1` and `b` are not tunable.
+
+Queries are never handed to FTS5 verbatim. The words in a query are extracted
+and recombined into an `OR` expression, which keeps FTS5 operator syntax in a
+user's query from changing or breaking it, and matches the any-term ranking
+`InMemoryBM25Index` does.
+
 ---
 
 ## Lexical retrieval
