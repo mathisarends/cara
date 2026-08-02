@@ -722,6 +722,7 @@ Runnable scripts live in [`examples/`](examples):
 | `index_and_retrieve.py` | Chunk, embed and query with the OpenAI provider. |
 | `hybrid_retrieval.py` | Vector and BM25 indexes merged with reciprocal rank fusion. |
 | `sqlite_conversations.py` | Persist and search conversation messages with SQLite. |
+| `persistent_hybrid_memory.py` | A note archive kept in step with its files: both SQLite indexes, the embedding cache, weighted fusion and MMR. |
 
 The OpenAI examples need `OPENAI_API_KEY`.
 
