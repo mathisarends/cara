@@ -83,24 +83,6 @@ class WeatherReport(BaseModel):
     def _describe_weather_code(cls, data: Any) -> Any:
         return _with_weather_description(data)
 
-    def summary(self) -> str:
-        parts = [f"Wetter in {self.location_name}: {round(self.temperature_c)} °C"]
-        if abs(self.temperature_c - self.apparent_temperature_c) >= 2:
-            parts.append(f"gefühlt {round(self.apparent_temperature_c)} °C")
-        parts.append(self.description)
-        parts.append(f"Wind {round(self.wind_speed_kmh)} km/h")
-        return ", ".join(parts) + "."
-
-    def hourly_outlook(self) -> str:
-        if not self.hourly:
-            return ""
-        lines = (
-            f"{hour.time:%H:%M} {hour.description}, "
-            f"{round(hour.temperature_c)} °C, {hour.precipitation_probability}% Regen"
-            for hour in self.hourly
-        )
-        return "\n".join(lines)
-
 
 class OpenMeteoClient:
     """Current weather and place lookup via the keyless Open-Meteo APIs."""

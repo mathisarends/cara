@@ -25,7 +25,7 @@ from agenttoolkit.builtins.fs import Entry
 
 from cara.audio import AudioPlayer
 from cara.memory import HybridMemoryResult, HybridMemorySearch
-from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
+from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient, WeatherReport
 from cara.tools.params import (
     BashParams,
     EditFileParams,
@@ -181,11 +181,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         del params
         location = await location_client.current()
         report = await client.current(location)
-        parts = [report.summary()]
-        outlook = report.hourly_outlook()
-        if outlook:
-            parts.append(outlook)
-        return ActionResult.success("\n".join(parts))
+        return ActionResult.success(_render_weather_report(report))
 
     @tools.action(
         description="Durchsuche das Internet nach aktuellen Informationen, News oder Fakten.",
@@ -301,6 +297,24 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     async def edit_file(params: EditFileParams, workspace: Inject[Workspace]) -> ActionResult:
         await workspace.edit_file(params.path, params.old_text, params.new_text)
         return ActionResult.success(f"Edited {params.path}.")
+
+
+def _render_weather_report(report: WeatherReport) -> str:
+    parts = [f"Wetter in {report.location_name}: {round(report.temperature_c)} °C"]
+    if abs(report.temperature_c - report.apparent_temperature_c) >= 2:
+        parts.append(f"gefühlt {round(report.apparent_temperature_c)} °C")
+    parts.append(report.description)
+    parts.append(f"Wind {round(report.wind_speed_kmh)} km/h")
+    summary = ", ".join(parts) + "."
+
+    if not report.hourly:
+        return summary
+
+    hourly_lines = (
+        f"{hour.time:%H:%M} {hour.description}, {round(hour.temperature_c)} °C, {hour.precipitation_probability}% Regen"
+        for hour in report.hourly
+    )
+    return summary + "\n" + "\n".join(hourly_lines)
 
 
 def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:

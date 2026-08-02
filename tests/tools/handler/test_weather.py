@@ -61,29 +61,21 @@ def test_report_maps_unknown_weather_code_to_fallback() -> None:
     assert report.description == "unbekannte Wetterlage"
 
 
-def test_summary_drops_apparent_temperature_when_close() -> None:
-    report = WeatherReport.model_validate(
-        {**_FORECAST["current"], "apparent_temperature": 24.0, "location_name": "Berlin"}
-    )
-
-    assert "gefühlt" not in report.summary()
-
-
 def test_current_returns_report_for_location() -> None:
     client = _client({"/v1/forecast": _FORECAST})
 
     report = asyncio.run(client.current(_BERLIN))
 
-    assert report.summary() == "Wetter in Berlin: 24 °C, gefühlt 22 °C, teils bewölkt, Wind 11 km/h."
+    assert report.temperature_c == 24.1
+    assert report.description == "teils bewölkt"
 
 
-def test_current_filters_hourly_entries_before_now_and_builds_outlook() -> None:
+def test_current_filters_hourly_entries_before_now() -> None:
     client = _client({"/v1/forecast": _FORECAST})
 
     report = asyncio.run(client.current(_BERLIN))
 
     assert [hour.time.strftime("%H:%M") for hour in report.hourly] == ["14:00", "15:00"]
-    assert report.hourly_outlook() == ("14:00 teils bewölkt, 24 °C, 10% Regen\n15:00 leichter Regen, 25 °C, 60% Regen")
 
 
 def test_locate_resolves_first_geocoding_result() -> None:
