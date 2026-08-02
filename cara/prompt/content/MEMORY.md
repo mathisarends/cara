@@ -1,5 +1,3 @@
-# Memory
-
 Was gerade läuft. Diese Datei ist der Arbeitsspeicher: neue Einträge oben, erledigte fliegen raus.
 
 ## Aktuell

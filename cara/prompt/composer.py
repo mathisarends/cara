@@ -9,7 +9,7 @@ from cara.prompt.local_time import LocalTimePrompt
 
 _IDENTITY_FILES = ("IDENTITY.md", "SOUL.md", "USER.md")
 _TOOLS_FILES = ("TOOLS.md",)
-_MEMORY_FILES = ("MEMORY.md", "DREAMS.md")
+_MEMORY_FILES = ("MEMORY.md",)
 _DAILY_DIR = "daily"
 _DEFAULT_CONTENT_ROOT = Path(__file__).parent / "content"
 

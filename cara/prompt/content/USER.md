@@ -1,5 +1,3 @@
-# User
-
 Stabile Fakten über Mathis. Ändert sich selten.
 
 ## Person

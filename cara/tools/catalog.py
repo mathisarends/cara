@@ -196,7 +196,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         description=(
             "List files and directories under a workspace path. Directories end with a slash. "
             "'/memory' holds Cara's own persistent context files (SOUL.md, USER.md, MEMORY.md, "
-            "DREAMS.md, daily/<date>.md)."
+            "daily/<date>.md)."
         ),
         params=ListFilesParams,
         effects=(ToolEffect.READS_WORKSPACE,),

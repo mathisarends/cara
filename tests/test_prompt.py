@@ -184,13 +184,10 @@ def test_system_prompt_rejects_custom_prompt_with_override() -> None:
 
 def test_memory_renders_files_in_order(tmp_path: Path) -> None:
     (tmp_path / "MEMORY.md").write_text("Halbmarathon im Oktober.", encoding="utf-8")
-    (tmp_path / "DREAMS.md").write_text("Alles bleibt lokal.", encoding="utf-8")
 
     rendered = _composer(tmp_path).render()
 
-    assert rendered == (
-        "System\n\n<memory>\nHalbmarathon im Oktober.\n</memory>\n\n<dreams>\nAlles bleibt lokal.\n</dreams>"
-    )
+    assert rendered == "System\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
 
 
 def test_memory_includes_only_todays_daily_note(tmp_path: Path) -> None:
