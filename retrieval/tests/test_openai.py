@@ -53,7 +53,7 @@ def test_embed_passes_configured_dimensions() -> None:
     create = AsyncMock(return_value=SimpleNamespace(data=[]))
     client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
     provider = OpenAIEmbeddingProvider(
-        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
+        "custom-embedding-model",
         credentials=_credentials(),
         client=client,
         dimensions=256,
@@ -63,7 +63,7 @@ def test_embed_passes_configured_dimensions() -> None:
 
     create.assert_awaited_once_with(
         input=["text"],
-        model="text-embedding-3-small",
+        model="custom-embedding-model",
         dimensions=256,
         encoding_format="float",
     )
