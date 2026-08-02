@@ -21,13 +21,19 @@ def _report(name: str) -> WeatherReport:
 
 
 class _StubClient(OpenMeteoClient):
-    def __init__(self) -> None:
+    def __init__(self, *, locations: dict[str, Location] | None = None) -> None:
         super().__init__()
         self.current_calls: list[Location] = []
+        self.locate_calls: list[str] = []
+        self._locations = locations or {}
 
     async def current(self, location: Location) -> WeatherReport:
         self.current_calls.append(location)
         return _report(location.name)
+
+    async def locate(self, query: str) -> Location | None:
+        self.locate_calls.append(query)
+        return self._locations.get(query)
 
 
 class _StubLocationClient(IpLocationClient):
@@ -54,7 +60,7 @@ def test_render_weather_report_drops_apparent_temperature_when_close() -> None:
 def test_render_weather_report_includes_apparent_temperature_when_it_diverges() -> None:
     report = _report("Berlin").model_copy(update={"temperature_c": 24.1, "apparent_temperature_c": 22.0})
 
-    assert _render_weather_report(report) == "Wetter in Berlin: 24 °C, gefühlt 22 °C, klar, Wind 5 km/h."
+    assert _render_weather_report(report) == ("## Wetter in Berlin\n\n**24 °C**, gefühlt 22 °C, klar, Wind 5 km/h.")
 
 
 def test_render_weather_report_appends_hourly_outlook() -> None:
@@ -76,27 +82,28 @@ def test_render_weather_report_appends_hourly_outlook() -> None:
 
     rendered = _render_weather_report(report)
 
-    assert rendered.endswith("14:00 teils bewölkt, 24 °C, 10% Regen\n15:00 leichter Regen, 25 °C, 60% Regen")
+    assert rendered.endswith(
+        "| Uhrzeit | Wetter | Temp | Regen |\n"
+        "| --- | --- | --- | --- |\n"
+        "| 14:00 | teils bewölkt | 24 °C | 10% |\n"
+        "| 15:00 | leichter Regen | 25 °C | 60% |"
+    )
 
 
 def test_weather_tool_is_registered_without_availability_checks() -> None:
     assert create_tools().get("weather_report") is not None
 
 
-def test_weather_tool_description_uses_the_current_location_implicitly() -> None:
+def test_weather_tool_description_lets_location_be_omitted() -> None:
     tools = _tools(_StubClient(), _StubLocationClient(_HOME))
     schema = next(item for item in tools.get_schema("openai") if item["function"]["name"] == "weather_report")
 
-    assert schema["function"]["description"] == "Frage das aktuelle Wetter ab. Uses the current location."
-    assert schema["function"]["parameters"] == {
-        "additionalProperties": False,
-        "properties": {},
-        "title": "WeatherParams",
-        "type": "object",
-    }
+    assert "location" in schema["function"]["description"]
+    assert schema["function"]["parameters"]["properties"].keys() == {"location"}
+    assert "location" not in schema["function"]["parameters"].get("required", [])
 
 
-def test_weather_uses_the_ip_location() -> None:
+def test_weather_uses_the_ip_location_when_no_location_given() -> None:
     client = _StubClient()
     location_client = _StubLocationClient(_HOME)
     tools = _tools(client, location_client)
@@ -107,3 +114,30 @@ def test_weather_uses_the_ip_location() -> None:
     assert result.result == _render_weather_report(_report("Berlin"))
     assert location_client.calls == 1
     assert client.current_calls == [_HOME]
+    assert client.locate_calls == []
+
+
+def test_weather_uses_the_requested_location_when_given() -> None:
+    munich = Location(name="München", latitude=48.14, longitude=11.58, timezone="Europe/Berlin")
+    client = _StubClient(locations={"München": munich})
+    location_client = _StubLocationClient(_HOME)
+    tools = _tools(client, location_client)
+
+    result = asyncio.run(tools.execute("weather_report", {"location": "München"}))
+
+    assert result.ok
+    assert result.result == _render_weather_report(_report("München"))
+    assert location_client.calls == 0
+    assert client.current_calls == [munich]
+
+
+def test_weather_fails_when_requested_location_is_not_found() -> None:
+    client = _StubClient()
+    location_client = _StubLocationClient(_HOME)
+    tools = _tools(client, location_client)
+
+    result = asyncio.run(tools.execute("weather_report", {"location": "Nirgendwo"}))
+
+    assert not result.ok
+    assert "Nirgendwo" in result.error
+    assert client.current_calls == []

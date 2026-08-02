@@ -169,7 +169,10 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         return ActionResult.success(f"Lautstärke ist jetzt {round(params.level * 100)}%.")
 
     @tools.action(
-        description="Frage das aktuelle Wetter ab. Uses the current location.",
+        description=(
+            "Frage das Wetter ab, für den aktuellen Standort oder einen angegebenen Ort. "
+            "Nutze params.location nur, wenn explizit nach einem bestimmten Ort gefragt wird."
+        ),
         params=WeatherParams,
         effects=(ToolEffect.NETWORK,),
     )
@@ -178,8 +181,12 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         location_client: Inject[IpLocationClient],
         client: Inject[OpenMeteoClient],
     ) -> ActionResult:
-        del params
-        location = await location_client.current()
+        if params.location:
+            location = await client.locate(params.location)
+            if location is None:
+                return ActionResult.fail(f"Kein Ort namens '{params.location}' gefunden.")
+        else:
+            location = await location_client.current()
         report = await client.current(location)
         return ActionResult.success(_render_weather_report(report))
 
@@ -300,21 +307,23 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
 
 
 def _render_weather_report(report: WeatherReport) -> str:
-    parts = [f"Wetter in {report.location_name}: {round(report.temperature_c)} °C"]
+    parts = [f"**{round(report.temperature_c)} °C**"]
     if abs(report.temperature_c - report.apparent_temperature_c) >= 2:
         parts.append(f"gefühlt {round(report.apparent_temperature_c)} °C")
     parts.append(report.description)
     parts.append(f"Wind {round(report.wind_speed_kmh)} km/h")
-    summary = ", ".join(parts) + "."
+    summary = f"## Wetter in {report.location_name}\n\n" + ", ".join(parts) + "."
 
     if not report.hourly:
         return summary
 
-    hourly_lines = (
-        f"{hour.time:%H:%M} {hour.description}, {round(hour.temperature_c)} °C, {hour.precipitation_probability}% Regen"
+    rows = (
+        f"| {hour.time:%H:%M} | {hour.description} | {round(hour.temperature_c)} °C | "
+        f"{hour.precipitation_probability}% |"
         for hour in report.hourly
     )
-    return summary + "\n" + "\n".join(hourly_lines)
+    table = "\n".join(["| Uhrzeit | Wetter | Temp | Regen |", "| --- | --- | --- | --- |", *rows])
+    return f"{summary}\n\n{table}"
 
 
 def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:

@@ -34,7 +34,12 @@ class BashParams(ToolParams):
 
 
 class WeatherParams(ToolParams):
-    pass
+    location: str | None = Field(
+        default=None,
+        description=(
+            "City or place to look up the weather for, e.g. 'München'. Omit this to use the user's current location."
+        ),
+    )
 
 
 class WebSearchParams(ToolParams):
