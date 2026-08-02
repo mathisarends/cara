@@ -154,6 +154,15 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     assert workspace.root == (Path(gettempdir()) / "cara" / "workspace").resolve()
 
 
+def test_default_workspace_mounts_memory_content_directory() -> None:
+    tools = create_tools()
+
+    result = asyncio.run(tools.execute("list_files", {"path": "/memory"}))
+
+    assert result.ok
+    assert "/memory/USER.md" in result.result.splitlines()
+
+
 def test_to_schema_returns_openai_function_schema() -> None:
     schema = next(item for item in create_tools().get_schema("openai") if item["function"]["name"] == "bash")
 

@@ -41,6 +41,7 @@ from cara.tools.params import (
 )
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
+_MEMORY_ROOT = Path(__file__).resolve().parent.parent / "prompt" / "content"
 
 
 def create_tool_context(
@@ -54,7 +55,11 @@ def create_tool_context(
 
 
 def _default_workspace() -> LocalWorkspace:
-    return LocalWorkspace(Path(gettempdir()) / "cara" / "workspace", max_file_bytes=1_000_000)
+    return LocalWorkspace(
+        Path(gettempdir()) / "cara" / "workspace",
+        mounts={"/memory": _MEMORY_ROOT},
+        max_file_bytes=1_000_000,
+    )
 
 
 def _default_sandbox(workspace: Workspace) -> DockerSandbox:
@@ -188,7 +193,11 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         return ActionResult.success(result.output.rstrip() or "(no output)")
 
     @tools.action(
-        description="List files and directories under a workspace path. Directories end with a slash.",
+        description=(
+            "List files and directories under a workspace path. Directories end with a slash. "
+            "'/memory' holds Cara's own persistent context files (SOUL.md, USER.md, MEMORY.md, "
+            "DREAMS.md, daily/<date>.md)."
+        ),
         params=ListFilesParams,
         effects=(ToolEffect.READS_WORKSPACE,),
     )

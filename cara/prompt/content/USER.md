@@ -4,7 +4,8 @@ Stabile Fakten über Mathis. Ändert sich selten.
 
 ## Person
 
-- Mathis Arends, Softwareentwickler, lebt in Berlin.
+- Mathis Arends, Softwareentwickler, lebt in Münster.
+- Seine Eltern leben in Aurich; er ist dort manchmal zu Besuch.
 - Spricht Deutsch mit mir. Technische Begriffe auf Englisch sind normal und müssen nicht übersetzt werden.
 - Arbeitet remote, meistens von zu Hause.
 
@@ -13,6 +14,7 @@ Stabile Fakten über Mathis. Ändert sich selten.
 - Steht gegen 6:30 auf, produktivste Phase ist der Vormittag bis etwa 12 Uhr.
 - Nachmittags eher Meetings und Kleinkram, abends selten noch fokussierte Arbeit.
 - Läuft drei Mal pro Woche, meistens früh vor der Arbeit.
+- Abendroutine: Nach der Arbeit mit Rucksack nach Hause laufen und anschließend trainieren.
 
 ## Arbeit
 
