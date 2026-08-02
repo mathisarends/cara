@@ -1,4 +1,4 @@
-from .ports import Chunker, EmbeddingProvider, Retriever, TextIndex
+from .ports import Chunker, EmbeddingProvider, LexicalTokenizer, Retriever, TextIndex
 from .types import Document, Embedding, RetrievalResult
 
 __all__ = [
@@ -6,6 +6,7 @@ __all__ = [
     "Document",
     "Embedding",
     "EmbeddingProvider",
+    "LexicalTokenizer",
     "RetrievalResult",
     "Retriever",
     "TextIndex",

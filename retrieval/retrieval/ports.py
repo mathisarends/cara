@@ -16,6 +16,14 @@ class EmbeddingProvider(ABC):
         raise NotImplementedError
 
 
+class LexicalTokenizer(ABC):
+    """Split text into the comparable terms a lexical index matches on."""
+
+    @abstractmethod
+    def tokenize(self, text: str) -> list[str]:
+        raise NotImplementedError
+
+
 class Retriever(ABC):
     @abstractmethod
     async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
