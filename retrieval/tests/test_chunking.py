@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import pytest
 
 from retrieval import Chunker
-from retrieval.chunking import FixedSizeChunker, MarkdownChunker, RecursiveChunker
+from retrieval.chunking import FixedSizeChunker, MarkdownChunker, RecursiveChunker, TextTokenizer
 
 
 def test_fixed_size_chunks_with_overlap() -> None:
@@ -13,7 +13,7 @@ def test_fixed_size_chunks_with_overlap() -> None:
 
 
 def test_fixed_size_uses_injected_tokenizer_for_size_and_overlap() -> None:
-    class DoubleCharacterTokenizer:
+    class DoubleCharacterTokenizer(TextTokenizer):
         def encode(self, text: str) -> Sequence[int]:
             return [token for character in text for token in (ord(character), ord(character))]
 

@@ -1,16 +1,20 @@
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Protocol
 
 
-class TextTokenizer(Protocol):
+class TextTokenizer(ABC):
     """Minimal tokenizer interface used to measure and slice chunks."""
 
-    def encode(self, text: str) -> Sequence[int]: ...
+    @abstractmethod
+    def encode(self, text: str) -> Sequence[int]:
+        raise NotImplementedError
 
-    def decode(self, tokens: Sequence[int]) -> str: ...
+    @abstractmethod
+    def decode(self, tokens: Sequence[int]) -> str:
+        raise NotImplementedError
 
 
-class CharacterTokenizer:
+class CharacterTokenizer(TextTokenizer):
     """Treat each Unicode code point as one token."""
 
     def encode(self, text: str) -> Sequence[int]:
