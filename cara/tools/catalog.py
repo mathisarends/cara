@@ -1,3 +1,4 @@
+import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from tempfile import gettempdir
@@ -24,6 +25,7 @@ from agenttoolkit.builtins import (
 from agenttoolkit.builtins.fs import Entry
 
 from cara.audio import AudioPlayer
+from cara.memory import HybridMemorySearch
 from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
 from cara.tools.params import (
     BashParams,
@@ -33,6 +35,7 @@ from cara.tools.params import (
     ListFilesParams,
     LoadSkillParams,
     ReadFileParams,
+    SearchMemoryParams,
     SetAudioOutputParams,
     SetVolumeParams,
     WeatherParams,
@@ -193,6 +196,41 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     async def web_search(params: WebSearchParams, client: Inject[TavilySearchClient]) -> ActionResult:
         response = await client.search(params.query, max_results=params.max_results)
         return ActionResult.success(response.summary())
+
+    @tools.action(
+        description=(
+            "Search older daily notes and durable memory. Returns weighted hybrid results "
+            "with vectorScore, textScore, score, source metadata, and the retrieved text."
+        ),
+        params=SearchMemoryParams,
+        available_when=provided(HybridMemorySearch),
+    )
+    async def search_memory(
+        params: SearchMemoryParams,
+        memory: Inject[HybridMemorySearch],
+    ) -> ActionResult:
+        results = await memory.search(
+            params.query,
+            limit=params.limit,
+            vector_weight=params.vector_weight,
+            text_weight=params.text_weight,
+        )
+        payload = [
+            {
+                "id": result.document.id,
+                "parentId": result.document.parent_id,
+                "text": result.document.text,
+                "metadata": dict(result.document.metadata),
+                "createdAt": (
+                    result.document.created_at.isoformat() if result.document.created_at is not None else None
+                ),
+                "vectorScore": result.vector_score,
+                "textScore": result.text_score,
+                "score": result.score,
+            }
+            for result in results
+        ]
+        return ActionResult.success(json.dumps(payload, ensure_ascii=False))
 
     @tools.action(
         description="Execute a Bash command in the isolated workspace sandbox.",

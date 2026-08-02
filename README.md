@@ -34,6 +34,28 @@ uv run python experiments/chat_in_terminal.py
 uv run python experiments/talk_with_voice.py
 ```
 
+## Hybrid memory experiment
+
+The `search_memory` tool searches Markdown memory chunks in `temp/cara-memory.db`
+and returns `vectorScore`, `textScore`, and their weighted `score`. A separate
+mock corpus contains one durable `MEMORY.md` and fourteen daily notes. Seed it
+with an `OPENAI_API_KEY` configured in `.env`:
+
+```bash
+bash scripts/seed_database_mock_data.sh
+```
+
+The command is idempotent and caches embeddings. To target another SQLite file,
+pass `--database path/to/memory.db`. Remove only the dataset-prefixed mock
+documents and their cached embeddings with:
+
+```bash
+bash scripts/delete_database_mock_data.sh
+```
+
+The readable Python entry points behind the wrappers are
+`scripts/seed_database_mock_data.py` and `scripts/delete_database_mock_data.py`.
+
 The default wake word is `hey_mycroft`. Runtime recordings and TTS files are written below the system temp directory in `cara`.
 While Cara is responding, say the wake word again to interrupt the response and start a new turn.
 

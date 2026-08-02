@@ -90,6 +90,17 @@ def test_embed_without_texts_does_not_reach_the_provider(tmp_path: Path) -> None
     assert provider.calls == []
 
 
+def test_delete_forgets_only_requested_texts_in_its_namespace(tmp_path: Path) -> None:
+    database = tmp_path / "delete.db"
+    provider = CountingEmbeddingProvider({"kept": [1.0], "removed": [0.0]})
+    with _closing(_cache(database, provider)) as cache:
+        asyncio.run(cache.embed(["kept", "removed"]))
+        asyncio.run(cache.delete(["removed", "removed"]))
+        asyncio.run(cache.embed(["kept", "removed"]))
+
+    assert provider.calls == [["kept", "removed"], ["removed"]]
+
+
 def test_cache_requires_a_namespace(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="namespace must not be empty"):
         _cache(tmp_path / "invalid.db", CountingEmbeddingProvider({}), namespace="")

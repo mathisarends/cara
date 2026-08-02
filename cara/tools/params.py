@@ -47,6 +47,13 @@ class WebSearchParams(ToolParams):
     )
 
 
+class SearchMemoryParams(ToolParams):
+    query: str = Field(description="Question or search phrase to look up in long-term memory.")
+    limit: int = Field(default=5, ge=1, le=20, description="Maximum number of results.")
+    vector_weight: float = Field(default=0.7, ge=0.0, description="Weight for semantic similarity.")
+    text_weight: float = Field(default=0.3, ge=0.0, description="Weight for exact keyword matching.")
+
+
 class ListFilesParams(ToolParams):
     path: str = Field(
         default=".",

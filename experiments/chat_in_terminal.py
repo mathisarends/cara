@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from llmify import ChatCodex
 
 from cara import Agent, TerminalSession
+from cara.memory import DEFAULT_MEMORY_DATABASE, HybridMemorySearch
 from cara.tools import build_tools
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -19,7 +20,11 @@ async def main() -> None:
 
     agent = Agent(
         llm=llm,
-        tools=build_tools(skills=skills, workspace_mounts={"/skills": SKILLS_ROOT}),
+        tools=build_tools(
+            HybridMemorySearch(PROJECT_ROOT / DEFAULT_MEMORY_DATABASE),
+            skills=skills,
+            workspace_mounts={"/skills": SKILLS_ROOT},
+        ),
         skills=skills,
         extend_system_prompt=(
             "Die lokalen Skills sind unter `/skills` schreibbar eingebunden. "

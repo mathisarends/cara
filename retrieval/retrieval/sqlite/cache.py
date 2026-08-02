@@ -59,6 +59,24 @@ class SQLiteEmbeddingCache(EmbeddingProvider):
 
         return [cached[text] for text in requested]
 
+    async def delete(self, texts: Sequence[str]) -> None:
+        """Forget cached embeddings for texts in this cache namespace."""
+        digests = [(_digest(text), self._namespace) for text in dict.fromkeys(texts)]
+        if not digests:
+            return
+
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            try:
+                await connection.executemany(
+                    f"DELETE FROM {_CACHE} WHERE text_digest = ? AND namespace = ?",
+                    digests,
+                )
+                await connection.commit()
+            except BaseException:
+                await connection.rollback()
+                raise
+
     async def close(self) -> None:
         async with self._operation_lock:
             self._closed = True

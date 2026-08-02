@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Input-agnostic conversational agent with terminal and voice sessions."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "retrieval[openai]",
+    "retrieval[openai,sqlite]",
     "httpx>=0.28.0",
     "hueify>=0.2.0",
     "mm-agenttoolkit>=0.1.0",
