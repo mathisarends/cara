@@ -52,7 +52,7 @@ def test_terminal_session_stops_at_end_of_input() -> None:
     asyncio.run(session.run())
 
 
-def test_terminal_session_shows_tool_calls() -> None:
+def test_terminal_session_shows_tool_calls_and_results() -> None:
     class ToolCallingChatModel:
         def __init__(self) -> None:
             self.calls = 0
@@ -93,5 +93,6 @@ def test_terminal_session_shows_tool_calls() -> None:
 
     assert outputs == [
         '[tool] weather_lookup {"location": "Aurich"}',
+        "[tool result] weather_lookup: Wetter für Aurich",
         "15 Grad und teils bewölkt.",
     ]

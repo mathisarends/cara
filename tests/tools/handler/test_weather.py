@@ -16,7 +16,13 @@ _FORECAST = {
         "weather_code": 2,
         "wind_speed_10m": 11.3,
         "is_day": 1,
-    }
+    },
+    "hourly": {
+        "time": ["2026-07-21T13:00", "2026-07-21T14:00", "2026-07-21T15:00"],
+        "temperature_2m": [23.5, 24.1, 25.0],
+        "weather_code": [2, 2, 61],
+        "precipitation_probability": [5, 10, 60],
+    },
 }
 
 _GEOCODING = {
@@ -69,6 +75,15 @@ def test_current_returns_report_for_location() -> None:
     report = asyncio.run(client.current(_BERLIN))
 
     assert report.summary() == "Wetter in Berlin: 24 °C, gefühlt 22 °C, teils bewölkt, Wind 11 km/h."
+
+
+def test_current_filters_hourly_entries_before_now_and_builds_outlook() -> None:
+    client = _client({"/v1/forecast": _FORECAST})
+
+    report = asyncio.run(client.current(_BERLIN))
+
+    assert [hour.time.strftime("%H:%M") for hour in report.hourly] == ["14:00", "15:00"]
+    assert report.hourly_outlook() == ("14:00 teils bewölkt, 24 °C, 10% Regen\n15:00 leichter Regen, 25 °C, 60% Regen")
 
 
 def test_locate_resolves_first_geocoding_result() -> None:

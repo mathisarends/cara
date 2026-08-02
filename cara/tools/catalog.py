@@ -162,7 +162,11 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         del params
         location = await location_client.current()
         report = await client.current(location)
-        return ActionResult.success(report.summary())
+        parts = [report.summary()]
+        outlook = report.hourly_outlook()
+        if outlook:
+            parts.append(outlook)
+        return ActionResult.success("\n".join(parts))
 
     @tools.action(
         description="Durchsuche das Internet nach aktuellen Informationen, News oder Fakten.",

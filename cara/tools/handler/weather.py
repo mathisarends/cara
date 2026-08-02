@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -7,6 +8,8 @@ _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 _GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 
 _CURRENT_FIELDS = "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day"
+_HOURLY_FIELDS = "temperature_2m,weather_code,precipitation_probability"
+_HOURLY_HOURS_AHEAD = 24
 
 # WMO weather interpretation codes, condensed to spoken German phrases.
 _WEATHER_CODES: dict[int, str] = {
@@ -50,6 +53,20 @@ class Location(BaseModel):
     timezone: str = "Europe/Berlin"
 
 
+class HourlyForecast(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore", populate_by_name=True)
+
+    time: datetime
+    temperature_c: float = Field(alias="temperature_2m")
+    precipitation_probability: int
+    description: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _describe_weather_code(cls, data: Any) -> Any:
+        return _with_weather_description(data)
+
+
 class WeatherReport(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore", populate_by_name=True)
 
@@ -59,14 +76,12 @@ class WeatherReport(BaseModel):
     wind_speed_kmh: float = Field(alias="wind_speed_10m")
     is_day: bool
     description: str
+    hourly: list[HourlyForecast] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
     def _describe_weather_code(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "weather_code" in data and "description" not in data:
-            description = _WEATHER_CODES.get(data["weather_code"], "unbekannte Wetterlage")
-            return {**data, "description": description}
-        return data
+        return _with_weather_description(data)
 
     def summary(self) -> str:
         parts = [f"Wetter in {self.location_name}: {round(self.temperature_c)} °C"]
@@ -75,6 +90,16 @@ class WeatherReport(BaseModel):
         parts.append(self.description)
         parts.append(f"Wind {round(self.wind_speed_kmh)} km/h")
         return ", ".join(parts) + "."
+
+    def hourly_outlook(self) -> str:
+        if not self.hourly:
+            return ""
+        lines = (
+            f"{hour.time:%H:%M} {hour.description}, "
+            f"{round(hour.temperature_c)} °C, {hour.precipitation_probability}% Regen"
+            for hour in self.hourly
+        )
+        return "\n".join(lines)
 
 
 class OpenMeteoClient:
@@ -107,14 +132,43 @@ class OpenMeteoClient:
                 "latitude": location.latitude,
                 "longitude": location.longitude,
                 "current": _CURRENT_FIELDS,
+                "hourly": _HOURLY_FIELDS,
+                "forecast_days": 2,
                 "wind_speed_unit": "kmh",
                 "timezone": location.timezone,
             },
         )
-        return WeatherReport.model_validate({**data["current"], "location_name": location.name})
+        current_time = datetime.fromisoformat(data["current"]["time"])
+        hourly = _upcoming_hourly_entries(data["hourly"], after=current_time, limit=_HOURLY_HOURS_AHEAD)
+        return WeatherReport.model_validate({**data["current"], "location_name": location.name, "hourly": hourly})
 
     async def _get(self, url: str, params: dict[str, object]) -> dict:
         async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
             return response.json()
+
+
+def _with_weather_description(data: Any) -> Any:
+    if isinstance(data, dict) and "weather_code" in data and "description" not in data:
+        description = _WEATHER_CODES.get(data["weather_code"], "unbekannte Wetterlage")
+        return {**data, "description": description}
+    return data
+
+
+def _upcoming_hourly_entries(hourly: dict[str, list], *, after: datetime, limit: int) -> list[dict]:
+    entries: list[dict] = []
+    for index, time_str in enumerate(hourly["time"]):
+        if datetime.fromisoformat(time_str) < after:
+            continue
+        entries.append(
+            {
+                "time": time_str,
+                "temperature_2m": hourly["temperature_2m"][index],
+                "weather_code": hourly["weather_code"][index],
+                "precipitation_probability": hourly["precipitation_probability"][index],
+            }
+        )
+        if len(entries) >= limit:
+            break
+    return entries

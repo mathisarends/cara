@@ -37,10 +37,18 @@ class TerminalSession:
             if not text:
                 continue
 
-            answer = await self._agent.respond(text, on_tool_call=self._show_tool_call)
+            answer = await self._agent.respond(
+                text,
+                on_tool_call=self._show_tool_call,
+                on_tool_result=self._show_tool_result,
+            )
             if answer:
                 self._output_writer(answer)
 
     def _show_tool_call(self, name: str, arguments: dict[str, object]) -> None:
         rendered_arguments = json.dumps(arguments, ensure_ascii=False, sort_keys=True)
         self._output_writer(f"[tool] {name} {rendered_arguments}")
+
+    def _show_tool_result(self, name: str, content: str, ok: bool) -> None:
+        label = "tool result" if ok else "tool error"
+        self._output_writer(f"[{label}] {name}: {content}")

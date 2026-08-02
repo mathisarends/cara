@@ -34,6 +34,7 @@ class Agent:
         text: str,
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None = None,
+        on_tool_result: Callable[[str, str, bool], None] | None = None,
     ) -> str:
         """Add a user turn, run the model and tools, and return the final answer."""
         text = text.strip()
@@ -41,7 +42,10 @@ class Agent:
             return ""
 
         self._conversation.add_user(text)
-        answer = await self._generate_answer(on_tool_call=on_tool_call)
+        answer = await self._generate_answer(
+            on_tool_call=on_tool_call,
+            on_tool_result=on_tool_result,
+        )
         self._conversation.add_assistant(answer)
         return answer
 
@@ -49,13 +53,18 @@ class Agent:
         self,
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
+        on_tool_result: Callable[[str, str, bool], None] | None,
     ) -> str:
         while True:
             completion = await self._llm.invoke(
                 self._conversation.to_llm_messages(),
                 tools=self._tools.get_schema("openai"),
             )
-            answer, called_tools = await self._resolve_completion(completion, on_tool_call=on_tool_call)
+            answer, called_tools = await self._resolve_completion(
+                completion,
+                on_tool_call=on_tool_call,
+                on_tool_result=on_tool_result,
+            )
             if not called_tools:
                 return answer
 
@@ -64,6 +73,7 @@ class Agent:
         completion: ChatInvokeCompletion[str],
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
+        on_tool_result: Callable[[str, str, bool], None] | None,
     ) -> tuple[str, bool]:
         answer = completion.completion.strip()
         for tool_call in completion.tool_calls:
@@ -76,6 +86,8 @@ class Agent:
             result = await self._tools.execute(name, arguments)
             fallback = "Tool completed successfully." if result.ok else "Tool failed."
             content = str(result.result or result.error or fallback)
+            if on_tool_result is not None:
+                on_tool_result(name, content, result.ok)
             self._conversation.add_tool_result(tool_call.id, content)
 
         return answer, bool(completion.tool_calls)
