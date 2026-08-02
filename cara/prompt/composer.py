@@ -7,7 +7,7 @@ from agenttoolkit import Skills
 from cara.markdown import render_tagged_section
 from cara.prompt.local_time import LocalTimePrompt
 
-_IDENTITY_FILES = ("SOUL.md", "USER.md")
+_IDENTITY_FILES = ("IDENTITY.md", "SOUL.md", "USER.md")
 _MEMORY_FILES = ("MEMORY.md", "DREAMS.md")
 _DAILY_DIR = "daily"
 _DEFAULT_CONTENT_ROOT = Path(__file__).parent / "content"
