@@ -19,15 +19,10 @@ _MONTHS = (
 )
 
 
-class RuntimeContext:
-    """Ambient facts the assistant should always know: where it is and the local time now.
+class LocalTimePrompt:
+    """Render the current local weekday, date, and time for the system prompt."""
 
-    Rendered fresh on every turn so the current time stays accurate.
-    """
-
-    def __init__(self, *, location_name: str, timezone: str, clock: Callable[[], datetime] | None = None) -> None:
-        self._location_name = location_name
-        self._timezone = timezone
+    def __init__(self, *, timezone: str, clock: Callable[[], datetime] | None = None) -> None:
         self._clock = clock or (lambda: datetime.now(ZoneInfo(timezone)))
 
     def render(self) -> str:
@@ -35,4 +30,4 @@ class RuntimeContext:
         weekday = _WEEKDAYS[now.weekday()]
         month = _MONTHS[now.month - 1]
         stamp = f"{weekday}, {now.day}. {month} {now.year}, {now:%H:%M} Uhr"
-        return f"Aktueller Standort: {self._location_name}\nAktuelle lokale Zeit: {stamp}"
+        return stamp

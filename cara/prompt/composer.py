@@ -5,11 +5,12 @@ from pathlib import Path
 from agenttoolkit import Skills
 
 from cara.markdown import render_tagged_section
-from cara.prompt.context import RuntimeContext
+from cara.prompt.local_time import LocalTimePrompt
 
 _IDENTITY_FILES = ("SOUL.md", "USER.md")
 _MEMORY_FILES = ("MEMORY.md", "DREAMS.md")
 _DAILY_DIR = "daily"
+_DEFAULT_CONTENT_ROOT = Path(__file__).parent / "content"
 
 
 class SystemPromptComposer:
@@ -23,27 +24,27 @@ class SystemPromptComposer:
         override_system_prompt: str | None = None,
         extend_system_prompt: str | None = None,
         skills: Skills | None = None,
-        context: RuntimeContext | None = None,
+        local_time: LocalTimePrompt | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
         if system_prompt is not None and (override_system_prompt is not None or extend_system_prompt is not None):
             raise ValueError("Use system_prompt or override_system_prompt/extend_system_prompt, not both.")
         if override_system_prompt is not None and extend_system_prompt is not None:
             raise ValueError("Use either override_system_prompt or extend_system_prompt, not both.")
-        self._root = root if root is not None else Path(__file__).parent
+        self._root = root if root is not None else _DEFAULT_CONTENT_ROOT
         self._system_prompt = system_prompt
         self._override_system_prompt = override_system_prompt
         self._extend_system_prompt = extend_system_prompt
         self._skills = skills
-        self._context = context
+        self._local_time = local_time
         self._today = today or date.today
 
     def render(self) -> str:
         sections = [self._render_base_prompt()]
-        if self._context is not None and (context := self._context.render()):
-            sections.append(f"<context>\n{context}\n</context>")
+        if self._local_time is not None:
+            sections.append(f"<local_time>\n{self._local_time.render()}\n</local_time>")
         if memory := self._render_memory():
-            sections.append(f"<memory>\n{memory}\n</memory>")
+            sections.append(memory)
         if self._skills is not None and (catalog := self._skills.render_prompt()):
             sections.append(catalog)
         return "\n\n".join(section for section in sections if section)

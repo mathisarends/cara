@@ -1,9 +1,9 @@
 from .composer import SystemPromptComposer
-from .context import RuntimeContext
 from .conversation import Conversation
+from .local_time import LocalTimePrompt
 
 __all__ = [
     "Conversation",
-    "RuntimeContext",
+    "LocalTimePrompt",
     "SystemPromptComposer",
 ]

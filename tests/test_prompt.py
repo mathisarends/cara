@@ -6,7 +6,7 @@ import pytest
 from agenttoolkit import Skills
 from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
-from cara.prompt import Conversation, RuntimeContext, SystemPromptComposer
+from cara.prompt import Conversation, LocalTimePrompt, SystemPromptComposer
 
 
 def _tool_call() -> ToolCall:
@@ -21,9 +21,8 @@ def _conversation(root: Path) -> Conversation:
     return Conversation(system_prompt=_composer(root))
 
 
-def _fixed_context() -> RuntimeContext:
-    return RuntimeContext(
-        location_name="Berlin",
+def _fixed_local_time() -> LocalTimePrompt:
+    return LocalTimePrompt(
         timezone="Europe/Berlin",
         clock=lambda: datetime(2026, 7, 21, 14, 30, tzinfo=ZoneInfo("Europe/Berlin")),
     )
@@ -119,38 +118,32 @@ def test_empty_skills_leaves_the_system_prompt_untouched(tmp_path: Path) -> None
     assert composer.render() == "System"
 
 
-def test_runtime_context_renders_location_and_local_time() -> None:
-    assert _fixed_context().render() == (
-        "Aktueller Standort: Berlin\nAktuelle lokale Zeit: Dienstag, 21. Juli 2026, 14:30 Uhr"
-    )
+def test_local_time_prompt_renders_weekday_date_and_time() -> None:
+    assert _fixed_local_time().render() == "Dienstag, 21. Juli 2026, 14:30 Uhr"
 
 
-def test_runtime_context_is_wrapped_in_a_context_block(tmp_path: Path) -> None:
-    rendered = _composer(tmp_path, context=_fixed_context()).render()
+def test_local_time_is_wrapped_in_a_precise_block(tmp_path: Path) -> None:
+    rendered = _composer(tmp_path, local_time=_fixed_local_time()).render()
 
-    assert rendered == (
-        "System\n\n<context>\n"
-        "Aktueller Standort: Berlin\nAktuelle lokale Zeit: Dienstag, 21. Juli 2026, 14:30 Uhr"
-        "\n</context>"
-    )
+    assert rendered == "System\n\n<local_time>\nDienstag, 21. Juli 2026, 14:30 Uhr\n</local_time>"
 
 
-def test_context_precedes_available_skills_in_the_system_prompt(tmp_path: Path) -> None:
+def test_local_time_precedes_available_skills_in_the_system_prompt(tmp_path: Path) -> None:
     composer = _composer(
         tmp_path,
         skills=_skills(tmp_path, "weather", "Wetter ansagen."),
-        context=_fixed_context(),
+        local_time=_fixed_local_time(),
     )
 
     rendered = composer.render()
 
-    assert rendered.index("<context>") < rendered.index("<available_skills>")
+    assert rendered.index("<local_time>") < rendered.index("<available_skills>")
 
 
 def test_system_prompt_is_assembled_from_the_packaged_markdown_files() -> None:
     prompt = SystemPromptComposer().render()
 
-    assert prompt.index("<soul>") < prompt.index("<user>") < prompt.index("<memory>")
+    assert prompt.index("<soul>") < prompt.index("<user>") < prompt.rindex("<memory>")
 
 
 def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
@@ -173,7 +166,7 @@ def test_system_prompt_can_override_default_prompt_while_retaining_memory(tmp_pa
 
     prompt = SystemPromptComposer(root=tmp_path, override_system_prompt="Nur JSON.").render()
 
-    assert prompt == "Nur JSON.\n\n<memory>\n<memory>\nHalbmarathon im Oktober.\n</memory>\n</memory>"
+    assert prompt == "Nur JSON.\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
 
 
 def test_system_prompt_rejects_extend_and_override_together() -> None:
@@ -196,10 +189,7 @@ def test_memory_renders_files_in_order(tmp_path: Path) -> None:
     rendered = _composer(tmp_path).render()
 
     assert rendered == (
-        "System\n\n<memory>\n"
-        "<memory>\nHalbmarathon im Oktober.\n</memory>\n\n"
-        "<dreams>\nAlles bleibt lokal.\n</dreams>\n"
-        "</memory>"
+        "System\n\n<memory>\nHalbmarathon im Oktober.\n</memory>\n\n<dreams>\nAlles bleibt lokal.\n</dreams>"
     )
 
 
@@ -211,7 +201,7 @@ def test_memory_includes_only_todays_daily_note(tmp_path: Path) -> None:
 
     rendered = _composer(tmp_path, today=lambda: date(2026, 8, 2)).render()
 
-    assert rendered == "System\n\n<memory>\n<daily>\nHeute.\n</daily>\n</memory>"
+    assert rendered == "System\n\n<daily>\nHeute.\n</daily>"
 
 
 def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
