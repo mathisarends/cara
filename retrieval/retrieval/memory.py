@@ -1,0 +1,59 @@
+import math
+from collections.abc import Sequence
+
+from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, TextIndex
+
+
+class InMemoryVectorIndex(TextIndex):
+    def __init__(self, embedding_provider: EmbeddingProvider) -> None:
+        self._embedding_provider = embedding_provider
+        self._documents: dict[str, tuple[Document, Embedding]] = {}
+
+    async def index(self, documents: Sequence[Document]) -> None:
+        items = list(documents)
+        if not items:
+            return
+
+        embeddings = await self._embedding_provider.embed([document.text for document in items])
+        if len(embeddings) != len(items):
+            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+
+        expected_dimensions = len(next(iter(self._documents.values()))[1]) if self._documents else len(embeddings[0])
+        if any(len(embedding) != expected_dimensions for embedding in embeddings):
+            raise ValueError("Embedding vectors must have the same dimensions")
+
+        indexed_documents = {
+            document.id: (document, _normalize(embedding))
+            for document, embedding in zip(items, embeddings, strict=True)
+        }
+        self._documents.update(indexed_documents)
+
+    async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
+        if limit < 1:
+            raise ValueError("limit must be at least 1")
+        if not self._documents:
+            return []
+
+        embeddings = await self._embedding_provider.embed([query])
+        if len(embeddings) != 1:
+            raise ValueError("Embedding provider returned an unexpected number of embeddings")
+
+        query_embedding = _normalize(embeddings[0])
+        results = [
+            RetrievalResult(document=document, score=_similarity(query_embedding, embedding))
+            for document, embedding in self._documents.values()
+        ]
+        return sorted(results, key=lambda result: result.score, reverse=True)[:limit]
+
+
+def _normalize(embedding: Embedding) -> Embedding:
+    magnitude = math.sqrt(sum(value * value for value in embedding))
+    if magnitude == 0:
+        raise ValueError("Embedding vectors must not be empty or zero")
+    return [value / magnitude for value in embedding]
+
+
+def _similarity(left: Embedding, right: Embedding) -> float:
+    if len(left) != len(right):
+        raise ValueError("Embedding vectors must have the same dimensions")
+    return sum(left_value * right_value for left_value, right_value in zip(left, right, strict=True))

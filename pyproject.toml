@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Input-agnostic conversational agent with terminal and voice sessions."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "embeddings",
+    "retrieval[openai]",
     "httpx>=0.28.0",
     "hueify>=0.2.0",
     "mm-agenttoolkit>=0.1.0",
@@ -34,6 +34,7 @@ elevenlabs = [
 dev = [
     "pre-commit>=4.0.0",
     "pytest>=8.0.0",
+    "python-dotenv>=1.0.0",
     "ruff>=0.14.0",
 ]
 
@@ -46,10 +47,10 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["embeddings"]
+members = ["retrieval"]
 
 [tool.uv.sources]
-embeddings = { workspace = true }
+retrieval = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -74,4 +75,4 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cara", "embeddings"]
+known-first-party = ["cara", "retrieval"]

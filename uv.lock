@@ -13,7 +13,7 @@ supported-markers = [
 [manifest]
 members = [
     "cara",
-    "embeddings",
+    "retrieval",
 ]
 
 [[package]]
@@ -42,7 +42,6 @@ name = "cara"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "embeddings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -54,6 +53,7 @@ dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "retrieval", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -72,13 +72,13 @@ elevenlabs = [
 dev = [
     { name = "pre-commit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "ruff", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "elevenlabs", marker = "extra == 'elevenlabs'", specifier = ">=2.58.0" },
-    { name = "embeddings", editable = "embeddings" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "hueify", specifier = ">=0.2.0" },
     { name = "mm-agenttoolkit", specifier = ">=0.1.0" },
@@ -90,6 +90,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "retrieval", extras = ["openai"], editable = "retrieval" },
     { name = "sonosify", specifier = ">=0.3.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
@@ -104,6 +105,7 @@ provides-extras = ["elevenlabs"]
 dev = [
     { name = "pre-commit", specifier = ">=4.0.0" },
     { name = "pytest", specifier = ">=8.0.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.14.0" },
 ]
 
@@ -181,11 +183,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/c0/f1/ffb45244b83bd6a2d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/2e/761c8c625a8c67a1c027005f56ebd1b9f14e2f974aec0558e94c3e5bca5e/elevenlabs-2.58.0-py3-none-any.whl", hash = "sha256:e64417e585b8f88ff5ca95bb41e2723c1634cf0424b971b6b7283960de633808", size = 1849831, upload-time = "2026-07-13T09:33:55.62Z" },
 ]
-
-[[package]]
-name = "embeddings"
-version = "0.1.0"
-source = { editable = "embeddings" }
 
 [[package]]
 name = "filelock"
@@ -674,6 +671,24 @@ sdist = { url = "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl", hash = "sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0", size = 73075, upload-time = "2026-05-14T19:25:26.443Z" },
 ]
+
+[[package]]
+name = "retrieval"
+version = "0.1.0"
+source = { editable = "retrieval" }
+
+[package.optional-dependencies]
+openai = [
+    { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "openai", marker = "extra == 'openai'", specifier = ">=1.100.0" },
+    { name = "pydantic-settings", marker = "extra == 'openai'", specifier = ">=2.14.2" },
+]
+provides-extras = ["openai"]
 
 [[package]]
 name = "ruff"
