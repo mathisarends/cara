@@ -1,7 +1,7 @@
 import json
 
 from agenttoolkit import Skills, Tools
-from llmify import ChatInvokeCompletion, ChatModel, ToolCall
+from llmify import ChatInvokeCompletion, ChatModel
 
 from cara.messages import MessageManager, SystemPrompt
 
@@ -56,17 +56,16 @@ class Agent:
         completion: ChatInvokeCompletion[str],
     ) -> tuple[str, bool]:
         answer = completion.completion.strip()
-        tool_results: list[tuple[ToolCall, str]] = []
         for tool_call in completion.tool_calls:
+            self._message_manager.add_tool_call(tool_call)
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
 
             result = await self._tools.execute(name, arguments)
             fallback = "Tool completed successfully." if result.ok else "Tool failed."
             content = str(result.result or result.error or fallback)
-            tool_results.append((tool_call, content))
+            self._message_manager.add_tool_result(tool_call.id, content)
 
-        self._message_manager.add_tool_results(tool_results)
         return answer, bool(completion.tool_calls)
 
 

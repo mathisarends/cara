@@ -32,7 +32,7 @@ def _skills(root: Path, name: str = "pdf", description: str = "Read PDFs.") -> S
 
 
 def test_message_manager_builds_llm_messages_with_system_prompt() -> None:
-    messages = MessageManager(system_prompt="System", max_turns=1)
+    messages = MessageManager(system_prompt="System")
 
     messages.add_user("Hi")
     messages.add_assistant("Hallo")
@@ -44,8 +44,8 @@ def test_message_manager_builds_llm_messages_with_system_prompt() -> None:
     assert llm_messages[2].content == "Hallo"
 
 
-def test_message_manager_trims_to_max_turns() -> None:
-    messages = MessageManager(system_prompt="System", max_turns=1)
+def test_message_manager_retains_complete_history() -> None:
+    messages = MessageManager(system_prompt="System")
 
     messages.add_user("one")
     messages.add_assistant("two")
@@ -53,14 +53,15 @@ def test_message_manager_trims_to_max_turns() -> None:
 
     llm_messages = messages.to_llm_messages()
 
-    assert [message.content for message in llm_messages] == ["System", "two", "three"]
+    assert [message.content for message in llm_messages] == ["System", "one", "two", "three"]
 
 
 def test_tool_result_lands_in_context_paired_with_its_call() -> None:
     messages = MessageManager(system_prompt="System")
 
     messages.add_user("Read this PDF")
-    messages.add_tool_results([(_tool_call(), "Use the bundled parser.")])
+    messages.add_tool_call(_tool_call())
+    messages.add_tool_result("call-1", "Use the bundled parser.")
     messages.add_assistant("Mache ich.")
 
     llm_messages = messages.to_llm_messages()
@@ -73,21 +74,25 @@ def test_tool_result_lands_in_context_paired_with_its_call() -> None:
     assert tool_result.content == "Use the bundled parser."
 
 
-def test_multiple_tool_results_share_one_assistant_tool_call_message() -> None:
+def test_multiple_tools_are_stored_as_individual_call_result_pairs() -> None:
     messages = MessageManager(system_prompt="System")
     first = _tool_call()
     second = ToolCall(id="call-2", function=Function(name="read_file", arguments="{}"))
 
-    messages.add_tool_results([(first, "skill instructions"), (second, "file contents")])
+    messages.add_tool_call(first)
+    messages.add_tool_result(first.id, "skill instructions")
+    messages.add_tool_call(second)
+    messages.add_tool_result(second.id, "file contents")
 
     llm_messages = messages.to_llm_messages()
-    assistant_call = llm_messages[1]
-    assert isinstance(assistant_call, AssistantMessage)
-    assert [tool_call.id for tool_call in assistant_call.tool_calls] == ["call-1", "call-2"]
-    assert [message.tool_call_id for message in llm_messages[2:] if isinstance(message, ToolResultMessage)] == [
-        "call-1",
-        "call-2",
-    ]
+    assert isinstance(llm_messages[1], AssistantMessage)
+    assert llm_messages[1].tool_calls[0].id == "call-1"
+    assert isinstance(llm_messages[2], ToolResultMessage)
+    assert llm_messages[2].tool_call_id == "call-1"
+    assert isinstance(llm_messages[3], AssistantMessage)
+    assert llm_messages[3].tool_calls[0].id == "call-2"
+    assert isinstance(llm_messages[4], ToolResultMessage)
+    assert llm_messages[4].tool_call_id == "call-2"
 
 
 def test_available_skills_are_appended_to_the_system_prompt(tmp_path: Path) -> None:
@@ -134,15 +139,6 @@ def test_context_precedes_available_skills_in_the_system_prompt(tmp_path: Path) 
     rendered = messages.to_llm_messages()[0].content
 
     assert rendered.index("<context>") < rendered.index("<available_skills>")
-
-
-def test_trim_drops_tool_results_orphaned_from_their_call() -> None:
-    messages = MessageManager(system_prompt="System", max_turns=1)
-
-    messages.add_tool_results([(_tool_call(), "instructions")])
-    messages.add_user("three")
-
-    assert not any(isinstance(message, ToolResultMessage) for message in messages.to_llm_messages())
 
 
 def test_system_prompt_reads_default_markdown() -> None:
