@@ -1,8 +1,8 @@
+import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
-
-import sqlite_vec
+from typing import Protocol
 
 from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, TextIndex
 from retrieval.sqlite._common import (
@@ -19,6 +19,12 @@ _DOCUMENTS = "documents"
 _EMBEDDINGS = "document_embeddings"
 
 
+class _SQLiteVec(Protocol):
+    def load(self, connection: sqlite3.Connection, /) -> None: ...
+
+    def serialize_float32(self, vector: Sequence[float], /) -> bytes: ...
+
+
 class SQLiteVectorIndex(TextIndex):
     """Persistent cosine-similarity index backed by SQLite and sqlite-vec."""
 
@@ -32,6 +38,7 @@ class SQLiteVectorIndex(TextIndex):
         if dimensions < 1:
             raise ValueError("dimensions must be at least 1")
 
+        self._sqlite_vec = _import_sqlite_vec()
         self._embedding_provider = embedding_provider
         self._dimensions = dimensions
         self._connection = open_database(database)
@@ -71,7 +78,7 @@ class SQLiteVectorIndex(TextIndex):
                     "(document_id, embedding, parent_key) VALUES (?, ?, ?)",
                     (
                         document.id,
-                        sqlite_vec.serialize_float32(embedding),
+                        self._sqlite_vec.serialize_float32(embedding),
                         _parent_key(document.parent_id),
                     ),
                 )
@@ -98,7 +105,10 @@ class SQLiteVectorIndex(TextIndex):
             )
         self._validate_embeddings(embeddings)
 
-        parameters: list[object] = [sqlite_vec.serialize_float32(embeddings[0]), limit]
+        parameters: list[object] = [
+            self._sqlite_vec.serialize_float32(embeddings[0]),
+            limit,
+        ]
         parent_filter = ""
         if parent_id is not None:
             parent_filter = "AND parent_key = ?"
@@ -190,7 +200,7 @@ class SQLiteVectorIndex(TextIndex):
     def _load_extension(self) -> None:
         self._connection.enable_load_extension(True)
         try:
-            sqlite_vec.load(self._connection)
+            self._sqlite_vec.load(self._connection)
         finally:
             self._connection.enable_load_extension(False)
 
@@ -240,3 +250,16 @@ class SQLiteVectorIndex(TextIndex):
 
 def _parent_key(parent_id: str | None) -> str:
     return "root" if parent_id is None else f"id:{parent_id}"
+
+
+def _import_sqlite_vec() -> _SQLiteVec:
+    try:
+        import sqlite_vec
+    except ModuleNotFoundError as error:
+        if error.name != "sqlite_vec":
+            raise
+        raise ImportError(
+            "SQLiteVectorIndex requires the optional SQLite dependencies. "
+            "Install them with `pip install 'retrieval[sqlite]'`."
+        ) from error
+    return sqlite_vec

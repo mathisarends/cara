@@ -1,5 +1,7 @@
 import asyncio
 import sqlite3
+import subprocess
+import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
@@ -171,3 +173,29 @@ def test_existing_index_rejects_different_dimensions(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="different embedding dimensions"):
         SQLiteVectorIndex(database, FakeEmbeddingProvider({}), dimensions=3)
+
+
+def test_missing_sqlite_vec_reports_extra_to_install(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    database = tmp_path / "missing-dependency.db"
+    monkeypatch.setitem(sys.modules, "sqlite_vec", None)
+
+    with pytest.raises(ImportError, match=r"pip install 'retrieval\[sqlite\]'"):
+        SQLiteVectorIndex(database, FakeEmbeddingProvider({}), dimensions=2)
+
+    assert not database.exists()
+
+
+def test_sqlite_package_import_does_not_require_sqlite_vec() -> None:
+    script = (
+        "import sys; "
+        "sys.modules['sqlite_vec'] = None; "
+        "from retrieval.sqlite import SQLiteFts5Index"
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, check=False
+    )
+
+    assert result.returncode == 0, result.stderr
