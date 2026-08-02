@@ -33,7 +33,9 @@ async def main() -> None:
     ]
 
     provider = OpenAIEmbeddingProvider("text-embedding-3-small")
-    with SQLiteVectorIndex("conversations.db", provider, dimensions=1536) as index:
+    async with SQLiteVectorIndex(
+        "conversations.db", provider, dimensions=1536
+    ) as index:
         await index.index(documents)
 
         print("Conversation:")

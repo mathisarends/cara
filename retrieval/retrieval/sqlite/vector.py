@@ -1,8 +1,10 @@
-import sqlite3
+import asyncio
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
 from typing import Protocol
+
+import aiosqlite
 
 from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, TextIndex
 from retrieval.sqlite._common import (
@@ -20,7 +22,7 @@ _EMBEDDINGS = "document_embeddings"
 
 
 class _SQLiteVec(Protocol):
-    def load(self, connection: sqlite3.Connection, /) -> None: ...
+    def loadable_path(self) -> str: ...
 
     def serialize_float32(self, vector: Sequence[float], /) -> bytes: ...
 
@@ -39,16 +41,12 @@ class SQLiteVectorIndex(TextIndex):
             raise ValueError("dimensions must be at least 1")
 
         self._sqlite_vec = _import_sqlite_vec()
+        self._database = database
         self._embedding_provider = embedding_provider
         self._dimensions = dimensions
-        self._connection = open_database(database)
-        self._load_extension()
-
-        try:
-            self._create_schema()
-        except BaseException:
-            self._connection.close()
-            raise
+        self._connection: aiosqlite.Connection | None = None
+        self._operation_lock = asyncio.Lock()
+        self._closed = False
 
     async def index(self, documents: Sequence[Document]) -> None:
         items = list(documents)
@@ -66,22 +64,32 @@ class SQLiteVectorIndex(TextIndex):
             )
         self._validate_embeddings(embeddings)
 
-        with self._connection:
-            self._connection.executemany(upsert_document_statement(_DOCUMENTS), rows)
-            for document, embedding in zip(items, embeddings, strict=True):
-                self._connection.execute(
-                    f"DELETE FROM {_EMBEDDINGS} WHERE document_id = ?",
-                    (document.id,),
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            try:
+                await connection.execute("BEGIN")
+                await connection.executemany(
+                    upsert_document_statement(_DOCUMENTS), rows
                 )
-                self._connection.execute(
-                    f"INSERT INTO {_EMBEDDINGS} "
-                    "(document_id, embedding, parent_key) VALUES (?, ?, ?)",
-                    (
-                        document.id,
-                        self._sqlite_vec.serialize_float32(embedding),
-                        _parent_key(document.parent_id),
-                    ),
-                )
+                for document, embedding in zip(items, embeddings, strict=True):
+                    await connection.execute(
+                        f"DELETE FROM {_EMBEDDINGS} WHERE document_id = ?",
+                        (document.id,),
+                    )
+                    await connection.execute(
+                        f"INSERT INTO {_EMBEDDINGS} "
+                        "(document_id, embedding, parent_key) VALUES (?, ?, ?)",
+                        (
+                            document.id,
+                            self._sqlite_vec.serialize_float32(embedding),
+                            _parent_key(document.parent_id),
+                        ),
+                    )
+            except BaseException:
+                await connection.rollback()
+                raise
+            else:
+                await connection.commit()
 
     async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
         return await self.search(query, limit=limit)
@@ -95,8 +103,10 @@ class SQLiteVectorIndex(TextIndex):
     ) -> list[RetrievalResult]:
         if limit < 1:
             raise ValueError("limit must be at least 1")
-        if not self._has_embeddings(parent_id):
-            return []
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            if not await self._has_embeddings(connection, parent_id):
+                return []
 
         embeddings = await self._embedding_provider.embed([query])
         if len(embeddings) != 1:
@@ -114,22 +124,25 @@ class SQLiteVectorIndex(TextIndex):
             parent_filter = "AND parent_key = ?"
             parameters.append(_parent_key(parent_id))
 
-        rows = self._connection.execute(
-            f"""
-            WITH matches AS (
-                SELECT document_id, distance
-                FROM {_EMBEDDINGS}
-                WHERE embedding MATCH ?
-                  AND k = ?
-                  {parent_filter}
-            )
-            SELECT {aliased_document_columns("d")}, matches.distance
-            FROM matches
-            JOIN {_DOCUMENTS} AS d ON d.id = matches.document_id
-            ORDER BY matches.distance
-            """,
-            parameters,
-        ).fetchall()
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            async with connection.execute(
+                f"""
+                WITH matches AS (
+                    SELECT document_id, distance
+                    FROM {_EMBEDDINGS}
+                    WHERE embedding MATCH ?
+                      AND k = ?
+                      {parent_filter}
+                )
+                SELECT {aliased_document_columns("d")}, matches.distance
+                FROM matches
+                JOIN {_DOCUMENTS} AS d ON d.id = matches.document_id
+                ORDER BY matches.distance
+                """,
+                parameters,
+            ) as cursor:
+                rows = await cursor.fetchall()
         return [
             RetrievalResult(
                 document=document_from_row(row), score=1.0 - row["distance"]
@@ -138,10 +151,13 @@ class SQLiteVectorIndex(TextIndex):
         ]
 
     async def get(self, document_id: str) -> Document | None:
-        row = self._connection.execute(
-            f"SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS} WHERE id = ?",
-            (document_id,),
-        ).fetchone()
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            async with connection.execute(
+                f"SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS} WHERE id = ?",
+                (document_id,),
+            ) as cursor:
+                row = await cursor.fetchone()
         return None if row is None else document_from_row(row)
 
     async def list_documents(
@@ -150,26 +166,27 @@ class SQLiteVectorIndex(TextIndex):
         if limit < 1:
             raise ValueError("limit must be at least 1")
 
-        if parent_id is None:
-            rows = self._connection.execute(
-                f"""
-                SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS}
-                WHERE parent_id IS NULL
-                ORDER BY created_at DESC, id
-                LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
-        else:
-            rows = self._connection.execute(
-                f"""
-                SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS}
-                WHERE parent_id = ?
-                ORDER BY created_at, id
-                LIMIT ?
-                """,
-                (parent_id, limit),
-            ).fetchall()
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            if parent_id is None:
+                statement = f"""
+                    SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS}
+                    WHERE parent_id IS NULL
+                    ORDER BY created_at DESC, id
+                    LIMIT ?
+                """
+                parameters = (limit,)
+            else:
+                statement = f"""
+                    SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS}
+                    WHERE parent_id = ?
+                    ORDER BY created_at, id
+                    LIMIT ?
+                """
+                parameters = (parent_id, limit)
+
+            async with connection.execute(statement, parameters) as cursor:
+                rows = await cursor.fetchall()
         return [document_from_row(row) for row in rows]
 
     async def delete(self, document_ids: Sequence[str]) -> None:
@@ -177,37 +194,69 @@ class SQLiteVectorIndex(TextIndex):
         if not ids:
             return
 
-        with self._connection:
-            self._connection.executemany(
-                f"DELETE FROM {_EMBEDDINGS} WHERE document_id = ?", ids
-            )
-            self._connection.executemany(f"DELETE FROM {_DOCUMENTS} WHERE id = ?", ids)
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            try:
+                await connection.execute("BEGIN")
+                await connection.executemany(
+                    f"DELETE FROM {_EMBEDDINGS} WHERE document_id = ?", ids
+                )
+                await connection.executemany(
+                    f"DELETE FROM {_DOCUMENTS} WHERE id = ?", ids
+                )
+            except BaseException:
+                await connection.rollback()
+                raise
+            else:
+                await connection.commit()
 
-    def close(self) -> None:
-        self._connection.close()
+    async def close(self) -> None:
+        async with self._operation_lock:
+            self._closed = True
+            if self._connection is not None:
+                await self._connection.close()
+                self._connection = None
 
-    def __enter__(self) -> "SQLiteVectorIndex":
+    async def __aenter__(self) -> "SQLiteVectorIndex":
+        async with self._operation_lock:
+            await self._ensure_connection()
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exception_type: type[BaseException] | None,
         exception: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
-    def _load_extension(self) -> None:
-        self._connection.enable_load_extension(True)
+    async def _ensure_connection(self) -> aiosqlite.Connection:
+        if self._closed:
+            raise RuntimeError("SQLiteVectorIndex is closed")
+        if self._connection is not None:
+            return self._connection
+
+        connection = await open_database(self._database)
         try:
-            self._sqlite_vec.load(self._connection)
-        finally:
-            self._connection.enable_load_extension(False)
+            await self._load_extension(connection)
+            await self._create_schema(connection)
+        except BaseException:
+            await connection.close()
+            raise
+        self._connection = connection
+        return connection
 
-    def _create_schema(self) -> None:
-        with self._connection:
-            self._connection.executescript(document_table_statement(_DOCUMENTS))
-            self._connection.execute(
+    async def _load_extension(self, connection: aiosqlite.Connection) -> None:
+        await connection.enable_load_extension(True)
+        try:
+            await connection.load_extension(self._sqlite_vec.loadable_path())
+        finally:
+            await connection.enable_load_extension(False)
+
+    async def _create_schema(self, connection: aiosqlite.Connection) -> None:
+        try:
+            await connection.executescript(document_table_statement(_DOCUMENTS))
+            await connection.execute(
                 f"""
                 CREATE VIRTUAL TABLE IF NOT EXISTS {_EMBEDDINGS} USING vec0(
                     document_id TEXT PRIMARY KEY,
@@ -216,13 +265,19 @@ class SQLiteVectorIndex(TextIndex):
                 )
                 """
             )
-        self._validate_schema_dimensions()
+            await connection.commit()
+        except BaseException:
+            await connection.rollback()
+            raise
+        await self._validate_schema_dimensions(connection)
 
-    def _validate_schema_dimensions(self) -> None:
-        row = self._connection.execute(
-            "SELECT sql FROM sqlite_master WHERE name = ?",
-            (_EMBEDDINGS,),
-        ).fetchone()
+    async def _validate_schema_dimensions(
+        self, connection: aiosqlite.Connection
+    ) -> None:
+        async with connection.execute(
+            "SELECT sql FROM sqlite_master WHERE name = ?", (_EMBEDDINGS,)
+        ) as cursor:
+            row = await cursor.fetchone()
         expected = f"float[{self._dimensions}]"
         if row is None or expected not in row["sql"].casefold():
             raise ValueError(
@@ -235,16 +290,20 @@ class SQLiteVectorIndex(TextIndex):
                 f"Embedding vectors must have {self._dimensions} dimensions"
             )
 
-    def _has_embeddings(self, parent_id: str | None) -> bool:
+    async def _has_embeddings(
+        self, connection: aiosqlite.Connection, parent_id: str | None
+    ) -> bool:
         if parent_id is None:
-            row = self._connection.execute(
-                f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS})"
-            ).fetchone()
+            parameters: tuple[str, ...] = ()
+            statement = f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS})"
         else:
-            row = self._connection.execute(
-                f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS} WHERE parent_key = ?)",
-                (_parent_key(parent_id),),
-            ).fetchone()
+            parameters = (_parent_key(parent_id),)
+            statement = (
+                f"SELECT EXISTS(SELECT 1 FROM {_EMBEDDINGS} WHERE parent_key = ?)"
+            )
+        async with connection.execute(statement, parameters) as cursor:
+            row = await cursor.fetchone()
+        assert row is not None
         return bool(row[0])
 
 

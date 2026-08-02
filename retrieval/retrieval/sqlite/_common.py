@@ -4,6 +4,8 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import aiosqlite
+
 from retrieval import Document
 
 DOCUMENT_COLUMNS = "id, parent_id, text, metadata, created_at"
@@ -11,10 +13,10 @@ DOCUMENT_COLUMNS = "id, parent_id, text, metadata, created_at"
 type DocumentRow = tuple[str, str | None, str, str, str]
 
 
-def open_database(database: str | Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(database)
+async def open_database(database: str | Path) -> aiosqlite.Connection:
+    connection = await aiosqlite.connect(database)
     connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA journal_mode = WAL")
+    await connection.execute("PRAGMA journal_mode = WAL")
     return connection
 
 

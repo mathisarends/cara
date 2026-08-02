@@ -101,9 +101,9 @@ async def main() -> None:
     for note in await vector_index.list_documents(limit=2):
         print(f"  {note.id}  {_summarize(note.text)}")
 
-    vector_index.close()
-    lexical_index.close()
-    embedding_provider.close()
+    await vector_index.close()
+    await lexical_index.close()
+    await embedding_provider.close()
 
 
 async def synchronize(directory: Path, indexes: list[TextIndex]) -> None:

@@ -1,7 +1,10 @@
+import asyncio
 import re
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
+
+import aiosqlite
 
 from retrieval import Document, RetrievalResult, TextIndex
 from retrieval.sqlite._common import (
@@ -30,14 +33,11 @@ class SQLiteFts5Index(TextIndex):
     def __init__(
         self, database: str | Path, *, tokenizer: str = "unicode61 remove_diacritics 2"
     ) -> None:
-        self._connection = open_database(database)
+        self._database = database
         self._tokenizer = tokenizer
-
-        try:
-            self._create_schema()
-        except BaseException:
-            self._connection.close()
-            raise
+        self._connection: aiosqlite.Connection | None = None
+        self._operation_lock = asyncio.Lock()
+        self._closed = False
 
     async def index(self, documents: Sequence[Document]) -> None:
         items = list(documents)
@@ -45,8 +45,16 @@ class SQLiteFts5Index(TextIndex):
             return
 
         rows = document_rows(items)
-        with self._connection:
-            self._connection.executemany(upsert_document_statement(_DOCUMENTS), rows)
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            try:
+                await connection.executemany(
+                    upsert_document_statement(_DOCUMENTS), rows
+                )
+                await connection.commit()
+            except BaseException:
+                await connection.rollback()
+                raise
 
     async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
         return await self.search(query, limit=limit)
@@ -72,28 +80,34 @@ class SQLiteFts5Index(TextIndex):
             parameters.append(parent_id)
         parameters.append(limit)
 
-        rows = self._connection.execute(
-            f"""
-            SELECT {aliased_document_columns("d")}, bm25({_SEARCH}) AS relevance
-            FROM {_SEARCH}
-            JOIN {_DOCUMENTS} AS d ON d.rowid = {_SEARCH}.rowid
-            WHERE {_SEARCH} MATCH ?
-              {parent_filter}
-            ORDER BY relevance
-            LIMIT ?
-            """,
-            parameters,
-        ).fetchall()
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            async with connection.execute(
+                f"""
+                SELECT {aliased_document_columns("d")}, bm25({_SEARCH}) AS relevance
+                FROM {_SEARCH}
+                JOIN {_DOCUMENTS} AS d ON d.rowid = {_SEARCH}.rowid
+                WHERE {_SEARCH} MATCH ?
+                  {parent_filter}
+                ORDER BY relevance
+                LIMIT ?
+                """,
+                parameters,
+            ) as cursor:
+                rows = await cursor.fetchall()
         return [
             RetrievalResult(document=document_from_row(row), score=-row["relevance"])
             for row in rows
         ]
 
     async def get(self, document_id: str) -> Document | None:
-        row = self._connection.execute(
-            f"SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS} WHERE id = ?",
-            (document_id,),
-        ).fetchone()
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            async with connection.execute(
+                f"SELECT {DOCUMENT_COLUMNS} FROM {_DOCUMENTS} WHERE id = ?",
+                (document_id,),
+            ) as cursor:
+                row = await cursor.fetchone()
         return None if row is None else document_from_row(row)
 
     async def delete(self, document_ids: Sequence[str]) -> None:
@@ -101,27 +115,56 @@ class SQLiteFts5Index(TextIndex):
         if not ids:
             return
 
-        with self._connection:
-            self._connection.executemany(f"DELETE FROM {_DOCUMENTS} WHERE id = ?", ids)
+        async with self._operation_lock:
+            connection = await self._ensure_connection()
+            try:
+                await connection.executemany(
+                    f"DELETE FROM {_DOCUMENTS} WHERE id = ?", ids
+                )
+                await connection.commit()
+            except BaseException:
+                await connection.rollback()
+                raise
 
-    def close(self) -> None:
-        self._connection.close()
+    async def close(self) -> None:
+        async with self._operation_lock:
+            self._closed = True
+            if self._connection is not None:
+                await self._connection.close()
+                self._connection = None
 
-    def __enter__(self) -> "SQLiteFts5Index":
+    async def __aenter__(self) -> "SQLiteFts5Index":
+        async with self._operation_lock:
+            await self._ensure_connection()
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exception_type: type[BaseException] | None,
         exception: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
-    def _create_schema(self) -> None:
-        with self._connection:
-            self._connection.executescript(document_table_statement(_DOCUMENTS))
-            self._connection.execute(
+    async def _ensure_connection(self) -> aiosqlite.Connection:
+        if self._closed:
+            raise RuntimeError("SQLiteFts5Index is closed")
+        if self._connection is not None:
+            return self._connection
+
+        connection = await open_database(self._database)
+        try:
+            await self._create_schema(connection)
+        except BaseException:
+            await connection.close()
+            raise
+        self._connection = connection
+        return connection
+
+    async def _create_schema(self, connection: aiosqlite.Connection) -> None:
+        try:
+            await connection.executescript(document_table_statement(_DOCUMENTS))
+            await connection.execute(
                 f"""
                 CREATE VIRTUAL TABLE IF NOT EXISTS {_SEARCH} USING fts5(
                     text,
@@ -131,7 +174,11 @@ class SQLiteFts5Index(TextIndex):
                 )
                 """
             )
-            self._connection.executescript(_synchronization_triggers())
+            await connection.executescript(_synchronization_triggers())
+            await connection.commit()
+        except BaseException:
+            await connection.rollback()
+            raise
 
 
 def _match_expression(query: str) -> str | None:

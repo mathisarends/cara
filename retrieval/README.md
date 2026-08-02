@@ -264,7 +264,7 @@ from retrieval.sqlite import SQLiteVectorIndex
 
 provider = OpenAIEmbeddingProvider("text-embedding-3-small")
 
-with SQLiteVectorIndex("cara.db", provider, dimensions=1536) as index:
+async with SQLiteVectorIndex("cara.db", provider, dimensions=1536) as index:
     await index.index(
         [
             Document(
@@ -317,6 +317,8 @@ Besides `index()` and `retrieve()`, the persistent index provides:
 The embedding dimensions are part of the vector-table schema. Open an existing
 database with the same `dimensions` value and embedding model configuration.
 
+Database operations run asynchronously via `aiosqlite`; connection setup and
+teardown are asynchronous as well, so use `async with` or `await index.close()`.
 The connection runs in WAL mode, so a process reading the index does not block
 the process writing to it — which is what an index kept current by a file
 watcher needs.
@@ -324,13 +326,13 @@ watcher needs.
 ### Persistent lexical retrieval
 
 `SQLiteFts5Index` is the lexical counterpart, built on SQLite's FTS5
-extension. It needs no embedding provider and no optional dependency beyond
-the standard library:
+extension. It needs no embedding provider; the `sqlite` extra installs its
+asynchronous SQLite driver:
 
 ```python
 from retrieval.sqlite import SQLiteFts5Index
 
-with SQLiteFts5Index("cara.db") as index:
+async with SQLiteFts5Index("cara.db") as index:
     await index.index(documents)
     matches = await index.search("wakewordkit setup", parent_id="daily-notes")
 ```
@@ -372,6 +374,10 @@ provider = SQLiteEmbeddingCache(
 )
 index = SQLiteVectorIndex("cara.db", provider, dimensions=1536)
 ```
+
+Both objects own asynchronous database connections. Close them with
+`await index.close()` and `await provider.close()`, or manage each with
+`async with`.
 
 Because it is just an `EmbeddingProvider`, anything that takes one benefits —
 the vector index, an [MMR reranker](#reranking), your own code.

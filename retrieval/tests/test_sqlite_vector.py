@@ -36,12 +36,12 @@ def test_index_persists_documents_and_vectors(tmp_path: Path) -> None:
     )
     index = _index(database, {document.text: [1.0, 0.0]})
     asyncio.run(index.index([document]))
-    index.close()
+    asyncio.run(index.close())
 
     reopened = _index(database, {"database question": [0.9, 0.1]})
     stored = asyncio.run(reopened.get(document.id))
     results = asyncio.run(reopened.retrieve("database question"))
-    reopened.close()
+    asyncio.run(reopened.close())
 
     assert stored == document
     assert results[0].document == document
@@ -51,7 +51,8 @@ def test_index_persists_documents_and_vectors(tmp_path: Path) -> None:
 def test_index_uses_requested_documents_schema(tmp_path: Path) -> None:
     database = tmp_path / "schema.db"
     index = _index(database, {})
-    index.close()
+    assert asyncio.run(index.get("missing")) is None
+    asyncio.run(index.close())
 
     connection = sqlite3.connect(database)
     columns = connection.execute("PRAGMA table_info(documents)").fetchall()
@@ -86,7 +87,7 @@ def test_index_replaces_content_but_preserves_created_at(tmp_path: Path) -> None
 
     stored = asyncio.run(index.get("document"))
     result = asyncio.run(index.retrieve("query"))[0]
-    index.close()
+    asyncio.run(index.close())
 
     assert stored is not None
     assert stored.text == "new"
@@ -113,7 +114,7 @@ def test_list_documents_supports_conversation_hierarchy(tmp_path: Path) -> None:
 
     roots = asyncio.run(index.list_documents())
     messages = asyncio.run(index.list_documents(parent_id="conversation"))
-    index.close()
+    asyncio.run(index.close())
 
     assert [document.id for document in roots] == ["conversation"]
     assert [document.id for document in messages] == ["z-message", "a-message"]
@@ -136,7 +137,7 @@ def test_search_can_be_limited_to_a_conversation(tmp_path: Path) -> None:
     asyncio.run(index.index(documents))
 
     results = asyncio.run(index.search("query", parent_id="conversation-2"))
-    index.close()
+    asyncio.run(index.close())
 
     assert [result.document.id for result in results] == ["second"]
 
@@ -150,7 +151,7 @@ def test_delete_removes_document_and_vector(tmp_path: Path) -> None:
 
     assert asyncio.run(index.get("document")) is None
     assert asyncio.run(index.retrieve("query")) == []
-    index.close()
+    asyncio.run(index.close())
 
 
 def test_index_rejects_non_json_metadata_without_writing(tmp_path: Path) -> None:
@@ -163,16 +164,20 @@ def test_index_rejects_non_json_metadata_without_writing(tmp_path: Path) -> None
         )
 
     assert asyncio.run(index.get("document")) is None
-    index.close()
+    asyncio.run(index.close())
 
 
 def test_existing_index_rejects_different_dimensions(tmp_path: Path) -> None:
     database = tmp_path / "dimensions.db"
     index = _index(database, {})
-    index.close()
+    assert asyncio.run(index.get("missing")) is None
+    asyncio.run(index.close())
 
     with pytest.raises(ValueError, match="different embedding dimensions"):
-        SQLiteVectorIndex(database, FakeEmbeddingProvider({}), dimensions=3)
+        mismatched = SQLiteVectorIndex(
+            database, FakeEmbeddingProvider({}), dimensions=3
+        )
+        asyncio.run(mismatched.get("document"))
 
 
 def test_missing_sqlite_vec_reports_extra_to_install(
