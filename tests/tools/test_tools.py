@@ -163,6 +163,24 @@ def test_default_workspace_mounts_memory_content_directory() -> None:
     assert "/memory/USER.md" in result.result.splitlines()
 
 
+def test_default_workspace_accepts_writable_additional_mounts(tmp_path: Path) -> None:
+    skills_root = tmp_path / "skills"
+    tools = create_tools(create_tool_context(workspace_mounts={"/skills": skills_root}))
+
+    result = asyncio.run(
+        tools.execute(
+            "write_file",
+            {"path": "/skills/example/SKILL.md", "content": "# Example\n"},
+        )
+    )
+    memory = asyncio.run(tools.execute("list_files", {"path": "/memory"}))
+
+    assert result.ok
+    assert (skills_root / "example" / "SKILL.md").read_text(encoding="utf-8") == "# Example\n"
+    assert memory.ok
+    assert "/memory/USER.md" in memory.result.splitlines()
+
+
 def test_to_schema_returns_openai_function_schema() -> None:
     schema = next(item for item in create_tools().get_schema("openai") if item["function"]["name"] == "bash")
 

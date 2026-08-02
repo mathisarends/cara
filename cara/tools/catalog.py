@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from tempfile import gettempdir
 
@@ -48,16 +48,23 @@ def create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
     sandbox: Sandbox | None = None,
+    workspace_mounts: Mapping[str, Path] | None = None,
 ) -> ToolContext:
-    selected_workspace = workspace or _default_workspace()
+    if workspace is not None and workspace_mounts:
+        raise ValueError("Use either workspace or workspace_mounts, not both.")
+    selected_workspace = workspace or _default_workspace(workspace_mounts)
     selected_sandbox = sandbox or _default_sandbox(selected_workspace)
     return ToolContext(selected_workspace, selected_sandbox, *dependencies)
 
 
-def _default_workspace() -> LocalWorkspace:
+def _default_workspace(additional_mounts: Mapping[str, Path] | None = None) -> LocalWorkspace:
+    mounts = dict(additional_mounts or {})
+    if "/memory" in mounts:
+        raise ValueError("The /memory workspace mount is reserved.")
+    mounts["/memory"] = _MEMORY_ROOT
     return LocalWorkspace(
         Path(gettempdir()) / "cara" / "workspace",
-        mounts={"/memory": _MEMORY_ROOT},
+        mounts=mounts,
         max_file_bytes=1_000_000,
     )
 
@@ -91,12 +98,17 @@ def build_tools(
     *dependencies: object,
     skills: Skills | None = None,
     workspace: Workspace | None = None,
+    workspace_mounts: Mapping[str, Path] | None = None,
     tools: agenttoolkit.Tools | None = None,
 ) -> agenttoolkit.Tools:
     configured_dependencies = [*dependencies, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
     if skills is not None:
         configured_dependencies.append(skills)
-    tool_context = create_tool_context(*configured_dependencies, workspace=workspace)
+    tool_context = create_tool_context(
+        *configured_dependencies,
+        workspace=workspace,
+        workspace_mounts=workspace_mounts,
+    )
     if tools is None:
         return create_tools(tool_context)
     tools.set_context(tool_context)
