@@ -349,6 +349,37 @@ and recombined into an `OR` expression, which keeps FTS5 operator syntax in a
 user's query from changing or breaking it, and matches the any-term ranking
 `InMemoryBM25Index` does.
 
+### Caching embeddings
+
+Re-indexing a corpus re-embeds every chunk, including the ones that did not
+change. `SQLiteEmbeddingCache` is an `EmbeddingProvider` that wraps another
+one and remembers its results, so a re-index costs API calls only for text
+that is actually new:
+
+```python
+from retrieval.openai import OpenAIEmbeddingProvider
+from retrieval.sqlite import SQLiteEmbeddingCache, SQLiteVectorIndex
+
+provider = SQLiteEmbeddingCache(
+    "cara.db",
+    OpenAIEmbeddingProvider("text-embedding-3-small"),
+    namespace="text-embedding-3-small",
+)
+index = SQLiteVectorIndex("cara.db", provider, dimensions=1536)
+```
+
+Because it is just an `EmbeddingProvider`, anything that takes one benefits —
+the vector index, an [MMR reranker](#reranking), your own code.
+
+`namespace` is required and keys the cache alongside a hash of the text.
+Change it whenever the vectors would change: a different model, different
+`dimensions`, a different provider. Sharing a namespace between two models
+returns one model's vectors for the other's queries, and nothing detects it.
+
+Vectors are stored as 32-bit floats, matching what embedding APIs return and
+what `sqlite-vec` stores. A cached vector can therefore differ from a freshly
+computed one in the last digits.
+
 ---
 
 ## Lexical retrieval
