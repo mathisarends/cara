@@ -127,6 +127,9 @@ Embedding = list[float]
 class Document:
     id: str
     text: str
+    parent_id: str | None = None
+    metadata: Mapping[str, object] = field(default_factory=dict)
+    created_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +140,9 @@ class RetrievalResult:
 
 `Document.id` is the identity used for deduplication: re-indexing an existing
 id replaces the document in every index, and fusion merges results by id.
+`parent_id` can link a chunk or message back to its source document, while
+`metadata` carries application-specific JSON data. Persistent indexes populate
+`created_at`; in-memory indexes leave it untouched.
 
 Scores are **not comparable across retrievers.** Cosine similarity lands
 around `0.9`, BM25 around `12`, reciprocal rank fusion around `0.03`. Use them
@@ -225,6 +231,80 @@ product names, identifiers, error codes, version numbers. That is exactly what
 
 All documents in an index must share one embedding dimensionality;
 `index()` raises `ValueError` otherwise.
+
+---
+
+## Persistent SQLite retrieval
+
+Install the optional SQLite backend together with your embedding provider:
+
+```bash
+pip install "retrieval[openai,sqlite]"
+```
+
+`SQLiteVectorIndex` implements the same `TextIndex` port as the in-memory
+index, but persists documents and cosine-searchable vectors in one SQLite
+file. It uses `sqlite-vec`; the embedding model stays outside the database.
+
+```python
+from retrieval import Document
+from retrieval.openai import OpenAIEmbeddingProvider
+from retrieval.sqlite import SQLiteVectorIndex
+
+provider = OpenAIEmbeddingProvider("text-embedding-3-small")
+
+with SQLiteVectorIndex("cara.db", provider, dimensions=1536) as index:
+    await index.index(
+        [
+            Document(
+                id="conversation-1",
+                text="Planning the SQLite memory experiment",
+                metadata={"kind": "conversation"},
+            ),
+            Document(
+                id="message-1",
+                parent_id="conversation-1",
+                text="How should Cara remember earlier conversations?",
+                metadata={"kind": "message", "role": "user"},
+            ),
+        ]
+    )
+
+    previous_messages = await index.list_documents(parent_id="conversation-1")
+    matches = await index.search(
+        "What did we decide about memory?",
+        parent_id="conversation-1",
+        limit=5,
+    )
+```
+
+The normal table is deliberately plain SQLite and is the source of truth:
+
+```sql
+CREATE TABLE documents (
+    id TEXT PRIMARY KEY,
+    parent_id TEXT,
+    text TEXT NOT NULL,
+    metadata TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Vectors live in the separate `document_embeddings` virtual table. This avoids
+coupling conversation data to one embedding model and leaves the `documents`
+table easy to inspect or migrate. Re-indexing an id updates its contents and
+vector while preserving its original `created_at` timestamp.
+
+Besides `index()` and `retrieve()`, the persistent index provides:
+
+- `get(document_id)` to load one document;
+- `list_documents()` to list root documents newest first;
+- `list_documents(parent_id=...)` to reconstruct ordered children;
+- `search(..., parent_id=...)` to search within one conversation or source;
+- `delete(document_ids)` to remove documents and their vectors atomically.
+
+The embedding dimensions are part of the vector-table schema. Open an existing
+database with the same `dimensions` value and embedding model configuration.
 
 ---
 
@@ -451,16 +531,16 @@ class CrossEncoderReranker(Retriever):
 
 Be deliberate about what this package is:
 
-- **The bundled indexes are in-memory and non-persistent.** State lives in the
-  process and is lost on restart.
-- **They score linearly over every document.** `InMemoryBM25Index` has no
+- **The default bundled indexes are in-memory.** Use `SQLiteVectorIndex` when
+  state must survive a restart.
+- **The in-memory indexes score linearly over every document.** `InMemoryBM25Index` has no
   inverted-index posting lists, and `InMemoryVectorIndex` has no ANN structure.
   Both are fine into the low tens of thousands of chunks and are the wrong tool
   above that — move to a real store behind the same `TextIndex` port.
-- **Neither is concurrency-safe.** Serialize writes yourself if you index from
-  multiple tasks.
-- **No query expansion, no reranking, no metadata filtering** is included.
-  `Document` carries an id and text, nothing else.
+- **The indexes are not concurrency-safe.** Serialize writes yourself if you
+  index from multiple tasks or processes.
+- **No query expansion or reranking** is included. SQLite search can filter by
+  `parent_id`; arbitrary JSON metadata filtering remains application-level.
 
 The ports are the stable part; the in-memory implementations are reference
 implementations that keep the package honest and dependency-free.
@@ -476,15 +556,16 @@ Runnable scripts live in [`examples/`](examples):
 | `chunking_strategies.py` | All three chunkers on the same input, plus the tokenizer API. |
 | `index_and_retrieve.py` | Chunk, embed and query with the OpenAI provider. |
 | `hybrid_retrieval.py` | Vector and BM25 indexes merged with reciprocal rank fusion. |
+| `sqlite_conversations.py` | Persist and search conversation messages with SQLite. |
 
-The last two need `OPENAI_API_KEY`.
+The OpenAI examples need `OPENAI_API_KEY`.
 
 ---
 
 ## Development
 
 ```bash
-uv sync
+uv sync --all-extras
 uv run pytest retrieval/tests
 uv run ruff check retrieval
 uv run ruff format retrieval
