@@ -4,7 +4,7 @@ from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 
 from cara.agent import Agent
 from cara.sessions import TerminalSession
-from cara.tools import ActionResult, create_tools
+from cara.tools import create_tools
 
 
 class EchoChatModel:
@@ -80,8 +80,8 @@ def test_terminal_session_shows_tool_calls_and_results() -> None:
     tools = create_tools()
 
     @tools.action("Wetter abrufen.", name="weather_lookup")
-    async def weather_lookup(location: str) -> ActionResult:
-        return ActionResult.success(f"Wetter für {location}")
+    async def weather_lookup(location: str) -> str:
+        return f"Wetter für {location}"
 
     session = TerminalSession(
         Agent(llm=ToolCallingChatModel(), tools=tools),

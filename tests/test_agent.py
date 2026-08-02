@@ -6,7 +6,7 @@ from agenttoolkit.builtins import LocalWorkspace
 from llmify import AssistantMessage, ChatInvokeCompletion, Function, ToolCall, ToolResultMessage, UserMessage
 
 from cara.agent import Agent
-from cara.tools import ActionResult, build_tools, create_tools
+from cara.tools import build_tools, create_tools
 from cara.tools.params import WeatherParams
 
 _ANSWER = "Hallo, wie kann ich helfen?"
@@ -19,7 +19,7 @@ def _skills(root: Path) -> Skills:
         "---\nname: weather\ndescription: Wetter abrufen.\n---\nRufe weather_lookup auf.\n",
         encoding="utf-8",
     )
-    return Skills.from_local_dir(root)
+    return Skills.from_dir(root)
 
 
 class StaticChatModel:
@@ -106,8 +106,8 @@ def test_agent_continues_after_each_tool_round_until_final_answer(tmp_path: Path
         tools = create_tools()
 
         @tools.action("Wetter abrufen.", name="weather_lookup", params=WeatherParams)
-        async def weather_lookup(params: WeatherParams) -> ActionResult:
-            return ActionResult.success("22 Grad und sonnig.")
+        async def weather_lookup(params: WeatherParams) -> str:
+            return "22 Grad und sonnig."
 
         skills = _skills(tmp_path)
         agent = Agent(
@@ -155,4 +155,4 @@ def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> Non
     tool_results = [message for message in llm.messages[1] if isinstance(message, ToolResultMessage)]
     assert len(tool_results) == 1
     assert tool_results[0].tool_call_id == "write-outside-workspace"
-    assert tool_results[0].content == "Internal tool error."
+    assert tool_results[0].content.startswith("Tool failed:")

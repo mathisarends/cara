@@ -34,7 +34,7 @@ class Agent:
         text: str,
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None = None,
-        on_tool_result: Callable[[str, str, bool], None] | None = None,
+        on_tool_result: Callable[[str, str], None] | None = None,
     ) -> str:
         """Add a user turn, run the model and tools, and return the final answer."""
         text = text.strip()
@@ -53,7 +53,7 @@ class Agent:
         self,
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str, bool], None] | None,
+        on_tool_result: Callable[[str, str], None] | None,
     ) -> str:
         while True:
             completion = await self._llm.invoke(
@@ -73,7 +73,7 @@ class Agent:
         completion: ChatInvokeCompletion[str],
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str, bool], None] | None,
+        on_tool_result: Callable[[str, str], None] | None,
     ) -> tuple[str, bool]:
         answer = completion.completion.strip()
         for tool_call in completion.tool_calls:
@@ -84,10 +84,9 @@ class Agent:
                 on_tool_call(name, arguments)
 
             result = await self._tools.execute(name, arguments)
-            fallback = "Tool completed successfully." if result.ok else "Tool failed."
-            content = str(result.result or result.error or fallback)
+            content = "Tool completed successfully." if result is None else str(result)
             if on_tool_result is not None:
-                on_tool_result(name, content, result.ok)
+                on_tool_result(name, content)
             self._conversation.add_tool_result(tool_call.id, content)
 
         return answer, bool(completion.tool_calls)

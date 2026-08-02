@@ -2,8 +2,8 @@ import asyncio
 from pathlib import Path
 from tempfile import gettempdir
 
-from agenttoolkit import ActionResult, ToolEffect, Tools
-from agenttoolkit.builtins import LocalWorkspace, SandboxPolicy, SandboxResult, Workspace
+from agenttoolkit import Tools
+from agenttoolkit.builtins import CommandResult, LocalWorkspace, SandboxPolicy, Workspace
 
 from cara.audio import AudioOutput, AudioPlayer
 from cara.tools import create_tool_context, create_tools
@@ -32,25 +32,25 @@ def test_audio_tools_follow_injected_player_availability() -> None:
     context = create_tool_context(AudioPlayer(SilentOutput(AudioOutput.LOCAL)))
     tools = create_tools(context)
 
-    available = tools.get_available()
-    assert tools.get("get_volume") in available
-    assert tools.get("set_audio_output") not in available
+    available = {schema.name for schema in tools.get_schema()}
+    assert "get_volume" in available
+    assert "set_audio_output" not in available
 
     context.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS)))
 
-    assert tools.get("set_audio_output") in tools.get_available()
+    assert "set_audio_output" in {schema.name for schema in tools.get_schema()}
 
 
 def test_custom_action_uses_agenttoolkit_execution() -> None:
     tools = Tools()
 
     @tools.action(description="Echo a message.")
-    async def echo(message: str) -> ActionResult:
-        return ActionResult.success(message)
+    async def echo(message: str) -> str:
+        return message
 
     result = asyncio.run(tools.execute("echo", {"message": "hi"}))
 
-    assert result == ActionResult.success("hi")
+    assert result == "hi"
 
 
 def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> None:
@@ -66,9 +66,9 @@ def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> Non
         )
     )
 
-    assert write_result.ok
-    assert read_result.result == "hello"
-    assert edit_result.ok
+    assert write_result == "Wrote notes/a.txt."
+    assert read_result == "hello"
+    assert edit_result == "Edited notes/a.txt."
     assert asyncio.run(workspace.read_file("notes/a.txt")) == "hello toolkit"
 
 
@@ -81,7 +81,7 @@ def test_glob_tool_uses_agenttoolkit_workspace_matching(tmp_path: Path) -> None:
 
     result = asyncio.run(tools.execute("glob", {"pattern": "**/*.py", "max_results": 1}))
 
-    assert result == ActionResult.success("src/app.py")
+    assert result == "src/app.py"
 
 
 def test_grep_tool_uses_agenttoolkit_workspace_search(tmp_path: Path) -> None:
@@ -102,7 +102,7 @@ def test_grep_tool_uses_agenttoolkit_workspace_search(tmp_path: Path) -> None:
         )
     )
 
-    assert result == ActionResult.success("src/app.py-1-before\nsrc/app.py:2:Needle here\nsrc/app.py-3-after")
+    assert result == "src/app.py-1-before\nsrc/app.py:2:Needle here\nsrc/app.py-3-after"
 
 
 def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> None:
@@ -113,8 +113,7 @@ def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> No
         )
     )
 
-    assert not result.ok
-    assert result.error == "Internal tool error."
+    assert result.startswith("Tool failed:")
 
 
 def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
@@ -123,9 +122,9 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
             self.policy = SandboxPolicy.for_workspace(tmp_path)
             self.command: str | None = None
 
-        async def execute(self, command: str, **kwargs) -> SandboxResult:
+        async def execute(self, command: str, **kwargs) -> CommandResult:
             self.command = command
-            return SandboxResult(
+            return CommandResult(
                 command=command,
                 returncode=0,
                 stdout="hello from sandbox\n",
@@ -139,11 +138,8 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
 
     result = asyncio.run(tools.execute("bash", {"command": "printf hello"}))
 
-    assert result == ActionResult.success("hello from sandbox")
+    assert result == "hello from sandbox"
     assert sandbox.command == "printf hello"
-    bash = tools.get("bash")
-    assert bash is not None
-    assert bash.effects == frozenset((ToolEffect.SPAWNS_PROCESS, ToolEffect.WRITES_WORKSPACE))
 
 
 def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
@@ -159,8 +155,7 @@ def test_default_workspace_mounts_memory_content_directory() -> None:
 
     result = asyncio.run(tools.execute("list_files", {"path": "/memory"}))
 
-    assert result.ok
-    assert "/memory/USER.md" in result.result.splitlines()
+    assert "/memory/USER.md" in result.splitlines()
 
 
 def test_default_workspace_accepts_writable_additional_mounts(tmp_path: Path) -> None:
@@ -175,10 +170,9 @@ def test_default_workspace_accepts_writable_additional_mounts(tmp_path: Path) ->
     )
     memory = asyncio.run(tools.execute("list_files", {"path": "/memory"}))
 
-    assert result.ok
+    assert result == "Wrote /skills/example/SKILL.md."
     assert (skills_root / "example" / "SKILL.md").read_text(encoding="utf-8") == "# Example\n"
-    assert memory.ok
-    assert "/memory/USER.md" in memory.result.splitlines()
+    assert "/memory/USER.md" in memory.splitlines()
 
 
 def test_to_schema_returns_openai_function_schema() -> None:

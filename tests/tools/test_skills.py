@@ -13,7 +13,7 @@ def _skills(tmp_path: Path) -> Skills:
         "---\nname: pdf\ndescription: Read PDFs.\n---\nUse the bundled parser to extract text.\n",
         encoding="utf-8",
     )
-    return Skills.from_local_dir(tmp_path)
+    return Skills.from_dir(tmp_path)
 
 
 def test_load_skill_tool_is_unavailable_without_skills() -> None:
@@ -26,7 +26,7 @@ def test_load_skill_tool_is_unavailable_without_skills() -> None:
 def test_load_skill_tool_is_available_with_skills(tmp_path: Path) -> None:
     tools = create_tools(create_tool_context(_skills(tmp_path)))
 
-    assert tools.get("load_skill") in tools.get_available()
+    assert "load_skill" in {schema.name for schema in tools.get_schema()}
 
 
 def test_load_skill_returns_full_instructions(tmp_path: Path) -> None:
@@ -34,7 +34,7 @@ def test_load_skill_returns_full_instructions(tmp_path: Path) -> None:
 
     result = asyncio.run(tools.execute("load_skill", {"name": "pdf"}))
 
-    assert result.result == "Use the bundled parser to extract text."
+    assert result == "Use the bundled parser to extract text."
 
 
 def test_loading_unknown_skill_fails(tmp_path: Path) -> None:
@@ -42,5 +42,4 @@ def test_loading_unknown_skill_fails(tmp_path: Path) -> None:
 
     result = asyncio.run(tools.execute("load_skill", {"name": "missing"}))
 
-    assert not result.ok
-    assert result.error == "Internal tool error."
+    assert result.startswith("Tool failed:")

@@ -35,7 +35,7 @@ def _skills(root: Path, name: str = "pdf", description: str = "Read PDFs.") -> S
         f"---\nname: {name}\ndescription: {description}\n---\nInstructions.\n",
         encoding="utf-8",
     )
-    return Skills.from_local_dir(root)
+    return Skills.from_dir(root)
 
 
 def test_conversation_builds_llm_messages_with_system_prompt(tmp_path: Path) -> None:
@@ -113,7 +113,7 @@ def test_available_skills_are_appended_to_the_system_prompt(tmp_path: Path) -> N
 
 
 def test_empty_skills_leaves_the_system_prompt_untouched(tmp_path: Path) -> None:
-    composer = _composer(tmp_path, skills=Skills.from_local_dir(tmp_path))
+    composer = _composer(tmp_path, skills=Skills.from_dir(tmp_path))
 
     assert composer.render() == "System"
 

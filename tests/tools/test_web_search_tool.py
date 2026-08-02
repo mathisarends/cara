@@ -32,8 +32,7 @@ def test_web_search_returns_the_client_summary() -> None:
 
     result = asyncio.run(tools.execute("web_search", {"query": "Testfrage"}))
 
-    assert result.ok
-    assert result.result == response.summary()
+    assert result == response.summary()
     assert client.queries == [("Testfrage", 5)]
 
 

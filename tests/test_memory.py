@@ -118,15 +118,14 @@ def test_search_memory_tool_returns_concise_source_attributed_excerpts(tmp_path:
 
     response = asyncio.run(tools.execute("search_memory", {"query": "SQLite", "limit": 1}))
 
-    assert response.ok
-    assert isinstance(response.result, str)
-    assert response.result == (
+    assert isinstance(response, str)
+    assert response == (
         "Memory excerpts, ordered by relevance:\n\n"
         "[daily/2026-08-01.md | 2026-08-01]\n"
         "# Entwicklung\n\nSQLite speichert die Chunks dauerhaft."
     )
-    assert "Score" not in response.result
-    assert "parentId" not in response.result
+    assert "Score" not in response
+    assert "parentId" not in response
 
 
 def test_memory_tool_output_groups_excerpts_from_the_same_source() -> None:

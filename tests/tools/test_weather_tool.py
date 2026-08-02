@@ -110,8 +110,7 @@ def test_weather_uses_the_ip_location_when_no_location_given() -> None:
 
     result = asyncio.run(tools.execute("weather_report"))
 
-    assert result.ok
-    assert result.result == _render_weather_report(_report("Berlin"))
+    assert result == _render_weather_report(_report("Berlin"))
     assert location_client.calls == 1
     assert client.current_calls == [_HOME]
     assert client.locate_calls == []
@@ -125,8 +124,7 @@ def test_weather_uses_the_requested_location_when_given() -> None:
 
     result = asyncio.run(tools.execute("weather_report", {"location": "München"}))
 
-    assert result.ok
-    assert result.result == _render_weather_report(_report("München"))
+    assert result == _render_weather_report(_report("München"))
     assert location_client.calls == 0
     assert client.current_calls == [munich]
 
@@ -138,6 +136,5 @@ def test_weather_fails_when_requested_location_is_not_found() -> None:
 
     result = asyncio.run(tools.execute("weather_report", {"location": "Nirgendwo"}))
 
-    assert not result.ok
-    assert "Nirgendwo" in result.error
+    assert result == "Kein Ort namens 'Nirgendwo' gefunden."
     assert client.current_calls == []

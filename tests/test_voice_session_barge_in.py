@@ -18,7 +18,7 @@ from cara.speech import (
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from cara.tools import ActionResult, build_tools, create_tools
+from cara.tools import build_tools, create_tools
 from cara.wakeword.ports import WakeWordSessionSource
 
 
@@ -136,13 +136,12 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
         tools = create_tools()
 
         @tools.action("Wait until released.", name="slow_tool")
-        async def slow_tool() -> ActionResult:
+        async def slow_tool() -> None:
             tool_started.set()
             try:
                 await asyncio.Event().wait()
             finally:
                 tool_cancelled.set()
-            return ActionResult.success()
 
         events: list[str] = []
         recorder = BargeInRecorder(events)

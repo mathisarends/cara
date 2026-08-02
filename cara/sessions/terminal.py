@@ -49,6 +49,5 @@ class TerminalSession:
         rendered_arguments = json.dumps(arguments, ensure_ascii=False, sort_keys=True)
         self._output_writer(f"[tool] {name} {rendered_arguments}")
 
-    def _show_tool_result(self, name: str, content: str, ok: bool) -> None:
-        label = "tool result" if ok else "tool error"
-        self._output_writer(f"[{label}] {name}: {content}")
+    def _show_tool_result(self, name: str, content: str) -> None:
+        self._output_writer(f"[tool result] {name}: {content}")

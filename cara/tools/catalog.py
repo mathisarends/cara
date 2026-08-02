@@ -4,19 +4,21 @@ from tempfile import gettempdir
 
 import agenttoolkit
 from agenttoolkit import (
-    ActionResult,
+    CallLoggingMiddleware,
+    ErrorBoundaryMiddleware,
     Inject,
     Skills,
     ToolContext,
-    ToolEffect,
     description_from_context,
     provided,
     requires,
 )
 from agenttoolkit.builtins import (
+    CommandDefaults,
+    CommandLimits,
+    CommandRunner,
     DockerSandbox,
     LocalWorkspace,
-    Sandbox,
     SandboxLimits,
     SandboxPolicy,
     Workspace,
@@ -49,7 +51,7 @@ _MEMORY_ROOT = Path(__file__).resolve().parent.parent / "prompt" / "content"
 def create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
-    sandbox: Sandbox | None = None,
+    sandbox: CommandRunner | None = None,
     workspace_mounts: Mapping[str, Path] | None = None,
 ) -> ToolContext:
     if workspace is not None and workspace_mounts:
@@ -74,16 +76,17 @@ def _default_workspace(additional_mounts: Mapping[str, Path] | None = None) -> L
 def _default_sandbox(workspace: Workspace) -> DockerSandbox:
     return DockerSandbox(
         _BASH_IMAGE,
-        SandboxPolicy.for_workspace(
+        defaults=CommandDefaults(
+            environment={"HOME": "/tmp"},
+            limits=CommandLimits(timeout_seconds=15, max_output_bytes=1_000_000),
+        ),
+        policy=SandboxPolicy.for_workspace(
             workspace.root,
             limits=SandboxLimits(
-                timeout_seconds=15,
-                max_output_bytes=1_000_000,
                 memory_bytes=256 * 1024 * 1024,
                 pids=64,
                 cpus=1,
             ),
-            environment={"HOME": "/tmp"},
         ),
         shell="/bin/bash",
     )
@@ -91,9 +94,16 @@ def _default_sandbox(workspace: Workspace) -> DockerSandbox:
 
 def create_tools(context: ToolContext | None = None) -> agenttoolkit.Tools:
     selected_context = context if context is not None else create_tool_context()
-    tools = agenttoolkit.Tools(context=selected_context)
+    tools = _new_tools(selected_context)
     register_tools(tools)
     return tools
+
+
+def _new_tools(context: ToolContext) -> agenttoolkit.Tools:
+    return agenttoolkit.Tools(
+        context=context,
+        middleware=(CallLoggingMiddleware(), ErrorBoundaryMiddleware()),
+    )
 
 
 def build_tools(
@@ -113,8 +123,9 @@ def build_tools(
     )
     if tools is None:
         return create_tools(tool_context)
-    tools.set_context(tool_context)
-    return tools
+    configured_tools = _new_tools(tool_context)
+    configured_tools.merge(tools)
+    return configured_tools
 
 
 def register_tools(tools: agenttoolkit.Tools) -> None:
@@ -126,9 +137,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         params=LoadSkillParams,
         available_when=requires(Skills, predicate=lambda skills: len(skills) > 0),
     )
-    async def load_skill(params: LoadSkillParams, skills: Inject[Skills]) -> ActionResult:
+    async def load_skill(params: LoadSkillParams, skills: Inject[Skills]) -> str:
         loaded = skills.load(params.name)
-        return ActionResult.success(loaded.instructions)
+        return loaded.instructions
 
     @tools.action(
         description=description_from_context(
@@ -142,9 +153,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         params=SetAudioOutputParams,
         available_when=requires(AudioPlayer, predicate=lambda player: player.has_multiple_outputs),
     )
-    async def set_audio_output(params: SetAudioOutputParams, player: Inject[AudioPlayer]) -> ActionResult:
+    async def set_audio_output(params: SetAudioOutputParams, player: Inject[AudioPlayer]) -> str:
         player.set_output(params.output)
-        return ActionResult.success(f"Audio output switched to {params.output.value!r}.")
+        return f"Audio output switched to {params.output.value!r}."
 
     @tools.action(
         description=(
@@ -152,9 +163,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         ),
         available_when=provided(AudioPlayer),
     )
-    async def get_volume(player: Inject[AudioPlayer]) -> ActionResult:
+    async def get_volume(player: Inject[AudioPlayer]) -> str:
         level = await player.get_volume()
-        return ActionResult.success(f"{level:.2f}")
+        return f"{level:.2f}"
 
     @tools.action(
         description=(
@@ -164,9 +175,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         params=SetVolumeParams,
         available_when=provided(AudioPlayer),
     )
-    async def set_volume(params: SetVolumeParams, player: Inject[AudioPlayer]) -> ActionResult:
+    async def set_volume(params: SetVolumeParams, player: Inject[AudioPlayer]) -> str:
         await player.set_volume(params.level)
-        return ActionResult.success(f"Lautstärke ist jetzt {round(params.level * 100)}%.")
+        return f"Lautstärke ist jetzt {round(params.level * 100)}%."
 
     @tools.action(
         description=(
@@ -174,30 +185,28 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
             "Nutze params.location nur, wenn explizit nach einem bestimmten Ort gefragt wird."
         ),
         params=WeatherParams,
-        effects=(ToolEffect.NETWORK,),
     )
     async def weather_report(
         params: WeatherParams,
         location_client: Inject[IpLocationClient],
         client: Inject[OpenMeteoClient],
-    ) -> ActionResult:
+    ) -> str:
         if params.location:
             location = await client.locate(params.location)
             if location is None:
-                return ActionResult.fail(f"Kein Ort namens '{params.location}' gefunden.")
+                return f"Kein Ort namens '{params.location}' gefunden."
         else:
             location = await location_client.current()
         report = await client.current(location)
-        return ActionResult.success(_render_weather_report(report))
+        return _render_weather_report(report)
 
     @tools.action(
         description="Durchsuche das Internet nach aktuellen Informationen, News oder Fakten.",
         params=WebSearchParams,
-        effects=(ToolEffect.NETWORK,),
     )
-    async def web_search(params: WebSearchParams, client: Inject[TavilySearchClient]) -> ActionResult:
+    async def web_search(params: WebSearchParams, client: Inject[TavilySearchClient]) -> str:
         response = await client.search(params.query, max_results=params.max_results)
-        return ActionResult.success(response.summary())
+        return response.summary()
 
     @tools.action(
         description=(
@@ -210,24 +219,23 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     async def search_memory(
         params: SearchMemoryParams,
         memory: Inject[HybridMemorySearch],
-    ) -> ActionResult:
+    ) -> str:
         results = await memory.search(
             params.query,
             limit=params.limit,
             vector_weight=params.vector_weight,
             text_weight=params.text_weight,
         )
-        return ActionResult.success(_render_memory_results(results))
+        return _render_memory_results(results)
 
     @tools.action(
         description="Execute a Bash command in the isolated workspace sandbox.",
         params=BashParams,
-        effects=(ToolEffect.SPAWNS_PROCESS, ToolEffect.WRITES_WORKSPACE),
     )
-    async def bash(params: BashParams, workspace: Inject[Workspace], sandbox: Inject[Sandbox]) -> ActionResult:
+    async def bash(params: BashParams, workspace: Inject[Workspace], sandbox: Inject[CommandRunner]) -> str:
         result = await sandbox.execute(params.command, cwd=workspace.root)
         result.check_returncode()
-        return ActionResult.success(result.output.rstrip() or "(no output)")
+        return result.output.rstrip() or "(no output)"
 
     @tools.action(
         description=(
@@ -236,27 +244,24 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
             "belongs in each file and when to update it."
         ),
         params=ListFilesParams,
-        effects=(ToolEffect.READS_WORKSPACE,),
     )
-    async def list_files(params: ListFilesParams, workspace: Inject[Workspace]) -> ActionResult:
+    async def list_files(params: ListFilesParams, workspace: Inject[Workspace]) -> str:
         entries = await workspace.list_dir(params.path)
-        return ActionResult.success(_render_entries(entries, empty="(empty)"))
+        return _render_entries(entries, empty="(empty)")
 
     @tools.action(
         description="Find workspace files and directories whose paths match a glob pattern.",
         params=GlobParams,
-        effects=(ToolEffect.READS_WORKSPACE,),
     )
-    async def glob(params: GlobParams, workspace: Inject[Workspace]) -> ActionResult:
+    async def glob(params: GlobParams, workspace: Inject[Workspace]) -> str:
         entries = await workspace.glob(params.pattern)
-        return ActionResult.success(_render_entries(entries[: params.max_results], empty="(no matches)"))
+        return _render_entries(entries[: params.max_results], empty="(no matches)")
 
     @tools.action(
         description="Search workspace file contents with a regular expression.",
         params=GrepParams,
-        effects=(ToolEffect.READS_WORKSPACE,),
     )
-    async def grep(params: GrepParams, workspace: Inject[Workspace]) -> ActionResult:
+    async def grep(params: GrepParams, workspace: Inject[Workspace]) -> str:
         matches = await workspace.grep(
             params.pattern,
             glob=params.glob,
@@ -276,34 +281,31 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
                 f"{match.path}-{line_number}-{line}"
                 for line_number, line in enumerate(match.context_after, start=match.line_number + 1)
             )
-        return ActionResult.success("\n".join(rendered) if rendered else "(no matches)")
+        return "\n".join(rendered) if rendered else "(no matches)"
 
     @tools.action(
         description="Read a text file's full contents.",
         params=ReadFileParams,
-        effects=(ToolEffect.READS_WORKSPACE,),
     )
-    async def read_file(params: ReadFileParams, workspace: Inject[Workspace]) -> ActionResult:
+    async def read_file(params: ReadFileParams, workspace: Inject[Workspace]) -> str:
         content = await workspace.read_file(params.path)
-        return ActionResult.success(content)
+        return content
 
     @tools.action(
         description="Create a file or overwrite it entirely with new content.",
         params=WriteFileParams,
-        effects=(ToolEffect.WRITES_WORKSPACE,),
     )
-    async def write_file(params: WriteFileParams, workspace: Inject[Workspace]) -> ActionResult:
+    async def write_file(params: WriteFileParams, workspace: Inject[Workspace]) -> str:
         await workspace.write_file(params.path, params.content)
-        return ActionResult.success(f"Wrote {params.path}.")
+        return f"Wrote {params.path}."
 
     @tools.action(
         description="Replace an exact snippet in an existing file. old_text must occur exactly once.",
         params=EditFileParams,
-        effects=(ToolEffect.WRITES_WORKSPACE,),
     )
-    async def edit_file(params: EditFileParams, workspace: Inject[Workspace]) -> ActionResult:
+    async def edit_file(params: EditFileParams, workspace: Inject[Workspace]) -> str:
         await workspace.edit_file(params.path, params.old_text, params.new_text)
-        return ActionResult.success(f"Edited {params.path}.")
+        return f"Edited {params.path}."
 
 
 def _render_weather_report(report: WeatherReport) -> str:
