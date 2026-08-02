@@ -100,6 +100,23 @@ def test_retrieve_matches_any_query_term(tmp_path: Path) -> None:
     assert [result.document.id for result in results] == ["note"]
 
 
+def test_retrieve_matches_long_query_terms_as_prefixes(tmp_path: Path) -> None:
+    with _closing(SQLiteFts5Index(tmp_path / "prefix.db")) as index:
+        asyncio.run(
+            index.index(
+                [
+                    Document(id="tour", text="Eine Fahrradrunde am Kanal."),
+                    Document(id="light", text="Das Fahrradlicht sitzt locker."),
+                    Document(id="garden", text="Ein Besuch im botanischen Garten."),
+                ]
+            )
+        )
+
+        results = asyncio.run(index.retrieve("Fahrrad"))
+
+    assert {result.document.id for result in results} == {"tour", "light"}
+
+
 def test_retrieve_treats_fts5_operators_as_plain_words(tmp_path: Path) -> None:
     with _closing(SQLiteFts5Index(tmp_path / "operators.db")) as index:
         asyncio.run(index.index([Document(id="note", text="a note about retrieval")]))

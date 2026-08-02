@@ -6,7 +6,13 @@ from pathlib import Path
 
 import sqlite_vec
 
-from cara.memory import HybridMemoryResult, HybridMemorySearch, delete_memory_dataset, index_memory_directory
+from cara.memory import (
+    HybridMemoryResult,
+    HybridMemorySearch,
+    _select_memory_chunks,
+    delete_memory_dataset,
+    index_memory_directory,
+)
 from cara.tools import create_tool_context, create_tools
 from cara.tools.catalog import _render_memory_results
 from retrieval import Document, Embedding, EmbeddingProvider
@@ -150,3 +156,31 @@ def test_memory_tool_output_groups_excerpts_from_the_same_source() -> None:
     assert "Daily Notes sind Parent-Dokumente." in rendered
     assert "Abschnitte verweisen mit parent_id darauf." in rendered
     assert "0.9" not in rendered
+
+
+def test_memory_search_stops_after_a_significant_relevance_drop() -> None:
+    results = [
+        HybridMemoryResult(
+            document=Document(
+                id=f"daily/2026-08-01:{chunk}",
+                parent_id="daily/2026-08-01",
+                text=text,
+            ),
+            vector_score=score,
+            text_score=0.0,
+            score=score,
+        )
+        for chunk, text, score in (
+            (1, "Das Vorderlicht sitzt locker.", 0.9),
+            (2, "Ein neues Fahrradlicht gekauft.", 0.8),
+            (3, "Besuch im botanischen Garten.", 0.3),
+            (4, "Bewässerung für den Balkon.", 0.29),
+        )
+    ]
+
+    selected = _select_memory_chunks(results, limit=4)
+
+    assert [result.document.id for result in selected] == [
+        "daily/2026-08-01:1",
+        "daily/2026-08-01:2",
+    ]

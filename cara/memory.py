@@ -15,6 +15,7 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
 _CANDIDATE_MULTIPLIER = 4
 _MINIMUM_CANDIDATES = 20
+_SIGNIFICANT_SCORE_DROP_RATIO = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,7 +247,17 @@ def _select_memory_chunks(
     limit: int,
 ) -> list[HybridMemoryResult]:
     chunks = [result for result in results if result.document.parent_id is not None]
-    return (chunks or list(results))[:limit]
+    candidates = chunks or list(results)
+    if not candidates:
+        return []
+
+    selected = [candidates[0]]
+    for candidate in candidates[1:limit]:
+        previous_score = selected[-1].score
+        if previous_score > 0 and candidate.score < previous_score * _SIGNIFICANT_SCORE_DROP_RATIO:
+            break
+        selected.append(candidate)
+    return selected
 
 
 class _DeletionOnlyEmbeddingProvider(EmbeddingProvider):

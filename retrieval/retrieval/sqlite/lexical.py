@@ -20,6 +20,7 @@ from retrieval.sqlite._common import (
 _DOCUMENTS = "lexical_documents"
 _SEARCH = "lexical_documents_fts"
 _QUERY_TERMS = re.compile(r"\w+", re.UNICODE)
+_MINIMUM_PREFIX_LENGTH = 6
 
 
 class SQLiteFts5Index(TextIndex):
@@ -186,13 +187,19 @@ def _match_expression(query: str) -> str | None:
 
     Query text is never passed to MATCH directly: it would be parsed as FTS5
     syntax, so a stray quote or a word like NOT would change the query or make
-    it fail. Matching any term rather than all of them also keeps ranking
-    behaviour aligned with InMemoryBM25Index.
+    it fail. Matching any term rather than all of them preserves recall. Longer
+    terms use FTS5 prefix matching so queries such as ``Fahrrad`` also find
+    German compounds such as ``Fahrradlicht``.
     """
     terms = _QUERY_TERMS.findall(query)
     if not terms:
         return None
-    return " OR ".join(f'"{term}"' for term in terms)
+    return " OR ".join(_match_term(term) for term in terms)
+
+
+def _match_term(term: str) -> str:
+    suffix = "*" if len(term) >= _MINIMUM_PREFIX_LENGTH else ""
+    return f'"{term}"{suffix}'
 
 
 def _synchronization_triggers() -> str:
