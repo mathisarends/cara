@@ -1,7 +1,7 @@
-import math
 from collections.abc import Sequence
 
 from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, TextIndex
+from retrieval._similarity import cosine, normalize
 
 
 class InMemoryVectorIndex(TextIndex):
@@ -23,8 +23,7 @@ class InMemoryVectorIndex(TextIndex):
             raise ValueError("Embedding vectors must have the same dimensions")
 
         indexed_documents = {
-            document.id: (document, _normalize(embedding))
-            for document, embedding in zip(items, embeddings, strict=True)
+            document.id: (document, normalize(embedding)) for document, embedding in zip(items, embeddings, strict=True)
         }
         self._documents.update(indexed_documents)
 
@@ -42,22 +41,9 @@ class InMemoryVectorIndex(TextIndex):
         if len(embeddings) != 1:
             raise ValueError("Embedding provider returned an unexpected number of embeddings")
 
-        query_embedding = _normalize(embeddings[0])
+        query_embedding = normalize(embeddings[0])
         results = [
-            RetrievalResult(document=document, score=_similarity(query_embedding, embedding))
+            RetrievalResult(document=document, score=cosine(query_embedding, embedding))
             for document, embedding in self._documents.values()
         ]
         return sorted(results, key=lambda result: result.score, reverse=True)[:limit]
-
-
-def _normalize(embedding: Embedding) -> Embedding:
-    magnitude = math.sqrt(sum(value * value for value in embedding))
-    if magnitude == 0:
-        raise ValueError("Embedding vectors must not be empty or zero")
-    return [value / magnitude for value in embedding]
-
-
-def _similarity(left: Embedding, right: Embedding) -> float:
-    if len(left) != len(right):
-        raise ValueError("Embedding vectors must have the same dimensions")
-    return sum(left_value * right_value for left_value, right_value in zip(left, right, strict=True))

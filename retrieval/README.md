@@ -26,10 +26,15 @@ results = await hybrid.retrieve("How do I talk to Cara?", limit=5)
   - [Token-aware sizing](#token-aware-sizing)
 - [Dense retrieval](#dense-retrieval)
 - [Persistent SQLite retrieval](#persistent-sqlite-retrieval)
+  - [Persistent lexical retrieval](#persistent-lexical-retrieval)
+  - [Caching embeddings](#caching-embeddings)
 - [Lexical retrieval](#lexical-retrieval)
   - [BM25 parameters](#bm25-parameters)
   - [Tokenization, stemming and stop words](#tokenization-stemming-and-stop-words)
 - [Hybrid retrieval](#hybrid-retrieval)
+  - [Weighting retrievers](#weighting-retrievers)
+  - [Over-fetching](#over-fetching)
+- [Reranking](#reranking)
 - [Embedding providers](#embedding-providers)
   - [OpenAI](#openai)
   - [Writing your own](#writing-your-own)
@@ -542,9 +547,46 @@ two.
 
 ---
 
-## Embedding providers
+## Reranking
 
-### OpenAI
+```python
+from retrieval.rerank import MaximalMarginalRelevance
+```
+
+Ranking by relevance alone fills the top places with near duplicates: the same
+section from three revisions of a file, or three overlapping chunks of one
+paragraph. Every one of them is a correct answer, and together they say one
+thing where the caller asked for five.
+
+`MaximalMarginalRelevance` wraps any `Retriever`, over-fetches, and picks
+results one at a time. Each pick is scored on how well it answers the query
+*minus* how much it repeats what is already picked:
+
+```python
+diverse = MaximalMarginalRelevance(hybrid, embedding_provider, relevance=0.7)
+results = await diverse.retrieve("what did we decide about memory?", limit=5)
+```
+
+| Parameter | Default | Effect |
+| --- | --- | --- |
+| `relevance` | `0.5` | Weight of relevance against diversity. `1.0` ranks purely by similarity to the query; `0.0` purely by novelty. |
+| `candidates` | `30` | Lower bound on how many results to re-rank. |
+| `candidate_multiplier` | `4` | Over-fetch relative to the requested limit, as in [fusion](#over-fetching). |
+
+Since it is a `Retriever`, it composes in either direction: put it over a
+fusion to diversify a hybrid ranking, or under one to feed a fusion pre-thinned
+candidates.
+
+Two things are worth knowing before you reach for it:
+
+- **It embeds the candidates.** Relevance and redundancy are measured between
+  vectors, and the upstream retriever's scores cannot supply that — an RRF
+  score says nothing about what a document is about. One extra embedding call
+  per query is the cost, which a [cache](#caching-embeddings) largely absorbs
+  for text that keeps resurfacing.
+- **The returned scores are MMR scores,** not the upstream retriever's. They
+  explain the order you got and, like every score in this package, mean
+  nothing outside it. Diversity penalties can push them negative.
 
 Install the extra, then:
 
@@ -653,9 +695,17 @@ Be deliberate about what this package is:
   Both are fine into the low tens of thousands of chunks and are the wrong tool
   above that — move to a real store behind the same `TextIndex` port.
 - **The indexes are not concurrency-safe.** Serialize writes yourself if you
-  index from multiple tasks or processes.
-- **No query expansion or reranking** is included. SQLite search can filter by
-  `parent_id`; arbitrary JSON metadata filtering remains application-level.
+  index from multiple tasks. The SQLite indexes run in WAL mode, so separate
+  processes can read while one writes, but a single connection must not be
+  shared across threads.
+- **No query expansion** is included, and reranking goes only as far as
+  [MMR](#reranking) — a cross-encoder is yours to add behind `Retriever`.
+- **Filtering stops at `parent_id`.** The SQLite indexes can scope a search to
+  one parent; anything else you store in `metadata` is yours to filter on
+  after retrieval.
+- **Nothing here watches your files.** Deciding what changed and calling
+  `index()` and `delete()` is the application's job; the package only makes
+  those two calls cheap to repeat.
 
 The ports are the stable part; the in-memory implementations are reference
 implementations that keep the package honest and dependency-free.
