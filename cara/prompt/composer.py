@@ -8,6 +8,7 @@ from cara.markdown import render_tagged_section
 from cara.prompt.local_time import LocalTimePrompt
 
 _IDENTITY_FILES = ("IDENTITY.md", "SOUL.md", "USER.md")
+_TOOLS_FILES = ("TOOLS.md",)
 _MEMORY_FILES = ("MEMORY.md", "DREAMS.md")
 _DAILY_DIR = "daily"
 _DEFAULT_CONTENT_ROOT = Path(__file__).parent / "content"
@@ -45,6 +46,8 @@ class SystemPromptComposer:
             sections.append(f"<local_time>\n{self._local_time.render()}\n</local_time>")
         if memory := self._render_memory():
             sections.append(memory)
+        if tools := _render_files(self._root, _TOOLS_FILES):
+            sections.append(tools)
         if self._skills is not None and (catalog := self._skills.render_prompt()):
             sections.append(catalog)
         return "\n\n".join(section for section in sections if section)
