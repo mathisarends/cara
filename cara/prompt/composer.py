@@ -7,7 +7,7 @@ from agenttoolkit import Skills
 from cara.markdown import render_tagged_section
 from cara.prompt.local_time import LocalTimePrompt
 
-_IDENTITY_FILES = ("IDENTITY.md", "SOUL.md", "USER.md")
+_BASE_FILES = ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md")
 _TOOLS_FILES = ("TOOLS.md",)
 _MEMORY_FILES = ("MEMORY.md",)
 _DAILY_DIR = "daily"
@@ -61,7 +61,7 @@ class SystemPromptComposer:
         if self._override_system_prompt is not None:
             return self._override_system_prompt.strip()
 
-        prompt = _render_files(self._root, _IDENTITY_FILES)
+        prompt = _render_files(self._root, _BASE_FILES)
         if self._extend_system_prompt is None:
             return prompt
 

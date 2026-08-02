@@ -143,7 +143,7 @@ def test_local_time_precedes_available_skills_in_the_system_prompt(tmp_path: Pat
 def test_system_prompt_is_assembled_from_the_packaged_markdown_files() -> None:
     prompt = SystemPromptComposer().render()
 
-    assert prompt.index("<soul>") < prompt.index("<user>") < prompt.rindex("<memory>")
+    assert prompt.index("<agents>") < prompt.index("<soul>") < prompt.index("<user>") < prompt.rindex("<memory>")
 
 
 def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
