@@ -90,7 +90,7 @@ requires-dist = [
     { name = "elevenlabs", marker = "extra == 'elevenlabs'", specifier = ">=2.58.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "hueify", specifier = ">=0.2.0" },
-    { name = "mm-agenttoolkit", specifier = ">=0.1.0" },
+    { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.100.0" },
@@ -361,15 +361,15 @@ wheels = [
 
 [[package]]
 name = "mm-agenttoolkit"
-version = "0.1.0"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/9b/2e133424a6a83efe7de70cb516d82fde73792bb5d6809a318981812a541a/mm_agenttoolkit-0.1.0.tar.gz", hash = "sha256:33ff0404f98d0e38069959de9bc0548a3c31d2912d673c8afde03dc4cf55583b", size = 99575, upload-time = "2026-08-01T11:37:51.196Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/5c/b3c34332934ab78dc2807509377bb77a4554a0d35d78dd2b58d3e296aca9/mm_agenttoolkit-0.2.0.tar.gz", hash = "sha256:d30453cbf325dc662bfcf01c048e942e247a3fd8177c325c61cc1fbfab3ef345", size = 103860, upload-time = "2026-08-02T19:32:37.276Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/12/0463ea4d7a502e80b97dd49aee14cde082853bc590f61d459dd9ccd1822b/mm_agenttoolkit-0.1.0-py3-none-any.whl", hash = "sha256:34f8f6da5b0a123dc5ba519832078b42907d80f051dbb68ef65c8da3322dc002", size = 42164, upload-time = "2026-08-01T11:37:49.816Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/64/4f6fe9da73330c22bc694106d6601072ed6d9bf9ece514a94c290ba53dcb/mm_agenttoolkit-0.2.0-py3-none-any.whl", hash = "sha256:9de907ee63c2e602506ad2f70265ea81f4d5998b96d398f64ec079628185a86d", size = 46326, upload-time = "2026-08-02T19:32:35.892Z" },
 ]
 
 [[package]]
