@@ -682,13 +682,17 @@ openai = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
+sqlite = [
+    { name = "sqlite-vec", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.100.0" },
     { name = "python-dotenv", marker = "extra == 'openai'", specifier = ">=1.1.0" },
+    { name = "sqlite-vec", marker = "extra == 'sqlite'", specifier = ">=0.1.9,<0.2" },
 ]
-provides-extras = ["openai"]
+provides-extras = ["openai", "sqlite"]
 
 [[package]]
 name = "ruff"
@@ -774,6 +778,16 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/99/53/8007fd8323003c759fe0d5fb8950de06a684cd30909dd06cc5ba302daa56/spotifyify-0.7.0.tar.gz", hash = "sha256:1882e1dc28d963dee32dcd0ddebc78bcc6bb9489ebde20356b7f4530de2c4736", size = 53252, upload-time = "2026-06-26T19:28:56.406Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/4f/3219bff18a9f2053e389ea705f43f8c7734c7b9d3aba2ed51c59d3146015/spotifyify-0.7.0-py3-none-any.whl", hash = "sha256:3ab257a444d304394a77d6a13418bff00fa3fa3c3856872e49ef25d671f39d97", size = 57400, upload-time = "2026-06-26T19:28:55.357Z" },
+]
+
+[[package]]
+name = "sqlite-vec"
+version = "0.1.9"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/85/9fad0045d8e7c8df3e0fa5a56c630e8e15ad6e5ca2e6106fceb666aa6638/sqlite_vec-0.1.9-py3-none-macosx_10_6_x86_64.whl", hash = "sha256:1b62a7f0a060d9475575d4e599bbf94a13d85af896bc1ce86ee80d1b5b48e5fb", size = 131171, upload-time = "2026-03-31T08:02:31.717Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/3d/3677e0cd2f92e5ebc43cd29fbf565b75582bff1ccfa0b8327c7508e1084f/sqlite_vec-0.1.9-py3-none-macosx_11_0_arm64.whl", hash = "sha256:1d52e30513bae4cc9778ddbf6145610434081be4c3afe57cd877893bad9f6b6c", size = 165434, upload-time = "2026-03-31T08:02:32.712Z" },
+    { url = "https://files.pythonhosted.org/packages/42/89/81b2907cda14e566b9bf215e2ad82fc9b349edf07d2010756ffdb902f328/sqlite_vec-0.1.9-py3-none-win_amd64.whl", hash = "sha256:4a28dc12fa4b53d7b1dced22da2488fade444e96b5d16fd2d698cd670675cf32", size = 292804, upload-time = "2026-03-31T08:02:36.035Z" },
 ]
 
 [[package]]
