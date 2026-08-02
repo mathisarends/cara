@@ -42,6 +42,10 @@ class InMemoryBM25Index(TextIndex):
             self._document_frequencies.update(term_frequencies.keys())
             self._total_length += indexed.length
 
+    async def delete(self, document_ids: Sequence[str]) -> None:
+        for document_id in document_ids:
+            self._forget(document_id)
+
     async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
         if limit < 1:
             raise ValueError("limit must be at least 1")

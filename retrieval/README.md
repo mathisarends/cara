@@ -107,11 +107,16 @@ from retrieval import Chunker, EmbeddingProvider, LexicalTokenizer, Retriever, T
 | `EmbeddingProvider` | `async embed(texts) -> list[Embedding]` | Turn text into dense vectors. |
 | `LexicalTokenizer` | `tokenize(text) -> list[str]` | Split text into the terms a lexical index matches on. |
 | `Retriever` | `async retrieve(query, *, limit) -> list[RetrievalResult]` | Anything that answers a query with ranked documents. |
-| `TextIndex` | `Retriever` + `async index(documents)` | A retriever you can also write to. |
+| `TextIndex` | `Retriever` + `async index(documents)`, `async delete(document_ids)` | A retriever you can also write to. |
 
 `TextIndex` extends `Retriever`, so an index and a fusion layer are the same
 kind of thing to a caller. That is what makes [hybrid
 retrieval](#hybrid-retrieval) composable.
+
+`index()` upserts and `delete()` ignores unknown ids, which is what an index
+kept in sync with changing source files needs: re-index what changed, delete
+the ids that disappeared, and neither call has to know what the index already
+holds.
 
 ### Types
 

@@ -28,6 +28,10 @@ class InMemoryVectorIndex(TextIndex):
         }
         self._documents.update(indexed_documents)
 
+    async def delete(self, document_ids: Sequence[str]) -> None:
+        for document_id in document_ids:
+            self._documents.pop(document_id, None)
+
     async def retrieve(self, query: str, *, limit: int = 5) -> list[RetrievalResult]:
         if limit < 1:
             raise ValueError("limit must be at least 1")

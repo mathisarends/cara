@@ -90,3 +90,42 @@ def test_index_rejects_invalid_parameters() -> None:
 
 def test_word_tokenizer_case_folds_and_drops_punctuation() -> None:
     assert WordTokenizer().tokenize("Grüße, Welt! 42") == ["grüsse", "welt", "42"]
+
+
+def test_delete_removes_documents_and_their_term_statistics() -> None:
+    index = InMemoryBM25Index()
+    asyncio.run(
+        index.index(
+            [
+                Document(id="kept", text="shared term"),
+                Document(id="removed", text="shared term"),
+            ]
+        )
+    )
+
+    asyncio.run(index.delete(["removed"]))
+    kept_alone = asyncio.run(index.retrieve("shared"))
+
+    asyncio.run(index.index([Document(id="reference", text="unrelated")]))
+    index_without_history = InMemoryBM25Index()
+    asyncio.run(
+        index_without_history.index(
+            [
+                Document(id="kept", text="shared term"),
+                Document(id="reference", text="unrelated"),
+            ]
+        )
+    )
+    reference = asyncio.run(index_without_history.retrieve("shared"))
+
+    assert [result.document.id for result in kept_alone] == ["kept"]
+    assert asyncio.run(index.retrieve("shared"))[0].score == pytest.approx(reference[0].score)
+
+
+def test_delete_ignores_unknown_ids() -> None:
+    index = InMemoryBM25Index()
+    asyncio.run(index.index([Document(id="kept", text="shared term")]))
+
+    asyncio.run(index.delete(["never-indexed"]))
+
+    assert [result.document.id for result in asyncio.run(index.retrieve("shared"))] == ["kept"]

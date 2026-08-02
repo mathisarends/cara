@@ -34,3 +34,8 @@ class TextIndex(Retriever):
     @abstractmethod
     async def index(self, documents: Sequence[Document]) -> None:
         raise NotImplementedError
+
+    @abstractmethod
+    async def delete(self, document_ids: Sequence[str]) -> None:
+        """Remove documents by id, ignoring ids the index does not hold."""
+        raise NotImplementedError
