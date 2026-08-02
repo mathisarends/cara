@@ -1,6 +1,6 @@
-from enum import StrEnum
+from typing import Literal
 
-
-class OpenAIEmbeddingModel(StrEnum):
-    TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
-    TEXT_EMBEDDING_3_LARGE = "text-embedding-3-large"
+type OpenAIEmbeddingModel = Literal[
+    "text-embedding-3-small",
+    "text-embedding-3-large",
+]

@@ -4,18 +4,14 @@ from dotenv import load_dotenv
 
 from retrieval import Document
 from retrieval.chunking import MarkdownChunker
-from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
+from retrieval.openai import OpenAIEmbeddingProvider
 from retrieval.vector import InMemoryVectorIndex
 
 load_dotenv(override=True)
 
 
 async def main() -> None:
-    credentials = OpenAICredentials()
-    embedding_provider = OpenAIEmbeddingProvider(
-        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
-        credentials=credentials,
-    )
+    embedding_provider = OpenAIEmbeddingProvider("text-embedding-3-small")
     index = InMemoryVectorIndex(embedding_provider)
 
     source = Document(

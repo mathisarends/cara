@@ -4,23 +4,25 @@ from typing import cast
 from unittest.mock import AsyncMock, patch
 
 from openai import AsyncOpenAI
-from pydantic import SecretStr
 
-from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
-
-
-def _credentials() -> OpenAICredentials:
-    return OpenAICredentials(api_key=SecretStr("test-api-key"))
+from retrieval.openai import OpenAIEmbeddingProvider
 
 
 def test_provider_builds_client_with_configured_api_key() -> None:
     with patch("retrieval.openai.provider.AsyncOpenAI") as client_type:
         OpenAIEmbeddingProvider(
-            OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
-            credentials=_credentials(),
+            "text-embedding-3-small",
+            api_key="test-api-key",
         )
 
     client_type.assert_called_once_with(api_key="test-api-key")
+
+
+def test_provider_delegates_environment_authentication_to_client() -> None:
+    with patch("retrieval.openai.provider.AsyncOpenAI") as client_type:
+        OpenAIEmbeddingProvider("text-embedding-3-small")
+
+    client_type.assert_called_once_with()
 
 
 def test_embed_returns_vectors_in_input_order() -> None:
@@ -34,8 +36,7 @@ def test_embed_returns_vectors_in_input_order() -> None:
     )
     client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
     provider = OpenAIEmbeddingProvider(
-        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
-        credentials=_credentials(),
+        "text-embedding-3-small",
         client=client,
     )
 
@@ -54,7 +55,6 @@ def test_embed_passes_configured_dimensions() -> None:
     client = cast(AsyncOpenAI, SimpleNamespace(embeddings=SimpleNamespace(create=create)))
     provider = OpenAIEmbeddingProvider(
         "custom-embedding-model",
-        credentials=_credentials(),
         client=client,
         dimensions=256,
     )

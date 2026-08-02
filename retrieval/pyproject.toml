@@ -9,7 +9,7 @@ dependencies = []
 [project.optional-dependencies]
 openai = [
     "openai>=1.100.0",
-    "pydantic-settings>=2.14.2",
+    "python-dotenv>=1.1.0",
 ]
 
 [build-system]

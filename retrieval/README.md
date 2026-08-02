@@ -122,10 +122,12 @@ from retrieval import Document, Embedding, RetrievalResult
 ```python
 Embedding = list[float]
 
+
 @dataclass(frozen=True, slots=True)
 class Document:
     id: str
     text: str
+
 
 @dataclass(frozen=True, slots=True)
 class RetrievalResult:
@@ -351,30 +353,40 @@ without requiring it.
 
 Install the extra, then:
 
-```python
-from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
+```bash
+export OPENAI_API_KEY="sk-..."
+```
 
+```python
+from dotenv import load_dotenv
+
+from retrieval.openai import OpenAIEmbeddingProvider
+
+load_dotenv()
+
+provider = OpenAIEmbeddingProvider("text-embedding-3-small")
+```
+
+With no key argument, the official OpenAI client reads `OPENAI_API_KEY` from
+the environment. Pass the key directly if you obtain it from a secret manager
+or another source. The provider itself does not parse `.env` files; the
+examples load them explicitly with `python-dotenv` before constructing it.
+
+```python
 provider = OpenAIEmbeddingProvider(
-    OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
-    credentials=OpenAICredentials(),
+    "text-embedding-3-small",
+    api_key=api_key,
 )
 ```
 
-`OpenAICredentials` reads `OPENAI_API_KEY` from the environment or a `.env`
-file. Pass the key explicitly if you manage secrets elsewhere:
-
-```python
-OpenAICredentials(api_key="sk-...")
-```
-
-The model argument accepts the `OpenAIEmbeddingModel` enum or any model id as
-a plain string, so new models work before the enum catches up. Shorten vectors
-with `dimensions=` where the model supports it:
+Known model ids are described by the `OpenAIEmbeddingModel` literal type. The
+argument also accepts any model id as a plain string, so new models work before
+the type alias catches up. Shorten vectors with `dimensions=` where the model
+supports it:
 
 ```python
 OpenAIEmbeddingProvider(
-    OpenAIEmbeddingModel.TEXT_EMBEDDING_3_LARGE,
-    credentials=OpenAICredentials(),
+    "text-embedding-3-large",
     dimensions=512,
 )
 ```

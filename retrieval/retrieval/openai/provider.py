@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from openai import AsyncOpenAI
 
 from retrieval import Embedding, EmbeddingProvider
-from retrieval.openai.credentials import OpenAICredentials
 from retrieval.openai.models import OpenAIEmbeddingModel
 
 
@@ -12,12 +11,17 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         self,
         model: OpenAIEmbeddingModel | str,
         *,
-        credentials: OpenAICredentials,
+        api_key: str | None = None,
         client: AsyncOpenAI | None = None,
         dimensions: int | None = None,
     ) -> None:
         self._model = str(model)
-        self._client = client if client is not None else AsyncOpenAI(api_key=credentials.api_key.get_secret_value())
+        if client is not None:
+            self._client = client
+        elif api_key is not None:
+            self._client = AsyncOpenAI(api_key=api_key)
+        else:
+            self._client = AsyncOpenAI()
         self._dimensions = dimensions
 
     async def embed(self, texts: Sequence[str]) -> list[Embedding]:

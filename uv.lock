@@ -680,13 +680,13 @@ source = { editable = "retrieval" }
 [package.optional-dependencies]
 openai = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.100.0" },
-    { name = "pydantic-settings", marker = "extra == 'openai'", specifier = ">=2.14.2" },
+    { name = "python-dotenv", marker = "extra == 'openai'", specifier = ">=1.1.0" },
 ]
 provides-extras = ["openai"]
 

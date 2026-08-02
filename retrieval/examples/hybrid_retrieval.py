@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from retrieval import Document
 from retrieval.fusion import ReciprocalRankFusion
 from retrieval.lexical import InMemoryBM25Index
-from retrieval.openai import OpenAICredentials, OpenAIEmbeddingModel, OpenAIEmbeddingProvider
+from retrieval.openai import OpenAIEmbeddingProvider
 from retrieval.vector import InMemoryVectorIndex
 
 load_dotenv(override=True)
@@ -18,10 +18,7 @@ DOCUMENTS = [
 
 
 async def main() -> None:
-    embedding_provider = OpenAIEmbeddingProvider(
-        OpenAIEmbeddingModel.TEXT_EMBEDDING_3_SMALL,
-        credentials=OpenAICredentials(),
-    )
+    embedding_provider = OpenAIEmbeddingProvider("text-embedding-3-small")
     vector_index = InMemoryVectorIndex(embedding_provider)
     lexical_index = InMemoryBM25Index()
     await asyncio.gather(vector_index.index(DOCUMENTS), lexical_index.index(DOCUMENTS))
