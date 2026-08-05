@@ -25,11 +25,6 @@ dependencies = [
     "wakewordkit>=0.2.0",
 ]
 
-[project.optional-dependencies]
-elevenlabs = [
-    "elevenlabs>=2.58.0",
-]
-
 [dependency-groups]
 dev = [
     "pre-commit>=4.0.0",
