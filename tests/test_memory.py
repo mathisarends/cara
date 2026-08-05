@@ -9,12 +9,12 @@ import sqlite_vec
 from cara.memory import (
     HybridMemoryResult,
     HybridMemorySearch,
-    _select_memory_chunks,
     delete_memory_dataset,
     index_memory_directory,
+    render_memory_results,
 )
+from cara.memory.service import _select_memory_chunks
 from cara.tools import create_tool_context, create_tools
-from cara.tools.catalog import _render_memory_results
 from retrieval import Document, Embedding, EmbeddingProvider
 
 
@@ -149,7 +149,7 @@ def test_memory_tool_output_groups_excerpts_from_the_same_source() -> None:
         )
     ]
 
-    rendered = _render_memory_results(results)
+    rendered = render_memory_results(results)
 
     assert rendered.count("[daily/2026-08-01.md | 2026-08-01]") == 1
     assert "Daily Notes sind Parent-Dokumente." in rendered

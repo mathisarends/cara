@@ -29,7 +29,7 @@ from agenttoolkit.builtins import (
 from agenttoolkit.builtins.fs import Entry
 
 from cara.audio import AudioPlayer
-from cara.memory import HybridMemoryResult, HybridMemorySearch
+from cara.memory import HybridMemorySearch, render_memory_results
 from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient, WeatherReport
 from cara.tools.params import (
     BashParams,
@@ -275,7 +275,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
             vector_weight=params.vector_weight,
             text_weight=params.text_weight,
         )
-        return _render_memory_results(results)
+        return render_memory_results(results)
 
     @tools.action(
         description="Execute a Bash command in the isolated workspace sandbox.",
@@ -380,29 +380,3 @@ def _render_weather_report(report: WeatherReport) -> str:
 def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:
     rendered = [f"{entry.path}/" if entry.is_dir else entry.path for entry in entries]
     return "\n".join(rendered) if rendered else empty
-
-
-def _render_memory_results(results: Sequence[HybridMemoryResult]) -> str:
-    if not results:
-        return "(no relevant memories found)"
-
-    grouped: dict[str, tuple[str, str | None, list[str]]] = {}
-    for result in results:
-        document = result.document
-        path = document.metadata.get("path")
-        source = path if isinstance(path, str) else document.parent_id or document.id
-        group_key = document.parent_id or document.id
-        created_at = document.created_at.date().isoformat() if document.created_at is not None else None
-        text = document.text.strip()
-
-        group = grouped.get(group_key)
-        if group is None:
-            grouped[group_key] = (source, created_at, [text])
-        elif text not in group[2]:
-            group[2].append(text)
-
-    rendered = ["Memory excerpts, ordered by relevance:"]
-    for source, created_at, excerpts in grouped.values():
-        heading = f"[{source}]" if created_at is None else f"[{source} | {created_at}]"
-        rendered.append(f"{heading}\n" + "\n\n".join(excerpts))
-    return "\n\n".join(rendered)
