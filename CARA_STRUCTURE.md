@@ -38,7 +38,6 @@ cara/
 ├── skills/                     # Lokale, editierbare Skills
 ├── experiments/                # Spikes und alternative Anwendungen
 │   ├── chat_in_terminal.py
-│   ├── talk_with_voice.py
 │   └── ...
 │
 ├── scripts/                    # Wartungs- und Setup-Skripte
@@ -102,9 +101,9 @@ Diese Dateien sind normal editierbar und werden nicht als Daten des Python-Paket
 
 ### `experiments/`: Labor
 
-Experimente dürfen konkrete Konfigurationen und unfertige Ideen enthalten. Beispiele sind eine
-Terminal-Variante mit zusätzlichen Tools, eine andere Voice-Konfiguration oder ein neuer
-Memory-Ansatz. Erst wenn Logik stabil und mehrfach nützlich ist, wird sie nach `cara/` verschoben.
+Experimente dürfen konkrete Konfigurationen und unfertige Ideen enthalten. Vorerst gibt es hier nur
+den Terminal-Flow, beispielsweise mit zusätzlichen Tools oder einem neuen Memory-Ansatz. Erst wenn
+Logik stabil und mehrfach nützlich ist, wird sie nach `cara/` verschoben.
 
 ### `main.py`: konkrete Verwendung
 

@@ -27,11 +27,10 @@ uv run python main.py --mode terminal
 Terminal input, including short replies such as `1`, `2`, or `3`, is sent to the same conversation
 agent as transcribed speech. Use `/exit`, `/quit`, Ctrl+C, or EOF to leave terminal mode.
 
-The same two compositions are available as explicit examples:
+The terminal composition is also available as an explicit example:
 
 ```powershell
 uv run python experiments/chat_in_terminal.py
-uv run python experiments/talk_with_voice.py
 ```
 
 ## Hybrid memory experiment
