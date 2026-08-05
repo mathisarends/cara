@@ -283,8 +283,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     @tools.action(
         description=(
             "List files and directories under a workspace path. Directories end with a slash. "
-            "'/memory' holds Cara's persistent context files; /memory/AGENTS.md explains what "
-            "belongs in each file and when to update it."
+            "The application workspace instructions describe the available mounted directories."
         ),
         params=ListFilesParams,
     )

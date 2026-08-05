@@ -1,4 +1,4 @@
-# Vorschlag zur Struktur von Cara
+# Repository-Struktur von Cara
 
 ## Ziel
 
@@ -12,18 +12,28 @@ Der Workspace soll für Cara wie das Wurzelverzeichnis aussehen. Dadurch liegen 
 Markdown-Dateien aus Sicht von Cara direkt auf Root, während sie auf dem Host sauber vom
 Python-Paket und von geheimen Dateien wie `.env` getrennt bleiben.
 
-## Vorgeschlagene Verzeichnisstruktur
+## Verzeichnisstruktur
 
 ```text
 cara/
 ├── cara/                       # Wiederverwendbare Implementierung
 │   ├── agent.py
-│   ├── memory.py
+│   ├── memory/
+│   │   ├── service.py
+│   │   ├── indexing.py
+│   │   └── rendering.py
 │   ├── prompt/
 │   ├── sessions/
 │   ├── tools/
 │   ├── audio/
 │   └── ...
+│
+├── packages/
+│   └── retrieval/                # Eigenständiges, generisches Retrieval-Paket
+│       ├── retrieval/
+│       ├── examples/
+│       ├── tests/
+│       └── pyproject.toml
 │
 ├── workspace/                  # Inhalt und Zustand der konkreten Cara-Instanz
 │   ├── AGENTS.md
@@ -36,6 +46,7 @@ cara/
 │   └── artifacts/              # Von Cara erzeugte Arbeitsdateien
 │
 ├── skills/                     # Lokale, editierbare Skills
+├── sounds/                     # Fertige, weiterhin verwendete Audiodateien
 ├── experiments/                # Spikes und alternative Anwendungen
 │   ├── chat_in_terminal.py
 │   └── ...
@@ -99,6 +110,19 @@ Dieser Ordner enthält alles, was Cara inhaltlich ausmacht oder im Betrieb verä
 
 Diese Dateien sind normal editierbar und werden nicht als Daten des Python-Pakets ausgeliefert.
 
+### `packages/retrieval/`: generische Retrieval-Bibliothek
+
+Dieses uv-Workspace-Paket enthält ausschließlich allgemein verwendbare Retrieval-Bausteine:
+
+- Dokumenttypen und Provider-Ports
+- Chunking
+- lexikalische und vektorbasierte Indizes
+- SQLite- und OpenAI-Adapter
+- Ranking, Fusion und Reranking
+
+Das Paket kennt weder Cara noch `MEMORY.md`, Tagesnotizen, Prompt-Tags oder Workspace-Pfade. Die
+Cara-spezifische Auswahl, Indexierung und Darstellung von Erinnerungen bleibt unter `cara/memory/`.
+
 ### `experiments/`: Labor
 
 Experimente dürfen konkrete Konfigurationen und unfertige Ideen enthalten. Vorerst gibt es hier nur
@@ -126,7 +150,11 @@ main.py / experiments
         └── verwendet cara-Paket
 
 cara-Paket
-        └── kennt keine konkrete Anwendung und keine persönlichen Inhalte
+        ├── kennt keine konkrete Anwendung und keine persönlichen Inhalte
+        └── verwendet das generische retrieval-Paket
+
+retrieval-Paket
+        └── kennt weder Cara noch den Cara-Workspace
 ```
 
 Die Anwendung kennt also die Implementierung, aber die Implementierung kennt weder `main.py` noch
@@ -140,9 +168,10 @@ Wurzeln liegen, können sie denselben Namen behalten, ohne unterschiedliche Zwec
 
 ## Bewusste Nicht-Ziele
 
-Dieser Vorschlag erfordert zunächst keinen Wechsel auf ein `src/cara/`-Layout und keine Aufteilung in
-mehrere Python-Pakete. Entscheidend ist zuerst, die persönlichen Markdown-Inhalte aus dem Paket zu
-lösen und Implementierung, Workspace und Experimente klar voneinander abzugrenzen.
+Die Struktur verwendet weiterhin kein `src/cara/`-Layout. Das zusätzliche Python-Paket `retrieval`
+bleibt bewusst eigenständig, weil es unabhängig von Cara nutzbar ist. Die Sprach-Ein-/Ausgabe und die
+fertigen Dateien unter `sounds/` bleiben Teil des Projekts; nur die nicht mehr benötigte
+Soundgenerierung wurde entfernt.
 
-Dieses Dokument beschreibt nur eine mögliche Zielstruktur. Es nimmt noch keine strukturellen oder
-funktionalen Änderungen am Projekt vor.
+Die persönliche Laufzeitkonfiguration ist vom installierbaren Python-Code getrennt. `main.py` und das
+Terminal-Experiment stellen die Verbindung über explizite Workspace- und Mount-Konfiguration her.
