@@ -47,7 +47,7 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["retrieval"]
+members = ["packages/retrieval"]
 
 [tool.uv.sources]
 retrieval = { workspace = true }

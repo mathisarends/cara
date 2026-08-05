@@ -99,7 +99,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
+    { name = "retrieval", extras = ["openai", "sqlite"], editable = "packages/retrieval" },
     { name = "sonosify", specifier = ">=0.3.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
@@ -684,7 +684,7 @@ wheels = [
 [[package]]
 name = "retrieval"
 version = "0.1.0"
-source = { editable = "retrieval" }
+source = { editable = "packages/retrieval" }
 
 [package.optional-dependencies]
 openai = [
