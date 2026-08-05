@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
+from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, UserMessage
 
 from cara.agent import Agent
 from cara.sessions import TerminalSession
@@ -12,10 +12,13 @@ class EchoChatModel:
     def __init__(self) -> None:
         self.messages: list[list[object]] = []
 
-    async def invoke(self, messages, *, tools):
+    async def stream(self, messages, *, tools):
         self.messages.append(messages)
         user = next(message for message in reversed(messages) if isinstance(message, UserMessage))
-        return ChatInvokeCompletion(completion=f"Antwort auf {user.content}")
+        completion = f"Antwort auf {user.content}"
+        yield StreamTextDelta(delta="Antwort auf ")
+        yield StreamTextDelta(delta=user.content)
+        yield StreamEnd(completion=completion)
 
 
 def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
@@ -32,12 +35,23 @@ def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
         Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path),
         input_reader=read,
         output_writer=outputs.append,
+        stream_writer=outputs.append,
+        color=False,
     )
 
     asyncio.run(session.run())
 
-    assert prompts == ["> ", "> ", "> "]
-    assert outputs == ["Antwort auf Hallo", "Antwort auf 2"]
+    assert prompts == ["you  \u276f ", "you  \u276f ", "you  \u276f "]
+    assert outputs == [
+        "cara \u276f ",
+        "Antwort auf ",
+        "Hallo",
+        "\n",
+        "cara \u276f ",
+        "Antwort auf ",
+        "2",
+        "\n",
+    ]
     assert len(llm.messages) == 2
 
 
@@ -58,23 +72,23 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        async def invoke(self, messages, *, tools):
+        async def stream(self, messages, *, tools):
             self.calls += 1
             if self.calls == 1:
-                return ChatInvokeCompletion(
-                    completion="",
-                    tool_calls=[
-                        ToolCall(
-                            id="weather-call",
-                            function=Function(
-                                name="weather_lookup",
-                                arguments='{"location":"Aurich"}',
-                            ),
-                        )
-                    ],
-                    stop_reason="tool_calls",
+                tool_call = ToolCall(
+                    id="weather-call",
+                    function=Function(
+                        name="weather_lookup",
+                        arguments='{"location":"Aurich"}',
+                    ),
                 )
-            return ChatInvokeCompletion(completion="15 Grad und teils bewölkt.")
+                yield StreamToolCall(tool_call=tool_call)
+                yield StreamEnd(tool_calls=[tool_call], stop_reason="tool_calls")
+                return
+            completion = "15 Grad und teils bew\u00f6lkt."
+            yield StreamTextDelta(delta="15 Grad ")
+            yield StreamTextDelta(delta="und teils bew\u00f6lkt.")
+            yield StreamEnd(completion=completion)
 
     inputs = iter(("Wie wird das Wetter?", "/exit"))
     outputs: list[str] = []
@@ -88,12 +102,17 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
         Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path),
         input_reader=lambda prompt: next(inputs),
         output_writer=outputs.append,
+        stream_writer=outputs.append,
+        color=False,
     )
 
     asyncio.run(session.run())
 
     assert outputs == [
-        '[tool] weather_lookup {"location": "Aurich"}',
-        "[tool result] weather_lookup: Wetter für Aurich",
-        "15 Grad und teils bewölkt.",
+        '\u256d\u2500 tool  weather_lookup\n\u2502  {\n\u2502    "location": "Aurich"\n\u2502  }',
+        "\u2570\u2500 done  weather_lookup\n   Wetter f\u00fcr Aurich",
+        "cara \u276f ",
+        "15 Grad ",
+        "und teils bew\u00f6lkt.",
+        "\n",
     ]

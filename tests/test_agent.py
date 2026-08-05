@@ -11,6 +11,8 @@ from llmify import (
     Function,
     OpenAIResponsesCompletion,
     OpenAIResponsesState,
+    OpenAIResponsesStreamEnd,
+    StreamTextDelta,
     SystemMessage,
     ToolCall,
     ToolResultMessage,
@@ -103,6 +105,21 @@ class StatefulResponsesChatModel(ChatOpenAIResponses):
         return OpenAIResponsesCompletion(completion=f"answer-{len(self.calls)}", provider_state=state)
 
 
+class StreamingStatefulResponsesChatModel(ChatOpenAIResponses):
+    def __init__(self) -> None:
+        self.calls: list[tuple[list[object], OpenAIResponsesState | None]] = []
+
+    async def stream(self, messages, *, provider_state, **kwargs):
+        self.calls.append((messages, provider_state))
+        turn = len(self.calls)
+        state = OpenAIResponsesState(
+            continuation_mode=ContinuationMode.PREVIOUS_RESPONSE_ID,
+            response_id=f"stream-response-{turn}",
+        )
+        yield StreamTextDelta(delta=f"answer-{turn}")
+        yield OpenAIResponsesStreamEnd(completion=f"answer-{turn}", provider_state=state)
+
+
 def test_agent_responds_to_normalized_text(tmp_path: Path) -> None:
     llm = StaticChatModel()
     agent = Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)
@@ -133,6 +150,29 @@ def test_agent_reuses_native_responses_state_without_replaying_chat_history(tmp_
     assert second_messages[-1].content == "Zweite Frage"
     assert second_state is not None
     assert second_state.response_id == "response-1"
+
+
+def test_agent_streams_and_reuses_native_responses_state(tmp_path: Path) -> None:
+    async def run() -> tuple[StreamingStatefulResponsesChatModel, list[str]]:
+        llm = StreamingStatefulResponsesChatModel()
+        deltas: list[str] = []
+        agent = Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)
+
+        assert await agent.respond("Erste Frage", on_text_delta=deltas.append) == "answer-1"
+        assert await agent.respond("Zweite Frage", on_text_delta=deltas.append) == "answer-2"
+        return llm, deltas
+
+    llm, deltas = asyncio.run(run())
+
+    assert deltas == ["answer-1", "answer-2"]
+    first_messages, first_state = llm.calls[0]
+    second_messages, second_state = llm.calls[1]
+    assert first_state is None
+    assert [type(message) for message in first_messages] == [SystemMessage, UserMessage]
+    assert [type(message) for message in second_messages] == [SystemMessage, UserMessage]
+    assert second_messages[-1].content == "Zweite Frage"
+    assert second_state is not None
+    assert second_state.response_id == "stream-response-1"
 
 
 def test_agent_sends_workspace_memory(tmp_path: Path) -> None:

@@ -1,10 +1,20 @@
 import asyncio
 import json
+import sys
 from collections.abc import Callable
 
 from cara.agent import Agent
 
 _EXIT_COMMANDS = frozenset({"/exit", "/quit"})
+_RESET = "\x1b[0m"
+_BOLD_CYAN = "\x1b[1;36m"
+_BOLD_MAGENTA = "\x1b[1;35m"
+_DIM = "\x1b[2m"
+_GREEN = "\x1b[32m"
+
+
+def _write_to_stdout(text: str) -> None:
+    print(text, end="", flush=True)
 
 
 class TerminalSession:
@@ -14,20 +24,25 @@ class TerminalSession:
         self,
         agent: Agent,
         *,
-        prompt: str = "> ",
+        prompt: str = "you  \u276f ",
         input_reader: Callable[[str], str] = input,
         output_writer: Callable[[str], None] = print,
+        stream_writer: Callable[[str], None] = _write_to_stdout,
+        color: bool | None = None,
     ) -> None:
         self._agent = agent
         self._prompt = prompt
         self._input_reader = input_reader
         self._output_writer = output_writer
+        self._stream_writer = stream_writer
+        self._color = sys.stdout.isatty() if color is None else color
+        self._response_open = False
 
     async def run(self) -> None:
         """Process terminal input until EOF or an explicit exit command."""
         while True:
             try:
-                text = await asyncio.to_thread(self._input_reader, self._prompt)
+                text = await asyncio.to_thread(self._input_reader, self._style(self._prompt, _BOLD_CYAN))
             except EOFError:
                 return
 
@@ -37,17 +52,40 @@ class TerminalSession:
             if not text:
                 continue
 
-            answer = await self._agent.respond(
-                text,
-                on_tool_call=self._show_tool_call,
-                on_tool_result=self._show_tool_result,
-            )
-            if answer:
-                self._output_writer(answer)
+            try:
+                await self._agent.respond(
+                    text,
+                    on_text_delta=self._show_text_delta,
+                    on_tool_call=self._show_tool_call,
+                    on_tool_result=self._show_tool_result,
+                )
+            finally:
+                self._finish_response()
+
+    def _show_text_delta(self, delta: str) -> None:
+        if not self._response_open:
+            self._stream_writer(self._style("cara \u276f ", _BOLD_MAGENTA))
+            self._response_open = True
+        self._stream_writer(delta)
+
+    def _finish_response(self) -> None:
+        if self._response_open:
+            self._stream_writer("\n")
+            self._response_open = False
 
     def _show_tool_call(self, name: str, arguments: dict[str, object]) -> None:
-        rendered_arguments = json.dumps(arguments, ensure_ascii=False, sort_keys=True)
-        self._output_writer(f"[tool] {name} {rendered_arguments}")
+        self._finish_response()
+        rendered_arguments = json.dumps(arguments, ensure_ascii=False, indent=2, sort_keys=True)
+        lines = [self._style(f"\u256d\u2500 tool  {name}", _BOLD_CYAN)]
+        lines.extend(self._style(f"\u2502  {line}", _DIM) for line in rendered_arguments.splitlines())
+        self._output_writer("\n".join(lines))
 
     def _show_tool_result(self, name: str, content: str) -> None:
-        self._output_writer(f"[tool result] {name}: {content}")
+        lines = [self._style(f"\u2570\u2500 done  {name}", _GREEN)]
+        lines.extend(self._style(f"   {line}", _DIM) for line in (content.splitlines() or ["(no output)"]))
+        self._output_writer("\n".join(lines))
+
+    def _style(self, text: str, style: str) -> str:
+        if not self._color:
+            return text
+        return f"{style}{text}{_RESET}"
