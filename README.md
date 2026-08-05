@@ -104,11 +104,12 @@ access, and sandboxing come from `mm-agenttoolkit`. Cara only defines its applic
 catalog. File tools use `agenttoolkit.builtins.LocalWorkspace`, whose root jail rejects absolute paths,
 parent traversal, and symlinks that resolve outside the workspace.
 
-The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: the container
-has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU, memory,
-process, output, and execution-time limits. Only the workspace is mounted read-write. By default,
+The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: by default, the
+container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
+memory, process, output, and execution-time limits. Only the workspace is mounted read-write. By default,
 `Tools()` uses a dedicated `LocalWorkspace` below the system temporary directory instead of mounting the
-project directory and its `.env` file. Callers can provide another `Workspace` or `Sandbox` explicitly.
+project directory and its `.env` file. Callers can provide another `Workspace` or `Sandbox` explicitly, or
+opt into additional sandbox mounts, environment variables, and network access through `build_tools()`.
 
 Start Docker Desktop and prepare the local sandbox image once before using the tool:
 

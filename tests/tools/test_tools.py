@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import gettempdir
 
 from agenttoolkit import Tools
-from agenttoolkit.builtins import CommandResult, LocalWorkspace, SandboxPolicy, Workspace
+from agenttoolkit.builtins import BindMount, CommandResult, DockerSandbox, LocalWorkspace, SandboxPolicy, Workspace
 
 from cara.audio import AudioOutput, AudioPlayer
 from cara.tools import create_tool_context, create_tools
@@ -142,12 +142,61 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
     assert sandbox.command == "printf hello"
 
 
+def test_tools_context_manages_default_docker_sandbox(monkeypatch) -> None:
+    opened: list[DockerSandbox] = []
+    closed: list[DockerSandbox] = []
+
+    async def open_sandbox(sandbox: DockerSandbox) -> None:
+        opened.append(sandbox)
+
+    async def close_sandbox(sandbox: DockerSandbox) -> None:
+        closed.append(sandbox)
+
+    monkeypatch.setattr(DockerSandbox, "open", open_sandbox)
+    monkeypatch.setattr(DockerSandbox, "close", close_sandbox)
+
+    async def run() -> None:
+        context = create_tool_context()
+        sandbox = context.resolve(DockerSandbox)
+        tools = create_tools(context)
+
+        async with tools as active_tools:
+            assert active_tools is tools
+            assert opened == [sandbox]
+            assert closed == []
+
+        assert closed == [sandbox]
+
+    asyncio.run(run())
+
+
 def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     context = create_tool_context()
     workspace = context.resolve(Workspace)
+    sandbox = context.resolve(DockerSandbox)
 
     assert workspace is not None
     assert workspace.root == (Path(gettempdir()) / "cara" / "workspace").resolve()
+    assert sandbox is not None
+    assert sandbox.defaults.working_directory == workspace.root
+
+
+def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> None:
+    config_root = tmp_path / "spogo"
+    config_root.mkdir()
+    mount = BindMount.read_write(config_root, "/tmp/.config/spogo")
+
+    context = create_tool_context(
+        sandbox_environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
+        sandbox_mounts=(mount,),
+        sandbox_network_access=True,
+    )
+    sandbox = context.resolve(DockerSandbox)
+
+    assert sandbox is not None
+    assert sandbox.defaults.environment["SPOGO_CONFIG"] == "/etc/spogo.toml"
+    assert sandbox.mounts == (mount,)
+    assert sandbox.policy.enable_network_access
 
 
 def test_default_workspace_mounts_memory_content_directory() -> None:

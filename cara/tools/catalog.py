@@ -1,6 +1,8 @@
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from tempfile import gettempdir
+from types import TracebackType
+from typing import Self
 
 import agenttoolkit
 from agenttoolkit import (
@@ -14,6 +16,7 @@ from agenttoolkit import (
     requires,
 )
 from agenttoolkit.builtins import (
+    BindMount,
     CommandDefaults,
     CommandLimits,
     CommandRunner,
@@ -48,16 +51,49 @@ _BASH_IMAGE = "cara-bash-sandbox:latest"
 _MEMORY_ROOT = Path(__file__).resolve().parent.parent / "prompt" / "content"
 
 
+class _ManagedTools(agenttoolkit.Tools):
+    def __init__(self, context: ToolContext) -> None:
+        super().__init__(
+            context=context,
+            middleware=(CallLoggingMiddleware(), ErrorBoundaryMiddleware()),
+        )
+        self._sandbox = context.resolve(DockerSandbox)
+
+    async def __aenter__(self) -> Self:
+        if self._sandbox is not None:
+            await self._sandbox.open()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        if self._sandbox is not None:
+            await self._sandbox.close()
+
+
 def create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
     sandbox: CommandRunner | None = None,
     workspace_mounts: Mapping[str, Path] | None = None,
+    sandbox_environment: Mapping[str, str] | None = None,
+    sandbox_mounts: Sequence[BindMount] = (),
+    sandbox_network_access: bool = False,
 ) -> ToolContext:
     if workspace is not None and workspace_mounts:
         raise ValueError("Use either workspace or workspace_mounts, not both.")
+    if sandbox is not None and (sandbox_environment or sandbox_mounts or sandbox_network_access):
+        raise ValueError("Configure environment, mounts, and network access on the provided sandbox directly.")
     selected_workspace = workspace or _default_workspace(workspace_mounts)
-    selected_sandbox = sandbox or _default_sandbox(selected_workspace)
+    selected_sandbox = sandbox or _default_sandbox(
+        selected_workspace,
+        environment=sandbox_environment,
+        mounts=sandbox_mounts,
+        network_access=sandbox_network_access,
+    )
     return ToolContext(selected_workspace, selected_sandbox, *dependencies)
 
 
@@ -73,37 +109,43 @@ def _default_workspace(additional_mounts: Mapping[str, Path] | None = None) -> L
     )
 
 
-def _default_sandbox(workspace: Workspace) -> DockerSandbox:
+def _default_sandbox(
+    workspace: Workspace,
+    *,
+    environment: Mapping[str, str] | None = None,
+    mounts: Sequence[BindMount] = (),
+    network_access: bool = False,
+) -> DockerSandbox:
     return DockerSandbox(
         _BASH_IMAGE,
         defaults=CommandDefaults(
-            environment={"HOME": "/tmp"},
+            working_directory=workspace.root,
+            environment={"HOME": "/tmp", **(environment or {})},
             limits=CommandLimits(timeout_seconds=15, max_output_bytes=1_000_000),
         ),
         policy=SandboxPolicy.for_workspace(
             workspace.root,
+            enable_network_access=network_access,
             limits=SandboxLimits(
                 memory_bytes=256 * 1024 * 1024,
                 pids=64,
                 cpus=1,
             ),
         ),
+        mounts=mounts,
         shell="/bin/bash",
     )
 
 
-def create_tools(context: ToolContext | None = None) -> agenttoolkit.Tools:
+def create_tools(context: ToolContext | None = None) -> _ManagedTools:
     selected_context = context if context is not None else create_tool_context()
     tools = _new_tools(selected_context)
     register_tools(tools)
     return tools
 
 
-def _new_tools(context: ToolContext) -> agenttoolkit.Tools:
-    return agenttoolkit.Tools(
-        context=context,
-        middleware=(CallLoggingMiddleware(), ErrorBoundaryMiddleware()),
-    )
+def _new_tools(context: ToolContext) -> _ManagedTools:
+    return _ManagedTools(context)
 
 
 def build_tools(
@@ -111,8 +153,11 @@ def build_tools(
     skills: Skills | None = None,
     workspace: Workspace | None = None,
     workspace_mounts: Mapping[str, Path] | None = None,
+    sandbox_environment: Mapping[str, str] | None = None,
+    sandbox_mounts: Sequence[BindMount] = (),
+    sandbox_network_access: bool = False,
     tools: agenttoolkit.Tools | None = None,
-) -> agenttoolkit.Tools:
+) -> _ManagedTools:
     configured_dependencies = [*dependencies, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
     if skills is not None:
         configured_dependencies.append(skills)
@@ -120,6 +165,9 @@ def build_tools(
         *configured_dependencies,
         workspace=workspace,
         workspace_mounts=workspace_mounts,
+        sandbox_environment=sandbox_environment,
+        sandbox_mounts=sandbox_mounts,
+        sandbox_network_access=sandbox_network_access,
     )
     if tools is None:
         return create_tools(tool_context)
