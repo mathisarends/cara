@@ -26,9 +26,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 load_dotenv(override=True)
 
+PROJECT_ROOT = Path(__file__).parent
+WORKSPACE_ROOT = PROJECT_ROOT / "workspace"
+SKILLS_ROOT = PROJECT_ROOT / "skills"
+
 
 async def main(mode: str = "voice") -> None:
-    skills = Skills.from_local_dir(Path(__file__).parent / "skills")
+    skills = Skills.from_local_dir(SKILLS_ROOT)
     llm = ChatCodex.from_cli(model="gpt-5.6-terra")
     if mode == "terminal":
         await TerminalSession(_build_agent(llm, skills)).run()
@@ -84,6 +88,7 @@ def _build_agent(llm: ChatModel, skills: Skills, *tool_dependencies: object) -> 
     return Agent(
         llm=llm,
         tools=build_tools(*tool_dependencies, skills=skills),
+        prompt_root=WORKSPACE_ROOT,
         skills=skills,
     )
 

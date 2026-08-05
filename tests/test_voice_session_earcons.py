@@ -1,6 +1,7 @@
 import asyncio
 import threading
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 
 from transitbus import EventBus
 
@@ -55,14 +56,14 @@ class NoWakeWordListener(WakeWordSessionSource):
         return None
 
 
-def test_first_recording_arms_after_wake_earcon() -> None:
+def test_first_recording_arms_after_wake_earcon(tmp_path: Path) -> None:
     async def run() -> list[str]:
         events: list[str] = []
         player = AudioPlayer(RecordingPlayer(events))
         event_bus = EventBus()
         speech_settings = SpeechSettings()
         session = VoiceSession(
-            agent=Agent(llm=UnusedDependency(), tools=create_tools()),
+            agent=Agent(llm=UnusedDependency(), tools=create_tools(), prompt_root=tmp_path),
             speech_input=SpeechInput(
                 EmptyRecorder(events),
                 UnusedDependency(),

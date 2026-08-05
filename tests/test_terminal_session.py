@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 
@@ -17,7 +18,7 @@ class EchoChatModel:
         return ChatInvokeCompletion(completion=f"Antwort auf {user.content}")
 
 
-def test_terminal_session_sends_text_turns_to_agent() -> None:
+def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
     inputs = iter((" Hallo ", "2", "/exit"))
     prompts: list[str] = []
     outputs: list[str] = []
@@ -28,7 +29,7 @@ def test_terminal_session_sends_text_turns_to_agent() -> None:
 
     llm = EchoChatModel()
     session = TerminalSession(
-        Agent(llm=llm, tools=create_tools()),
+        Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path),
         input_reader=read,
         output_writer=outputs.append,
     )
@@ -40,19 +41,19 @@ def test_terminal_session_sends_text_turns_to_agent() -> None:
     assert len(llm.messages) == 2
 
 
-def test_terminal_session_stops_at_end_of_input() -> None:
+def test_terminal_session_stops_at_end_of_input(tmp_path: Path) -> None:
     def end_of_input(prompt: str) -> str:
         raise EOFError
 
     session = TerminalSession(
-        Agent(llm=EchoChatModel(), tools=create_tools()),
+        Agent(llm=EchoChatModel(), tools=create_tools(), prompt_root=tmp_path),
         input_reader=end_of_input,
     )
 
     asyncio.run(session.run())
 
 
-def test_terminal_session_shows_tool_calls_and_results() -> None:
+def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
     class ToolCallingChatModel:
         def __init__(self) -> None:
             self.calls = 0
@@ -84,7 +85,7 @@ def test_terminal_session_shows_tool_calls_and_results() -> None:
         return f"Wetter für {location}"
 
     session = TerminalSession(
-        Agent(llm=ToolCallingChatModel(), tools=tools),
+        Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path),
         input_reader=lambda prompt: next(inputs),
         output_writer=outputs.append,
     )

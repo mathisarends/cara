@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from pathlib import Path
 
 from agenttoolkit import Skills, Tools
 from llmify import ChatInvokeCompletion, ChatModel
@@ -13,6 +14,7 @@ class Agent:
         *,
         llm: ChatModel,
         tools: Tools,
+        prompt_root: Path,
         skills: Skills | None = None,
         system_prompt: str | None = None,
         override_system_prompt: str | None = None,
@@ -22,6 +24,7 @@ class Agent:
         self._tools = tools
         self._conversation = Conversation(
             system_prompt=SystemPromptComposer(
+                root=prompt_root,
                 system_prompt=system_prompt,
                 override_system_prompt=override_system_prompt,
                 extend_system_prompt=extend_system_prompt,

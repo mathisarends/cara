@@ -1,6 +1,7 @@
 import asyncio
 import threading
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 
 from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 from transitbus import EventBus
@@ -120,7 +121,7 @@ class TwoTurnChatModel:
         return ChatInvokeCompletion(completion="Erledigt.")
 
 
-def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
+def test_repeated_wake_word_interrupts_tool_and_starts_next_turn(tmp_path: Path) -> None:
     async def run() -> tuple[
         BargeInRecorder,
         RepeatedWakeWordListener,
@@ -170,6 +171,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn() -> None:
             agent=Agent(
                 llm=llm,
                 tools=build_tools(player, tools=tools),
+                prompt_root=tmp_path,
             ),
             speech_input=SpeechInput(
                 recorder,

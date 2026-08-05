@@ -11,7 +11,6 @@ _BASE_FILES = ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md")
 _TOOLS_FILES = ("TOOLS.md",)
 _MEMORY_FILES = ("MEMORY.md",)
 _DAILY_DIR = "daily"
-_DEFAULT_CONTENT_ROOT = Path(__file__).parent / "content"
 
 
 class SystemPromptComposer:
@@ -20,7 +19,7 @@ class SystemPromptComposer:
     def __init__(
         self,
         *,
-        root: Path | None = None,
+        root: Path,
         system_prompt: str | None = None,
         override_system_prompt: str | None = None,
         extend_system_prompt: str | None = None,
@@ -32,7 +31,7 @@ class SystemPromptComposer:
             raise ValueError("Use system_prompt or override_system_prompt/extend_system_prompt, not both.")
         if override_system_prompt is not None and extend_system_prompt is not None:
             raise ValueError("Use either override_system_prompt or extend_system_prompt, not both.")
-        self._root = root if root is not None else _DEFAULT_CONTENT_ROOT
+        self._root = root
         self._system_prompt = system_prompt
         self._override_system_prompt = override_system_prompt
         self._extend_system_prompt = extend_system_prompt

@@ -12,6 +12,7 @@ from cara.tools import build_tools
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = PROJECT_ROOT / "skills"
+WORKSPACE_ROOT = PROJECT_ROOT / "workspace"
 
 load_dotenv()
 
@@ -43,6 +44,7 @@ async def main() -> None:
         agent = Agent(
             llm=llm,
             tools=tools,
+            prompt_root=WORKSPACE_ROOT,
             skills=skills,
             extend_system_prompt=(
                 "Die lokalen Skills sind unter `/skills` schreibbar eingebunden. "

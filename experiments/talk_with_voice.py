@@ -15,6 +15,7 @@ from cara.tools import build_tools
 from cara.wakeword import WakeWord, WakeWordListener
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+WORKSPACE_ROOT = PROJECT_ROOT / "workspace"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -30,6 +31,7 @@ async def main() -> None:
     agent = Agent(
         llm=ChatCodex.from_cli(model="gpt-5.6-terra"),
         tools=build_tools(player, skills=skills),
+        prompt_root=WORKSPACE_ROOT,
         skills=skills,
     )
     session = VoiceSession(

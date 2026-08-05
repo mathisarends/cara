@@ -48,7 +48,8 @@ from cara.tools.params import (
 )
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
-_MEMORY_ROOT = Path(__file__).resolve().parent.parent / "prompt" / "content"
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_MEMORY_ROOT = _PROJECT_ROOT / "workspace"
 
 
 class _ManagedTools(agenttoolkit.Tools):

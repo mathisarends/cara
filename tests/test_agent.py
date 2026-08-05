@@ -78,9 +78,9 @@ class DeniedPathChatModel:
         return ChatInvokeCompletion(completion="Ich kann nur innerhalb des Arbeitsbereichs schreiben.")
 
 
-def test_agent_responds_to_normalized_text() -> None:
+def test_agent_responds_to_normalized_text(tmp_path: Path) -> None:
     llm = StaticChatModel()
-    agent = Agent(llm=llm, tools=create_tools())
+    agent = Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)
 
     answer = asyncio.run(agent.respond("  Hallo  "))
 
@@ -89,15 +89,16 @@ def test_agent_responds_to_normalized_text() -> None:
     assert [message.content for message in user_messages] == ["Hallo"]
 
 
-def test_agent_always_sends_the_memory_along() -> None:
+def test_agent_sends_workspace_memory(tmp_path: Path) -> None:
+    (tmp_path / "MEMORY.md").write_text("Remember this.", encoding="utf-8")
     llm = StaticChatModel()
-    agent = Agent(llm=llm, tools=create_tools())
+    agent = Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)
 
     asyncio.run(agent.respond("Hallo"))
 
     system_message = llm.messages[0][0]
     assert "<memory>" in system_message.content
-    assert "<soul>" in system_message.content
+    assert "Remember this." in system_message.content
 
 
 def test_agent_continues_after_each_tool_round_until_final_answer(tmp_path: Path) -> None:
@@ -113,6 +114,7 @@ def test_agent_continues_after_each_tool_round_until_final_answer(tmp_path: Path
         agent = Agent(
             llm=llm,
             tools=build_tools(skills=skills, tools=tools),
+            prompt_root=tmp_path,
             skills=skills,
         )
         answer = await agent.respond("Wie wird das Wetter?")
@@ -145,6 +147,7 @@ def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> Non
         agent = Agent(
             llm=llm,
             tools=build_tools(tools=create_tools(), workspace=LocalWorkspace(tmp_path)),
+            prompt_root=tmp_path,
         )
 
         await agent.respond("Schreibe außerhalb des Arbeitsbereichs.")

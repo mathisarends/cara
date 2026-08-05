@@ -8,6 +8,8 @@ from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
 from cara.prompt import Conversation, LocalTimePrompt, SystemPromptComposer
 
+WORKSPACE_ROOT = Path(__file__).parents[1] / "workspace"
+
 
 def _tool_call() -> ToolCall:
     return ToolCall(id="call-1", function=Function(name="load_skill", arguments="{}"))
@@ -140,8 +142,8 @@ def test_local_time_precedes_available_skills_in_the_system_prompt(tmp_path: Pat
     assert rendered.index("<local_time>") < rendered.index("<available_skills>")
 
 
-def test_system_prompt_is_assembled_from_the_packaged_markdown_files() -> None:
-    prompt = SystemPromptComposer().render()
+def test_system_prompt_is_assembled_from_the_workspace_markdown_files() -> None:
+    prompt = SystemPromptComposer(root=WORKSPACE_ROOT).render()
 
     assert prompt.index("<agents>") < prompt.index("<soul>") < prompt.index("<user>") < prompt.rindex("<memory>")
 
@@ -169,17 +171,18 @@ def test_system_prompt_can_override_default_prompt_while_retaining_memory(tmp_pa
     assert prompt == "Nur JSON.\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
 
 
-def test_system_prompt_rejects_extend_and_override_together() -> None:
+def test_system_prompt_rejects_extend_and_override_together(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         SystemPromptComposer(
+            root=tmp_path,
             override_system_prompt="Override",
             extend_system_prompt="Extend",
         )
 
 
-def test_system_prompt_rejects_custom_prompt_with_override() -> None:
+def test_system_prompt_rejects_custom_prompt_with_override(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
-        SystemPromptComposer(system_prompt="Custom", override_system_prompt="Override")
+        SystemPromptComposer(root=tmp_path, system_prompt="Custom", override_system_prompt="Override")
 
 
 def test_memory_renders_files_in_order(tmp_path: Path) -> None:
@@ -207,5 +210,5 @@ def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
     assert _composer(tmp_path).render() == "System"
 
 
-def test_packaged_memory_is_loaded_by_default() -> None:
-    assert "<memory>" in SystemPromptComposer().render()
+def test_workspace_memory_is_loaded() -> None:
+    assert "<memory>" in SystemPromptComposer(root=WORKSPACE_ROOT).render()
