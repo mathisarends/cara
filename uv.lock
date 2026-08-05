@@ -57,7 +57,7 @@ dependencies = [
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "py-llmify", extra = ["cerebras", "openai"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -88,7 +88,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.100.0" },
-    { name = "py-llmify", extras = ["cerebras", "openai"], specifier = ">=0.9.0" },
+    { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
@@ -488,21 +488,18 @@ wheels = [
 
 [[package]]
 name = "py-llmify"
-version = "0.9.0"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/71/cbee3f9e7ee6a2f5ca8cf6521ea1888007c35fea737c0edcf6cf30947266/py_llmify-0.9.0.tar.gz", hash = "sha256:0ac188e7cb4eacd9b2558d4c9946b995be78cc88686fe3ab48b85cf6f27e5bcf", size = 39961, upload-time = "2026-07-30T19:41:55.324Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/8c/2c7c375f5d9c5e1f6ae183b2be9dc6af0b90c5ea3a42ea6915ff944aec88/py_llmify-0.10.0.tar.gz", hash = "sha256:18d69e607d6dd9cffc834832ab21f2c52a11dd6e9184f3e31f4a64b8c6920a82", size = 50931, upload-time = "2026-08-04T10:35:27.322Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/23/ac112908ce305aa5806c773a2e383498eef7ef72c0804317c26b0529601c/py_llmify-0.9.0-py3-none-any.whl", hash = "sha256:7119a655c6cb3fe2439c03c51d4aae57aa3a85f21e47aa70ed89748d9a15150e", size = 44729, upload-time = "2026-07-30T19:41:54.247Z" },
+    { url = "https://files.pythonhosted.org/packages/60/88/8a19768d695e20c57f1365f8a162669b8edd0f88133a4dd92535e0cfe96e/py_llmify-0.10.0-py3-none-any.whl", hash = "sha256:3932e45260148dc5b3557ac96163e78d99aa2c8bc0d9f82041ec81ecf3343000", size = 51759, upload-time = "2026-08-04T10:35:26.182Z" },
 ]
 
 [package.optional-dependencies]
-cerebras = [
-    { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-]
 openai = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]

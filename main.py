@@ -6,7 +6,7 @@ from pathlib import Path
 from agenttoolkit import Skills
 from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
-from llmify import ChatCodex, ChatModel
+from llmify import ChatModel
 from transitbus import EventBus
 
 from cara import Agent, SpeechInput, SpeechOutput, SpeechSettings, TerminalSession, VoiceSession
@@ -19,6 +19,7 @@ from cara.audio import (
     MicrophoneStream,
 )
 from cara.audio.device import PortAudioDevice
+from cara.codex import CodexModel, create_codex_model
 from cara.speech import OpenAISpeechToText, OpenAITextToSpeech
 from cara.tools import build_tools
 from cara.wakeword import WakeWord, WakeWordListener
@@ -34,7 +35,7 @@ _SKILLS_ROOT = _PROJECT_ROOT / "skills"
 
 async def main(mode: str = "voice") -> None:
     skills = Skills.from_local_dir(_SKILLS_ROOT)
-    llm = ChatCodex.from_cli(model="gpt-5.6-terra")
+    llm = create_codex_model(CodexModel.TERRA)
     if mode == "terminal":
         await TerminalSession(_build_agent(llm, skills)).run()
         return

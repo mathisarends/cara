@@ -3,7 +3,13 @@ from collections.abc import Callable
 from pathlib import Path
 
 from agenttoolkit import Skills, Tools
-from llmify import ChatInvokeCompletion, ChatModel
+from llmify import (
+    ChatInvokeCompletion,
+    ChatModel,
+    ChatOpenAIResponses,
+    OpenAIResponsesState,
+    ToolCall,
+)
 
 from cara.prompt import Conversation, SystemPromptComposer
 
@@ -31,6 +37,7 @@ class Agent:
                 skills=skills,
             ),
         )
+        self._responses_state: OpenAIResponsesState | None = None
 
     async def respond(
         self,
@@ -58,6 +65,12 @@ class Agent:
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
         on_tool_result: Callable[[str, str], None] | None,
     ) -> str:
+        if isinstance(self._llm, ChatOpenAIResponses):
+            return await self._generate_responses_answer(
+                on_tool_call=on_tool_call,
+                on_tool_result=on_tool_result,
+            )
+
         while True:
             completion = await self._llm.invoke(
                 self._conversation.to_llm_messages(),
@@ -70,6 +83,41 @@ class Agent:
             )
             if not called_tools:
                 return answer
+
+    async def _generate_responses_answer(
+        self,
+        *,
+        on_tool_call: Callable[[str, dict[str, object]], None] | None,
+        on_tool_result: Callable[[str, str], None] | None,
+    ) -> str:
+        messages = (
+            self._conversation.to_llm_messages()
+            if self._responses_state is None
+            else self._conversation.to_current_turn_messages()
+        )
+
+        async def execute_tool(tool_call: ToolCall) -> str:
+            self._conversation.add_tool_call(tool_call)
+            name = tool_call.function.name
+            arguments = json.loads(tool_call.function.arguments or "{}")
+            if on_tool_call is not None:
+                on_tool_call(name, arguments)
+
+            result = await self._tools.execute(name, arguments)
+            content = "Tool completed successfully." if result is None else str(result)
+            if on_tool_result is not None:
+                on_tool_result(name, content)
+            self._conversation.add_tool_result(tool_call.id, content)
+            return content
+
+        completion = await self._llm.invoke_with_tools(
+            messages,
+            tools=self._tools.get_schema("openai"),
+            tool_executor=execute_tool,
+            provider_state=self._responses_state,
+        )
+        self._responses_state = completion.provider_state
+        return completion.completion.strip()
 
     async def _resolve_completion(
         self,

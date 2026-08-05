@@ -5,9 +5,9 @@ from pathlib import Path
 from agenttoolkit import Skills
 from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
-from llmify import ChatCodex
 
 from cara import Agent, TerminalSession
+from cara.codex import CodexModel, create_codex_model
 from cara.tools import build_tools
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +29,7 @@ def _spogo_config_root() -> Path:
 
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
-    llm = ChatCodex.from_cli(model="gpt-5.6-terra")
+    llm = create_codex_model(CodexModel.TERRA)
 
     async with build_tools(
         skills=skills,

@@ -3,7 +3,19 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 from agenttoolkit.builtins import LocalWorkspace
-from llmify import AssistantMessage, ChatInvokeCompletion, Function, ToolCall, ToolResultMessage, UserMessage
+from llmify import (
+    AssistantMessage,
+    ChatInvokeCompletion,
+    ChatOpenAIResponses,
+    ContinuationMode,
+    Function,
+    OpenAIResponsesCompletion,
+    OpenAIResponsesState,
+    SystemMessage,
+    ToolCall,
+    ToolResultMessage,
+    UserMessage,
+)
 
 from cara.agent import Agent
 from cara.tools import build_tools, create_tools
@@ -78,6 +90,19 @@ class DeniedPathChatModel:
         return ChatInvokeCompletion(completion="Ich kann nur innerhalb des Arbeitsbereichs schreiben.")
 
 
+class StatefulResponsesChatModel(ChatOpenAIResponses):
+    def __init__(self) -> None:
+        self.calls: list[tuple[list[object], OpenAIResponsesState | None]] = []
+
+    async def invoke_with_tools(self, messages, *, provider_state, **kwargs):
+        self.calls.append((messages, provider_state))
+        state = OpenAIResponsesState(
+            continuation_mode=ContinuationMode.PREVIOUS_RESPONSE_ID,
+            response_id=f"response-{len(self.calls)}",
+        )
+        return OpenAIResponsesCompletion(completion=f"answer-{len(self.calls)}", provider_state=state)
+
+
 def test_agent_responds_to_normalized_text(tmp_path: Path) -> None:
     llm = StaticChatModel()
     agent = Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)
@@ -87,6 +112,27 @@ def test_agent_responds_to_normalized_text(tmp_path: Path) -> None:
     assert answer == _ANSWER
     user_messages = [message for message in llm.messages[0] if isinstance(message, UserMessage)]
     assert [message.content for message in user_messages] == ["Hallo"]
+
+
+def test_agent_reuses_native_responses_state_without_replaying_chat_history(tmp_path: Path) -> None:
+    async def run() -> StatefulResponsesChatModel:
+        llm = StatefulResponsesChatModel()
+        agent = Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)
+
+        await agent.respond("Erste Frage")
+        await agent.respond("Zweite Frage")
+        return llm
+
+    llm = asyncio.run(run())
+
+    first_messages, first_state = llm.calls[0]
+    second_messages, second_state = llm.calls[1]
+    assert first_state is None
+    assert [type(message) for message in first_messages] == [SystemMessage, UserMessage]
+    assert [type(message) for message in second_messages] == [SystemMessage, UserMessage]
+    assert second_messages[-1].content == "Zweite Frage"
+    assert second_state is not None
+    assert second_state.response_id == "response-1"
 
 
 def test_agent_sends_workspace_memory(tmp_path: Path) -> None:

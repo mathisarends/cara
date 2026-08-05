@@ -36,3 +36,10 @@ class Conversation:
 
     def to_llm_messages(self) -> list[Message]:
         return [SystemMessage(content=self._system_prompt.render()), *self._history]
+
+    def to_current_turn_messages(self) -> list[Message]:
+        """Return the current instructions and the latest user turn only."""
+        for message in reversed(self._history):
+            if isinstance(message, UserMessage):
+                return [SystemMessage(content=self._system_prompt.render()), message]
+        raise RuntimeError("The conversation does not contain a user turn.")
