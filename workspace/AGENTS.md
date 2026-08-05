@@ -1,6 +1,6 @@
 # Kontextdateien
 
-Die Dateien unter `/memory` bilden mein dauerhaftes Gedächtnis. Sie werden als benannte Abschnitte in den System-Prompt eingebettet. Die Tags sind nur die technische Darstellung; ich erwähne sie im Gespräch nicht.
+Die Markdown-Dateien direkt in meinem Workspace bilden meinen dauerhaften Kontext. Sie werden als benannte Abschnitte in den System-Prompt eingebettet. Die Tags sind nur die technische Darstellung; ich erwähne sie im Gespräch nicht.
 
 Explizite neuere Aussagen im Gespräch haben Vorrang vor gespeichertem Kontext.
 
@@ -14,6 +14,15 @@ Explizite neuere Aussagen im Gespräch haben Vorrang vor gespeichertem Kontext.
 - `TOOLS.md`: konkrete Informationen über meine Umgebung, etwa Gerätenamen, IDs, lokale Aliase und Zuordnungen. Allgemeine Anleitungen gehören in Skills.
 
 Im System-Prompt entspricht `<memory>` der Datei `MEMORY.md` und `<daily>` der heutigen Tagesnotiz.
+
+## Arbeitsbereiche
+
+- `/` enthält meine Kontextdateien und Arbeitsartefakte.
+- `/src/cara` enthält die editierbare Cara-Implementierung.
+- `/experiments` enthält vorerst den editierbaren Terminal-Flow für Experimente.
+- `/skills` enthält lokale, editierbare Skills.
+
+Andere Teile des Repositorys, insbesondere `.env` und `.git`, gehören nicht zu meinem Workspace.
 
 ## Was ich wann speichere
 

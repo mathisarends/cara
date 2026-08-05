@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from agenttoolkit import Skills
+from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
 from llmify import ChatCodex, ChatModel
 from transitbus import EventBus
@@ -26,13 +27,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 load_dotenv(override=True)
 
-PROJECT_ROOT = Path(__file__).parent
-WORKSPACE_ROOT = PROJECT_ROOT / "workspace"
-SKILLS_ROOT = PROJECT_ROOT / "skills"
+_PROJECT_ROOT = Path(__file__).parent
+_WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
+_SKILLS_ROOT = _PROJECT_ROOT / "skills"
 
 
 async def main(mode: str = "voice") -> None:
-    skills = Skills.from_local_dir(SKILLS_ROOT)
+    skills = Skills.from_local_dir(_SKILLS_ROOT)
     llm = ChatCodex.from_cli(model="gpt-5.6-terra")
     if mode == "terminal":
         await TerminalSession(_build_agent(llm, skills)).run()
@@ -87,9 +88,34 @@ async def _run_voice(llm: ChatModel, skills: Skills) -> None:
 def _build_agent(llm: ChatModel, skills: Skills, *tool_dependencies: object) -> Agent:
     return Agent(
         llm=llm,
-        tools=build_tools(*tool_dependencies, skills=skills),
-        prompt_root=WORKSPACE_ROOT,
+        tools=build_tools(
+            *tool_dependencies,
+            skills=skills,
+            workspace=_create_workspace(),
+            sandbox_mounts=_editable_sandbox_mounts(),
+        ),
+        prompt_root=_WORKSPACE_ROOT,
         skills=skills,
+    )
+
+
+def _create_workspace() -> LocalWorkspace:
+    return LocalWorkspace(
+        _WORKSPACE_ROOT,
+        mounts={
+            "/src/cara": _PROJECT_ROOT / "cara",
+            "/experiments": _PROJECT_ROOT / "experiments",
+            "/skills": _SKILLS_ROOT,
+        },
+        max_file_bytes=1_000_000,
+    )
+
+
+def _editable_sandbox_mounts() -> tuple[BindMount, ...]:
+    return (
+        BindMount.read_write(_PROJECT_ROOT / "cara", "/src/cara"),
+        BindMount.read_write(_PROJECT_ROOT / "experiments", "/experiments"),
+        BindMount.read_write(_SKILLS_ROOT, "/skills"),
     )
 
 

@@ -199,14 +199,6 @@ def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> N
     assert sandbox.policy.enable_network_access
 
 
-def test_default_workspace_mounts_memory_content_directory() -> None:
-    tools = create_tools()
-
-    result = asyncio.run(tools.execute("list_files", {"path": "/memory"}))
-
-    assert "/memory/USER.md" in result.splitlines()
-
-
 def test_default_workspace_accepts_writable_additional_mounts(tmp_path: Path) -> None:
     skills_root = tmp_path / "skills"
     tools = create_tools(create_tool_context(workspace_mounts={"/skills": skills_root}))
@@ -217,11 +209,8 @@ def test_default_workspace_accepts_writable_additional_mounts(tmp_path: Path) ->
             {"path": "/skills/example/SKILL.md", "content": "# Example\n"},
         )
     )
-    memory = asyncio.run(tools.execute("list_files", {"path": "/memory"}))
-
     assert result == "Wrote /skills/example/SKILL.md."
     assert (skills_root / "example" / "SKILL.md").read_text(encoding="utf-8") == "# Example\n"
-    assert "/memory/USER.md" in memory.splitlines()
 
 
 def test_to_schema_returns_openai_function_schema() -> None:

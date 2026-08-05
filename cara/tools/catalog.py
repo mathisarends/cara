@@ -48,8 +48,6 @@ from cara.tools.params import (
 )
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_MEMORY_ROOT = _PROJECT_ROOT / "workspace"
 
 
 class _ManagedTools(agenttoolkit.Tools):
@@ -99,13 +97,9 @@ def create_tool_context(
 
 
 def _default_workspace(additional_mounts: Mapping[str, Path] | None = None) -> LocalWorkspace:
-    mounts = dict(additional_mounts or {})
-    if "/memory" in mounts:
-        raise ValueError("The /memory workspace mount is reserved.")
-    mounts["/memory"] = _MEMORY_ROOT
     return LocalWorkspace(
         Path(gettempdir()) / "cara" / "workspace",
-        mounts=mounts,
+        mounts=additional_mounts,
         max_file_bytes=1_000_000,
     )
 

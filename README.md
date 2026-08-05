@@ -100,15 +100,17 @@ another registered output, such as `local` or `sonos`, while the assistant is ru
 
 Tool registration, dependency injection, schema generation, validation, middleware, skills, workspace
 access, and sandboxing come from `mm-agenttoolkit`. Cara only defines its application-specific tool
-catalog. File tools use `agenttoolkit.builtins.LocalWorkspace`, whose root jail rejects absolute paths,
-parent traversal, and symlinks that resolve outside the workspace.
+catalog. File tools use `agenttoolkit.builtins.LocalWorkspace`, whose root jail rejects parent traversal
+and symlinks that resolve outside the workspace.
 
 The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: by default, the
 container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
-memory, process, output, and execution-time limits. Only the workspace is mounted read-write. By default,
-`Tools()` uses a dedicated `LocalWorkspace` below the system temporary directory instead of mounting the
-project directory and its `.env` file. Callers can provide another `Workspace` or `Sandbox` explicitly, or
-opt into additional sandbox mounts, environment variables, and network access through `build_tools()`.
+memory, process, output, and execution-time limits. The reusable tool factory defaults to a dedicated
+`LocalWorkspace` below the system temporary directory. Cara's concrete entry point explicitly uses
+`workspace/` as its root and exposes only `cara/`, `experiments/`, and `skills/` as writable mounted
+directories. The project `.env`, `.git`, and the rest of the repository are not exposed. Other callers can
+provide their own `Workspace` or `Sandbox`, or opt into additional sandbox mounts, environment variables,
+and network access through `build_tools()`.
 
 Start Docker Desktop and prepare the local sandbox image once before using the tool:
 

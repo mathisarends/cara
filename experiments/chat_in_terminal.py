@@ -3,16 +3,16 @@ import os
 from pathlib import Path
 
 from agenttoolkit import Skills
-from agenttoolkit.builtins import BindMount
+from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
 from llmify import ChatCodex
 
 from cara import Agent, TerminalSession
 from cara.tools import build_tools
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SKILLS_ROOT = PROJECT_ROOT / "skills"
-WORKSPACE_ROOT = PROJECT_ROOT / "workspace"
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_SKILLS_ROOT = _PROJECT_ROOT / "skills"
+_WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
 
 load_dotenv()
 
@@ -28,23 +28,33 @@ def _spogo_config_root() -> Path:
 
 
 async def main() -> None:
-    skills = Skills.from_dir(SKILLS_ROOT)
+    skills = Skills.from_dir(_SKILLS_ROOT)
     llm = ChatCodex.from_cli(model="gpt-5.6-terra")
 
     async with build_tools(
         skills=skills,
-        workspace_mounts={"/skills": SKILLS_ROOT},
+        workspace=LocalWorkspace(
+            _WORKSPACE_ROOT,
+            mounts={
+                "/src/cara": _PROJECT_ROOT / "cara",
+                "/experiments": _PROJECT_ROOT / "experiments",
+                "/skills": _SKILLS_ROOT,
+            },
+        ),
         sandbox_environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
         sandbox_mounts=(
+            BindMount.read_write(_PROJECT_ROOT / "cara", "/src/cara"),
+            BindMount.read_write(_PROJECT_ROOT / "experiments", "/experiments"),
+            BindMount.read_write(_SKILLS_ROOT, "/skills"),
             BindMount.read_write(_spogo_config_root(), "/spogo"),
-            BindMount.read_only(PROJECT_ROOT / "docker" / "spogo.toml", "/etc/spogo.toml"),
+            BindMount.read_only(_PROJECT_ROOT / "docker" / "spogo.toml", "/etc/spogo.toml"),
         ),
         sandbox_network_access=True,
     ) as tools:
         agent = Agent(
             llm=llm,
             tools=tools,
-            prompt_root=WORKSPACE_ROOT,
+            prompt_root=_WORKSPACE_ROOT,
             skills=skills,
             extend_system_prompt=(
                 "Die lokalen Skills sind unter `/skills` schreibbar eingebunden. "
