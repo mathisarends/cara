@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from llmify import ChatModel
 from transitbus import EventBus
 
-from cara import Agent, SpeechInput, SpeechOutput, SpeechSettings, TerminalSession, VoiceSession
+from cara import Agent, HueListener, SpeechInput, SpeechOutput, SpeechSettings, TerminalSession, VoiceSession
 from cara.audio import (
     AudioOutput,
     AudioPlayer,
@@ -36,17 +36,24 @@ _SKILLS_ROOT = _PROJECT_ROOT / "skills"
 async def main(mode: str = "voice") -> None:
     skills = Skills.from_local_dir(_SKILLS_ROOT)
     llm = create_codex_model(CodexModel.TERRA)
-    if mode == "terminal":
-        await TerminalSession(_build_agent(llm, skills)).run()
-        return
-    if mode == "voice":
-        await _run_voice(llm, skills)
-        return
-    raise ValueError(f"Unknown session mode: {mode!r}")
-
-
-async def _run_voice(llm: ChatModel, skills: Skills) -> None:
     event_bus = EventBus()
+    hue_listener = HueListener(event_bus)
+    try:
+        if mode == "terminal":
+            await TerminalSession(
+                _build_agent(llm, skills, event_bus=event_bus),
+                event_bus=event_bus,
+            ).run()
+            return
+        if mode == "voice":
+            await _run_voice(llm, skills, event_bus)
+            return
+        raise ValueError(f"Unknown session mode: {mode!r}")
+    finally:
+        await hue_listener.close()
+
+
+async def _run_voice(llm: ChatModel, skills: Skills, event_bus: EventBus) -> None:
     audio_device = PortAudioDevice()
     microphone = MicrophoneStream(device=audio_device)
     audio_player = AudioPlayer(
@@ -54,7 +61,7 @@ async def _run_voice(llm: ChatModel, skills: Skills) -> None:
         active_output=AudioOutput.LOCAL,
     )
 
-    agent = _build_agent(llm, skills, audio_player)
+    agent = _build_agent(llm, skills, audio_player, event_bus=event_bus)
     speech_settings = SpeechSettings(language="de")
     voice_session = VoiceSession(
         agent=agent,
@@ -86,7 +93,12 @@ async def _run_voice(llm: ChatModel, skills: Skills) -> None:
         audio_device.close()
 
 
-def _build_agent(llm: ChatModel, skills: Skills, *tool_dependencies: object) -> Agent:
+def _build_agent(
+    llm: ChatModel,
+    skills: Skills,
+    *tool_dependencies: object,
+    event_bus: EventBus | None = None,
+) -> Agent:
     return Agent(
         llm=llm,
         tools=build_tools(
@@ -97,6 +109,7 @@ def _build_agent(llm: ChatModel, skills: Skills, *tool_dependencies: object) -> 
         ),
         prompt_root=_WORKSPACE_ROOT,
         skills=skills,
+        event_bus=event_bus,
     )
 
 

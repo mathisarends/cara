@@ -83,7 +83,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "hueify", specifier = ">=0.2.0" },
+    { name = "hueify", specifier = ">=0.4.1" },
     { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },

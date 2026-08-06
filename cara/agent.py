@@ -15,7 +15,9 @@ from llmify import (
     ToolCall,
     ToolResultMessage,
 )
+from transitbus import EventBus
 
+from cara.events import AssistantTurnStarted, ToolCallFinished, ToolCallStarted
 from cara.prompt import Conversation, SystemPromptComposer
 
 _MAX_TOOL_ROUNDS = 8
@@ -32,6 +34,7 @@ class Agent:
         system_prompt: str | None = None,
         override_system_prompt: str | None = None,
         extend_system_prompt: str | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
@@ -45,6 +48,7 @@ class Agent:
             ),
         )
         self._responses_state: OpenAIResponsesState | None = None
+        self._event_bus = event_bus
 
     async def respond(
         self,
@@ -62,6 +66,7 @@ class Agent:
         if not text:
             return ""
 
+        await self._dispatch(AssistantTurnStarted())
         self._conversation.add_user(text)
         if on_text_delta is None:
             answer = await self._generate_answer(
@@ -176,7 +181,11 @@ class Agent:
         if on_tool_call is not None:
             on_tool_call(name, arguments)
 
-        result = await self._tools.execute(name, arguments)
+        await self._dispatch(ToolCallStarted(tool_name=name))
+        try:
+            result = await self._tools.execute(name, arguments)
+        finally:
+            await self._dispatch(ToolCallFinished(tool_name=name))
         content = "Tool completed successfully." if result is None else str(result)
         if on_tool_result is not None:
             on_tool_result(name, content)
@@ -252,3 +261,7 @@ class Agent:
             )
 
         return answer, bool(completion.tool_calls)
+
+    async def _dispatch(self, event: AssistantTurnStarted | ToolCallStarted | ToolCallFinished) -> None:
+        if self._event_bus is not None:
+            await self._event_bus.dispatch(event)

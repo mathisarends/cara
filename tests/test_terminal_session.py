@@ -2,8 +2,17 @@ import asyncio
 from pathlib import Path
 
 from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, UserMessage
+from transitbus import EventBus
 
 from cara.agent import Agent
+from cara.events import (
+    AssistantTurnStarted,
+    SessionEnded,
+    SessionStarted,
+    ToolCallFinished,
+    ToolCallStarted,
+    UserTurnStarted,
+)
 from cara.sessions import TerminalSession
 from cara.tools import create_tools
 
@@ -115,4 +124,77 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
         "15 Grad ",
         "und teils bew\u00f6lkt.",
         "\n",
+    ]
+
+
+def test_terminal_session_emits_turn_and_tool_lifecycle(tmp_path: Path) -> None:
+    class ToolCallingChatModel:
+        def __init__(self) -> None:
+            self._calls = 0
+
+        async def stream(self, messages, *, tools):
+            self._calls += 1
+            if self._calls == 1:
+                tool_call = ToolCall(id="call", function=Function(name="lookup", arguments="{}"))
+                yield StreamEnd(tool_calls=[tool_call], stop_reason="tool_calls")
+                return
+            yield StreamEnd(completion="done")
+
+    async def run() -> list[str]:
+        events: list[str] = []
+        event_bus = EventBus()
+
+        async def capture_session_started(event: SessionStarted) -> None:
+            events.append("session")
+
+        async def capture_user(event: UserTurnStarted) -> None:
+            events.append("user")
+
+        async def capture_assistant(event: AssistantTurnStarted) -> None:
+            events.append("assistant")
+
+        async def capture_tool_started(event: ToolCallStarted) -> None:
+            events.append(f"tool:{event.tool_name}")
+
+        async def capture_tool_finished(event: ToolCallFinished) -> None:
+            events.append(f"model:{event.tool_name}")
+
+        async def capture_session_ended(event: SessionEnded) -> None:
+            events.append("ended")
+
+        for handler in (
+            capture_session_started,
+            capture_user,
+            capture_assistant,
+            capture_tool_started,
+            capture_tool_finished,
+            capture_session_ended,
+        ):
+            event_bus.subscribe(handler)
+
+        tools = create_tools()
+
+        @tools.action("Look up.", name="lookup")
+        async def lookup() -> str:
+            return "result"
+
+        inputs = iter(("hello", "/exit"))
+        agent = Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path, event_bus=event_bus)
+        session = TerminalSession(
+            agent,
+            input_reader=lambda prompt: next(inputs),
+            stream_writer=lambda text: None,
+            event_bus=event_bus,
+        )
+        await session.run()
+        return events
+
+    assert asyncio.run(run()) == [
+        "session",
+        "user",
+        "assistant",
+        "tool:lookup",
+        "model:lookup",
+        "user",
+        "ended",
     ]

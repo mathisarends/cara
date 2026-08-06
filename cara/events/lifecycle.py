@@ -2,7 +2,27 @@ from transitbus import Event
 
 
 class SessionStarted(Event):
-    """Emitted when a multi-turn voice session begins."""
+    """Emitted when a text or voice session begins."""
+
+
+class UserTurnStarted(Event):
+    """Emitted when an input channel starts waiting for the user."""
+
+
+class AssistantTurnStarted(Event):
+    """Emitted when the model starts working on a user turn."""
+
+
+class ToolCallStarted(Event):
+    """Emitted immediately before the assistant invokes a tool."""
+
+    tool_name: str
+
+
+class ToolCallFinished(Event):
+    """Emitted when a tool invocation finishes or is interrupted."""
+
+    tool_name: str
 
 
 class UserSpeechStarted(Event):
@@ -22,4 +42,4 @@ class AssistantInterrupted(Event):
 
 
 class SessionEnded(Event):
-    """Emitted when a multi-turn voice session ends."""
+    """Emitted when a text or voice session ends."""

@@ -25,3 +25,4 @@ Stabile Fakten über Mathis. Ändert sich selten.
 - Kurze Antworten. Bei technischen Fragen zuerst die Entscheidung, dann die Begründung.
 - Keine Emojis in gesprochenen Antworten.
 - Bei Terminvorschlägen: Vormittage freihalten, wenn es geht.
+- Musik: Mag elektronisch-atmosphärische, leicht melancholische Tracks (z. B. it's murph, Fred again.., Four Tet, Avoure, 16BL, George FitzGerald, Jan Blomqvist und Łaszewo), außerdem cineastische Scores (Hans Zimmer, Michael Giacchino) und prägnanten Trip-Hop/Electronic-Klassiker (Massive Attack, Daft Punk). Bei deutschem Rap/Indie eher introspektive oder eigenwillige Sachen von Carlo5, katlix, YUNG SAINT PAUL, Strob, OG Keemo, makko, Shindy und Pashanim. Brown Noise ist ein funktionaler Sleep-Track, kein Musikgeschmack; Andreas Bourani eher nicht.

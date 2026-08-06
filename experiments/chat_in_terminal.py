@@ -5,8 +5,9 @@ from pathlib import Path
 from agenttoolkit import Skills
 from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
+from transitbus import EventBus
 
-from cara import Agent, TerminalSession
+from cara import Agent, HueListener, TerminalSession
 from cara.codex import CodexModel, create_codex_model
 from cara.tools import build_tools
 
@@ -30,6 +31,8 @@ def _spogo_config_root() -> Path:
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
     llm = create_codex_model(CodexModel.TERRA)
+    event_bus = EventBus()
+    hue_listener = HueListener(event_bus)
 
     async with build_tools(
         skills=skills,
@@ -60,10 +63,14 @@ async def main() -> None:
                 "Die lokalen Skills sind unter `/skills` schreibbar eingebunden. "
                 "Lies bestehende Dateien vor Änderungen und speichere neue oder geänderte Skills dort."
             ),
+            event_bus=event_bus,
         )
 
-        terminal_session = TerminalSession(agent)
-        await terminal_session.run()
+        terminal_session = TerminalSession(agent, event_bus=event_bus)
+        try:
+            await terminal_session.run()
+        finally:
+            await hue_listener.close()
 
 
 if __name__ == "__main__":

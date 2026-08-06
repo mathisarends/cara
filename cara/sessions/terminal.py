@@ -3,7 +3,10 @@ import json
 import sys
 from collections.abc import Callable
 
+from transitbus import EventBus
+
 from cara.agent import Agent
+from cara.events import SessionEnded, SessionStarted, UserTurnStarted
 
 _EXIT_COMMANDS = frozenset({"/exit", "/quit"})
 _RESET = "\x1b[0m"
@@ -29,6 +32,7 @@ class TerminalSession:
         output_writer: Callable[[str], None] = print,
         stream_writer: Callable[[str], None] = _write_to_stdout,
         color: bool | None = None,
+        event_bus: EventBus | None = None,
     ) -> None:
         self._agent = agent
         self._prompt = prompt
@@ -37,30 +41,40 @@ class TerminalSession:
         self._stream_writer = stream_writer
         self._color = sys.stdout.isatty() if color is None else color
         self._response_open = False
+        self._event_bus = event_bus
 
     async def run(self) -> None:
         """Process terminal input until EOF or an explicit exit command."""
-        while True:
-            try:
-                text = await asyncio.to_thread(self._input_reader, self._style(self._prompt, _BOLD_CYAN))
-            except EOFError:
-                return
+        await self._dispatch(SessionStarted())
+        try:
+            while True:
+                await self._dispatch(UserTurnStarted())
+                try:
+                    text = await asyncio.to_thread(self._input_reader, self._style(self._prompt, _BOLD_CYAN))
+                except EOFError:
+                    return
 
-            text = text.strip()
-            if text in _EXIT_COMMANDS:
-                return
-            if not text:
-                continue
+                text = text.strip()
+                if text in _EXIT_COMMANDS:
+                    return
+                if not text:
+                    continue
 
-            try:
-                await self._agent.respond(
-                    text,
-                    on_text_delta=self._show_text_delta,
-                    on_tool_call=self._show_tool_call,
-                    on_tool_result=self._show_tool_result,
-                )
-            finally:
-                self._finish_response()
+                try:
+                    await self._agent.respond(
+                        text,
+                        on_text_delta=self._show_text_delta,
+                        on_tool_call=self._show_tool_call,
+                        on_tool_result=self._show_tool_result,
+                    )
+                finally:
+                    self._finish_response()
+        finally:
+            await self._dispatch(SessionEnded())
+
+    async def _dispatch(self, event: SessionStarted | UserTurnStarted | SessionEnded) -> None:
+        if self._event_bus is not None:
+            await self._event_bus.dispatch(event)
 
     def _show_text_delta(self, delta: str) -> None:
         if not self._response_open:

@@ -6,7 +6,7 @@ from transitbus import EventBus
 
 from cara.agent import Agent
 from cara.audio import Earcon, EarconPlayer
-from cara.events import AssistantInterrupted, SessionEnded, SessionStarted
+from cara.events import AssistantInterrupted, SessionEnded, SessionStarted, UserTurnStarted
 from cara.listener import SoundListener
 from cara.speech import SpeechInput, SpeechOutput
 from cara.wakeword.barge_in import WakeWordBargeIn
@@ -111,6 +111,7 @@ class VoiceSession:
 
     async def _receive_barge_in(self) -> str | None:
         await self._event_bus.dispatch(AssistantInterrupted())
+        await self._event_bus.dispatch(UserTurnStarted())
         return await self._speech_input.receive()
 
     async def _receive(
@@ -119,6 +120,7 @@ class VoiceSession:
         follow_up: bool = False,
         ready: threading.Event | None = None,
     ) -> str | None:
+        await self._event_bus.dispatch(UserTurnStarted())
         initial_silence_timeout = self._follow_up_timeout_seconds if follow_up else None
         return await self._speech_input.receive(
             initial_silence_timeout=initial_silence_timeout,
