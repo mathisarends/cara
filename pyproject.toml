@@ -6,6 +6,7 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "gateway",
     "retrieval[openai,sqlite]",
+    "scheduler",
     "httpx>=0.28.0",
     "hueify>=0.4.1",
     "mm-agenttoolkit>=0.2.0",
@@ -43,11 +44,12 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["gateway", "retrieval"]
+members = ["gateway", "retrieval", "scheduler"]
 
 [tool.uv.sources]
 gateway = { workspace = true }
 retrieval = { workspace = true }
+scheduler = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -72,4 +74,4 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cara", "gateway", "retrieval"]
+known-first-party = ["cara", "gateway", "retrieval", "scheduler"]

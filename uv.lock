@@ -15,6 +15,7 @@ members = [
     "cara",
     "gateway",
     "retrieval",
+    "scheduler",
 ]
 
 [[package]]
@@ -57,6 +58,18 @@ wheels = [
 ]
 
 [[package]]
+name = "apscheduler"
+version = "3.11.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tzlocal", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/6b/eeff360196bb20b312c9e762a820fd1b2c6d809466c755ef57863478e454/apscheduler-3.11.3.tar.gz", hash = "sha256:cd2fcc9330039a81a5893472ad49facf23a6d5604cbe1d918c835c6de7834d5a", size = 110312, upload-time = "2026-06-28T19:39:22.493Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/c9/8638db32514dbb9157b3d82680c6faea89283523edf9ed2415ea3884f2ae/apscheduler-3.11.3-py3-none-any.whl", hash = "sha256:bbeb2ec02d23d3c06a6c07ed7f0f3939ada6680eb121fae809a69bb42c537a30", size = 66024, upload-time = "2026-06-28T19:39:20.982Z" },
+]
+
+[[package]]
 name = "cara"
 version = "0.1.0"
 source = { editable = "." }
@@ -74,6 +87,7 @@ dependencies = [
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "retrieval", extra = ["openai", "sqlite"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "scheduler", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -106,6 +120,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
+    { name = "scheduler", editable = "scheduler" },
     { name = "sonosify", specifier = ">=0.3.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
@@ -155,12 +170,33 @@ wheels = [
 ]
 
 [[package]]
+name = "click"
+version = "8.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/d4/81420972a676e8ffea40450d8c8c92943e7218a78fe9b64359836cc9876b/click-8.4.2.tar.gz", hash = "sha256:9a6cea6e60b17ebe0a44c5cc636d94f09bd66142c1cd7d8b4cd731c4917a15f6", size = 338000, upload-time = "2026-06-24T17:45:15.148Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/e2/79c688af8b210d232694e31e59da9f6ec747bae31c3f5946e4e9b98860d5/click-8.4.2-py3-none-any.whl", hash = "sha256:e6f9f66136c816745b9d65817da91d61d957fb16e02e4dcd0552553c5a197b76", size = 119243, upload-time = "2026-06-24T17:45:13.73Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
+name = "dishka"
+version = "1.10.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/da/b75b5fe665d16725e1d46e291c8dd4b0ed1731c7964f41087fda92f03d40/dishka-1.10.1.tar.gz", hash = "sha256:51fb624b9acc948b90f57128460061d1f3a1780121fe1c7d14c565e8bbff2083", size = 282008, upload-time = "2026-04-25T12:07:57.587Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/08/dd3259a319ba45c48d975caf237c830c7873a203288cb4ab186cc5bef585/dishka-1.10.1-py3-none-any.whl", hash = "sha256:84f40c1115eb391ce3fb558fd7946c5bcaf6361c35b77b7a185b7697a5720ec7", size = 120062, upload-time = "2026-04-25T12:07:59.153Z" },
 ]
 
 [[package]]
@@ -219,14 +255,31 @@ name = "gateway"
 version = "0.1.0"
 source = { editable = "gateway" }
 dependencies = [
+    { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "dishka", specifier = ">=1.4.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "uvicorn", specifier = ">=0.30.0" },
+]
+
+[[package]]
+name = "greenlet"
+version = "3.5.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/74/b13368064b09053253555d3f2839cc2684d22d5aed0d2ccffbf7a6736558/greenlet-3.5.4.tar.gz", hash = "sha256:0232ae1de90a8e07867bb127d7a6ba2301e859145489f25cda8a6096dabe1d20", size = 206538, upload-time = "2026-07-22T12:47:14.468Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/9a/e51225dcd58713f16ccbdcc501a8da21098ea14515b7870f1f94459e5ff5/greenlet-3.5.4-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:24e61b88cb7e1b1d794b32a10cc346ac779681d6d74ff137a3e0a444d2bf1f02", size = 294831, upload-time = "2026-07-22T11:38:53.389Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/5a/442ab1a9ef7ca6bf7210e5397a95972206a91a31033a03c8900866a10039/greenlet-3.5.4-cp313-cp313-win_amd64.whl", hash = "sha256:ca5726c0b08ca35ae873557266a78b2c3f3b2b7d7401aa5ff886c2045dd0111c", size = 247133, upload-time = "2026-07-22T11:39:20.661Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/e6/9160210222386b1a378ff94db846b9508ca24a121cf684991561fdb69280/greenlet-3.5.4-cp313-cp313-win_arm64.whl", hash = "sha256:7c1303791d603080cac6fc3b34df51c3b75b723739c282c8029e48a0d241672f", size = 245500, upload-time = "2026-07-22T11:40:22.185Z" },
 ]
 
 [[package]]
@@ -735,6 +788,25 @@ wheels = [
 ]
 
 [[package]]
+name = "scheduler"
+version = "0.1.0"
+source = { editable = "scheduler" }
+dependencies = [
+    { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "apscheduler", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "sqlalchemy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiosqlite", specifier = ">=0.21.0" },
+    { name = "apscheduler", specifier = ">=3.10.0" },
+    { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+]
+
+[[package]]
 name = "scikit-learn"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -805,6 +877,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/99/53/8007fd8323003c759fe0d5fb8950de06a684cd30909dd06cc5ba302daa56/spotifyify-0.7.0.tar.gz", hash = "sha256:1882e1dc28d963dee32dcd0ddebc78bcc6bb9489ebde20356b7f4530de2c4736", size = 53252, upload-time = "2026-06-26T19:28:56.406Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/4f/3219bff18a9f2053e389ea705f43f8c7734c7b9d3aba2ed51c59d3146015/spotifyify-0.7.0-py3-none-any.whl", hash = "sha256:3ab257a444d304394a77d6a13418bff00fa3fa3c3856872e49ef25d671f39d97", size = 57400, upload-time = "2026-06-26T19:28:55.357Z" },
+]
+
+[[package]]
+name = "sqlalchemy"
+version = "2.0.51"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "greenlet", marker = "(platform_machine == 'AMD64' and sys_platform == 'darwin') or (platform_machine == 'WIN32' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and sys_platform == 'darwin') or (platform_machine == 'amd64' and sys_platform == 'darwin') or (platform_machine == 'ppc64le' and sys_platform == 'darwin') or (platform_machine == 'win32' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'WIN32' and sys_platform == 'win32') or (platform_machine == 'aarch64' and sys_platform == 'win32') or (platform_machine == 'amd64' and sys_platform == 'win32') or (platform_machine == 'ppc64le' and sys_platform == 'win32') or (platform_machine == 'win32' and sys_platform == 'win32') or (platform_machine == 'x86_64' and sys_platform == 'win32')" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/02/f1/a7a892f18d4d224e6b26f706531eafccc41e37594d37d304786969ee13cb/sqlalchemy-2.0.51.tar.gz", hash = "sha256:804dccd8a4a6242c4e30ad961e540e18a588f6527202f2d6791b01845d59fdc9", size = 9912201, upload-time = "2026-06-15T15:41:20.012Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/fe/a210d52fd1a90ecfae8a78e9d8b27e18d733d60818a8bf250ff690b75120/sqlalchemy-2.0.51-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7c2056838b6685b72fdb36c99996cf862753461a62f2e84f4196371d3b2d6a07", size = 2157184, upload-time = "2026-06-15T16:08:50.374Z" },
+    { url = "https://files.pythonhosted.org/packages/94/df/de669c7054cd47c4439ac34b1b2ee8b804a794791fbb10720e997a2c87c7/sqlalchemy-2.0.51-cp313-cp313-win32.whl", hash = "sha256:b93ab07b5292dbe7e6b8da89475275e7042744283921344b56105f3eeb0f828b", size = 2117721, upload-time = "2026-06-15T16:23:12.36Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/8a/403c51d064196bae20a0bc2476577f83a3f8dd299719a97417086b7f2ec5/sqlalchemy-2.0.51-cp313-cp313-win_amd64.whl", hash = "sha256:0f053118c30e53161857a953e4de667d90e274980dccbe5dd3829bbbeece72a5", size = 2143615, upload-time = "2026-06-15T16:23:13.906Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/22/dbf013a12ec759e54a34a119e9e217435b3f71b2dd5c61a7ade0a25dae87/sqlalchemy-2.0.51-py3-none-any.whl", hash = "sha256:bb024d8b621d0be75f4f44ecc7c950450026e76d66dc8f791bb5331d7fed59d5", size = 1944334, upload-time = "2026-06-15T16:09:22.418Z" },
 ]
 
 [[package]]
@@ -925,12 +1013,37 @@ wheels = [
 ]
 
 [[package]]
+name = "tzlocal"
+version = "5.4.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/81/5b/879b2f932adfa7a053c360d50bc896c977fa6426109185f7c12ebdd0cb9d/tzlocal-5.4.4.tar.gz", hash = "sha256:8dbb8660838688a7b6ba4fed31d18dedf842afb4d47ca050d6d891c2c15f3be4", size = 31170, upload-time = "2026-06-29T08:03:40.026Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/a4/017a7a6cbe387d961a688ec31364ae60a5c4e22c96ae9921b79a947c855d/tzlocal-5.4.4-py3-none-any.whl", hash = "sha256:aae09f0126a8a86fa736be266eb4a471380d26a0de3bc14844e7821fee3e2a15", size = 18115, upload-time = "2026-06-29T08:03:38.666Z" },
+]
+
+[[package]]
 name = "urllib3"
 version = "2.7.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/0c/06f8b233b8fd13b9e5ee11424ef85419ba0d8ba0b3138bf360be2ff56953/urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c", size = 433602, upload-time = "2026-05-07T16:13:18.596Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/3e/5db95bcf282c52709639744ca2a8b149baccf648e39c8cc87553df9eae0c/urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897", size = 131087, upload-time = "2026-05-07T16:13:17.151Z" },
+]
+
+[[package]]
+name = "uvicorn"
+version = "0.52.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "h11", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/03/18/ccce41535dee1be77735592bd19965f3972c82e07ee703d324709496b716/uvicorn-0.52.1.tar.gz", hash = "sha256:112ec661814189acbccd3f7b86460147cc065fc92c0821afa78918780e4354dd", size = 100571, upload-time = "2026-08-01T18:19:30.732Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/d5/68e6e9bca63c0badf67002890a46d3784c958de45b65e1275ec583ca1f06/uvicorn-0.52.1-py3-none-any.whl", hash = "sha256:e4403f9d93188cf9d1088e9f40e3acd12630e2df8675316704379a7fc20fff6a", size = 79859, upload-time = "2026-08-01T18:19:29.294Z" },
 ]
 
 [[package]]
