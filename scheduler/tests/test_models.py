@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from scheduler import CronSchedule, JobDefinition
+from scheduler import CronSchedule, JobDefinition, SessionMode
 
 EXAMPLE_JOB = {
     "id": "job-123",
@@ -26,6 +26,7 @@ def test_parses_agent_job_declaration() -> None:
     assert isinstance(job.schedule, CronSchedule)
     assert job.schedule.expression == "0 18 * * 5"
     assert job.payload.prompt.startswith("Fasse zusammen")
+    assert job.session.mode is SessionMode.ISOLATED
     assert job.model_dump(mode="json", exclude_none=True) == {**EXAMPLE_JOB, "enabled": True}
 
 

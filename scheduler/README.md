@@ -40,3 +40,10 @@ Supported schedules are:
 
 One-shot jobs are deleted after a successful run. Recurring schedules remain
 stored until explicitly removed.
+
+## Runnable example
+
+Run `uv run python scheduler/examples/smoke_test.py` from the repository root
+for a short smoke test. It registers a job that runs every second, prints three
+executions, lists the persisted job, and removes it again. The example uses a
+temporary SQLite database, so it does not leave any state behind.

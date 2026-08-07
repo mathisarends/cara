@@ -1,8 +1,9 @@
 import asyncio
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol, Self
+from typing import Self
 from zoneinfo import ZoneInfo
 
 from apscheduler.job import Job
@@ -17,10 +18,12 @@ from scheduler.store import JobStore
 logger = logging.getLogger(__name__)
 
 
-class JobRunner(Protocol):
+class JobRunner(ABC):
     """Gateway-owned adapter that interprets a declarative job."""
 
-    async def run(self, job: JobDefinition) -> None: ...
+    @abstractmethod
+    async def run(self, job: JobDefinition) -> None:
+        """Interpret and execute *job*."""
 
 
 class Scheduler:

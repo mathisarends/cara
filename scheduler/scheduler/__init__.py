@@ -9,6 +9,7 @@ from .models import (
     ScheduledJob,
     ScheduleKind,
     Session,
+    SessionMode,
 )
 from .service import JobRunner, Scheduler
 from .store import DuplicateJobError
@@ -27,4 +28,5 @@ __all__ = [
     "ScheduledJob",
     "Scheduler",
     "Session",
+    "SessionMode",
 ]

@@ -11,12 +11,13 @@ from scheduler import (
     DuplicateJobError,
     EverySchedule,
     JobDefinition,
+    JobRunner,
     NoDelivery,
     Scheduler,
 )
 
 
-class RecordingRunner:
+class RecordingRunner(JobRunner):
     def __init__(self) -> None:
         self.jobs: list[JobDefinition] = []
         self.called = asyncio.Event()

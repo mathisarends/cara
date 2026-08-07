@@ -17,6 +17,11 @@ class ScheduleKind(StrEnum):
     CRON = "cron"
 
 
+class SessionMode(StrEnum):
+    MAIN = "main"
+    ISOLATED = "isolated"
+
+
 class AtSchedule(_Model):
     kind: Literal[ScheduleKind.AT] = ScheduleKind.AT
     at: datetime
@@ -70,7 +75,7 @@ Payload = AgentPromptPayload
 
 
 class Session(_Model):
-    mode: Literal["main", "isolated"] = "isolated"
+    mode: SessionMode = SessionMode.ISOLATED
 
 
 class ChatDelivery(_Model):
