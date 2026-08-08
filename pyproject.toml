@@ -5,6 +5,7 @@ description = "Input-agnostic conversational agent with terminal and voice sessi
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "gateway",
+    "openclaw_client",
     "retrieval[openai,sqlite]",
     "scheduler",
     "httpx>=0.28.0",
@@ -44,10 +45,11 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["gateway", "retrieval", "scheduler"]
+members = ["gateway", "openclaw_client", "retrieval", "scheduler"]
 
 [tool.uv.sources]
 gateway = { workspace = true }
+openclaw_client = { workspace = true }
 retrieval = { workspace = true }
 scheduler = { workspace = true }
 
@@ -74,4 +76,4 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cara", "gateway", "retrieval", "scheduler"]
+known-first-party = ["cara", "gateway", "openclaw_client", "retrieval", "scheduler"]

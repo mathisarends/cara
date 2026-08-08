@@ -14,6 +14,7 @@ supported-markers = [
 members = [
     "cara",
     "gateway",
+    "openclaw-client",
     "retrieval",
     "scheduler",
 ]
@@ -81,6 +82,7 @@ dependencies = [
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "openclaw-client", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -114,6 +116,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.100.0" },
+    { name = "openclaw-client", editable = "openclaw_client" },
     { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
@@ -502,6 +505,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/af/ac/f725c4efbda8657d0
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/7b/206238ebcb50b235942b1c66dba4974776f2057402a8d91c399be587d66a/openai-2.46.0-py3-none-any.whl", hash = "sha256:672381db55efb3a1e2610f29304c130cccdd0b319bace4d492b2443cb64c1e7c", size = 1637556, upload-time = "2026-07-17T02:48:03.695Z" },
 ]
+
+[[package]]
+name = "openclaw-client"
+version = "0.1.0"
+source = { editable = "openclaw_client" }
 
 [[package]]
 name = "openwakeword"
