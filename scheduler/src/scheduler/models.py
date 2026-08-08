@@ -71,9 +71,6 @@ class AgentPromptPayload(_Model):
     prompt: str = Field(min_length=1)
 
 
-Payload = AgentPromptPayload
-
-
 class Session(_Model):
     mode: SessionMode = SessionMode.ISOLATED
 
@@ -95,7 +92,7 @@ class JobDefinition(_Model):
     id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
     name: str = Field(min_length=1)
     schedule: Schedule
-    payload: Payload
+    payload: AgentPromptPayload
     session: Session = Field(default_factory=Session)
     delivery: Delivery = Field(default_factory=NoDelivery)
     enabled: bool = True
