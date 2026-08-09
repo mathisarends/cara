@@ -1,26 +1,10 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from cara.audio.ports import AudioOutput
-
 
 class ToolParams(BaseModel):
     """Base class for tool parameter models."""
 
     model_config = ConfigDict(extra="forbid")
-
-
-class SetAudioOutputParams(ToolParams):
-    output: AudioOutput = Field(
-        description="Configured audio sink to activate.",
-    )
-
-
-class SetVolumeParams(ToolParams):
-    level: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Target playback volume, from 0.0 (silent) to 1.0 (full).",
-    )
 
 
 class LoadSkillParams(ToolParams):

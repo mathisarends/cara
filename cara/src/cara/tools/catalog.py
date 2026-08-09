@@ -11,7 +11,6 @@ from agenttoolkit import (
     Inject,
     Skills,
     ToolContext,
-    description_from_context,
     provided,
     requires,
 )
@@ -28,7 +27,6 @@ from agenttoolkit.builtins import (
 )
 from agenttoolkit.builtins.fs import Entry
 
-from cara.audio import AudioPlayer
 from cara.memory import HybridMemorySearch, render_memory_results
 from cara.tools.handler import (
     IpLocationClient,
@@ -45,8 +43,6 @@ from cara.tools.params import (
     LoadSkillParams,
     ReadFileParams,
     SearchMemoryParams,
-    SetAudioOutputParams,
-    SetVolumeParams,
     WeatherParams,
     WebSearchParams,
     WriteFileParams,
@@ -201,50 +197,6 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
     async def load_skill(params: LoadSkillParams, skills: Inject[Skills]) -> str:
         loaded = skills.load(params.name)
         return loaded.instructions
-
-    @tools.action(
-        description=description_from_context(
-            AudioPlayer,
-            render=lambda player: (
-                "Switch audio playback to another configured audio sink. "
-                f"Available output names: {player.describe_outputs()}."
-            ),
-            fallback="Switch audio playback to another configured audio sink.",
-        ),
-        params=SetAudioOutputParams,
-        available_when=requires(
-            AudioPlayer, predicate=lambda player: player.has_multiple_outputs
-        ),
-    )
-    async def set_audio_output(
-        params: SetAudioOutputParams, player: Inject[AudioPlayer]
-    ) -> str:
-        player.set_output(params.output)
-        return f"Audio output switched to {params.output.value!r}."
-
-    @tools.action(
-        description=(
-            "Frage die aktuelle Wiedergabelautstärke des aktiven "
-            "Audio-Ausgangs ab, als Wert von 0.0 bis 1.0."
-        ),
-        available_when=provided(AudioPlayer),
-    )
-    async def get_volume(player: Inject[AudioPlayer]) -> str:
-        level = await player.get_volume()
-        return f"{level:.2f}"
-
-    @tools.action(
-        description=(
-            "Stelle die Wiedergabelautstärke des aktiven Audio-Ausgangs auf "
-            "einen Zielwert. "
-            "Frage vorher get_volume ab, um den aktuellen Wert zu kennen."
-        ),
-        params=SetVolumeParams,
-        available_when=provided(AudioPlayer),
-    )
-    async def set_volume(params: SetVolumeParams, player: Inject[AudioPlayer]) -> str:
-        await player.set_volume(params.level)
-        return f"Lautstärke ist jetzt {round(params.level * 100)}%."
 
     @tools.action(
         description=(
