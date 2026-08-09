@@ -1,6 +1,5 @@
 import asyncio
 from pathlib import Path
-from tempfile import gettempdir
 
 from agenttoolkit import Tools
 from agenttoolkit.builtins import (
@@ -154,7 +153,7 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     sandbox = context.resolve(DockerSandbox)
 
     assert workspace is not None
-    assert workspace.root == (Path(gettempdir()) / "cara" / "workspace").resolve()
+    assert workspace.root == (Path.home() / ".cara" / "workspace").resolve()
     assert sandbox is not None
     assert sandbox.defaults.working_directory == workspace.root
 

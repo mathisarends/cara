@@ -13,10 +13,11 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["cara", "gateway", "gateway_client", "llm", "retrieval", "scheduler", "voice"]
+members = ["cara", "cli", "gateway", "gateway_client", "llm", "retrieval", "scheduler", "voice"]
 
 [tool.uv.sources]
 cara = { workspace = true }
+cara-cli = { workspace = true }
 gateway = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
@@ -42,6 +43,7 @@ select = [
 [tool.ruff.lint.isort]
 known-first-party = [
     "cara",
+    "cli",
     "gateway",
     "gateway_client",
     "llm",

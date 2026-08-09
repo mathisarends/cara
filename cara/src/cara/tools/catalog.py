@@ -1,6 +1,5 @@
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from tempfile import gettempdir
 from types import TracebackType
 from typing import Self
 
@@ -31,6 +30,7 @@ from cara.memory import HybridMemorySearch, render_memory_results
 from cara.tools.handler import (
     IpLocationClient,
     OpenMeteoClient,
+    SearchResponse,
     TavilySearchClient,
     WeatherReport,
 )
@@ -106,7 +106,7 @@ def _default_workspace(
     additional_mounts: Mapping[str, Path] | None = None,
 ) -> LocalWorkspace:
     return LocalWorkspace(
-        Path(gettempdir()) / "cara" / "workspace",
+        Path.home() / ".cara" / "workspace",
         mounts=additional_mounts,
         max_file_bytes=1_000_000,
     )
@@ -228,7 +228,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         params: WebSearchParams, client: Inject[TavilySearchClient]
     ) -> str:
         response = await client.search(params.query, max_results=params.max_results)
-        return response.summary()
+        return _render_search_response(response)
 
     @tools.action(
         description=(
@@ -361,6 +361,17 @@ def _render_weather_report(report: WeatherReport) -> str:
         ["| Uhrzeit | Wetter | Temp | Regen |", "| --- | --- | --- | --- |", *rows]
     )
     return f"{summary}\n\n{table}"
+
+
+def _render_search_response(response: SearchResponse) -> str:
+    if response.answer is None and not response.results:
+        return "Keine Ergebnisse gefunden."
+    parts = [response.answer] if response.answer else []
+    parts.extend(
+        f"{result.title} ({result.url}): {result.content}"
+        for result in response.results
+    )
+    return "\n\n".join(parts)
 
 
 def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:

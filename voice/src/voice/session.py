@@ -1,10 +1,10 @@
 import asyncio
 import logging
 import threading
+from typing import Protocol
 
 from transitbus import EventBus
 
-from cara.agent import Agent
 from cara.events import (
     AssistantInterrupted,
     SessionEnded,
@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS = 7.0
 
 
+class _TextResponder(Protocol):
+    async def respond(self, text: str) -> str: ...
+
+
 class _ResponseInterrupted(Exception):
     pass
 
@@ -32,7 +36,7 @@ class VoiceSession:
     def __init__(
         self,
         *,
-        agent: Agent,
+        agent: _TextResponder,
         speech_input: SpeechInput,
         speech_output: SpeechOutput,
         wake_word_listener: WakeWordSessionSource,
@@ -136,7 +140,7 @@ class VoiceSession:
 
 
 async def _respond_until_interrupted(
-    agent: Agent,
+    agent: _TextResponder,
     text: str,
     *,
     interrupt: asyncio.Event,

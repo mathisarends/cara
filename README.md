@@ -12,20 +12,25 @@ pipeline:
 
 ## Run
 
-Set `OPENAI_API_KEY`, connect a microphone and speakers, then run the default voice mode:
+Start the gateway, set `OPENAI_API_KEY`, connect a microphone and speakers, then run
+the voice client:
+
+```powershell
+uv run python voice_main.py
+```
+
+Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you
+stop speaking, answers through the speakers, and briefly listens for a follow-up.
+Press Ctrl+C to stop the client.
+
+For a traditional text conversation in the terminal, run:
 
 ```powershell
 uv run python main.py
 ```
 
-For a traditional text conversation in the terminal, run:
-
-```powershell
-uv run python main.py --mode terminal
-```
-
 Terminal input, including short replies such as `1`, `2`, or `3`, is sent to the same conversation
-agent as transcribed speech. Use `/exit`, `/quit`, Ctrl+C, or EOF to leave terminal mode.
+gateway as transcribed speech. Use `exit`, `quit`, `:q`, Ctrl+C, or EOF to leave terminal mode.
 
 Die mit Docker Compose gestartete SQLite-Datenbank kann lokal mit sqlite-web
 angesehen werden. Eine kurze Anleitung steht in

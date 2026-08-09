@@ -37,6 +37,8 @@ services:
       # The agent authenticates with the host's Codex CLI credentials instead of
       # requiring a `codex login` of its own inside the container.
       - ~/.codex:/root/.codex:ro
+      # `cara onboard` creates the persistent workspace on the host.
+      - ~/.cara:/root/.cara
 
 volumes:
   gateway-data:
