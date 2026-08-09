@@ -109,7 +109,7 @@ dev = [
 requires-dist = [
     { name = "gateway", editable = "gateway" },
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "hueify", specifier = ">=0.4.1" },
+    { name = "hueify", specifier = ">=0.8.1" },
     { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
@@ -121,7 +121,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
     { name = "scheduler", editable = "scheduler" },
-    { name = "sonosify", specifier = ">=0.3.1" },
+    { name = "sonosify", specifier = ">=0.4.0" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "transitbus", specifier = ">=0.1.0" },
@@ -346,7 +346,7 @@ wheels = [
 
 [[package]]
 name = "hueify"
-version = "0.6.0"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx", extra = ["http2"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -354,9 +354,9 @@ dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f9/2c/bd71c2f7afab6925b69b03d80d457fad165291c42284095d47e5073a9f66/hueify-0.6.0.tar.gz", hash = "sha256:6d6be1e96d7f1ac7249d11247372d82de54d27a09d77fb9aa1b8e2fa77d5fa83", size = 107129, upload-time = "2026-06-28T17:09:04.919Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/0e/b66673f9676219d50e3359c8d5ed82f58779d574b3a9c4697663d5120abc/hueify-0.9.0.tar.gz", hash = "sha256:54db2f6f9f01097d47d5256ceee9c1c1216d0ddfce39fd940d8faed2dbd1d875", size = 1732438, upload-time = "2026-08-08T06:20:05.206Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/a6/c3986beb0d3f08d72244535c6b6879891c65f724377118cc213d56cde4d2/hueify-0.6.0-py3-none-any.whl", hash = "sha256:8f19f5df1c6fa456f31a9fed9b0438823a0e82cfed4a1183989150531e8182b2", size = 53713, upload-time = "2026-06-28T17:09:03.836Z" },
+    { url = "https://files.pythonhosted.org/packages/df/ac/5912e522c550ce499071dd335a9735f9c59a2f6205c7d016adce287cbebb/hueify-0.9.0-py3-none-any.whl", hash = "sha256:13c08862e18d7d3158529ee03b11d13bb4a07163d8f53e75557f56e5c920c2ec", size = 57126, upload-time = "2026-08-08T06:20:03.115Z" },
 ]
 
 [[package]]
@@ -840,16 +840,17 @@ wheels = [
 
 [[package]]
 name = "sonosify"
-version = "0.3.1"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/51/2b4362b1371bd91c5282dfe0ccde2c13dcdabff35cde11fb01b4cfd5ba9d/sonosify-0.3.1.tar.gz", hash = "sha256:90fe0edffdd2c2d81e39321fb3596f4ea89239216379cfc182d7feaca36254d9", size = 9838637, upload-time = "2026-07-23T11:47:28.382Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/02/c75a3fe717daf6fb53cf855835b0b905883c0861b0c0009ff0ca905e9852/sonosify-0.4.1.tar.gz", hash = "sha256:7d19f951842d44ec8c1168885f6d8b527e6a962a08c7032af2512c65f545a80e", size = 10119395, upload-time = "2026-08-06T16:17:57.32Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/8e/367cf1462938f182d21da3c51a10f58983ba66714dd7051ed0e5310de28e/sonosify-0.3.1-py3-none-any.whl", hash = "sha256:50587ef445f68604b564b72bfe05559512bb6ee65111d484cd472316b0a98e86", size = 61647, upload-time = "2026-07-23T11:47:25.68Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/f5/d9064ae9fc669bcb8d24f68db02d7a68a50e8e8deec64af5c8d055caefa0/sonosify-0.4.1-py3-none-any.whl", hash = "sha256:a33f52776266d3112f875267b01587f634534f4523e27d8ec5d6fd954b023d61", size = 42205, upload-time = "2026-08-06T16:17:54.543Z" },
 ]
 
 [[package]]
@@ -1057,4 +1058,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c2/e9/ed559f922857de104b1bcffe5eacadded0ce97abd2b7b5535385bf6eafbe/wakewordkit-0.2.0.tar.gz", hash = "sha256:2848c0c00d5d1c7dc97c3c0055876c265655d363125eed15c340c81e30073edf", size = 47921, upload-time = "2026-08-01T09:35:54.218Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/94/223fb05460ea8a43325b297b2a96a72c181a11ea4e1674d72cf7fb97cc7e/wakewordkit-0.2.0-py3-none-any.whl", hash = "sha256:07ea85f6840a6056b0646e0e7e2bf233a35d8fd02af8595dc380c7d2f63d6c42", size = 7987, upload-time = "2026-08-01T09:35:53.08Z" },
+]
+
+[[package]]
+name = "websockets"
+version = "17.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/96/e01084f83a64bcb3a27994bd0cb0db68ff29d9c6707fae37ec19b18ba990/websockets-17.0.1.tar.gz", hash = "sha256:5baa9bc0dfbae8c507e51c8cf1b6d4628086f7a87bbd3a9952bd5f035451f1cc", size = 183298, upload-time = "2026-07-31T11:31:27.665Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ba/a8/79c577bc2f874ee22f6f5ccdab97ba9ce6b96806be3fcc3a6d8490f88a21/websockets-17.0.1-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:55b12e47dcee83673a40d07686cfb6f9d6dfc285976ade9463f61d2bef3fad22", size = 212593, upload-time = "2026-07-31T11:29:56.518Z" },
+    { url = "https://files.pythonhosted.org/packages/db/99/e1cfaf419bb3b2fcfd6792a846f1d936293132b0b9a56530ced016c83c7b/websockets-17.0.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:c1c118a6b0e25bfc9a6802075d748fa6321714ffbdf3c88d29d9a0e3c7386c75", size = 210280, upload-time = "2026-07-31T11:29:57.768Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/ef/cc994494bf7d97e41833f6ff55c24f535e4d527a10370b9631737e9c2f00/websockets-17.0.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:734d20364dc2cfe03674883cafcf580b6e431c5ce42b476312b9285310230cf9", size = 210538, upload-time = "2026-07-31T11:29:59.021Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/2a/25a9f8f2e5a6ef34e911d2f55d9f756bdeb92b4c28cfb77b8430bbc73cb1/websockets-17.0.1-cp313-cp313-win32.whl", hash = "sha256:846a4a8b0833e3cad57523d9e3bd50ec8ea05ab9d06c582f82a1340ba096af5f", size = 213038, upload-time = "2026-07-31T11:30:18.434Z" },
+    { url = "https://files.pythonhosted.org/packages/81/2f/ea1380f72bb11b64fc5bc7ae0d42de5bbf3e6dc13b965706b2a1d4e17cdf/websockets-17.0.1-cp313-cp313-win_amd64.whl", hash = "sha256:409d93efcaa14f7a99592c5baaef5ec6ca94fba0f5aec1a86f693977c69c9c1c", size = 213348, upload-time = "2026-07-31T11:30:19.693Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/c7/b956ed9151c3c74530ebc62d716fbfdbde7507a6acc6423a64f9ecfb6b8a/websockets-17.0.1-cp313-cp313-win_arm64.whl", hash = "sha256:90246fa9e6cb192a778ce6ce024057ec54317a894db7899c922dcdc1f4cbf6a5", size = 213282, upload-time = "2026-07-31T11:30:21.045Z" },
+    { url = "https://files.pythonhosted.org/packages/09/ce/3929538b2b9918f5eee623fbf3346893973191f6df93f19bbda097bd7bb7/websockets-17.0.1-py3-none-any.whl", hash = "sha256:c6be9cba65c65cc76dfa3d4619e359ff02a4476c74e179b215236c11a0b32345", size = 206718, upload-time = "2026-07-31T11:31:26.037Z" },
 ]
