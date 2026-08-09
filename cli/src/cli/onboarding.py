@@ -1,6 +1,8 @@
 from importlib.resources import files
 from pathlib import Path
 
+from config import CaraPaths
+
 _TEMPLATE_NAMES = (
     "AGENTS.md",
     "IDENTITY.md",
@@ -17,7 +19,7 @@ _INITIAL_SKILL_FILES = (
 
 
 def workspace_root() -> Path:
-    return Path.home() / ".cara" / "workspace"
+    return CaraPaths().workspace_root
 
 
 def initial_skill_root() -> Path:

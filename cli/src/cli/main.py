@@ -21,7 +21,7 @@ error_console = Console(stderr=True)
 
 @app.command("onboard")
 def onboard_command() -> None:
-    """Create the persistent workspace in ~/.cara/workspace."""
+    """Create the configured persistent workspace."""
     try:
         results = onboard()
     except (OSError, RuntimeError) as error:

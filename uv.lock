@@ -16,6 +16,7 @@ supported-markers = [
 members = [
     "agent",
     "cara-cli",
+    "config",
     "gateway",
     "gateway-client",
     "llm",
@@ -36,6 +37,7 @@ name = "agent"
 version = "0.1.0"
 source = { editable = "agent" }
 dependencies = [
+    { name = "config", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -55,6 +57,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "config", editable = "config" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "hueify", specifier = ">=0.8.1" },
     { name = "llm", editable = "llm" },
@@ -142,6 +145,7 @@ name = "cara-cli"
 version = "0.1.0"
 source = { editable = "cli" }
 dependencies = [
+    { name = "config", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "psutil", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "rich", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "typer", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -154,6 +158,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "config", editable = "config" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "typer", specifier = ">=0.16.0" },
@@ -227,6 +232,17 @@ wheels = [
 ]
 
 [[package]]
+name = "config"
+version = "0.1.0"
+source = { editable = "config" }
+dependencies = [
+    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic-settings", specifier = ">=2.14.2" }]
+
+[[package]]
 name = "dishka"
 version = "1.10.1"
 source = { registry = "https://pypi.org/simple" }
@@ -294,6 +310,7 @@ dependencies = [
     { name = "agent", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "alembic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "config", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -316,6 +333,7 @@ requires-dist = [
     { name = "agent", editable = "agent" },
     { name = "aiosqlite", specifier = ">=0.22.0" },
     { name = "alembic", specifier = ">=1.19.1" },
+    { name = "config", editable = "config" },
     { name = "dishka", specifier = ">=1.4.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic", specifier = ">=2.7.0" },

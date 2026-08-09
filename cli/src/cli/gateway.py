@@ -4,6 +4,7 @@ from enum import Enum
 from pathlib import Path
 
 import psutil
+from config import CaraPaths
 
 _PROCESS_MARKER = "gateway.main:app"
 
@@ -21,7 +22,7 @@ def project_root() -> Path:
 
 
 def state_root() -> Path:
-    return Path.home() / ".cara"
+    return CaraPaths().state_root
 
 
 def start() -> tuple[int, bool]:

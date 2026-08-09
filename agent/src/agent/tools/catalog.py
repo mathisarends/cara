@@ -25,6 +25,7 @@ from agenttoolkit.builtins import (
     Workspace,
 )
 from agenttoolkit.builtins.fs import Entry
+from config import CaraPaths
 
 from agent.memory import HybridMemorySearch, render_memory_results
 from agent.tools.handler import (
@@ -49,7 +50,6 @@ from agent.tools.params import (
 )
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
-_WORKSPACE_ROOT = Path.home() / ".cara" / "workspace"
 
 
 class _ManagedTools(agenttoolkit.Tools):
@@ -78,11 +78,14 @@ class _ManagedTools(agenttoolkit.Tools):
 def create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
+    workspace_root: Path | None = None,
     sandbox: CommandRunner | None = None,
     sandbox_environment: Mapping[str, str] | None = None,
     sandbox_mounts: Sequence[BindMount] = (),
     sandbox_network_access: bool = False,
 ) -> ToolContext:
+    if workspace is not None and workspace_root is not None:
+        raise ValueError("Provide either workspace or workspace_root, not both.")
     if sandbox is not None and (
         sandbox_environment or sandbox_mounts or sandbox_network_access
     ):
@@ -90,7 +93,7 @@ def create_tool_context(
             "Configure environment, mounts, and network access on the "
             "provided sandbox directly."
         )
-    selected_workspace = workspace or _default_workspace()
+    selected_workspace = workspace or _default_workspace(workspace_root)
     selected_sandbox = sandbox or _default_sandbox(
         selected_workspace.root,
         environment=sandbox_environment,
@@ -100,8 +103,9 @@ def create_tool_context(
     return ToolContext(selected_workspace, selected_sandbox, *dependencies)
 
 
-def _default_workspace() -> LocalWorkspace:
-    return LocalWorkspace(_WORKSPACE_ROOT, max_file_bytes=1_000_000)
+def _default_workspace(root: Path | None = None) -> LocalWorkspace:
+    selected_root = root if root is not None else CaraPaths().workspace_root
+    return LocalWorkspace(selected_root, max_file_bytes=1_000_000)
 
 
 def _default_sandbox(
@@ -153,6 +157,7 @@ def build_tools(
     *dependencies: object,
     skills: Skills | None = None,
     workspace: Workspace | None = None,
+    workspace_root: Path | None = None,
     sandbox_environment: Mapping[str, str] | None = None,
     sandbox_mounts: Sequence[BindMount] = (),
     sandbox_network_access: bool = False,
@@ -169,6 +174,7 @@ def build_tools(
     tool_context = create_tool_context(
         *configured_dependencies,
         workspace=workspace,
+        workspace_root=workspace_root,
         sandbox_environment=sandbox_environment,
         sandbox_mounts=sandbox_mounts,
         sandbox_network_access=sandbox_network_access,

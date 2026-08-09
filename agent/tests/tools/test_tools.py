@@ -165,6 +165,22 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     assert not workspace_mount.endswith(",readonly")
 
 
+def test_workspace_root_configures_default_workspace(tmp_path: Path) -> None:
+    context = create_tool_context(workspace_root=tmp_path)
+
+    workspace = context.resolve(Workspace)
+
+    assert workspace is not None
+    assert workspace.root == tmp_path.resolve()
+
+
+def test_workspace_and_workspace_root_are_mutually_exclusive(tmp_path: Path) -> None:
+    workspace = LocalWorkspace(tmp_path)
+
+    with pytest.raises(ValueError, match="either workspace or workspace_root"):
+        create_tool_context(workspace=workspace, workspace_root=tmp_path)
+
+
 def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> None:
     config_root = tmp_path / "spogo"
     config_root.mkdir()

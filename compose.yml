@@ -11,6 +11,9 @@ x-gateway: &gateway
     context: .
     dockerfile: docker/gateway.Dockerfile
   environment:
+    # Host paths from .env are mounted below; processes inside the container use
+    # the corresponding container path.
+    CARA_WORKSPACE_ROOT: /root/.cara/workspace
     DATABASE_URL: sqlite+aiosqlite:////app/data/gateway.sqlite3
   env_file:
     - path: .env
@@ -37,8 +40,8 @@ services:
       # The agent authenticates with the host's Codex CLI credentials instead of
       # requiring a `codex login` of its own inside the container.
       - ~/.codex:/root/.codex:ro
-      # `cara onboard` creates the persistent workspace on the host.
-      - ~/.cara:/root/.cara
+      # `cara onboard` creates the configured persistent workspace on the host.
+      - ${CARA_WORKSPACE_ROOT:-~/.cara/workspace}:/root/.cara/workspace
 
 volumes:
   gateway-data:
