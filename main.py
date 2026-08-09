@@ -27,10 +27,10 @@ from cara.audio import (
     MicrophoneStream,
 )
 from cara.audio.device import PortAudioDevice
-from cara.codex import CodexModel, create_codex_model
 from cara.speech import OpenAISpeechToText, OpenAITextToSpeech
 from cara.tools import build_tools
 from cara.wakeword import WakeWord, WakeWordListener
+from llm import CodexModel, create_codex_model
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"

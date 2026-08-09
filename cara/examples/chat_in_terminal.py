@@ -8,10 +8,10 @@ from dotenv import load_dotenv
 from transitbus import EventBus
 
 from cara import Agent, HueListener, TerminalSession
-from cara.codex import CodexModel, create_codex_model
 from cara.tools import build_tools
+from llm import CodexModel, create_codex_model
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _SKILLS_ROOT = _PROJECT_ROOT / "skills"
 _WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
 
