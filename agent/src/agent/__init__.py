@@ -4,7 +4,6 @@ from .agent import Agent
 from .listener import HueListener
 from .prompt import Conversation, SystemPromptComposer
 from .runtime import AgentCallbacks, AgentContext, AgentRuntime, StoredToolCall
-from .sessions import TerminalSession
 
 __all__ = [
     "Agent",
@@ -17,5 +16,4 @@ __all__ = [
     "HueListener",
     "SystemPromptComposer",
     "StoredToolCall",
-    "TerminalSession",
 ]

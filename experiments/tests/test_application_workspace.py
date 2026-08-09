@@ -3,7 +3,8 @@ from pathlib import PurePosixPath
 
 import pytest
 from agenttoolkit.builtins.fs import PathOutsideWorkspaceError
-from main import _create_workspace, _editable_sandbox_mounts
+
+from experiments.chat_in_terminal import _create_workspace, _editable_sandbox_mounts
 
 
 def test_application_workspace_exposes_runtime_content_and_editable_code() -> None:

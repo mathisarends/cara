@@ -3,6 +3,7 @@ import asyncio
 import logging
 from uuid import UUID
 
+from experiments.terminal import TerminalRenderer, TerminalSession, TurnRunner
 from gateway_client import (
     ChatCompletedEvent,
     ChatDeltaEvent,
@@ -16,7 +17,6 @@ from gateway_client import (
 )
 
 _DEFAULT_GATEWAY_URL = "http://127.0.0.1:8000"
-_EXIT_COMMANDS = frozenset({"exit", "quit", ":q"})
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,47 +25,55 @@ logging.basicConfig(
 )
 
 
+class GatewayTurnRunner(TurnRunner):
+    """Runs turns against a gateway session and renders its event stream."""
+
+    def __init__(self, client: GatewayClient, session_id: UUID) -> None:
+        self._client = client
+        self._session_id = session_id
+
+    async def run_turn(self, text: str, renderer: TerminalRenderer) -> None:
+        async with self._client.event_stream(self._session_id) as events:
+            await self._client.sessions.start_chat(
+                self._session_id, ChatRequest(text=text)
+            )
+            try:
+                async for event in events:
+                    match event:
+                        case ChatDeltaEvent(data=data):
+                            renderer.show_text_delta(data.text)
+                        case ChatCompletedEvent():
+                            return
+                        case ToolCallStartedEvent(data=data):
+                            renderer.show_tool_call(data.name, data.arguments)
+                        case ToolCallCompletedEvent(data=data):
+                            content = str(data.result)
+                            if data.is_error:
+                                renderer.show_tool_error(data.name, content)
+                            else:
+                                renderer.show_tool_result(data.name, content)
+                        case TurnFailedEvent(data=data):
+                            renderer.show_notice(
+                                f"turn failed — {data.code}: {data.message}"
+                            )
+                            return
+            except KeyboardInterrupt:
+                renderer.show_notice("detached from turn")
+
+
 async def main(base_url: str = _DEFAULT_GATEWAY_URL) -> None:
     async with GatewayClient(base_url) as client:
         session = await client.sessions.create_session(
             SessionCreateRequest(metadata={"channel": "terminal"})
         )
-        print(f"Connected to {base_url} (session {session.id})")
-        print("Type a message, or 'exit' to quit.\n")
+        renderer = TerminalRenderer()
+        renderer.show_notice(f"connected to {base_url} (session {session.id})")
+        renderer.show_notice("type a message, or '/exit' to quit.\n")
 
-        while True:
-            text = await asyncio.to_thread(input, "You: ")
-            if text.strip().lower() in _EXIT_COMMANDS:
-                return
-            if not text.strip():
-                continue
-            await _run_turn(client, session.id, text)
-
-
-async def _run_turn(client: GatewayClient, session_id: UUID, text: str) -> None:
-    async with client.event_stream(session_id) as events:
-        await client.sessions.start_chat(session_id, ChatRequest(text=text))
-        print("Cara: ", end="", flush=True)
-        try:
-            async for event in events:
-                match event:
-                    case ChatDeltaEvent(data=data):
-                        print(data.text, end="", flush=True)
-                    case ChatCompletedEvent():
-                        print("\n")
-                        return
-                    case ToolCallStartedEvent(data=data):
-                        print(f"\n[tool] {data.name} {data.arguments}", flush=True)
-                    case ToolCallCompletedEvent(data=data):
-                        status = "error" if data.is_error else "ok"
-                        print(f"[tool] {data.name} -> {status}\n", flush=True)
-                    case TurnFailedEvent(data=data):
-                        print(
-                            f"\n[turn failed] {data.code}: {data.message}\n", flush=True
-                        )
-                        return
-        except KeyboardInterrupt:
-            print("\n[detached from turn]\n")
+        terminal = TerminalSession(
+            GatewayTurnRunner(client, session.id), renderer=renderer
+        )
+        await terminal.run()
 
 
 def _parse_args() -> argparse.Namespace:

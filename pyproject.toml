@@ -45,6 +45,7 @@ select = [
 known-first-party = [
     "agent",
     "cli",
+    "experiments",
     "gateway",
     "gateway_client",
     "llm",

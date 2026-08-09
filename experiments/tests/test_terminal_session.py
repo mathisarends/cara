@@ -20,8 +20,9 @@ from agent.events import (
     ToolCallStarted,
     UserTurnStarted,
 )
-from agent.sessions import TerminalSession
 from agent.tools import create_tools
+from experiments.agent_runner import AgentTurnRunner
+from experiments.terminal import TerminalRenderer, TerminalSession
 
 
 class EchoChatModel:
@@ -52,22 +53,24 @@ def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
 
     llm = EchoChatModel()
     session = TerminalSession(
-        Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path),
+        AgentTurnRunner(Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)),
         input_reader=read,
-        output_writer=outputs.append,
-        stream_writer=outputs.append,
-        color=False,
+        renderer=TerminalRenderer(
+            output_writer=outputs.append,
+            stream_writer=outputs.append,
+            color=False,
+        ),
     )
 
     asyncio.run(session.run())
 
-    assert prompts == ["you  \u276f ", "you  \u276f ", "you  \u276f "]
+    assert prompts == ["you  ❯ ", "you  ❯ ", "you  ❯ "]
     assert outputs == [
-        "cara \u276f ",
+        "cara ❯ ",
         "Antwort auf ",
         "Hallo",
         "\n",
-        "cara \u276f ",
+        "cara ❯ ",
         "Antwort auf ",
         "2",
         "\n",
@@ -80,7 +83,9 @@ def test_terminal_session_stops_at_end_of_input(tmp_path: Path) -> None:
         raise EOFError
 
     session = TerminalSession(
-        Agent(llm=EchoChatModel(), tools=create_tools(), prompt_root=tmp_path),
+        AgentTurnRunner(
+            Agent(llm=EchoChatModel(), tools=create_tools(), prompt_root=tmp_path)
+        ),
         input_reader=end_of_input,
     )
 
@@ -105,9 +110,9 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
                 yield StreamToolCall(tool_call=tool_call)
                 yield StreamEnd(tool_calls=[tool_call], stop_reason="tool_calls")
                 return
-            completion = "15 Grad und teils bew\u00f6lkt."
+            completion = "15 Grad und teils bewölkt."
             yield StreamTextDelta(delta="15 Grad ")
-            yield StreamTextDelta(delta="und teils bew\u00f6lkt.")
+            yield StreamTextDelta(delta="und teils bewölkt.")
             yield StreamEnd(completion=completion)
 
     inputs = iter(("Wie wird das Wetter?", "/exit"))
@@ -119,22 +124,25 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
         return f"Wetter für {location}"
 
     session = TerminalSession(
-        Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path),
+        AgentTurnRunner(
+            Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path)
+        ),
         input_reader=lambda prompt: next(inputs),
-        output_writer=outputs.append,
-        stream_writer=outputs.append,
-        color=False,
+        renderer=TerminalRenderer(
+            output_writer=outputs.append,
+            stream_writer=outputs.append,
+            color=False,
+        ),
     )
 
     asyncio.run(session.run())
 
     assert outputs == [
-        '\u256d\u2500 tool  weather_lookup\n\u2502  {\n\u2502    "location": '
-        '"Aurich"\n\u2502  }',
-        "\u2570\u2500 done  weather_lookup\n   Wetter f\u00fcr Aurich",
-        "cara \u276f ",
+        '╭─ tool  weather_lookup\n│  {\n│    "location": "Aurich"\n│  }',
+        "╰─ done  weather_lookup\n   Wetter für Aurich",
+        "cara ❯ ",
         "15 Grad ",
-        "und teils bew\u00f6lkt.",
+        "und teils bewölkt.",
         "\n",
     ]
 
@@ -200,10 +208,9 @@ def test_terminal_session_emits_turn_and_tool_lifecycle(tmp_path: Path) -> None:
             event_bus=event_bus,
         )
         session = TerminalSession(
-            agent,
+            AgentTurnRunner(agent, event_bus=event_bus),
             input_reader=lambda prompt: next(inputs),
-            stream_writer=lambda text: None,
-            event_bus=event_bus,
+            renderer=TerminalRenderer(stream_writer=lambda text: None, color=False),
         )
         await session.run()
         return events
