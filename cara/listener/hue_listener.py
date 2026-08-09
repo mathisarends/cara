@@ -2,10 +2,10 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
+from uuid import UUID
 
-from hueify import Hueify
-from hueify.grouped_lights import GroupedLights
-from hueify.sse.views import GroupedLightEvent
+from hueify import GroupedLight, Hueify, Room
+from hueify.models import HueEvent
 from transitbus import EventBus
 
 from cara.events import (
@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 class _Tint:
     """A relative nudge, in percentage points, applied on top of the baseline.
 
-    ``temperature_delta`` follows Hueify's convention: positive shifts toward
-    cooler white, negative toward warmer.
+    ``temperature_delta`` is measured on Hue's mirek scale: positive shifts
+    toward warmer white, negative toward cooler.
     """
 
     brightness_delta: int
@@ -52,7 +52,7 @@ _MIREK_MAX = 500
 class _Baseline:
     on: bool
     brightness: float
-    temperature: int | None
+    temperature: float | None
 
 
 class HueListener:
@@ -80,8 +80,9 @@ class HueListener:
         self._event_bus = event_bus
         self._room_name = room_name
         self._hue = hue or Hueify()
-        self._room: GroupedLights | None = None
-        self._hue_open = False
+        self._room: Room | None = None
+        self._grouped_light_id: UUID | None = None
+        self._stream_started = False
         self._baseline: _Baseline | None = None
         self._active_tint = _ZERO_TINT
         self._tool_progress_index = 0
@@ -94,7 +95,7 @@ class HueListener:
         self._event_bus.on(AssistantTurnStarted, self._on_assistant_turn_started)
         self._event_bus.on(ToolCallStarted, self._on_tool_call_started)
         self._event_bus.on(ToolCallFinished, self._on_tool_call_finished)
-        self._hue.on(GroupedLightEvent, self._on_bridge_event)
+        self._hue.on("grouped_light", self._on_bridge_event)
 
     async def _on_session_started(self, event: SessionStarted) -> None:
         self._submit(self._capture_baseline)
@@ -135,13 +136,15 @@ class HueListener:
 
     async def _capture_baseline(self) -> None:
         room = await self._ensure_room()
+        grouped_light = await self._hue.rooms.grouped_light(room.id)
+        self._grouped_light_id = grouped_light.id
         self._active_tint = _ZERO_TINT
         self._tool_progress_index = 0
         self._active_tool_calls = 0
         self._baseline = _Baseline(
-            on=room.is_on,
-            brightness=room.brightness_percentage,
-            temperature=_read_temperature(room),
+            on=grouped_light.is_on is True,
+            brightness=grouped_light.brightness or 0,
+            temperature=_read_temperature(grouped_light),
         )
 
     async def _apply_user_tint(self) -> None:
@@ -162,9 +165,17 @@ class HueListener:
 
         self._active_tint = tint
         room = await self._ensure_room()
-        await room.set_brightness(_clamp(baseline.brightness + tint.brightness_delta, *_BRIGHTNESS_RANGE))
-        if baseline.temperature is not None:
-            await room.set_color_temperature(_clamp(baseline.temperature + tint.temperature_delta, *_TEMPERATURE_RANGE))
+        temperature = (
+            None
+            if baseline.temperature is None
+            else _percentage_to_mirek(_clamp(baseline.temperature + tint.temperature_delta, *_TEMPERATURE_RANGE))
+        )
+        await self._hue.rooms.set_state(
+            room.id,
+            on=True,
+            brightness=_clamp(baseline.brightness + tint.brightness_delta, *_BRIGHTNESS_RANGE),
+            mirek=temperature,
+        )
 
     async def _restore_baseline(self) -> None:
         baseline = self._baseline
@@ -173,11 +184,14 @@ class HueListener:
         if baseline is None or not baseline.on:
             return
         room = await self._ensure_room()
-        await room.set_brightness(baseline.brightness)
-        if baseline.temperature is not None:
-            await room.set_color_temperature(baseline.temperature)
+        await self._hue.rooms.set_state(
+            room.id,
+            on=True,
+            brightness=baseline.brightness,
+            mirek=None if baseline.temperature is None else _percentage_to_mirek(baseline.temperature),
+        )
 
-    async def _on_bridge_event(self, event: GroupedLightEvent) -> None:
+    async def _on_bridge_event(self, event: HueEvent) -> None:
         """Fold a Hue Bridge report for our room back into the baseline.
 
         Reported values are corrected by the currently applied tint before
@@ -186,31 +200,36 @@ class HueListener:
         instead of being overwritten on the next restore.
         """
         baseline = self._baseline
-        if baseline is None or self._room is None or event.id != self._room.id:
+        if baseline is None or event.id != self._grouped_light_id:
             return
 
+        grouped_light = GroupedLight.model_validate(event.model_dump())
+
         tint = self._active_tint
-        if event.on is not None:
-            baseline = replace(baseline, on=event.on.on)
-        if event.dimming is not None:
+        if grouped_light.on is not None:
+            baseline = replace(baseline, on=grouped_light.on.on)
+        if grouped_light.dimming is not None:
             baseline = replace(
                 baseline,
-                brightness=_clamp(event.dimming.brightness - tint.brightness_delta, *_BRIGHTNESS_RANGE),
+                brightness=_clamp(
+                    grouped_light.dimming.brightness - tint.brightness_delta,
+                    *_BRIGHTNESS_RANGE,
+                ),
             )
-        if event.color_temperature is not None and event.color_temperature.mirek is not None:
-            reported = _mirek_to_percentage(event.color_temperature.mirek)
+        if grouped_light.mirek is not None:
+            reported = _mirek_to_percentage(grouped_light.mirek)
             baseline = replace(
                 baseline,
                 temperature=_clamp(reported - tint.temperature_delta, *_TEMPERATURE_RANGE),
             )
         self._baseline = baseline
 
-    async def _ensure_room(self) -> GroupedLights:
-        """Connect to the bridge and resolve the target room on first use."""
+    async def _ensure_room(self) -> Room:
+        """Resolve the target room and start bridge events on first use."""
         if self._room is None:
-            self._hue_open = True
-            await self._hue.connect()
-            self._room = self._hue.rooms.from_name(self._room_name)
+            self._room = await self._hue.rooms.find_by_name(self._room_name)
+            await self._hue.start_stream()
+            self._stream_started = True
             logger.info("Hue listener bound to room %r", self._room_name)
         return self._room
 
@@ -227,25 +246,25 @@ class HueListener:
         self._event_bus.off(AssistantTurnStarted, self._on_assistant_turn_started)
         self._event_bus.off(ToolCallStarted, self._on_tool_call_started)
         self._event_bus.off(ToolCallFinished, self._on_tool_call_finished)
-        self._hue.off(GroupedLightEvent, self._on_bridge_event)
-        if self._hue_open:
+        self._hue.off("grouped_light", self._on_bridge_event)
+        if self._stream_started:
             await self._hue.close()
-            self._hue_open = False
+            self._stream_started = False
         self._room = None
+        self._grouped_light_id = None
 
 
 def _clamp(value: float, lo: int, hi: int) -> float:
     return max(lo, min(hi, value))
 
 
-def _mirek_to_percentage(mirek: int) -> int:
-    return int(((mirek - _MIREK_MIN) / (_MIREK_MAX - _MIREK_MIN)) * 100)
+def _mirek_to_percentage(mirek: int) -> float:
+    return ((mirek - _MIREK_MIN) / (_MIREK_MAX - _MIREK_MIN)) * 100
 
 
-def _read_temperature(room: GroupedLights) -> int | None:
-    """Hueify raises instead of returning None for a light in color mode whose
-    color_temperature block still carries a null mirek value."""
-    try:
-        return room.color_temperature_percentage
-    except TypeError:
-        return None
+def _percentage_to_mirek(percentage: float) -> int:
+    return round(_MIREK_MIN + (percentage / 100) * (_MIREK_MAX - _MIREK_MIN))
+
+
+def _read_temperature(grouped_light: GroupedLight) -> int | None:
+    return None if grouped_light.mirek is None else _mirek_to_percentage(grouped_light.mirek)
