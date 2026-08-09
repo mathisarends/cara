@@ -6,7 +6,7 @@ from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, WebSocketException
 
 from gateway_client.errors import GatewayConnectionError
-from gateway_client.models import GatewayEventMessage, event_adapter
+from gateway_client.models import GatewayEventMessage, gateway_event_adapter
 
 
 class GatewayEventStream:
@@ -46,6 +46,6 @@ class GatewayEventStream:
             raise GatewayConnectionError("Event stream is not open.")
         try:
             async for message in self._connection:
-                yield event_adapter.validate_json(message)
+                yield gateway_event_adapter.validate_json(message)
         except ConnectionClosed as exc:
             raise GatewayConnectionError("Event stream closed unexpectedly.") from exc

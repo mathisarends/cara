@@ -1,12 +1,14 @@
 import argparse
 import asyncio
+from uuid import UUID
 
 from gateway_client import (
     ChatCompletedEvent,
     ChatDeltaEvent,
+    ChatRequest,
     GatewayClient,
     GatewayError,
-    GatewaySession,
+    SessionCreateRequest,
     ToolCallCompletedEvent,
     ToolCallStartedEvent,
 )
@@ -17,9 +19,10 @@ _EXIT_COMMANDS = frozenset({"exit", "quit", ":q"})
 
 async def main(base_url: str = _DEFAULT_GATEWAY_URL) -> None:
     async with GatewayClient(base_url) as client:
-        created = await client.create_session({"channel": "terminal"})
-        session = client.session(created.id)
-        print(f"Connected to {base_url} (session {created.id})")
+        session = await client.sessions.create_session(
+            SessionCreateRequest(metadata={"channel": "terminal"})
+        )
+        print(f"Connected to {base_url} (session {session.id})")
         print("Type a message, or 'exit' to quit.\n")
 
         while True:
@@ -28,12 +31,12 @@ async def main(base_url: str = _DEFAULT_GATEWAY_URL) -> None:
                 return
             if not text.strip():
                 continue
-            await _run_turn(session, text)
+            await _run_turn(client, session.id, text)
 
 
-async def _run_turn(session: GatewaySession, text: str) -> None:
-    async with session.events() as events:
-        await session.send(text)
+async def _run_turn(client: GatewayClient, session_id: UUID, text: str) -> None:
+    async with client.event_stream(session_id) as events:
+        await client.sessions.start_chat(session_id, ChatRequest(text=text))
         print("Cara: ", end="", flush=True)
         try:
             async for event in events:
@@ -49,8 +52,7 @@ async def _run_turn(session: GatewaySession, text: str) -> None:
                         status = "error" if data.is_error else "ok"
                         print(f"[tool] {data.name} -> {status}\n", flush=True)
         except KeyboardInterrupt:
-            await session.cancel()
-            print("\n[cancelled]\n")
+            print("\n[detached from turn]\n")
 
 
 def _parse_args() -> argparse.Namespace:

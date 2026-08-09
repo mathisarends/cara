@@ -1,10 +1,10 @@
-from .client import GatewayClient, GatewaySession
+from .client import GatewayClient
 from .errors import (
     GatewayConnectionError,
     GatewayError,
+    GatewayNotFoundError,
     GatewayResponseError,
     GatewayValidationError,
-    SessionNotFoundError,
 )
 from .events import GatewayEventStream
 from .models import (
@@ -12,10 +12,12 @@ from .models import (
     ChatCompletedPayload,
     ChatDeltaEvent,
     ChatDeltaPayload,
+    ChatRequest,
     GatewayEventMessage,
     GatewayEventType,
     HealthResponse,
     ReadinessResponse,
+    SessionCreateRequest,
     SessionResponse,
     ToolCallCompletedEvent,
     ToolCallCompletedPayload,
@@ -29,18 +31,19 @@ __all__ = [
     "ChatCompletedPayload",
     "ChatDeltaEvent",
     "ChatDeltaPayload",
+    "ChatRequest",
     "GatewayClient",
     "GatewayConnectionError",
     "GatewayError",
     "GatewayEventMessage",
     "GatewayEventStream",
     "GatewayEventType",
+    "GatewayNotFoundError",
     "GatewayResponseError",
-    "GatewaySession",
     "GatewayValidationError",
     "HealthResponse",
     "ReadinessResponse",
-    "SessionNotFoundError",
+    "SessionCreateRequest",
     "SessionResponse",
     "ToolCallCompletedEvent",
     "ToolCallCompletedPayload",

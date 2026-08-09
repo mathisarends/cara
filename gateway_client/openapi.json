@@ -9,7 +9,9 @@
   "paths": {
     "/v1/health": {
       "get": {
-        "tags": ["system"],
+        "tags": [
+          "system"
+        ],
         "summary": "Check gateway health",
         "operationId": "get_gateway_health",
         "responses": {
@@ -17,7 +19,9 @@
             "description": "The gateway process is alive.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/_HealthResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/_HealthResponse"
+                }
               }
             }
           }
@@ -26,7 +30,9 @@
     },
     "/v1/readiness": {
       "get": {
-        "tags": ["system"],
+        "tags": [
+          "system"
+        ],
         "summary": "Check gateway readiness",
         "operationId": "get_gateway_readiness",
         "responses": {
@@ -34,7 +40,9 @@
             "description": "The gateway application stack is ready.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/_ReadinessResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/_ReadinessResponse"
+                }
               }
             }
           }
@@ -43,13 +51,17 @@
     },
     "/v1/sessions": {
       "post": {
-        "tags": ["sessions"],
+        "tags": [
+          "sessions"
+        ],
         "summary": "Create a session",
         "operationId": "create_session",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SessionCreateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreateRequest"
+              }
             }
           },
           "required": true
@@ -59,7 +71,9 @@
             "description": "The newly created session.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
               }
             }
           },
@@ -67,7 +81,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -76,7 +92,9 @@
     },
     "/v1/sessions/{session_id}": {
       "get": {
-        "tags": ["sessions"],
+        "tags": [
+          "sessions"
+        ],
         "summary": "Get a session",
         "operationId": "get_session",
         "parameters": [
@@ -84,7 +102,11 @@
             "name": "session_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid", "title": "Session Id" }
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
           }
         ],
         "responses": {
@@ -92,7 +114,9 @@
             "description": "The requested session.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
               }
             }
           },
@@ -100,7 +124,9 @@
             "description": "Session not found.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -108,7 +134,9 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -117,7 +145,9 @@
     },
     "/v1/sessions/{session_id}/chat": {
       "post": {
-        "tags": ["sessions"],
+        "tags": [
+          "sessions"
+        ],
         "summary": "Start a chat turn",
         "operationId": "start_chat",
         "parameters": [
@@ -125,48 +155,34 @@
             "name": "session_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid", "title": "Session Id" }
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ChatRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
             }
           }
         },
         "responses": {
-          "202": { "description": "Successful Response" },
+          "202": {
+            "description": "Successful Response"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": ["sessions"],
-        "summary": "Cancel the active chat turn",
-        "operationId": "cancel_chat",
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid", "title": "Session Id" }
-          }
-        ],
-        "responses": {
-          "202": { "description": "Successful Response" },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -175,7 +191,9 @@
     },
     "/v1/schemas/events": {
       "get": {
-        "tags": ["events"],
+        "tags": [
+          "events"
+        ],
         "summary": "Get the WebSocket event schema",
         "operationId": "get_event_schema",
         "responses": {
@@ -199,7 +217,11 @@
     "schemas": {
       "ChatRequest": {
         "properties": {
-          "text": { "type": "string", "minLength": 1, "title": "Text" },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          },
           "metadata": {
             "additionalProperties": true,
             "type": "object",
@@ -207,7 +229,9 @@
           }
         },
         "type": "object",
-        "required": ["text"],
+        "required": [
+          "text"
+        ],
         "title": "ChatRequest"
       },
       "ErrorResponse": {
@@ -219,13 +243,17 @@
           }
         },
         "type": "object",
-        "required": ["detail"],
+        "required": [
+          "detail"
+        ],
         "title": "ErrorResponse"
       },
       "HTTPValidationError": {
         "properties": {
           "detail": {
-            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
             "type": "array",
             "title": "Detail"
           }
@@ -240,7 +268,11 @@
             "type": "object",
             "title": "Metadata",
             "description": "Client-defined session metadata used for routing context.",
-            "examples": [{ "channel": "terminal" }]
+            "examples": [
+              {
+                "channel": "terminal"
+              }
+            ]
           }
         },
         "type": "object",
@@ -268,23 +300,51 @@
           }
         },
         "type": "object",
-        "required": ["id", "created_at", "metadata"],
+        "required": [
+          "id",
+          "created_at",
+          "metadata"
+        ],
         "title": "SessionResponse"
       },
       "ValidationError": {
         "properties": {
           "loc": {
-            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
             "type": "array",
             "title": "Location"
           },
-          "msg": { "type": "string", "title": "Message" },
-          "type": { "type": "string", "title": "Error Type" },
-          "input": { "title": "Input" },
-          "ctx": { "type": "object", "title": "Context" }
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
         },
         "type": "object",
-        "required": ["loc", "msg", "type"],
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
         "title": "ValidationError"
       },
       "_HealthResponse": {
@@ -313,26 +373,50 @@
       },
       "ChatCompletedEvent": {
         "properties": {
-          "type": { "const": "chat.completed", "title": "Type", "type": "string" },
-          "event_id": { "format": "uuid", "title": "Event Id", "type": "string" },
+          "type": {
+            "const": "chat.completed",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
           "timestamp": {
             "format": "date-time",
             "title": "Timestamp",
             "type": "string"
           },
-          "session_id": { "format": "uuid", "title": "Session Id", "type": "string" },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
           "call_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": null,
             "title": "Call Id"
           },
-          "sequence": { "title": "Sequence", "type": "integer" },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           },
-          "data": { "$ref": "#/components/schemas/ChatCompletedPayload" }
+          "data": {
+            "$ref": "#/components/schemas/ChatCompletedPayload"
+          }
         },
         "required": [
           "type",
@@ -348,35 +432,68 @@
       "ChatCompletedPayload": {
         "additionalProperties": false,
         "properties": {
-          "text": { "title": "Text", "type": "string" },
-          "finish_reason": { "title": "Finish Reason", "type": "string" }
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "finish_reason": {
+            "title": "Finish Reason",
+            "type": "string"
+          }
         },
-        "required": ["text", "finish_reason"],
+        "required": [
+          "text",
+          "finish_reason"
+        ],
         "title": "ChatCompletedPayload",
         "type": "object"
       },
       "ChatDeltaEvent": {
         "properties": {
-          "type": { "const": "chat.delta", "title": "Type", "type": "string" },
-          "event_id": { "format": "uuid", "title": "Event Id", "type": "string" },
+          "type": {
+            "const": "chat.delta",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
           "timestamp": {
             "format": "date-time",
             "title": "Timestamp",
             "type": "string"
           },
-          "session_id": { "format": "uuid", "title": "Session Id", "type": "string" },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
           "call_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": null,
             "title": "Call Id"
           },
-          "sequence": { "title": "Sequence", "type": "integer" },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           },
-          "data": { "$ref": "#/components/schemas/ChatDeltaPayload" }
+          "data": {
+            "$ref": "#/components/schemas/ChatDeltaPayload"
+          }
         },
         "required": [
           "type",
@@ -391,33 +508,64 @@
       },
       "ChatDeltaPayload": {
         "additionalProperties": false,
-        "properties": { "text": { "title": "Text", "type": "string" } },
-        "required": ["text"],
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
         "title": "ChatDeltaPayload",
         "type": "object"
       },
       "ToolCallCompletedEvent": {
         "properties": {
-          "type": { "const": "tool_call.completed", "title": "Type", "type": "string" },
-          "event_id": { "format": "uuid", "title": "Event Id", "type": "string" },
+          "type": {
+            "const": "tool_call.completed",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
           "timestamp": {
             "format": "date-time",
             "title": "Timestamp",
             "type": "string"
           },
-          "session_id": { "format": "uuid", "title": "Session Id", "type": "string" },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
           "call_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": null,
             "title": "Call Id"
           },
-          "sequence": { "title": "Sequence", "type": "integer" },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           },
-          "data": { "$ref": "#/components/schemas/ToolCallCompletedPayload" }
+          "data": {
+            "$ref": "#/components/schemas/ToolCallCompletedPayload"
+          }
         },
         "required": [
           "type",
@@ -433,36 +581,72 @@
       "ToolCallCompletedPayload": {
         "additionalProperties": false,
         "properties": {
-          "name": { "title": "Name", "type": "string" },
-          "result": { "title": "Result" },
-          "is_error": { "title": "Is Error", "type": "boolean" }
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "result": {
+            "title": "Result"
+          },
+          "is_error": {
+            "title": "Is Error",
+            "type": "boolean"
+          }
         },
-        "required": ["name", "result", "is_error"],
+        "required": [
+          "name",
+          "result",
+          "is_error"
+        ],
         "title": "ToolCallCompletedPayload",
         "type": "object"
       },
       "ToolCallStartedEvent": {
         "properties": {
-          "type": { "const": "tool_call.started", "title": "Type", "type": "string" },
-          "event_id": { "format": "uuid", "title": "Event Id", "type": "string" },
+          "type": {
+            "const": "tool_call.started",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
           "timestamp": {
             "format": "date-time",
             "title": "Timestamp",
             "type": "string"
           },
-          "session_id": { "format": "uuid", "title": "Session Id", "type": "string" },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
           "call_id": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": null,
             "title": "Call Id"
           },
-          "sequence": { "title": "Sequence", "type": "integer" },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           },
-          "data": { "$ref": "#/components/schemas/ToolCallStartedPayload" }
+          "data": {
+            "$ref": "#/components/schemas/ToolCallStartedPayload"
+          }
         },
         "required": [
           "type",
@@ -478,14 +662,20 @@
       "ToolCallStartedPayload": {
         "additionalProperties": false,
         "properties": {
-          "name": { "title": "Name", "type": "string" },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
           "arguments": {
             "additionalProperties": true,
             "title": "Arguments",
             "type": "object"
           }
         },
-        "required": ["name", "arguments"],
+        "required": [
+          "name",
+          "arguments"
+        ],
         "title": "ToolCallStartedPayload",
         "type": "object"
       },
@@ -500,16 +690,30 @@
           "propertyName": "type"
         },
         "oneOf": [
-          { "$ref": "#/components/schemas/ChatDeltaEvent" },
-          { "$ref": "#/components/schemas/ChatCompletedEvent" },
-          { "$ref": "#/components/schemas/ToolCallStartedEvent" },
-          { "$ref": "#/components/schemas/ToolCallCompletedEvent" }
+          {
+            "$ref": "#/components/schemas/ChatDeltaEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ChatCompletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCallStartedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCallCompletedEvent"
+          }
         ]
       }
     }
   },
   "tags": [
-    { "name": "system", "description": "Gateway availability." },
-    { "name": "sessions", "description": "Conversation session lifecycle." }
+    {
+      "name": "system",
+      "description": "Gateway availability."
+    },
+    {
+      "name": "sessions",
+      "description": "Conversation session lifecycle."
+    }
   ]
 }

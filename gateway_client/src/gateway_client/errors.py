@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from gateway_client.models import ValidationError
 
 
@@ -18,10 +16,9 @@ class GatewayResponseError(GatewayError):
         self.detail = detail
 
 
-class SessionNotFoundError(GatewayResponseError):
-    def __init__(self, session_id: UUID, detail: str) -> None:
+class GatewayNotFoundError(GatewayResponseError):
+    def __init__(self, detail: str) -> None:
         super().__init__(404, detail)
-        self.session_id = session_id
 
 
 class GatewayValidationError(GatewayResponseError):
