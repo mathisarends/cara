@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from agenttoolkit import Skills
+from llmify import AssistantMessage as LLMifyAssistantMessage
 from llmify import (
     Function,
     StreamEnd,
@@ -12,6 +13,7 @@ from llmify import (
     ToolResultMessage,
 )
 
+from agent import AgentContext, StoredToolCall, SystemPromptComposer
 from gateway.features.conversation.application import AgentEventBus
 from gateway.features.conversation.domain import (
     ChatCompleted,
@@ -59,7 +61,9 @@ class _ToolCallingModel:
     async def stream(self, messages, *, tools):
         self.calls.append((messages, tools))
         if len(self.calls) == 1:
+            yield StreamTextDelta(delta="Ich schaue nach.")
             yield StreamEnd(
+                completion="Ich schaue nach.",
                 tool_calls=[
                     ToolCall(
                         id="call-1",
@@ -75,6 +79,29 @@ class _ToolCallingModel:
 
         yield StreamTextDelta(delta="Gefunden")
         yield StreamEnd(completion="Gefunden", stop_reason="stop")
+
+
+def test_agent_context_recombines_progress_text_with_following_tool_calls(
+    tmp_path: Path,
+) -> None:
+    context = AgentContext(SystemPromptComposer(root=tmp_path))
+    context.add_assistant_message("Ich schaue nach.")
+    context.add_tool_calls(
+        [
+            StoredToolCall(
+                call_id="call-1",
+                name="lookup",
+                arguments={"query": "Cara"},
+                result={"answer": "Cara"},
+            )
+        ]
+    )
+
+    assistant_message = context.to_llm_messages()[1]
+
+    assert isinstance(assistant_message, LLMifyAssistantMessage)
+    assert assistant_message.content == "Ich schaue nach."
+    assert assistant_message.tool_calls[0].id == "call-1"
 
 
 def test_runtime_agent_executes_catalog_tools_and_emits_lifecycle_events(
@@ -138,16 +165,22 @@ def test_runtime_agent_executes_catalog_tools_and_emits_lifecycle_events(
     model, events = asyncio.run(run())
 
     assert [type(event) for event in events] == [
+        ChatDelta,
+        ChatCompleted,
         ToolCallStarted,
         ToolCallCompleted,
         ChatDelta,
         ChatCompleted,
     ]
-    assert events[0].call_id == "call-1"
-    assert events[0].arguments == {"query": "Cara"}
-    assert events[1].result == {"answer": "Cara"}
-    assert events[2].text == "Gefunden"
-    assert events[3].text == "Gefunden"
+    assert events[0].text == "Ich schaue nach."
+    assert events[1].text == "Ich schaue nach."
+    assert events[1].finish_reason == "tool_calls"
+    assert events[2].call_id == "call-1"
+    assert events[2].arguments == {"query": "Cara"}
+    assert events[3].result == {"answer": "Cara"}
+    assert events[4].text == "Gefunden"
+    assert events[5].text == "Gefunden"
+    assert events[5].finish_reason == "stop"
     second_round_messages = model.calls[1][0]
     system_message = model.calls[0][0][0]
     assert isinstance(system_message, SystemMessage)
@@ -163,3 +196,9 @@ def test_runtime_agent_executes_catalog_tools_and_emits_lifecycle_events(
     )
     assert tool_result.tool_call_id == "call-1"
     assert tool_result.content == '{"answer": "Cara"}'
+    assistant_tool_call = next(
+        message
+        for message in second_round_messages
+        if isinstance(message, LLMifyAssistantMessage) and message.tool_calls
+    )
+    assert assistant_tool_call.content == "Ich schaue nach."

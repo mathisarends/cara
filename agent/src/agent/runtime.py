@@ -47,20 +47,28 @@ class AgentContext:
         self._messages.append(AssistantMessage(content=content))
 
     def add_tool_calls(self, calls: Sequence[StoredToolCall]) -> None:
-        self._messages.append(
-            AssistantMessage(
-                tool_calls=[
-                    ToolCall(
-                        id=call.call_id,
-                        function=Function(
-                            name=call.name,
-                            arguments=json.dumps(call.arguments),
-                        ),
-                    )
-                    for call in calls
-                ]
+        tool_calls = [
+            ToolCall(
+                id=call.call_id,
+                function=Function(
+                    name=call.name,
+                    arguments=json.dumps(call.arguments),
+                ),
             )
-        )
+            for call in calls
+        ]
+        if (
+            self._messages
+            and isinstance(self._messages[-1], AssistantMessage)
+            and not self._messages[-1].tool_calls
+        ):
+            preceding_message = self._messages[-1]
+            self._messages[-1] = AssistantMessage(
+                content=preceding_message.content,
+                tool_calls=tool_calls,
+            )
+        else:
+            self._messages.append(AssistantMessage(tool_calls=tool_calls))
         self._messages.extend(
             ToolResultMessage(
                 tool_call_id=call.call_id,
@@ -92,7 +100,7 @@ class AgentCallbacks(Protocol):
         is_error: bool,
     ) -> None: ...
 
-    async def on_completed(self, text: str, finish_reason: str) -> None: ...
+    async def on_message_completed(self, text: str, finish_reason: str) -> None: ...
 
 
 class AgentRuntime:
@@ -123,11 +131,13 @@ class AgentRuntime:
             if end is None:
                 raise LLMifyError("The model stream ended without a terminal event.")
 
+            completion = end.completion or ""
+            finish_reason = (
+                "tool_calls" if end.tool_calls else end.stop_reason or "stop"
+            )
+            await callbacks.on_message_completed(completion, finish_reason)
+
             if not end.tool_calls:
-                await callbacks.on_completed(
-                    end.completion or "",
-                    end.stop_reason or "stop",
-                )
                 return
 
             if round_index == _MAX_TOOL_ROUNDS:
@@ -137,7 +147,13 @@ class AgentRuntime:
 
             tool_results = await self._execute_tools(end.tool_calls, callbacks)
             messages.extend(
-                [AssistantMessage(tool_calls=end.tool_calls), *tool_results]
+                [
+                    AssistantMessage(
+                        content=completion,
+                        tool_calls=end.tool_calls,
+                    ),
+                    *tool_results,
+                ]
             )
 
         raise AssertionError("unreachable")

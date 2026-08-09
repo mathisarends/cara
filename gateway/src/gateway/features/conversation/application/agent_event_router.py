@@ -50,8 +50,9 @@ class AgentEventRouter:
         )
 
     async def _chat_completed(self, event: ChatCompleted) -> None:
-        self._session.add_assistant_message(event.text)
-        self._session = await self._sessions.save(self._session)
+        if event.text:
+            self._session.add_assistant_message(event.text)
+            self._session = await self._sessions.save(self._session)
         await self._publish(
             GatewayEventType.CHAT_COMPLETED,
             {"text": event.text, "finish_reason": event.finish_reason},

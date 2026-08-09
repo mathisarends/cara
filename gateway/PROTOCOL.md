@@ -75,10 +75,10 @@ The minimal lifecycle is:
 ```text
 command.accepted
 turn.started
-chat.delta                 (zero or more)
+chat.delta                 (zero or more per assistant segment)
+chat.completed             (one per assistant segment)
 tool_call.started          (zero or more, paired by call_id)
 tool_call.completed
-chat.completed
 turn.completed | turn.failed | turn.cancelled
 ```
 
@@ -95,6 +95,12 @@ Payloads:
 
 Session lifecycle commands additionally emit `session.created` or the
 client-scoped `session.snapshot`.
+
+`chat.completed` closes one streamed assistant segment, not necessarily the
+whole turn. A segment with `finish_reason: "tool_calls"` is followed by tool
+events and potentially another assistant segment. Clients must keep consuming
+events in that case. Any other finish reason marks the final assistant segment
+of the turn.
 
 ## Deliberate v0 limits
 

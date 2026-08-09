@@ -36,6 +36,7 @@ def test_onboard_creates_workspace(tmp_path: Path) -> None:
     ):
         assert (root / name).read_text(encoding="utf-8")
     assert (root / "skills").is_dir()
+    assert "ordinary assistant text" in (root / "AGENTS.md").read_text(encoding="utf-8")
     skill = root / "skills" / "cli-skill-creator"
     assert "Create a CLI Skill" in (skill / "SKILL.md").read_text(encoding="utf-8")
     assert (skill / "scripts" / "init_skill.py").is_file()

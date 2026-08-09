@@ -77,7 +77,8 @@ class _GatewayResponder:
                 case ChatDeltaEvent(data=data):
                     logger.debug("Gateway response delta: %s", data.text)
                 case ChatCompletedEvent(data=data):
-                    return data.text
+                    if data.finish_reason != "tool_calls":
+                        return data.text
                 case ToolCallStartedEvent(data=data):
                     logger.info("[tool] %s %s", data.name, data.arguments)
                 case ToolCallCompletedEvent(data=data):

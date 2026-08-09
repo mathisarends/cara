@@ -93,7 +93,7 @@ class _GatewayCallbacks:
             )
         )
 
-    async def on_completed(self, text: str, finish_reason: str) -> None:
+    async def on_message_completed(self, text: str, finish_reason: str) -> None:
         await self._event_bus.dispatch(
             ChatCompleted(text=text, finish_reason=finish_reason)
         )

@@ -42,8 +42,9 @@ class GatewayTurnRunner(TurnRunner):
                     match event:
                         case ChatDeltaEvent(data=data):
                             renderer.show_text_delta(data.text)
-                        case ChatCompletedEvent():
-                            return
+                        case ChatCompletedEvent(data=data):
+                            if data.finish_reason != "tool_calls":
+                                return
                         case ToolCallStartedEvent(data=data):
                             renderer.show_tool_call(data.name, data.arguments)
                         case ToolCallCompletedEvent(data=data):
