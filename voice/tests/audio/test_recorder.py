@@ -5,7 +5,7 @@ import time
 import wave
 from collections.abc import Callable
 
-from cara.audio.recorder import MicrophoneInputSettings, MicrophoneRecorder
+from voice.audio.recorder import MicrophoneInputSettings, MicrophoneRecorder
 
 _RATE = 16_000
 _FRAME_SAMPLES = 512

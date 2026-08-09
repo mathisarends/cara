@@ -3,8 +3,8 @@ from collections.abc import AsyncIterator
 
 from wakewordkit import AudioInput, Detection, WakeWord
 
-from cara.wakeword import listener as listener_module
-from cara.wakeword.listener import WakeWordListener
+from voice.wakeword import listener as listener_module
+from voice.wakeword.listener import WakeWordListener
 
 
 class RecordingMicrophone:

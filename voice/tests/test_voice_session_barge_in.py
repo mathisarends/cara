@@ -7,10 +7,11 @@ from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 from transitbus import EventBus
 
 from cara.agent import Agent
-from cara.audio import AudioOutput, AudioPlayer, EarconPlayer
 from cara.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
-from cara.sessions import VoiceSession
-from cara.speech import (
+from cara.tools import build_tools, create_tools
+from voice import VoiceSession
+from voice.audio import AudioOutput, AudioPlayer, EarconPlayer
+from voice.speech import (
     SpeechInput,
     SpeechOutput,
     SpeechSettings,
@@ -19,8 +20,7 @@ from cara.speech import (
     TextToSpeechRequest,
     TextToSpeechResponse,
 )
-from cara.tools import build_tools, create_tools
-from cara.wakeword.ports import WakeWordSessionSource
+from voice.wakeword.ports import WakeWordSessionSource
 
 
 class BargeInRecorder:

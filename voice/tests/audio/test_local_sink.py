@@ -3,10 +3,10 @@ import io
 import struct
 import wave
 
-from cara.audio import device as device_module
-from cara.audio.device import PortAudioDevice
-from cara.audio.local import LocalAudioSink
-from cara.audio.microphone import MicrophoneStream
+from voice.audio import device as device_module
+from voice.audio.device import PortAudioDevice
+from voice.audio.local import LocalAudioSink
+from voice.audio.microphone import MicrophoneStream
 
 
 class RecordingOutputStream:

@@ -5,9 +5,9 @@ from collections.abc import Awaitable, Callable
 
 from transitbus import EventBus
 
-from cara.audio import AudioOutput, AudioPlayer
 from cara.events import AssistantSpeechStarted, UserSpeechEnded, UserSpeechStarted
-from cara.speech import (
+from voice.audio import AudioOutput, AudioPlayer
+from voice.speech import (
     SpeechInput,
     SpeechOutput,
     SpeechSettings,
@@ -91,7 +91,7 @@ def test_speech_input_records_transcribes_and_emits_lifecycle(caplog) -> None:
         )
         return await speech_input.receive(), lifecycle
 
-    with caplog.at_level(logging.INFO, logger="cara.speech.input"):
+    with caplog.at_level(logging.INFO, logger="voice.speech.input"):
         transcript, lifecycle = asyncio.run(run())
 
     assert transcript == "Hallo Welt"

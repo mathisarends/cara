@@ -6,11 +6,11 @@ from pathlib import Path
 from transitbus import EventBus
 
 from cara.agent import Agent
-from cara.audio import AudioOutput, AudioPlayer, EarconPlayer
-from cara.sessions import VoiceSession
-from cara.speech import SpeechInput, SpeechOutput, SpeechSettings
 from cara.tools import create_tools
-from cara.wakeword.ports import WakeWordSessionSource
+from voice import VoiceSession
+from voice.audio import AudioOutput, AudioPlayer, EarconPlayer
+from voice.speech import SpeechInput, SpeechOutput, SpeechSettings
+from voice.wakeword.ports import WakeWordSessionSource
 
 
 class RecordingPlayer:

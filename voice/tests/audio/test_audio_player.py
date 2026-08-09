@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from cara.audio import AudioOutput, AudioPlayer
+from voice.audio import AudioOutput, AudioPlayer
 
 
 class RecordingSink:

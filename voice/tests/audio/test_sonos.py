@@ -2,8 +2,8 @@ import asyncio
 
 from sonosify import ClipPriority, ClipType
 
-import cara.audio.sonos.sink as sink_module
-from cara.audio.sonos import SonosAudioSink, SonosSettings
+import voice.audio.sonos.sink as sink_module
+from voice.audio.sonos import SonosAudioSink, SonosSettings
 
 
 class FakeHostedAudioClip:
