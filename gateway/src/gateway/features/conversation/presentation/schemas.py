@@ -56,6 +56,11 @@ class ToolCallCompletedPayload(EventPayload):
     is_error: bool
 
 
+class TurnFailedPayload(EventPayload):
+    code: str
+    message: str
+
+
 class EventEnvelope[PayloadT: EventPayload](BaseModel):
     type: GatewayEventType
     event_id: UUID
@@ -83,8 +88,16 @@ class ToolCallCompletedEvent(EventEnvelope[ToolCallCompletedPayload]):
     type: Literal[GatewayEventType.TOOL_CALL_COMPLETED]
 
 
+class TurnFailedEvent(EventEnvelope[TurnFailedPayload]):
+    type: Literal[GatewayEventType.TURN_FAILED]
+
+
 type EventMessage = Annotated[
-    ChatDeltaEvent | ChatCompletedEvent | ToolCallStartedEvent | ToolCallCompletedEvent,
+    ChatDeltaEvent
+    | ChatCompletedEvent
+    | ToolCallStartedEvent
+    | ToolCallCompletedEvent
+    | TurnFailedEvent,
     Field(discriminator="type"),
 ]
 event_adapter: TypeAdapter[EventMessage] = TypeAdapter(EventMessage)

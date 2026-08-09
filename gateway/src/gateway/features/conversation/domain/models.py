@@ -10,6 +10,7 @@ class GatewayEventType(StrEnum):
     CHAT_COMPLETED = "chat.completed"
     TOOL_CALL_STARTED = "tool_call.started"
     TOOL_CALL_COMPLETED = "tool_call.completed"
+    TURN_FAILED = "turn.failed"
 
 
 @dataclass(frozen=True, slots=True)

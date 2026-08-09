@@ -679,13 +679,91 @@
         "title": "ToolCallStartedPayload",
         "type": "object"
       },
+      "TurnFailedEvent": {
+        "properties": {
+          "type": {
+            "const": "turn.failed",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "call_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Call Id"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TurnFailedPayload"
+          }
+        },
+        "required": [
+          "type",
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "data"
+        ],
+        "title": "TurnFailedEvent",
+        "type": "object"
+      },
+      "TurnFailedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "TurnFailedPayload",
+        "type": "object"
+      },
       "GatewayEventMessage": {
         "discriminator": {
           "mapping": {
             "chat.completed": "#/components/schemas/ChatCompletedEvent",
             "chat.delta": "#/components/schemas/ChatDeltaEvent",
             "tool_call.completed": "#/components/schemas/ToolCallCompletedEvent",
-            "tool_call.started": "#/components/schemas/ToolCallStartedEvent"
+            "tool_call.started": "#/components/schemas/ToolCallStartedEvent",
+            "turn.failed": "#/components/schemas/TurnFailedEvent"
           },
           "propertyName": "type"
         },
@@ -701,6 +779,9 @@
           },
           {
             "$ref": "#/components/schemas/ToolCallCompletedEvent"
+          },
+          {
+            "$ref": "#/components/schemas/TurnFailedEvent"
           }
         ]
       }

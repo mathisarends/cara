@@ -17,6 +17,7 @@ class GatewayEventType(StrEnum):
     CHAT_COMPLETED = "chat.completed"
     TOOL_CALL_STARTED = "tool_call.started"
     TOOL_CALL_COMPLETED = "tool_call.completed"
+    TURN_FAILED = "turn.failed"
 
 
 class GatewayEventBase(BaseModel):
@@ -83,6 +84,11 @@ class ToolCallStartedPayload(BaseModel):
     arguments: dict[str, Any]
 
 
+class TurnFailedPayload(BaseModel):
+    code: str
+    message: str
+
+
 class ChatDeltaEvent(GatewayEventBase):
     type: Literal[GatewayEventType.CHAT_DELTA]
     data: ChatDeltaPayload
@@ -103,12 +109,21 @@ class ToolCallCompletedEvent(GatewayEventBase):
     data: ToolCallCompletedPayload
 
 
+class TurnFailedEvent(GatewayEventBase):
+    type: Literal[GatewayEventType.TURN_FAILED]
+    data: TurnFailedPayload
+
+
 class HTTPValidationError(BaseModel):
     detail: list[ValidationError] = Field(default_factory=list)
 
 
 type GatewayEventMessage = Annotated[
-    ChatDeltaEvent | ChatCompletedEvent | ToolCallStartedEvent | ToolCallCompletedEvent,
+    ChatDeltaEvent
+    | ChatCompletedEvent
+    | ToolCallStartedEvent
+    | ToolCallCompletedEvent
+    | TurnFailedEvent,
     Field(discriminator="type"),
 ]
 

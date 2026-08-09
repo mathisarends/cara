@@ -14,6 +14,8 @@ dependencies = [
     "scheduler",
     "sqlmodel>=0.0.31",
     "uvicorn>=0.30.0",
+    # Uvicorn only serves the WebSocket API when a WS implementation is present.
+    "websockets>=13.0",
 ]
 
 [project.scripts]

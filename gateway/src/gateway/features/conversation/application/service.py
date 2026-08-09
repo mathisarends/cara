@@ -9,6 +9,8 @@ from gateway.features.conversation.application.agent_event_router import (
 from gateway.features.conversation.application.event_bus import AgentEventBus
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
+    GatewayEvent,
+    GatewayEventType,
     Session,
     SessionBusyError,
     SessionNotFoundError,
@@ -90,9 +92,25 @@ class ConversationService:
                 session_id,
             )
             current_session = event_router.session if event_router else session
-            await self._fail_pending_tool_calls(current_session, str(error))
+            await self._fail_pending_tool_calls(current_session, _message(error))
+            await self._publish_turn_failed(session_id, event_router, error)
         finally:
             await self._sessions.release_turn(session_id)
+
+    async def _publish_turn_failed(
+        self,
+        session_id: UUID,
+        event_router: AgentEventRouter | None,
+        error: Exception,
+    ) -> None:
+        await self._events.publish(
+            GatewayEvent(
+                type=GatewayEventType.TURN_FAILED,
+                session_id=session_id,
+                sequence=event_router.sequence + 1 if event_router else 1,
+                data={"code": type(error).__name__, "message": _message(error)},
+            )
+        )
 
     async def _fail_pending_tool_calls(
         self,
@@ -102,3 +120,7 @@ class ConversationService:
         if session is None or not session.fail_pending_tool_calls(error):
             return
         await self._sessions.save(session)
+
+
+def _message(error: Exception) -> str:
+    return str(error) or type(error).__name__

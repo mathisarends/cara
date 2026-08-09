@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from gateway.container import create_container
 from gateway.features import FEATURES
 from gateway.lifespan import lifespan
-from gateway.presentation import health_router
+from gateway.presentation import RequestLoggingMiddleware, health_router
 
 _API_PREFIX = "/v1"
 
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
             {"name": "sessions", "description": "Conversation session lifecycle."},
         ],
     )
+    app.add_middleware(RequestLoggingMiddleware)
     app.include_router(health_router, prefix=_API_PREFIX)
     for feature in FEATURES:
         feature.install(app)

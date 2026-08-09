@@ -12,6 +12,17 @@ x-sources: &sources
   - ./scheduler/src:/app/scheduler/src:ro
 
 services:
+  sqlite-web:
+    image: ghcr.io/coleifer/sqlite-web:latest
+    command: ["gateway.sqlite3"]
+    depends_on:
+      gateway:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    volumes:
+      - gateway-data:/data
+
   migrate:
     volumes: *sources
 

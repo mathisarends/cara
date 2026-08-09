@@ -12,6 +12,7 @@ from gateway_client import (
     SessionCreateRequest,
     ToolCallCompletedEvent,
     ToolCallStartedEvent,
+    TurnFailedEvent,
 )
 
 _DEFAULT_GATEWAY_URL = "http://127.0.0.1:8000"
@@ -58,6 +59,11 @@ async def _run_turn(client: GatewayClient, session_id: UUID, text: str) -> None:
                     case ToolCallCompletedEvent(data=data):
                         status = "error" if data.is_error else "ok"
                         print(f"[tool] {data.name} -> {status}\n", flush=True)
+                    case TurnFailedEvent(data=data):
+                        print(
+                            f"\n[turn failed] {data.code}: {data.message}\n", flush=True
+                        )
+                        return
         except KeyboardInterrupt:
             print("\n[detached from turn]\n")
 

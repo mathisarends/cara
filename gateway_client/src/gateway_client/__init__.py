@@ -23,6 +23,8 @@ from .models import (
     ToolCallCompletedPayload,
     ToolCallStartedEvent,
     ToolCallStartedPayload,
+    TurnFailedEvent,
+    TurnFailedPayload,
     ValidationError,
 )
 
@@ -49,5 +51,7 @@ __all__ = [
     "ToolCallCompletedPayload",
     "ToolCallStartedEvent",
     "ToolCallStartedPayload",
+    "TurnFailedEvent",
+    "TurnFailedPayload",
     "ValidationError",
 ]

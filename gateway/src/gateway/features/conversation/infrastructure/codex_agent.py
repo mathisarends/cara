@@ -17,6 +17,9 @@ from llmify import (
     ToolResultMessage,
 )
 from llmify import (
+    Message as LLMMessage,
+)
+from llmify import (
     UserMessage as LLMUserMessage,
 )
 
@@ -37,7 +40,6 @@ from gateway.features.conversation.domain import (
 
 _MAX_TOOL_ROUNDS = 8
 type ToolFactory = Callable[[], AbstractAsyncContextManager[Tools]]
-type LLMMessage = LLMAssistantMessage | LLMUserMessage | ToolResultMessage
 
 
 class CodexAgentRunner(AgentRunner):
