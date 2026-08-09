@@ -32,6 +32,38 @@ uv run python main.py
 Terminal input, including short replies such as `1`, `2`, or `3`, is sent to the same conversation
 gateway as transcribed speech. Use `exit`, `quit`, `:q`, Ctrl+C, or EOF to leave terminal mode.
 
+## Workspace and Docker binds
+
+Cara reads optional JSON5 configuration from `~/.cara/cara.json`. The workspace is
+used for prompt files and file tools. Docker binds are added to the Bash sandbox;
+each entry ends in `ro` or `rw`:
+
+```json5
+{
+  agents: {
+    defaults: {
+      workspace: "~/.cara/workspace",
+      sandbox: {
+        // Disabled by default. Enable only for tools that need external APIs.
+        networkAccess: false,
+        docker: {
+          binds: [
+            "/home/mathis/music:/music:ro",
+          ],
+        },
+      },
+    },
+  },
+}
+```
+
+`CARA_WORKSPACE_ROOT` overrides the workspace from this file. Container targets
+below `/workspace` remain reserved for Cara and cannot be added as binds. Treat
+this file as trusted configuration: an `rw` bind gives sandbox commands write
+access to that host directory. `networkAccess` controls outbound network access
+for Bash sandbox commands and defaults to `false`. Restart the gateway after
+changing the file.
+
 Die mit Docker Compose gestartete SQLite-Datenbank kann lokal mit sqlite-web
 angesehen werden. Eine kurze Anleitung steht in
 [docs/sqlite-web.md](docs/sqlite-web.md).

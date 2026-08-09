@@ -11,6 +11,7 @@ from agenttoolkit import (
     ToolContext,
 )
 from agenttoolkit.builtins import BindMount, DockerSandbox, Workspace
+from config import CaraConfig
 
 from agent.tools.actions import register_tools
 from agent.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
@@ -26,12 +27,13 @@ def create_tools(context: ToolContext | None = None) -> "_ManagedTools":
 
 def build_tools(
     *dependencies: object,
+    configuration: CaraConfig | None = None,
     skills: Skills | None = None,
     workspace: Workspace | None = None,
     workspace_root: Path | None = None,
     sandbox_environment: Mapping[str, str] | None = None,
-    sandbox_mounts: Sequence[BindMount] = (),
-    sandbox_network_access: bool = False,
+    sandbox_mounts: Sequence[BindMount] | None = None,
+    sandbox_network_access: bool | None = None,
     tools: agenttoolkit.Tools | None = None,
 ) -> "_ManagedTools":
     configured_dependencies = [
@@ -44,6 +46,7 @@ def build_tools(
         configured_dependencies.append(skills)
     tool_context = create_tool_context(
         *configured_dependencies,
+        configuration=configuration,
         workspace=workspace,
         workspace_root=workspace_root,
         sandbox_environment=sandbox_environment,

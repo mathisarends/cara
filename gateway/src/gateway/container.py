@@ -1,6 +1,6 @@
 from functools import partial
 
-from config import CaraPaths
+from config import load_cara_config
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
 
@@ -18,15 +18,15 @@ class _AgentProvider(Provider):
 
     @provide
     def agent(self, sessions: SessionRepository) -> AgentRunner:
-        workspace_root = CaraPaths().workspace_root
+        configuration = load_cara_config()
         return RuntimeAgentRunner(
             sessions=sessions,
             llm=create_codex_model(CodexModel.TERRA),
             tool_factory=partial(
                 build_tools,
-                workspace_root=workspace_root,
+                configuration=configuration,
             ),
-            prompt_root=workspace_root,
+            prompt_root=configuration.workspace_root,
         )
 
 
