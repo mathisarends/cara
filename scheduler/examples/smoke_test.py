@@ -6,11 +6,15 @@ From the repository root:
 """
 
 import asyncio
-import tempfile
-from pathlib import Path
 from uuid import uuid4
 
-from scheduler import EverySchedule, JobDefinition, JobRunner, Scheduler, SQLiteJobStore
+from scheduler import (
+    EverySchedule,
+    InMemoryJobStore,
+    JobDefinition,
+    JobRunner,
+    Scheduler,
+)
 
 
 class ConsoleJobRunner(JobRunner):
@@ -43,21 +47,18 @@ async def main() -> None:
         },
     )
 
-    with tempfile.TemporaryDirectory() as temporary_directory:
-        database_path = Path(temporary_directory) / "jobs.sqlite"
-        store = SQLiteJobStore(database_path)
-        async with Scheduler(store, runner) as scheduler:
-            scheduled_job = await scheduler.add(job)
-            print(f"registered: {scheduled_job.id}")
-            print(f"next run: {scheduled_job.next_run_at}")
+    async with Scheduler(InMemoryJobStore(), runner) as scheduler:
+        scheduled_job = await scheduler.add(job)
+        print(f"registered: {scheduled_job.id}")
+        print(f"next run: {scheduled_job.next_run_at}")
 
-            await asyncio.wait_for(runner.wait_until_complete(), timeout=6)
+        await asyncio.wait_for(runner.wait_until_complete(), timeout=6)
 
-            active_jobs = await scheduler.list()
-            active_job_ids = [active_job.id for active_job in active_jobs]
-            print(f"stored recurring jobs: {active_job_ids}")
-            await scheduler.remove(job.id)
-            print("removed: scheduler-smoke-test")
+        active_jobs = await scheduler.list()
+        active_job_ids = [active_job.id for active_job in active_jobs]
+        print(f"stored recurring jobs: {active_job_ids}")
+        await scheduler.remove(job.id)
+        print("removed: scheduler-smoke-test")
 
 
 if __name__ == "__main__":

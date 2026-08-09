@@ -888,14 +888,12 @@ name = "scheduler"
 version = "0.1.0"
 source = { editable = "scheduler" }
 dependencies = [
-    { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "apscheduler", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aiosqlite", specifier = ">=0.21.0" },
     { name = "apscheduler", specifier = ">=3.10.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
 ]

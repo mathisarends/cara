@@ -1,6 +1,5 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from uuid import UUID
 
 import pytest
@@ -10,10 +9,10 @@ from scheduler import (
     CronSchedule,
     DuplicateJobError,
     EverySchedule,
+    InMemoryJobStore,
     JobDefinition,
     JobRunner,
     Scheduler,
-    SQLiteJobStore,
 )
 
 JOB_ID = UUID("00000000-0000-0000-0000-000000000123")
@@ -41,12 +40,12 @@ def make_job(*, enabled: bool = True) -> JobDefinition:
     )
 
 
-def test_manages_declarative_jobs(tmp_path: Path) -> None:
-    asyncio.run(_assert_declarative_job_management(tmp_path / "jobs.sqlite"))
+def test_manages_declarative_jobs() -> None:
+    asyncio.run(_assert_declarative_job_management())
 
 
-async def _assert_declarative_job_management(database_path: Path) -> None:
-    scheduler = Scheduler(SQLiteJobStore(database_path), RecordingRunner())
+async def _assert_declarative_job_management() -> None:
+    scheduler = Scheduler(InMemoryJobStore(), RecordingRunner())
     await scheduler.start()
     try:
         created = await scheduler.add(make_job())
@@ -70,12 +69,12 @@ async def _assert_declarative_job_management(database_path: Path) -> None:
         await scheduler.shutdown()
 
 
-def test_rejects_duplicate_id(tmp_path: Path) -> None:
-    asyncio.run(_assert_duplicate_is_rejected(tmp_path / "jobs.sqlite"))
+def test_rejects_duplicate_id() -> None:
+    asyncio.run(_assert_duplicate_is_rejected())
 
 
-async def _assert_duplicate_is_rejected(database_path: Path) -> None:
-    scheduler = Scheduler(SQLiteJobStore(database_path), RecordingRunner())
+async def _assert_duplicate_is_rejected() -> None:
+    scheduler = Scheduler(InMemoryJobStore(), RecordingRunner())
     await scheduler.start()
     try:
         await scheduler.add(make_job())
@@ -85,17 +84,19 @@ async def _assert_duplicate_is_rejected(database_path: Path) -> None:
         await scheduler.shutdown()
 
 
-def test_persists_job_across_restart(tmp_path: Path) -> None:
-    asyncio.run(_assert_job_survives_restart(tmp_path / "jobs.sqlite"))
+def test_persists_job_across_restart() -> None:
+    asyncio.run(_assert_job_survives_restart())
 
 
-async def _assert_job_survives_restart(database_path: Path) -> None:
-    first = Scheduler(SQLiteJobStore(database_path), RecordingRunner())
+async def _assert_job_survives_restart() -> None:
+    store = InMemoryJobStore()
+
+    first = Scheduler(store, RecordingRunner())
     await first.start()
     await first.add(make_job())
     await first.shutdown()
 
-    second = Scheduler(SQLiteJobStore(database_path), RecordingRunner())
+    second = Scheduler(store, RecordingRunner())
     await second.start()
     try:
         restored = await second.get(JOB_ID)
@@ -106,13 +107,13 @@ async def _assert_job_survives_restart(database_path: Path) -> None:
         await second.shutdown()
 
 
-def test_runs_job_immediately(tmp_path: Path) -> None:
-    asyncio.run(_assert_job_runs_immediately(tmp_path / "jobs.sqlite"))
+def test_runs_job_immediately() -> None:
+    asyncio.run(_assert_job_runs_immediately())
 
 
-async def _assert_job_runs_immediately(database_path: Path) -> None:
+async def _assert_job_runs_immediately() -> None:
     runner = RecordingRunner()
-    scheduler = Scheduler(SQLiteJobStore(database_path), runner)
+    scheduler = Scheduler(InMemoryJobStore(), runner)
     await scheduler.start()
     try:
         await scheduler.add(make_job())
@@ -123,13 +124,13 @@ async def _assert_job_runs_immediately(database_path: Path) -> None:
         await scheduler.shutdown()
 
 
-def test_one_shot_is_removed_after_success(tmp_path: Path) -> None:
-    asyncio.run(_assert_one_shot_is_removed(tmp_path / "jobs.sqlite"))
+def test_one_shot_is_removed_after_success() -> None:
+    asyncio.run(_assert_one_shot_is_removed())
 
 
-async def _assert_one_shot_is_removed(database_path: Path) -> None:
+async def _assert_one_shot_is_removed() -> None:
     runner = RecordingRunner()
-    scheduler = Scheduler(SQLiteJobStore(database_path), runner)
+    scheduler = Scheduler(InMemoryJobStore(), runner)
     await scheduler.start()
     job = JobDefinition(
         id=REMINDER_ID,
@@ -145,12 +146,12 @@ async def _assert_one_shot_is_removed(database_path: Path) -> None:
         await scheduler.shutdown()
 
 
-def test_every_schedule_has_next_run(tmp_path: Path) -> None:
-    asyncio.run(_assert_every_schedule_has_next_run(tmp_path / "jobs.sqlite"))
+def test_every_schedule_has_next_run() -> None:
+    asyncio.run(_assert_every_schedule_has_next_run())
 
 
-async def _assert_every_schedule_has_next_run(database_path: Path) -> None:
-    scheduler = Scheduler(SQLiteJobStore(database_path), RecordingRunner())
+async def _assert_every_schedule_has_next_run() -> None:
+    scheduler = Scheduler(InMemoryJobStore(), RecordingRunner())
     await scheduler.start()
     job = JobDefinition(
         id=POLL_ID,
