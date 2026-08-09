@@ -8,15 +8,9 @@ From the repository root:
 import asyncio
 import tempfile
 from pathlib import Path
+from uuid import uuid4
 
-from scheduler import (
-    AgentPromptPayload,
-    EverySchedule,
-    JobDefinition,
-    JobRunner,
-    NoDelivery,
-    Scheduler,
-)
+from scheduler import EverySchedule, JobDefinition, JobRunner, Scheduler, SQLiteJobStore
 
 
 class ConsoleJobRunner(JobRunner):
@@ -29,7 +23,7 @@ class ConsoleJobRunner(JobRunner):
 
     async def run(self, job: JobDefinition) -> None:
         self._run_count += 1
-        print(f"run {self._run_count}: {job.name} — {job.payload.prompt}")
+        print(f"run {self._run_count}: {job.name} — {job.payload['prompt']}")
         if self._run_count == self._expected_runs:
             self._completed.set()
 
@@ -40,16 +34,19 @@ class ConsoleJobRunner(JobRunner):
 async def main() -> None:
     runner = ConsoleJobRunner(expected_runs=3)
     job = JobDefinition(
-        id="scheduler-smoke-test",
+        id=uuid4(),
         name="Wiederkehrender Smoke-Test",
         schedule=EverySchedule(seconds=1),
-        payload=AgentPromptPayload(prompt="Bestätige, dass der Scheduler läuft."),
-        delivery=NoDelivery(),
+        payload={
+            "kind": "agent_prompt",
+            "prompt": "Bestätige, dass der Scheduler läuft.",
+        },
     )
 
     with tempfile.TemporaryDirectory() as temporary_directory:
         database_path = Path(temporary_directory) / "jobs.sqlite"
-        async with Scheduler(database_path, runner) as scheduler:
+        store = SQLiteJobStore(database_path)
+        async with Scheduler(store, runner) as scheduler:
             scheduled_job = await scheduler.add(job)
             print(f"registered: {scheduled_job.id}")
             print(f"next run: {scheduled_job.next_run_at}")

@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
+from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.triggers.cron import CronTrigger
@@ -15,11 +16,6 @@ class ScheduleKind(StrEnum):
     AT = "at"
     EVERY = "every"
     CRON = "cron"
-
-
-class SessionMode(StrEnum):
-    MAIN = "main"
-    ISOLATED = "isolated"
 
 
 class AtSchedule(_Model):
@@ -68,38 +64,11 @@ Schedule = Annotated[
 ]
 
 
-class AgentPromptPayload(_Model):
-    kind: Literal["agent_prompt"] = "agent_prompt"
-    prompt: str = Field(min_length=1)
-
-
-Payload = AgentPromptPayload
-
-
-class Session(_Model):
-    mode: SessionMode = SessionMode.ISOLATED
-
-
-class ChatDelivery(_Model):
-    kind: Literal["chat"] = "chat"
-    channel: str = Field(min_length=1)
-    target: str | None = None
-
-
-class NoDelivery(_Model):
-    kind: Literal["none"] = "none"
-
-
-Delivery = Annotated[ChatDelivery | NoDelivery, Field(discriminator="kind")]
-
-
 class JobDefinition(_Model):
-    id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    id: UUID
     name: str = Field(min_length=1)
     schedule: Schedule
-    payload: Payload
-    session: Session = Field(default_factory=Session)
-    delivery: Delivery = Field(default_factory=NoDelivery)
+    payload: dict[str, Any]
     enabled: bool = True
 
 

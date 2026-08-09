@@ -2,8 +2,8 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from pathlib import Path
 from typing import Self
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from apscheduler.job import Job
@@ -37,12 +37,12 @@ class Scheduler:
 
     def __init__(
         self,
-        database_path: str | Path,
+        store: JobStore,
         runner: JobRunner,
         *,
         timezone: str = "UTC",
     ) -> None:
-        self._store = JobStore(database_path)
+        self._store = store
         self._runner = runner
         self._timezone = ZoneInfo(timezone)
         self._scheduler = AsyncIOScheduler(
@@ -93,7 +93,7 @@ class Scheduler:
             self._scheduler.add_job(
                 self._run,
                 trigger=trigger,
-                id=job.id,
+                id=str(job.id),
                 args=(job.id,),
                 name=job.name,
                 replace_existing=replace_existing,
@@ -102,7 +102,7 @@ class Scheduler:
             self._remove_runtime_job(job.id)
         return self._to_scheduled_job(job)
 
-    async def get(self, job_id: str) -> ScheduledJob | None:
+    async def get(self, job_id: UUID) -> ScheduledJob | None:
         self._require_running()
         job = await self._store.get(job_id)
         return self._to_scheduled_job(job) if job is not None else None
@@ -114,19 +114,19 @@ class Scheduler:
             jobs = [job for job in jobs if job.enabled]
         return [self._to_scheduled_job(job) for job in jobs]
 
-    async def remove(self, job_id: str) -> bool:
+    async def remove(self, job_id: UUID) -> bool:
         self._require_running()
         removed = await self._store.remove(job_id)
         self._remove_runtime_job(job_id)
         return removed
 
-    async def enable(self, job_id: str) -> ScheduledJob | None:
+    async def enable(self, job_id: UUID) -> ScheduledJob | None:
         return await self._set_enabled(job_id, enabled=True)
 
-    async def disable(self, job_id: str) -> ScheduledJob | None:
+    async def disable(self, job_id: UUID) -> ScheduledJob | None:
         return await self._set_enabled(job_id, enabled=False)
 
-    async def run_now(self, job_id: str) -> bool:
+    async def run_now(self, job_id: UUID) -> bool:
         self._require_running()
         job = await self._store.get(job_id)
         if job is None:
@@ -134,7 +134,7 @@ class Scheduler:
         self._scheduler.add_job(self._run, args=(job_id,))
         return True
 
-    async def _set_enabled(self, job_id: str, *, enabled: bool) -> ScheduledJob | None:
+    async def _set_enabled(self, job_id: UUID, *, enabled: bool) -> ScheduledJob | None:
         self._require_running()
         job = await self._store.get(job_id)
         if job is None:
@@ -148,7 +148,7 @@ class Scheduler:
             self._remove_runtime_job(job_id)
         return self._to_scheduled_job(updated)
 
-    async def _run(self, job_id: str) -> None:
+    async def _run(self, job_id: UUID) -> None:
         job = await self._store.get(job_id)
         if job is None or not job.enabled:
             return
@@ -166,18 +166,18 @@ class Scheduler:
         self._scheduler.add_job(
             self._run,
             trigger=_create_trigger(job),
-            id=job.id,
+            id=str(job.id),
             args=(job.id,),
             name=job.name,
             replace_existing=True,
         )
 
-    def _remove_runtime_job(self, job_id: str) -> None:
-        if self._scheduler.get_job(job_id) is not None:
-            self._scheduler.remove_job(job_id)
+    def _remove_runtime_job(self, job_id: UUID) -> None:
+        if self._scheduler.get_job(str(job_id)) is not None:
+            self._scheduler.remove_job(str(job_id))
 
     def _to_scheduled_job(self, definition: JobDefinition) -> ScheduledJob:
-        runtime_job = self._scheduler.get_job(definition.id)
+        runtime_job = self._scheduler.get_job(str(definition.id))
         return ScheduledJob(
             **definition.model_dump(),
             next_run_at=_next_run_at(runtime_job),
