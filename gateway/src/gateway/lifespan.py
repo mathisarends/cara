@@ -10,5 +10,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("%s starting up", app.title)
-    yield
-    logger.info("%s shutting down", app.title)
+    try:
+        yield
+    finally:
+        await app.state.dishka_container.close()
+        logger.info("%s shutting down", app.title)

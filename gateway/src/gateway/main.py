@@ -1,19 +1,42 @@
 import uvicorn
+from dishka import make_async_container
+from dishka.integrations.fastapi import FastapiProvider, setup_dishka
 from fastapi import FastAPI
-from pydantic import BaseModel
 
+from gateway.application import AgentRunner
+from gateway.dependencies import GatewayProvider
+from gateway.infrastructure import EchoAgentRunner
 from gateway.lifespan import lifespan
+from gateway.presentation import router
 
-app = FastAPI(title="Cara Gateway", lifespan=lifespan)
-
-
-class HealthResponse(BaseModel):
-    status: str
+_API_PREFIX = "/v1"
 
 
-@app.get("/health", response_model=HealthResponse)
-def health() -> HealthResponse:
-    return HealthResponse(status="ok")
+def create_app(agent: AgentRunner | None = None) -> FastAPI:
+    container = make_async_container(
+        GatewayProvider(agent or EchoAgentRunner()),
+        FastapiProvider(),
+    )
+    application = FastAPI(
+        title="Cara Gateway API",
+        summary="Session-based gateway for Cara clients.",
+        description=(
+            "Create and inspect sessions through HTTP. Send commands and receive "
+            "run, chat, and tool-call events through the versioned WebSocket API."
+        ),
+        version="0.1.0",
+        lifespan=lifespan,
+        openapi_tags=[
+            {"name": "system", "description": "Gateway availability."},
+            {"name": "sessions", "description": "Conversation session lifecycle."},
+        ],
+    )
+    application.include_router(router, prefix=_API_PREFIX)
+    setup_dishka(container, application)
+    return application
+
+
+app = create_app()
 
 
 if __name__ == "__main__":
