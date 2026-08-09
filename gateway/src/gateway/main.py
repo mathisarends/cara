@@ -1,3 +1,5 @@
+import logging
+
 import uvicorn
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
@@ -8,6 +10,12 @@ from gateway.lifespan import lifespan
 from gateway.presentation import health_router
 
 _API_PREFIX = "/v1"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def create_app() -> FastAPI:
