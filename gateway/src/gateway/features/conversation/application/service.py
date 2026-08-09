@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID, uuid4
 
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
@@ -16,7 +17,6 @@ from gateway.features.conversation.domain import (
     ToolCallCompleted,
     ToolCallStarted,
 )
-from gateway.features.conversation.domain.models import new_id
 
 
 class ConversationService:
@@ -31,26 +31,26 @@ class ConversationService:
         self._runs = runs
         self._events = events
         self._agent = agent
-        self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._tasks: dict[UUID, asyncio.Task[None]] = {}
 
     async def create_session(self, metadata: dict[str, Any]) -> Session:
         session = Session(
-            id=new_id("sess"),
+            id=uuid4(),
             created_at=datetime.now(UTC),
             metadata=dict(metadata),
         )
         return await self._sessions.save(session)
 
-    async def get_session(self, session_id: str) -> Session:
+    async def get_session(self, session_id: UUID) -> Session:
         session = await self._sessions.find_by_id(session_id)
         if session is None:
             raise SessionNotFoundError(session_id)
         return session
 
-    async def prepare_run(self, session_id: str) -> Run:
+    async def prepare_run(self, session_id: UUID) -> Run:
         await self.get_session(session_id)
         run = Run(
-            id=new_id("run"),
+            id=uuid4(),
             session_id=session_id,
             created_at=datetime.now(UTC),
         )
@@ -66,7 +66,7 @@ class ConversationService:
         self._tasks[run.id] = task
         task.add_done_callback(lambda _: self._tasks.pop(run.id, None))
 
-    async def cancel_run(self, session_id: str, run_id: str) -> Run:
+    async def cancel_run(self, session_id: UUID, run_id: UUID) -> Run:
         run = await self._runs.find_by_id(run_id)
         if run is None or run.session_id != session_id:
             raise RunNotFoundError(run_id)

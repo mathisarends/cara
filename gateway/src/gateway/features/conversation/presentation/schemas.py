@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, Self
+from uuid import UUID
 
 from pydantic import BaseModel, Field, TypeAdapter
 
@@ -27,7 +28,7 @@ class SessionCreateCommand(BaseModel):
 class SessionGetCommand(BaseModel):
     type: Literal[CommandType.SESSION_GET]
     request_id: str
-    session_id: str
+    session_id: UUID
 
 
 class ChatSendPayload(BaseModel):
@@ -38,18 +39,18 @@ class ChatSendPayload(BaseModel):
 class ChatSendCommand(BaseModel):
     type: Literal[CommandType.CHAT_SEND]
     request_id: str
-    session_id: str
+    session_id: UUID
     payload: ChatSendPayload
 
 
 class RunCancelPayload(BaseModel):
-    run_id: str
+    run_id: UUID
 
 
 class RunCancelCommand(BaseModel):
     type: Literal[CommandType.RUN_CANCEL]
     request_id: str
-    session_id: str
+    session_id: UUID
     payload: RunCancelPayload
 
 
@@ -62,10 +63,10 @@ command_adapter: TypeAdapter[Command] = TypeAdapter(Command)
 
 class EventEnvelope(BaseModel):
     type: str
-    event_id: str
+    event_id: UUID
     timestamp: datetime
-    session_id: str | None = None
-    run_id: str | None = None
+    session_id: UUID | None = None
+    run_id: UUID | None = None
     call_id: str | None = None
     sequence: int | None = None
     request_id: str | None = None
@@ -97,7 +98,7 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionResponse(BaseModel):
-    id: str = Field(description="Stable session identifier.", examples=["sess_abc123"])
+    id: UUID = Field(description="Stable session identifier.")
     created_at: datetime = Field(
         description="UTC timestamp when the session was created."
     )

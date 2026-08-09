@@ -35,7 +35,7 @@ Example:
 {
   "type": "chat.send",
   "request_id": "req_123",
-  "session_id": "sess_abc",
+  "session_id": "0b1d3b0e-6e8b-4c1a-9c2a-1f6a2b7c9d4e",
   "payload": {
     "text": "Mach das Licht an",
     "metadata": {"input": "terminal"}
@@ -54,19 +54,20 @@ Every event uses one envelope. Fields without a value are omitted on the wire.
 ```json
 {
   "type": "chat.delta",
-  "event_id": "evt_...",
+  "event_id": "b3f0a6e2-1c9e-4d3a-8b6f-2e7a5c1d9f30",
   "timestamp": "2026-08-09T08:45:00Z",
-  "session_id": "sess_...",
-  "run_id": "run_...",
+  "session_id": "0b1d3b0e-6e8b-4c1a-9c2a-1f6a2b7c9d4e",
+  "run_id": "6f2c8e4a-3d1b-4a9e-9b7c-5d8f0a2e1c6b",
   "sequence": 2,
   "metadata": {},
   "data": {"text": "Hallo"}
 }
 ```
 
-`event_id` is globally unique. `sequence` is monotonically increasing within a
-run and can be used to order its events. `metadata` is for tracing and adapter
-context; event-specific values belong in `data`.
+`event_id`, `session_id`, and `run_id` are UUIDs. `event_id` is globally
+unique. `sequence` is monotonically increasing within a run and can be used
+to order its events. `metadata` is for tracing and adapter context;
+event-specific values belong in `data`.
 
 ## Events
 

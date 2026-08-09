@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import suppress
 from typing import Any
+from uuid import UUID
 
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
@@ -104,7 +105,7 @@ class CommandProcessor:
         self,
         client_id: str,
         command: ChatSendCommand,
-        session_id: str,
+        session_id: UUID,
     ) -> None:
         run = await self._service.prepare_run(session_id)
         await self._accepted(
@@ -120,7 +121,7 @@ class CommandProcessor:
         self,
         client_id: str,
         command: RunCancelCommand,
-        session_id: str,
+        session_id: UUID,
     ) -> None:
         run = await self._service.cancel_run(session_id, command.payload.run_id)
         await self._accepted(
@@ -136,9 +137,9 @@ class CommandProcessor:
         client_id: str,
         request_id: str,
         command_type: CommandType,
-        session_id: str,
+        session_id: UUID,
         *,
-        run_id: str | None = None,
+        run_id: UUID | None = None,
     ) -> None:
         await self._broker.publish_to(
             client_id,

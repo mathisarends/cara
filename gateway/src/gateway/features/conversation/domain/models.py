@@ -1,24 +1,20 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
-
-
-def new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid4().hex}"
+from uuid import UUID, uuid4
 
 
 @dataclass(frozen=True, slots=True)
 class Session:
-    id: str
+    id: UUID
     created_at: datetime
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
 class Run:
-    id: str
-    session_id: str
+    id: UUID
+    session_id: UUID
     created_at: datetime
     status: str = "pending"
 
@@ -26,11 +22,11 @@ class Run:
 @dataclass(frozen=True, slots=True)
 class GatewayEvent:
     type: str
-    session_id: str | None
+    session_id: UUID | None
     data: dict[str, Any]
-    event_id: str = field(default_factory=lambda: new_id("evt"))
+    event_id: UUID = field(default_factory=uuid4)
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
-    run_id: str | None = None
+    run_id: UUID | None = None
     call_id: str | None = None
     sequence: int | None = None
     request_id: str | None = None

@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 from unittest.mock import patch
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -88,16 +89,17 @@ def test_session_rest_lifecycle() -> None:
         fetched = client.get(f"/v1/sessions/{created.json()['id']}")
 
     assert created.status_code == 201
-    assert created.json()["id"].startswith("sess_")
+    assert UUID(created.json()["id"])
     assert fetched.json() == created.json()
 
 
 def test_session_not_found_uses_feature_exception_mapping() -> None:
+    missing_id = uuid4()
     with TestClient(_create_app()) as client:
-        response = client.get("/v1/sessions/missing")
+        response = client.get(f"/v1/sessions/{missing_id}")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Session missing not found"}
+    assert response.json() == {"detail": f"Session {missing_id} not found"}
 
 
 def test_session_is_persisted_between_app_instances(tmp_path) -> None:
@@ -243,7 +245,7 @@ def test_missing_run_uses_websocket_exception_mapping() -> None:
                 "type": "run.cancel",
                 "request_id": "cancel",
                 "session_id": session_id,
-                "payload": {"run_id": "missing"},
+                "payload": {"run_id": str(uuid4())},
             }
         )
         rejected = socket.receive_json()

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
@@ -40,7 +42,7 @@ async def create_session(
     summary="Get a session",
 )
 async def get_session(
-    session_id: str,
+    session_id: UUID,
     service: FromDishka[ConversationService],
 ) -> SessionResponse:
     session = await service.get_session(session_id)

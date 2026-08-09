@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlmodel import SQLModel
@@ -21,7 +22,7 @@ class Repository[ORM: SQLModel, Domain](ABC):
     @abstractmethod
     def _to_orm(self, domain: Domain) -> ORM: ...
 
-    async def find_by_id(self, id: str) -> Domain | None:
+    async def find_by_id(self, id: UUID) -> Domain | None:
         async with self._session_factory() as session:
             orm = await session.get(self._model, id)
             return self._to_domain(orm) if orm is not None else None

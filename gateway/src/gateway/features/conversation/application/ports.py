@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from uuid import UUID
 
 from gateway.features.conversation.domain import (
     AgentOutput,
@@ -26,7 +27,7 @@ class EventBroker(EventPublisher):
     def disconnect(self, client_id: str) -> None: ...
 
     @abstractmethod
-    def subscribe(self, client_id: str, session_id: str) -> None: ...
+    def subscribe(self, client_id: str, session_id: UUID) -> None: ...
 
     @abstractmethod
     async def publish_to(self, client_id: str, event: GatewayEvent) -> None: ...

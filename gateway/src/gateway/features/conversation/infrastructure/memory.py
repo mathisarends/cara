@@ -1,5 +1,6 @@
 import asyncio
 from collections import defaultdict
+from uuid import UUID
 
 from gateway.features.conversation.application import EventBroker, EventReceiver
 from gateway.features.conversation.domain import GatewayEvent
@@ -19,7 +20,7 @@ class _QueueEventReceiver(EventReceiver):
 class InMemoryEventBroker(EventBroker):
     def __init__(self) -> None:
         self._clients: dict[str, _QueueEventReceiver] = {}
-        self._subscriptions: dict[str, set[str]] = defaultdict(set)
+        self._subscriptions: dict[UUID, set[str]] = defaultdict(set)
 
     def connect(self, client_id: str) -> EventReceiver:
         receiver = _QueueEventReceiver()
@@ -31,7 +32,7 @@ class InMemoryEventBroker(EventBroker):
         for clients in self._subscriptions.values():
             clients.discard(client_id)
 
-    def subscribe(self, client_id: str, session_id: str) -> None:
+    def subscribe(self, client_id: str, session_id: UUID) -> None:
         self._subscriptions[session_id].add(client_id)
 
     async def publish(self, event: GatewayEvent) -> None:
