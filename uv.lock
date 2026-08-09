@@ -18,6 +18,13 @@ members = [
     "scheduler",
 ]
 
+[manifest.dependency-groups]
+dev = [
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ruff", specifier = ">=0.14.0" },
+]
+
 [[package]]
 name = "aiosqlite"
 version = "0.22.1"
@@ -72,9 +79,8 @@ wheels = [
 [[package]]
 name = "cara"
 version = "0.1.0"
-source = { editable = "." }
+source = { editable = "cara" }
 dependencies = [
-    { name = "gateway", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -85,9 +91,9 @@ dependencies = [
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "retrieval", extra = ["openai", "sqlite"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "scheduler", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
@@ -97,17 +103,8 @@ dependencies = [
     { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
-[package.dev-dependencies]
-dev = [
-    { name = "pre-commit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "ruff", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "gateway", editable = "gateway" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "hueify", specifier = ">=0.8.1" },
     { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
@@ -118,9 +115,9 @@ requires-dist = [
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
-    { name = "scheduler", editable = "scheduler" },
     { name = "sonosify", specifier = ">=0.4.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
@@ -128,14 +125,6 @@ requires-dist = [
     { name = "tzdata", specifier = ">=2024.1" },
     { name = "vocalbin", specifier = ">=0.3.0" },
     { name = "wakewordkit", specifier = ">=0.2.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pre-commit", specifier = ">=4.0.0" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "ruff", specifier = ">=0.14.0" },
 ]
 
 [[package]]
