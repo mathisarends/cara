@@ -168,14 +168,14 @@ def test_chat_command_streams_minimal_event_lifecycle() -> None:
     assert created["type"] == "session.created"
     assert [event["type"] for event in events] == [
         "command.accepted",
-        "run.started",
+        "turn.started",
         "chat.delta",
         "chat.completed",
-        "run.completed",
+        "turn.completed",
     ]
-    run_events = events[1:]
-    assert [event["sequence"] for event in run_events] == [1, 2, 3, 4]
-    assert {event["run_id"] for event in events} == {events[0]["run_id"]}
+    turn_events = events[1:]
+    assert [event["sequence"] for event in turn_events] == [1, 2, 3, 4]
+    assert all("run_id" not in event for event in events)
     assert events[2]["data"] == {"text": "Hallo"}
 
 
@@ -206,11 +206,11 @@ def test_session_get_subscribes_a_second_client() -> None:
                 }
             )
             assert first.receive_json()["type"] == "command.accepted"
-            first_run_event = first.receive_json()
-            second_run_event = second.receive_json()
+            first_turn_event = first.receive_json()
+            second_turn_event = second.receive_json()
 
-    assert first_run_event["type"] == "run.started"
-    assert second_run_event["event_id"] == first_run_event["event_id"]
+    assert first_turn_event["type"] == "turn.started"
+    assert second_turn_event["event_id"] == first_turn_event["event_id"]
 
 
 def test_invalid_command_is_rejected_without_closing_socket() -> None:
@@ -231,7 +231,7 @@ def test_invalid_command_is_rejected_without_closing_socket() -> None:
     assert accepted["type"] == "command.accepted"
 
 
-def test_missing_run_uses_websocket_exception_mapping() -> None:
+def test_missing_active_turn_uses_websocket_exception_mapping() -> None:
     with (
         TestClient(_create_app()) as client,
         client.websocket_connect("/v1/ws/web-1") as socket,
@@ -241,18 +241,17 @@ def test_missing_run_uses_websocket_exception_mapping() -> None:
         session_id = socket.receive_json()["session_id"]
         socket.send_json(
             {
-                "type": "run.cancel",
+                "type": "chat.cancel",
                 "request_id": "cancel",
                 "session_id": session_id,
-                "payload": {"run_id": str(uuid4())},
             }
         )
         rejected = socket.receive_json()
 
     assert rejected["type"] == "command.rejected"
     assert rejected["data"] == {
-        "code": "run_not_found",
-        "message": "Run not found in this session",
+        "code": "no_active_turn",
+        "message": "Session has no active turn",
     }
 
 
@@ -307,9 +306,13 @@ def test_complete_chat_history_is_persisted(tmp_path) -> None:
             }
         )
         events = [socket.receive_json() for _ in range(6)]
-        assert events[-1]["type"] == "run.completed"
+        assert events[-1]["type"] == "turn.completed"
 
     with sqlite3.connect(database_path) as database:
+        runs_table = database.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'gateway_runs'"
+        ).fetchone()
         user_message = database.execute(
             "SELECT position, content FROM gateway_session_user_messages"
         ).fetchone()
@@ -326,6 +329,7 @@ def test_complete_chat_history_is_persisted(tmp_path) -> None:
             """
         ).fetchone()
 
+    assert runs_table is None
     assert user_message == (0, "Licht an")
     assert sequence == (1,)
     assert assistant_message == (2, "Erledigt")
@@ -335,7 +339,7 @@ def test_complete_chat_history_is_persisted(tmp_path) -> None:
     assert json.loads(tool_call[5]) == {"on": True}
 
 
-def test_run_can_be_cancelled() -> None:
+def test_active_turn_can_be_cancelled() -> None:
     with (
         TestClient(_create_app(BlockingAgentRunner())) as client,
         client.websocket_connect("/v1/ws/web-1") as socket,
@@ -351,16 +355,15 @@ def test_run_can_be_cancelled() -> None:
                 "payload": {"text": "Arbeite lange"},
             }
         )
-        accepted = socket.receive_json()
+        socket.receive_json()
         socket.receive_json()
         socket.receive_json()
 
         socket.send_json(
             {
-                "type": "run.cancel",
+                "type": "chat.cancel",
                 "request_id": "cancel",
                 "session_id": session_id,
-                "payload": {"run_id": accepted["run_id"]},
             }
         )
         cancel_accepted = socket.receive_json()
@@ -368,5 +371,42 @@ def test_run_can_be_cancelled() -> None:
 
     assert cancel_accepted["type"] == "command.accepted"
     assert cancel_accepted["request_id"] == "cancel"
-    assert cancelled["type"] == "run.cancelled"
-    assert cancelled["run_id"] == accepted["run_id"]
+    assert cancelled["type"] == "turn.cancelled"
+    assert "run_id" not in cancelled
+
+
+def test_session_rejects_a_second_active_turn() -> None:
+    with (
+        TestClient(_create_app(BlockingAgentRunner())) as client,
+        client.websocket_connect("/v1/ws/web-1") as socket,
+    ):
+        socket.send_json({"type": "session.create", "request_id": "create"})
+        socket.receive_json()
+        session_id = socket.receive_json()["session_id"]
+        socket.send_json(
+            {
+                "type": "chat.send",
+                "request_id": "first",
+                "session_id": session_id,
+                "payload": {"text": "First"},
+            }
+        )
+        socket.receive_json()
+        socket.receive_json()
+        socket.receive_json()
+
+        socket.send_json(
+            {
+                "type": "chat.send",
+                "request_id": "second",
+                "session_id": session_id,
+                "payload": {"text": "Second"},
+            }
+        )
+        rejected = socket.receive_json()
+
+    assert rejected["type"] == "command.rejected"
+    assert rejected["data"] == {
+        "code": "session_busy",
+        "message": "Session already has an active turn",
+    }

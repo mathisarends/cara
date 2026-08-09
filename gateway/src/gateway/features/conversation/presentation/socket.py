@@ -13,19 +13,20 @@ from gateway.features.conversation.application import (
 )
 from gateway.features.conversation.domain import (
     GatewayEvent,
-    RunNotFoundError,
+    NoActiveTurnError,
     Session,
+    SessionBusyError,
     SessionNotFoundError,
 )
 from gateway.features.conversation.presentation.exception_mappings import (
     command_rejection,
 )
 from gateway.features.conversation.presentation.schemas import (
+    ChatCancelCommand,
     ChatSendCommand,
     Command,
     CommandType,
     EventEnvelope,
-    RunCancelCommand,
     SessionCreateCommand,
     SessionGetCommand,
     SessionResponse,
@@ -42,7 +43,12 @@ class CommandProcessor:
         try:
             command = command_adapter.validate_python(raw_command)
             await self._dispatch(client_id, command)
-        except (ValidationError, SessionNotFoundError, RunNotFoundError) as error:
+        except (
+            ValidationError,
+            SessionNotFoundError,
+            SessionBusyError,
+            NoActiveTurnError,
+        ) as error:
             rejection = command_rejection(error)
             await self._reject(
                 client_id,
@@ -65,7 +71,7 @@ class CommandProcessor:
         if isinstance(command, ChatSendCommand):
             await self._start_chat(client_id, command, session.id)
             return
-        await self._cancel_run(client_id, command, session.id)
+        await self._cancel_chat(client_id, command, session.id)
 
     async def _create_session(
         self,
@@ -107,30 +113,21 @@ class CommandProcessor:
         command: ChatSendCommand,
         session_id: UUID,
     ) -> None:
-        run = await self._service.prepare_run(session_id)
-        await self._accepted(
-            client_id,
-            command.request_id,
-            command.type,
+        self._service.start_turn(
             session_id,
-            run_id=run.id,
+            command.payload.text,
+            command.payload.metadata,
         )
-        self._service.start_run(run, command.payload.text, command.payload.metadata)
+        await self._accepted(client_id, command.request_id, command.type, session_id)
 
-    async def _cancel_run(
+    async def _cancel_chat(
         self,
         client_id: str,
-        command: RunCancelCommand,
+        command: ChatCancelCommand,
         session_id: UUID,
     ) -> None:
-        run = await self._service.cancel_run(session_id, command.payload.run_id)
-        await self._accepted(
-            client_id,
-            command.request_id,
-            command.type,
-            session_id,
-            run_id=run.id,
-        )
+        await self._service.cancel_turn(session_id)
+        await self._accepted(client_id, command.request_id, command.type, session_id)
 
     async def _accepted(
         self,
@@ -138,15 +135,12 @@ class CommandProcessor:
         request_id: str,
         command_type: CommandType,
         session_id: UUID,
-        *,
-        run_id: UUID | None = None,
     ) -> None:
         await self._broker.publish_to(
             client_id,
             GatewayEvent(
                 type="command.accepted",
                 session_id=session_id,
-                run_id=run_id,
                 request_id=request_id,
                 data={"command": command_type.value},
             ),

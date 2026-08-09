@@ -10,11 +10,6 @@ class SessionNotFoundError(ConversationError):
         super().__init__(f"Session {session_id} not found")
 
 
-class RunNotFoundError(ConversationError):
-    def __init__(self, run_id: UUID) -> None:
-        super().__init__(f"Run {run_id} not found in this session")
-
-
 class ConversationInvariantError(ConversationError):
     """Base error for invalid conversation aggregate transitions."""
 
@@ -45,3 +40,13 @@ class ToolCallNotFoundError(ConversationInvariantError):
 class ToolCallAlreadyResolvedError(ConversationInvariantError):
     def __init__(self, call_id: str) -> None:
         super().__init__(f"Tool call {call_id} has already been resolved")
+
+
+class SessionBusyError(ConversationInvariantError):
+    def __init__(self, session_id: UUID) -> None:
+        super().__init__(f"Session {session_id} already has an active turn")
+
+
+class NoActiveTurnError(ConversationInvariantError):
+    def __init__(self, session_id: UUID) -> None:
+        super().__init__(f"Session {session_id} has no active turn")

@@ -43,13 +43,6 @@ class SessionModel(DatabaseEntity, table=True):
     )
 
 
-class RunModel(DatabaseEntity, table=True):
-    __tablename__ = "gateway_runs"
-
-    session_id: UUID = Field(foreign_key="gateway_sessions.id", index=True)
-    status: str
-
-
 class SessionUserMessageModel(DatabaseEntity, table=True):
     __tablename__ = "gateway_session_user_messages"
     __table_args__ = (

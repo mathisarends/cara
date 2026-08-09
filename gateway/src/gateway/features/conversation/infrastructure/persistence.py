@@ -7,8 +7,6 @@ from sqlalchemy.orm import selectinload
 
 from gateway.features.conversation.domain import (
     AssistantMessage,
-    Run,
-    RunRepository,
     Session,
     SessionRepository,
     ToolCall,
@@ -18,7 +16,6 @@ from gateway.features.conversation.domain import (
 )
 from gateway.infrastructure.database import (
     Repository,
-    RunModel,
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,
@@ -144,30 +141,6 @@ class SQLSessionRepository(
             ]
             model.tool_call_sequences.append(sequence_model)
         return model
-
-
-class SQLRunRepository(Repository[RunModel, Run], RunRepository):
-    def __init__(
-        self,
-        session_factory: async_sessionmaker[AsyncSession],
-    ) -> None:
-        super().__init__(session_factory, RunModel)
-
-    def _to_domain(self, orm: RunModel) -> Run:
-        return Run(
-            id=orm.id,
-            session_id=orm.session_id,
-            created_at=_as_utc(orm.created_at),
-            status=orm.status,
-        )
-
-    def _to_orm(self, domain: Run) -> RunModel:
-        return RunModel(
-            id=domain.id,
-            session_id=domain.session_id,
-            created_at=domain.created_at,
-            status=domain.status,
-        )
 
 
 def _user_message_to_domain(model: SessionUserMessageModel) -> UserMessage:

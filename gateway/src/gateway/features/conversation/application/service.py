@@ -1,18 +1,16 @@
 import asyncio
 import json
-from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
     ChatCompleted,
     ChatDelta,
     GatewayEvent,
-    Run,
-    RunNotFoundError,
-    RunRepository,
+    NoActiveTurnError,
     Session,
+    SessionBusyError,
     SessionNotFoundError,
     SessionRepository,
     ToolCallCompleted,
@@ -24,12 +22,10 @@ class ConversationService:
     def __init__(
         self,
         sessions: SessionRepository,
-        runs: RunRepository,
         events: EventPublisher,
         agent: AgentRunner,
     ) -> None:
         self._sessions = sessions
-        self._runs = runs
         self._events = events
         self._agent = agent
         self._tasks: dict[UUID, asyncio.Task[None]] = {}
@@ -44,33 +40,26 @@ class ConversationService:
             raise SessionNotFoundError(session_id)
         return session
 
-    async def prepare_run(self, session_id: UUID) -> Run:
-        await self.get_session(session_id)
-        run = Run(
-            id=uuid4(),
-            session_id=session_id,
-            created_at=datetime.now(UTC),
-        )
-        return await self._runs.save(run)
-
-    def start_run(
+    def start_turn(
         self,
-        run: Run,
+        session_id: UUID,
         text: str,
         metadata: dict[str, object],
     ) -> None:
-        task = asyncio.create_task(self._execute(run, text, metadata))
-        self._tasks[run.id] = task
-        task.add_done_callback(lambda _: self._tasks.pop(run.id, None))
+        current = self._tasks.get(session_id)
+        if current is not None and not current.done():
+            raise SessionBusyError(session_id)
+        task = asyncio.create_task(self._execute(session_id, text, metadata))
+        self._tasks[session_id] = task
+        task.add_done_callback(
+            lambda completed: self._remove_task(session_id, completed)
+        )
 
-    async def cancel_run(self, session_id: UUID, run_id: UUID) -> Run:
-        run = await self._runs.find_by_id(run_id)
-        if run is None or run.session_id != session_id:
-            raise RunNotFoundError(run_id)
-        task = self._tasks.get(run_id)
-        if task is not None and not task.done():
-            task.cancel()
-        return run
+    async def cancel_turn(self, session_id: UUID) -> None:
+        task = self._tasks.get(session_id)
+        if task is None or task.done():
+            raise NoActiveTurnError(session_id)
+        task.cancel()
 
     async def close(self) -> None:
         tasks = tuple(self._tasks.values())
@@ -79,67 +68,70 @@ class ConversationService:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
+    def _remove_task(
+        self,
+        session_id: UUID,
+        completed: asyncio.Task[None],
+    ) -> None:
+        if self._tasks.get(session_id) is completed:
+            self._tasks.pop(session_id)
+
     async def _execute(
         self,
-        run: Run,
+        session_id: UUID,
         text: str,
         metadata: dict[str, object],
     ) -> None:
         sequence = 0
         session: Session | None = None
         try:
-            run.status = "running"
-            run = await self._runs.save(run)
-            sequence = await self._emit(run, "run.started", {}, sequence=sequence)
-            session = await self.get_session(run.session_id)
+            sequence = await self._emit(
+                session_id,
+                "turn.started",
+                {},
+                sequence=sequence,
+            )
+            session = await self.get_session(session_id)
             session.add_user_message(text)
             session = await self._sessions.save(session)
             async for output in self._agent.stream(session.id, metadata):
                 sequence = await self._emit_agent_output(
-                    run,
                     session,
                     output,
                     sequence,
                 )
-            run.status = "completed"
-            run = await self._runs.save(run)
             await self._emit(
-                run,
-                "run.completed",
-                {"status": run.status},
+                session_id,
+                "turn.completed",
+                {},
                 sequence=sequence,
             )
         except asyncio.CancelledError:
-            await self._fail_pending_tool_calls(session, "Run cancelled")
-            run.status = "cancelled"
-            run = await self._runs.save(run)
+            await self._fail_pending_tool_calls(session, "Turn cancelled")
             await self._emit(
-                run,
-                "run.cancelled",
-                {"status": run.status},
+                session_id,
+                "turn.cancelled",
+                {},
                 sequence=sequence,
             )
         except Exception as error:
             await self._fail_pending_tool_calls(session, str(error))
-            run.status = "failed"
-            run = await self._runs.save(run)
             await self._emit(
-                run,
-                "run.failed",
+                session_id,
+                "turn.failed",
                 {"code": "agent_error", "message": str(error)},
                 sequence=sequence,
             )
 
     async def _emit_agent_output(
         self,
-        run: Run,
         session: Session,
         output: ChatDelta | ChatCompleted | ToolCallStarted | ToolCallCompleted,
         sequence: int,
     ) -> int:
         if isinstance(output, ChatDelta):
             return await self._emit(
-                run,
+                session.id,
                 "chat.delta",
                 {"text": output.text},
                 sequence=sequence,
@@ -149,7 +141,7 @@ class ConversationService:
             session.add_assistant_message(output.text)
             await self._sessions.save(session)
             return await self._emit(
-                run,
+                session.id,
                 "chat.completed",
                 {"text": output.text, "finish_reason": output.finish_reason},
                 sequence=sequence,
@@ -159,7 +151,7 @@ class ConversationService:
             session.add_tool_call(output.call_id, output.name, output.arguments)
             await self._sessions.save(session)
             return await self._emit(
-                run,
+                session.id,
                 "tool_call.started",
                 {"name": output.name, "arguments": output.arguments},
                 sequence=sequence,
@@ -172,7 +164,7 @@ class ConversationService:
             session.resolve_tool_call(output.call_id, output.result)
         await self._sessions.save(session)
         return await self._emit(
-            run,
+            session.id,
             "tool_call.completed",
             {
                 "name": output.name,
@@ -186,7 +178,7 @@ class ConversationService:
 
     async def _emit(
         self,
-        run: Run,
+        session_id: UUID,
         event_type: str,
         data: dict[str, Any],
         *,
@@ -198,8 +190,7 @@ class ConversationService:
         await self._events.publish(
             GatewayEvent(
                 type=event_type,
-                session_id=run.session_id,
-                run_id=run.id,
+                session_id=session_id,
                 call_id=call_id,
                 sequence=next_sequence,
                 metadata=metadata or {},

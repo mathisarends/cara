@@ -5,7 +5,8 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from gateway.features.conversation.domain import (
-    RunNotFoundError,
+    NoActiveTurnError,
+    SessionBusyError,
     SessionNotFoundError,
 )
 
@@ -18,18 +19,24 @@ class CommandRejection:
 
 _HTTP_HANDLERS: tuple[tuple[type[Exception], int, str], ...] = (
     (SessionNotFoundError, 404, "Session not found"),
-    (RunNotFoundError, 404, "Run not found in this session"),
+    (NoActiveTurnError, 409, "Session has no active turn"),
+    (SessionBusyError, 409, "Session already has an active turn"),
 )
 
 
 def command_rejection(
-    error: ValidationError | SessionNotFoundError | RunNotFoundError,
+    error: ValidationError
+    | SessionNotFoundError
+    | SessionBusyError
+    | NoActiveTurnError,
 ) -> CommandRejection:
     if isinstance(error, ValidationError):
         return CommandRejection("invalid_command", str(error))
     if isinstance(error, SessionNotFoundError):
         return CommandRejection("session_not_found", "Session not found")
-    return CommandRejection("run_not_found", "Run not found in this session")
+    if isinstance(error, SessionBusyError):
+        return CommandRejection("session_busy", "Session already has an active turn")
+    return CommandRejection("no_active_turn", "Session has no active turn")
 
 
 def _make_handler(status_code: int, default_detail: str):

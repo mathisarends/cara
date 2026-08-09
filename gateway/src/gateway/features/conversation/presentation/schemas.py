@@ -12,7 +12,7 @@ class CommandType(StrEnum):
     SESSION_CREATE = "session.create"
     SESSION_GET = "session.get"
     CHAT_SEND = "chat.send"
-    RUN_CANCEL = "run.cancel"
+    CHAT_CANCEL = "chat.cancel"
 
 
 class SessionCreatePayload(BaseModel):
@@ -43,19 +43,14 @@ class ChatSendCommand(BaseModel):
     payload: ChatSendPayload
 
 
-class RunCancelPayload(BaseModel):
-    run_id: UUID
-
-
-class RunCancelCommand(BaseModel):
-    type: Literal[CommandType.RUN_CANCEL]
+class ChatCancelCommand(BaseModel):
+    type: Literal[CommandType.CHAT_CANCEL]
     request_id: str
     session_id: UUID
-    payload: RunCancelPayload
 
 
 type Command = Annotated[
-    SessionCreateCommand | SessionGetCommand | ChatSendCommand | RunCancelCommand,
+    SessionCreateCommand | SessionGetCommand | ChatSendCommand | ChatCancelCommand,
     Field(discriminator="type"),
 ]
 command_adapter: TypeAdapter[Command] = TypeAdapter(Command)
@@ -66,7 +61,6 @@ class EventEnvelope(BaseModel):
     event_id: UUID
     timestamp: datetime
     session_id: UUID | None = None
-    run_id: UUID | None = None
     call_id: str | None = None
     sequence: int | None = None
     request_id: str | None = None
@@ -80,7 +74,6 @@ class EventEnvelope(BaseModel):
             event_id=event.event_id,
             timestamp=event.timestamp,
             session_id=event.session_id,
-            run_id=event.run_id,
             call_id=event.call_id,
             sequence=event.sequence,
             request_id=event.request_id,

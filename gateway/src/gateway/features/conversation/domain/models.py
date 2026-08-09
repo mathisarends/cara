@@ -4,14 +4,6 @@ from typing import Any
 from uuid import UUID, uuid4
 
 
-@dataclass(slots=True)
-class Run:
-    id: UUID
-    session_id: UUID
-    created_at: datetime
-    status: str = "pending"
-
-
 @dataclass(frozen=True, slots=True)
 class GatewayEvent:
     type: str
@@ -19,7 +11,6 @@ class GatewayEvent:
     data: dict[str, Any]
     event_id: UUID = field(default_factory=uuid4)
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
-    run_id: UUID | None = None
     call_id: str | None = None
     sequence: int | None = None
     request_id: str | None = None

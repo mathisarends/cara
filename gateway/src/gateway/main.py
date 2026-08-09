@@ -16,7 +16,7 @@ def create_app() -> FastAPI:
         summary="Session-based gateway for Cara clients.",
         description=(
             "Create and inspect sessions through HTTP. Send commands and receive "
-            "run, chat, and tool-call events through the versioned WebSocket API."
+            "turn, chat, and tool-call events through the versioned WebSocket API."
         ),
         version="0.1.0",
         lifespan=lifespan,

@@ -10,9 +10,10 @@ from .exceptions import (
     ConversationError,
     ConversationInvariantError,
     DuplicateToolCallError,
+    NoActiveTurnError,
     NoPendingToolCallSequenceError,
     PendingToolCallsError,
-    RunNotFoundError,
+    SessionBusyError,
     SessionNotFoundError,
     ToolCallAlreadyResolvedError,
     ToolCallNotFoundError,
@@ -22,11 +23,10 @@ from .models import (
     ChatCompleted,
     ChatDelta,
     GatewayEvent,
-    Run,
     ToolCallCompleted,
     ToolCallStarted,
 )
-from .repositories import RunRepository, SessionRepository
+from .repositories import SessionRepository
 from .session import Session
 
 __all__ = [
@@ -37,12 +37,11 @@ __all__ = [
     "ConversationInvariantError",
     "DuplicateToolCallError",
     "GatewayEvent",
+    "NoActiveTurnError",
     "NoPendingToolCallSequenceError",
     "PendingToolCallsError",
-    "Run",
-    "RunNotFoundError",
-    "RunRepository",
     "Session",
+    "SessionBusyError",
     "SessionEntry",
     "SessionNotFoundError",
     "SessionRepository",

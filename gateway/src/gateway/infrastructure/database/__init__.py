@@ -2,7 +2,6 @@ from .di import DatabaseProvider
 from .migrations import run_migrations
 from .models import (
     DatabaseEntity,
-    RunModel,
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,
@@ -17,7 +16,6 @@ __all__ = [
     "DatabaseEntity",
     "DatabaseSettings",
     "Repository",
-    "RunModel",
     "SessionAssistantMessageModel",
     "SessionModel",
     "SessionToolCallModel",
