@@ -5,8 +5,6 @@ description = "LLM client configuration and credentials, independent of Cara."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "py-llmify[openai]>=0.10.0",
-    "pydantic>=2.7.0",
-    "pydantic-settings>=2.14.2",
 ]
 
 [build-system]

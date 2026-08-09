@@ -480,16 +480,10 @@ version = "0.1.0"
 source = { editable = "llm" }
 dependencies = [
     { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
-    { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "pydantic-settings", specifier = ">=2.14.2" },
-]
+requires-dist = [{ name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" }]
 
 [[package]]
 name = "mako"
