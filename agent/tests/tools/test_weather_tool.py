@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 
 from agent.tools import create_tool_context, create_tools
-from agent.tools.catalog import _render_weather_report
+from agent.tools.actions import _render_weather_report
 from agent.tools.handler import IpLocationClient
 from agent.tools.handler.weather import (
     HourlyForecast,
