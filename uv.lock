@@ -121,7 +121,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
     { name = "scheduler", editable = "scheduler" },
-    { name = "sonosify", specifier = ">=0.4.0" },
+    { name = "sonosify", specifier = ">=0.4.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "transitbus", specifier = ">=0.1.0" },

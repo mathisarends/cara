@@ -73,9 +73,10 @@ bash scripts/discover_sonos.sh
 bash scripts/discover_hue.sh
 ```
 
-Sonos playback and discovery are provided by the [`sonosify`](https://pypi.org/project/sonosify/)
-library. Import Sonos explicitly from `cara.audio.sonos`; importing `cara` or `cara.audio` does not
-load it.
+Sonos playback and discovery are provided over the local network by the
+[`sonosify`](https://pypi.org/project/sonosify/) library; no Sonos cloud credentials are needed.
+Set `SONOS_SPEAKER_NAME`, or `SONOS_IP_ADDRESS` to skip discovery. Import Sonos explicitly from
+`cara.audio.sonos`; importing `cara` or `cara.audio` does not load it.
 
 ## Audio outputs
 
