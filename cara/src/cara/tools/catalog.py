@@ -200,9 +200,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
 
     @tools.action(
         description=(
-            "Frage das Wetter ab, für den aktuellen Standort oder einen "
-            "angegebenen Ort. Nutze params.location nur, wenn explizit "
-            "nach einem bestimmten Ort gefragt wird."
+            "Look up the weather for the current location or a given "
+            "place. Only use params.location when a specific place is "
+            "explicitly asked about."
         ),
         params=WeatherParams,
     )
@@ -221,9 +221,7 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         return _render_weather_report(report)
 
     @tools.action(
-        description=(
-            "Durchsuche das Internet nach aktuellen Informationen, News oder Fakten."
-        ),
+        description=("Search the web for current information, news, or facts."),
         params=WebSearchParams,
     )
     async def web_search(

@@ -28,12 +28,12 @@ class WeatherParams(ToolParams):
 
 
 class WebSearchParams(ToolParams):
-    query: str = Field(description="Suchanfrage für die Websuche.")
+    query: str = Field(description="Search query for the web search.")
     max_results: int = Field(
         default=5,
         ge=1,
         le=10,
-        description="Maximale Anzahl an Suchergebnissen.",
+        description="Maximum number of search results.",
     )
 
 
