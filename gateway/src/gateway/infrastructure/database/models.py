@@ -21,7 +21,6 @@ class SessionModel(DatabaseEntity, table=True):
         default_factory=dict,
         sa_column=Column("metadata", JSON, nullable=False),
     )
-
     user_messages: list["SessionUserMessageModel"] = Relationship(
         back_populates="session",
         cascade_delete=True,

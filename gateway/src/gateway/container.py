@@ -4,8 +4,9 @@ from dishka.integrations.fastapi import FastapiProvider
 from gateway.features import FEATURES
 from gateway.features.conversation.application import AgentRunner
 from gateway.features.conversation.domain import SessionRepository
-from gateway.features.conversation.infrastructure import EchoAgentRunner
+from gateway.features.conversation.infrastructure import CodexAgentRunner
 from gateway.infrastructure import DatabaseProvider, DatabaseSettings
+from llm import CodexModel, create_codex_model
 
 
 class _AgentProvider(Provider):
@@ -17,7 +18,10 @@ class _AgentProvider(Provider):
 
     @provide
     def agent(self, sessions: SessionRepository) -> AgentRunner:
-        return self._agent or EchoAgentRunner(sessions)
+        return self._agent or CodexAgentRunner(
+            sessions,
+            create_codex_model(CodexModel.TERRA),
+        )
 
 
 def create_container(

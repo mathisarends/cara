@@ -1,9 +1,9 @@
 from .di import ConversationProvider
-from .echo_agent import EchoAgentRunner
+from .echo_agent import CodexAgentRunner
 from .persistence import SQLSessionRepository
 
 __all__ = [
     "ConversationProvider",
-    "EchoAgentRunner",
+    "CodexAgentRunner",
     "SQLSessionRepository",
 ]
