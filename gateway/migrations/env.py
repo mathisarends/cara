@@ -7,8 +7,12 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from gateway.infrastructure.database.models import (  # noqa: F401
-    RunEntity,
-    SessionEntity,
+    RunModel,
+    SessionAssistantMessageModel,
+    SessionModel,
+    SessionToolCallModel,
+    SessionToolCallSequenceModel,
+    SessionUserMessageModel,
 )
 from gateway.infrastructure.database.settings import DatabaseSettings
 
