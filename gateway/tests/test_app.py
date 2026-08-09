@@ -1,7 +1,6 @@
 import asyncio
 import json
 import sqlite3
-from collections.abc import AsyncIterator
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
@@ -10,9 +9,8 @@ from fastapi.testclient import TestClient
 
 from gateway import create_app
 from gateway.container import create_container
-from gateway.features.conversation.application import AgentRunner
+from gateway.features.conversation.application import AgentEventBus, AgentRunner
 from gateway.features.conversation.domain import (
-    AgentOutput,
     ChatCompleted,
     ChatDelta,
     ToolCallCompleted,
@@ -33,34 +31,40 @@ def _create_app(
 
 
 class ToolAgentRunner(AgentRunner):
-    async def stream(
+    async def run(
         self,
         session_id: UUID,
         metadata: dict[str, object],
-    ) -> AsyncIterator[AgentOutput]:
+        event_bus: AgentEventBus,
+    ) -> None:
         del session_id, metadata
-        yield ToolCallStarted(
-            call_id="call_1",
-            name="lights.turn_on",
-            arguments={"room": "office"},
-            metadata={"provider": "hue"},
+        await event_bus.dispatch(
+            ToolCallStarted(
+                call_id="call_1",
+                name="lights.turn_on",
+                arguments={"room": "office"},
+                metadata={"provider": "hue"},
+            )
         )
-        yield ToolCallCompleted(
-            call_id="call_1",
-            name="lights.turn_on",
-            result={"on": True},
+        await event_bus.dispatch(
+            ToolCallCompleted(
+                call_id="call_1",
+                name="lights.turn_on",
+                result={"on": True},
+            )
         )
-        yield ChatCompleted(text="Erledigt")
+        await event_bus.dispatch(ChatCompleted(text="Erledigt"))
 
 
 class BlockingAgentRunner(AgentRunner):
-    async def stream(
+    async def run(
         self,
         session_id: UUID,
         metadata: dict[str, object],
-    ) -> AsyncIterator[AgentOutput]:
+        event_bus: AgentEventBus,
+    ) -> None:
         del session_id, metadata
-        yield ChatDelta(text="gestartet")
+        await event_bus.dispatch(ChatDelta(text="gestartet"))
         await asyncio.Event().wait()
 
 
@@ -136,6 +140,9 @@ def test_openapi_has_stable_operation_ids_and_response_models() -> None:
         ]["schema"]["$ref"]
         == "#/components/schemas/ErrorResponse"
     )
+    event_message = schema["components"]["schemas"]["GatewayEventMessage"]
+    assert event_message["discriminator"]["propertyName"] == "type"
+    assert "ChatDeltaPayload" in schema["components"]["schemas"]
 
 
 def test_chat_command_streams_minimal_event_lifecycle() -> None:

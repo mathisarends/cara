@@ -1,21 +1,24 @@
+from uuid import UUID
+
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, WebSocket
 
-from gateway.features.conversation.application import EventBroker
-from gateway.features.conversation.presentation.socket import (
-    CommandProcessor,
-    serve_socket,
-)
+from gateway.features.conversation.application import ConversationService, EventBroker
+from gateway.features.conversation.presentation.socket import serve_socket
 
 event_router = APIRouter(prefix="/v1", tags=["events"])
 
 
-@event_router.websocket("/ws/{client_id}", name="gateway_event_stream")
+@event_router.websocket(
+    "/sessions/{session_id}/events",
+    name="gateway_event_stream",
+)
 @inject
 async def gateway_socket(
     websocket: WebSocket,
-    client_id: str,
-    processor: FromDishka[CommandProcessor],
+    session_id: UUID,
+    service: FromDishka[ConversationService],
     broker: FromDishka[EventBroker],
 ) -> None:
-    await serve_socket(websocket, client_id, processor, broker)
+    await service.get_session(session_id)
+    await serve_socket(websocket, session_id, broker)

@@ -42,8 +42,3 @@ class InMemoryEventBroker(EventBroker):
             receiver = self._clients.get(client_id)
             if receiver is not None:
                 await receiver.put(event)
-
-    async def publish_to(self, client_id: str, event: GatewayEvent) -> None:
-        receiver = self._clients.get(client_id)
-        if receiver is not None:
-            await receiver.put(event)

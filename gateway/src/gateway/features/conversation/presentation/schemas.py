@@ -1,93 +1,19 @@
 from datetime import datetime
-from enum import StrEnum
 from typing import Annotated, Any, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
-from gateway.features.conversation.domain import GatewayEvent, Session
-
-
-class CommandType(StrEnum):
-    SESSION_CREATE = "session.create"
-    SESSION_GET = "session.get"
-    CHAT_SEND = "chat.send"
-    CHAT_CANCEL = "chat.cancel"
+from gateway.features.conversation.domain import (
+    GatewayEvent,
+    GatewayEventType,
+    Session,
+)
 
 
-class SessionCreatePayload(BaseModel):
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class SessionCreateCommand(BaseModel):
-    type: Literal[CommandType.SESSION_CREATE]
-    request_id: str
-    payload: SessionCreatePayload = Field(default_factory=SessionCreatePayload)
-
-
-class SessionGetCommand(BaseModel):
-    type: Literal[CommandType.SESSION_GET]
-    request_id: str
-    session_id: UUID
-
-
-class ChatSendPayload(BaseModel):
+class ChatRequest(BaseModel):
     text: str = Field(min_length=1)
     metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class ChatSendCommand(BaseModel):
-    type: Literal[CommandType.CHAT_SEND]
-    request_id: str
-    session_id: UUID
-    payload: ChatSendPayload
-
-
-class ChatCancelCommand(BaseModel):
-    type: Literal[CommandType.CHAT_CANCEL]
-    request_id: str
-    session_id: UUID
-
-
-type Command = Annotated[
-    SessionCreateCommand | SessionGetCommand | ChatSendCommand | ChatCancelCommand,
-    Field(discriminator="type"),
-]
-command_adapter: TypeAdapter[Command] = TypeAdapter(Command)
-
-
-class EventEnvelope(BaseModel):
-    type: str
-    event_id: UUID
-    timestamp: datetime
-    session_id: UUID | None = None
-    call_id: str | None = None
-    sequence: int | None = None
-    request_id: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    data: dict[str, Any] = Field(default_factory=dict)
-
-    @classmethod
-    def from_event(cls, event: GatewayEvent) -> Self:
-        return cls(
-            type=event.type,
-            event_id=event.event_id,
-            timestamp=event.timestamp,
-            session_id=event.session_id,
-            call_id=event.call_id,
-            sequence=event.sequence,
-            request_id=event.request_id,
-            metadata=event.metadata,
-            data=event.data,
-        )
-
-
-class SessionCreateRequest(BaseModel):
-    metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Client-defined session metadata used for routing context.",
-        examples=[{"channel": "terminal"}],
-    )
 
 
 class SessionResponse(BaseModel):
@@ -104,6 +30,87 @@ class SessionResponse(BaseModel):
             created_at=session.created_at,
             metadata=session.metadata,
         )
+
+
+class EventPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ChatDeltaPayload(EventPayload):
+    text: str
+
+
+class ChatCompletedPayload(EventPayload):
+    text: str
+    finish_reason: str
+
+
+class ToolCallStartedPayload(EventPayload):
+    name: str
+    arguments: dict[str, Any]
+
+
+class ToolCallCompletedPayload(EventPayload):
+    name: str
+    result: Any
+    is_error: bool
+
+
+class EventEnvelope[PayloadT: EventPayload](BaseModel):
+    type: GatewayEventType
+    event_id: UUID
+    timestamp: datetime
+    session_id: UUID
+    call_id: str | None = None
+    sequence: int
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    data: PayloadT
+
+
+class ChatDeltaEvent(EventEnvelope[ChatDeltaPayload]):
+    type: Literal[GatewayEventType.CHAT_DELTA]
+
+
+class ChatCompletedEvent(EventEnvelope[ChatCompletedPayload]):
+    type: Literal[GatewayEventType.CHAT_COMPLETED]
+
+
+class ToolCallStartedEvent(EventEnvelope[ToolCallStartedPayload]):
+    type: Literal[GatewayEventType.TOOL_CALL_STARTED]
+
+
+class ToolCallCompletedEvent(EventEnvelope[ToolCallCompletedPayload]):
+    type: Literal[GatewayEventType.TOOL_CALL_COMPLETED]
+
+
+type EventMessage = Annotated[
+    ChatDeltaEvent | ChatCompletedEvent | ToolCallStartedEvent | ToolCallCompletedEvent,
+    Field(discriminator="type"),
+]
+event_adapter: TypeAdapter[EventMessage] = TypeAdapter(EventMessage)
+
+
+def event_message(event: GatewayEvent) -> EventMessage:
+    return event_adapter.validate_python(
+        {
+            "type": event.type,
+            "event_id": event.event_id,
+            "timestamp": event.timestamp,
+            "session_id": event.session_id,
+            "call_id": event.call_id,
+            "sequence": event.sequence,
+            "metadata": event.metadata,
+            "data": event.data,
+        }
+    )
+
+
+class SessionCreateRequest(BaseModel):
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Client-defined session metadata used for routing context.",
+        examples=[{"channel": "terminal"}],
+    )
 
 
 class ErrorResponse(BaseModel):

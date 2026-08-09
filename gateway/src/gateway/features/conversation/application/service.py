@@ -1,20 +1,18 @@
 import asyncio
-import json
 from typing import Any
 from uuid import UUID
 
+from gateway.features.conversation.application.agent_event_router import (
+    AgentEventRouter,
+)
+from gateway.features.conversation.application.event_bus import AgentEventBus
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
-    ChatCompleted,
-    ChatDelta,
-    GatewayEvent,
     NoActiveTurnError,
     Session,
     SessionBusyError,
     SessionNotFoundError,
     SessionRepository,
-    ToolCallCompleted,
-    ToolCallStarted,
 )
 
 
@@ -82,122 +80,27 @@ class ConversationService:
         text: str,
         metadata: dict[str, object],
     ) -> None:
-        sequence = 0
         session: Session | None = None
+        event_router: AgentEventRouter | None = None
         try:
-            sequence = await self._emit(
-                session_id,
-                "turn.started",
-                {},
-                sequence=sequence,
-            )
             session = await self.get_session(session_id)
             session.add_user_message(text)
             session = await self._sessions.save(session)
-            async for output in self._agent.stream(session.id, metadata):
-                sequence = await self._emit_agent_output(
-                    session,
-                    output,
-                    sequence,
-                )
-            await self._emit(
-                session_id,
-                "turn.completed",
-                {},
-                sequence=sequence,
+            event_bus = AgentEventBus()
+            event_router = AgentEventRouter(
+                session,
+                self._sessions,
+                self._events,
+                0,
             )
+            event_router.bind(event_bus)
+            await self._agent.run(session.id, metadata, event_bus)
         except asyncio.CancelledError:
-            await self._fail_pending_tool_calls(session, "Turn cancelled")
-            await self._emit(
-                session_id,
-                "turn.cancelled",
-                {},
-                sequence=sequence,
-            )
+            current_session = event_router.session if event_router else session
+            await self._fail_pending_tool_calls(current_session, "Turn cancelled")
         except Exception as error:
-            await self._fail_pending_tool_calls(session, str(error))
-            await self._emit(
-                session_id,
-                "turn.failed",
-                {"code": "agent_error", "message": str(error)},
-                sequence=sequence,
-            )
-
-    async def _emit_agent_output(
-        self,
-        session: Session,
-        output: ChatDelta | ChatCompleted | ToolCallStarted | ToolCallCompleted,
-        sequence: int,
-    ) -> int:
-        if isinstance(output, ChatDelta):
-            return await self._emit(
-                session.id,
-                "chat.delta",
-                {"text": output.text},
-                sequence=sequence,
-                metadata=output.metadata,
-            )
-        if isinstance(output, ChatCompleted):
-            session.add_assistant_message(output.text)
-            await self._sessions.save(session)
-            return await self._emit(
-                session.id,
-                "chat.completed",
-                {"text": output.text, "finish_reason": output.finish_reason},
-                sequence=sequence,
-                metadata=output.metadata,
-            )
-        if isinstance(output, ToolCallStarted):
-            session.add_tool_call(output.call_id, output.name, output.arguments)
-            await self._sessions.save(session)
-            return await self._emit(
-                session.id,
-                "tool_call.started",
-                {"name": output.name, "arguments": output.arguments},
-                sequence=sequence,
-                call_id=output.call_id,
-                metadata=output.metadata,
-            )
-        if output.is_error:
-            session.fail_tool_call(output.call_id, _render_tool_value(output.result))
-        else:
-            session.resolve_tool_call(output.call_id, output.result)
-        await self._sessions.save(session)
-        return await self._emit(
-            session.id,
-            "tool_call.completed",
-            {
-                "name": output.name,
-                "result": output.result,
-                "is_error": output.is_error,
-            },
-            sequence=sequence,
-            call_id=output.call_id,
-            metadata=output.metadata,
-        )
-
-    async def _emit(
-        self,
-        session_id: UUID,
-        event_type: str,
-        data: dict[str, Any],
-        *,
-        sequence: int,
-        call_id: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> int:
-        next_sequence = sequence + 1
-        await self._events.publish(
-            GatewayEvent(
-                type=event_type,
-                session_id=session_id,
-                call_id=call_id,
-                sequence=next_sequence,
-                metadata=metadata or {},
-                data=data,
-            )
-        )
-        return next_sequence
+            current_session = event_router.session if event_router else session
+            await self._fail_pending_tool_calls(current_session, str(error))
 
     async def _fail_pending_tool_calls(
         self,
@@ -207,9 +110,3 @@ class ConversationService:
         if session is None or not session.fail_pending_tool_calls(error):
             return
         await self._sessions.save(session)
-
-
-def _render_tool_value(value: Any) -> str:
-    if isinstance(value, str):
-        return value
-    return json.dumps(value, ensure_ascii=False, sort_keys=True)

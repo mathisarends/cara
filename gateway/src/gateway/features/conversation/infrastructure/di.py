@@ -16,7 +16,6 @@ from gateway.features.conversation.infrastructure.memory import (
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
 )
-from gateway.features.conversation.presentation.socket import CommandProcessor
 
 
 class ConversationProvider(Provider):
@@ -53,11 +52,3 @@ class ConversationProvider(Provider):
             yield service
         finally:
             await service.close()
-
-    @provide
-    def command_processor(
-        self,
-        service: ConversationService,
-        broker: EventBroker,
-    ) -> CommandProcessor:
-        return CommandProcessor(service, broker)

@@ -1,4 +1,3 @@
-from collections.abc import AsyncIterator
 from uuid import UUID
 
 from llmify import (
@@ -13,9 +12,8 @@ from llmify import (
     UserMessage as LLMUserMessage,
 )
 
-from gateway.features.conversation.application import AgentRunner
+from gateway.features.conversation.application import AgentEventBus, AgentRunner
 from gateway.features.conversation.domain import (
-    AgentOutput,
     AssistantMessage,
     ChatCompleted,
     ChatDelta,
@@ -31,11 +29,12 @@ class CodexAgentRunner(AgentRunner):
         self._sessions = sessions
         self._llm = llm
 
-    async def stream(
+    async def run(
         self,
         session_id: UUID,
         metadata: dict[str, object],
-    ) -> AsyncIterator[AgentOutput]:
+        event_bus: AgentEventBus,
+    ) -> None:
         del metadata
         session = await self._sessions.find_by_id(session_id)
         if session is None:
@@ -47,32 +46,32 @@ class CodexAgentRunner(AgentRunner):
         async for event in self._llm.stream(_session_messages(session.entries)):
             if isinstance(event, StreamTextDelta):
                 if event.delta:
-                    yield ChatDelta(
-                        text=event.delta,
-                        metadata=event_metadata,
+                    await event_bus.dispatch(
+                        ChatDelta(text=event.delta, metadata=event_metadata)
                     )
                 continue
             if isinstance(event, OpenAIResponsesStreamEnd):
                 emitted_completion = True
-                yield ChatCompleted(
-                    text=event.completion or "",
-                    finish_reason=event.stop_reason,
-                    metadata=event_metadata,
+                await event_bus.dispatch(
+                    ChatCompleted(
+                        text=event.completion or "",
+                        finish_reason=event.stop_reason,
+                        metadata=event_metadata,
+                    )
                 )
                 continue
             if isinstance(event, StreamEnd):
                 emitted_completion = True
-                yield ChatCompleted(
-                    text=event.completion or "",
-                    finish_reason=event.stop_reason,
-                    metadata=event_metadata,
+                await event_bus.dispatch(
+                    ChatCompleted(
+                        text=event.completion or "",
+                        finish_reason=event.stop_reason,
+                        metadata=event_metadata,
+                    )
                 )
 
         if not emitted_completion:
-            yield ChatCompleted(
-                text="",
-                metadata=event_metadata,
-            )
+            await event_bus.dispatch(ChatCompleted(text="", metadata=event_metadata))
 
 
 def _session_messages(

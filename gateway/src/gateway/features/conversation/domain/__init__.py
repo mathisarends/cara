@@ -19,10 +19,11 @@ from .exceptions import (
     ToolCallNotFoundError,
 )
 from .models import (
-    AgentOutput,
+    AgentEvent,
     ChatCompleted,
     ChatDelta,
     GatewayEvent,
+    GatewayEventType,
     ToolCallCompleted,
     ToolCallStarted,
 )
@@ -30,13 +31,14 @@ from .repositories import SessionRepository
 from .session import Session
 
 __all__ = [
-    "AgentOutput",
+    "AgentEvent",
     "ChatCompleted",
     "ChatDelta",
     "ConversationError",
     "ConversationInvariantError",
     "DuplicateToolCallError",
     "GatewayEvent",
+    "GatewayEventType",
     "NoActiveTurnError",
     "NoPendingToolCallSequenceError",
     "PendingToolCallsError",
