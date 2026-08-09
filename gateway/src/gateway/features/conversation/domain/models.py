@@ -4,13 +4,6 @@ from typing import Any
 from uuid import UUID, uuid4
 
 
-@dataclass(frozen=True, slots=True)
-class Session:
-    id: UUID
-    created_at: datetime
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
 @dataclass(slots=True)
 class Run:
     id: UUID

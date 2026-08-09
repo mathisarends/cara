@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from gateway.features.conversation.domain.models import Run, Session
+from gateway.features.conversation.domain.models import Run
+from gateway.features.conversation.domain.session import Session
 
 
 class SessionRepository(ABC):
