@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from agenttoolkit import Skills
 from llmify import (
     Function,
     StreamEnd,
@@ -84,6 +85,26 @@ def test_runtime_agent_executes_catalog_tools_and_emits_lifecycle_events(
             "Runtime system context.",
             encoding="utf-8",
         )
+        skill_root = tmp_path / "skills" / "spogo-cli"
+        skill_root.mkdir(parents=True)
+        skill_file = skill_root / "SKILL.md"
+        skill_file.write_text(
+            "---\n"
+            "name: spogo-cli\n"
+            "description: Initial description.\n"
+            "---\n"
+            "Use the spogo CLI.\n",
+            encoding="utf-8",
+        )
+        skills = Skills.from_dir(tmp_path / "skills")
+        skill_file.write_text(
+            "---\n"
+            "name: spogo-cli\n"
+            "description: Control Spotify with Spogo.\n"
+            "---\n"
+            "Use the spogo CLI.\n",
+            encoding="utf-8",
+        )
         session = Session.create()
         session.add_user_message("Suche Cara")
         model = _ToolCallingModel()
@@ -98,6 +119,7 @@ def test_runtime_agent_executes_catalog_tools_and_emits_lifecycle_events(
             llm=model,
             tool_factory=tool_factory,
             prompt_root=tmp_path,
+            skills=skills,
         )
         event_bus = AgentEventBus()
         events = []
@@ -130,6 +152,10 @@ def test_runtime_agent_executes_catalog_tools_and_emits_lifecycle_events(
     system_message = model.calls[0][0][0]
     assert isinstance(system_message, SystemMessage)
     assert "Runtime system context." in system_message.content
+    assert "<name>spogo-cli</name>" in system_message.content
+    assert "<description>Control Spotify with Spogo.</description>" in (
+        system_message.content
+    )
     tool_result = next(
         message
         for message in second_round_messages

@@ -16,7 +16,6 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
-    "spotifyify>=0.7.0",
     "tavily-python>=0.7.26",
     "transitbus>=0.1.0",
     "tzdata>=2024.1",

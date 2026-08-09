@@ -1,5 +1,6 @@
 from functools import partial
 
+from agenttoolkit import Skills
 from config import load_cara_config
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
@@ -19,14 +20,17 @@ class _AgentProvider(Provider):
     @provide
     def agent(self, sessions: SessionRepository) -> AgentRunner:
         configuration = load_cara_config()
+        skills = Skills.from_dir(configuration.workspace_root / "skills")
         return RuntimeAgentRunner(
             sessions=sessions,
             llm=create_codex_model(CodexModel.TERRA),
             tool_factory=partial(
                 build_tools,
                 configuration=configuration,
+                skills=skills,
             ),
             prompt_root=configuration.workspace_root,
+            skills=skills,
         )
 
 

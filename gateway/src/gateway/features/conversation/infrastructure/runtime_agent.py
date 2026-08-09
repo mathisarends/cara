@@ -3,7 +3,7 @@ from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from uuid import UUID
 
-from agenttoolkit import Tools
+from agenttoolkit import Skills, Tools
 from llmify import ChatModel
 
 from agent import AgentContext, AgentRuntime, StoredToolCall, SystemPromptComposer
@@ -33,11 +33,13 @@ class RuntimeAgentRunner(AgentRunner):
         llm: ChatModel,
         tool_factory: ToolFactory,
         prompt_root: Path,
+        skills: Skills,
     ) -> None:
         self._sessions = sessions
         self._llm = llm
         self._tool_factory = tool_factory
         self._prompt_root = prompt_root
+        self._skills = skills
 
     async def run(
         self,
@@ -50,7 +52,8 @@ class RuntimeAgentRunner(AgentRunner):
         if session is None:
             raise SessionNotFoundError(session_id)
 
-        context = _agent_context(session.entries, self._prompt_root)
+        self._skills.refresh_if_changed()
+        context = _agent_context(session.entries, self._prompt_root, self._skills)
         callbacks = _GatewayCallbacks(event_bus)
         async with self._tool_factory() as tools:
             await AgentRuntime(llm=self._llm, tools=tools).run(context, callbacks)
@@ -99,8 +102,9 @@ class _GatewayCallbacks:
 def _agent_context(
     entries: tuple[SessionEntry, ...],
     prompt_root: Path,
+    skills: Skills,
 ) -> AgentContext:
-    context = AgentContext(SystemPromptComposer(root=prompt_root))
+    context = AgentContext(SystemPromptComposer(root=prompt_root, skills=skills))
     for entry in entries:
         if isinstance(entry, UserMessage):
             context.add_user_message(entry.content)

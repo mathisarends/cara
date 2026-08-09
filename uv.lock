@@ -49,7 +49,6 @@ dependencies = [
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "retrieval", extra = ["openai", "sqlite"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "transitbus", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -69,7 +68,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
-    { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "transitbus", specifier = ">=0.1.0" },
     { name = "tzdata", specifier = ">=2024.1" },
@@ -1218,20 +1216,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/35/02/c75a3fe717daf6fb53cf855835b0b905883c0861b0c0009ff0ca905e9852/sonosify-0.4.1.tar.gz", hash = "sha256:7d19f951842d44ec8c1168885f6d8b527e6a962a08c7032af2512c65f545a80e", size = 10119395, upload-time = "2026-08-06T16:17:57.32Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/f5/d9064ae9fc669bcb8d24f68db02d7a68a50e8e8deec64af5c8d055caefa0/sonosify-0.4.1-py3-none-any.whl", hash = "sha256:a33f52776266d3112f875267b01587f634534f4523e27d8ec5d6fd954b023d61", size = 42205, upload-time = "2026-08-06T16:17:54.543Z" },
-]
-
-[[package]]
-name = "spotifyify"
-version = "0.7.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/99/53/8007fd8323003c759fe0d5fb8950de06a684cd30909dd06cc5ba302daa56/spotifyify-0.7.0.tar.gz", hash = "sha256:1882e1dc28d963dee32dcd0ddebc78bcc6bb9489ebde20356b7f4530de2c4736", size = 53252, upload-time = "2026-06-26T19:28:56.406Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/4f/3219bff18a9f2053e389ea705f43f8c7734c7b9d3aba2ed51c59d3146015/spotifyify-0.7.0-py3-none-any.whl", hash = "sha256:3ab257a444d304394a77d6a13418bff00fa3fa3c3856872e49ef25d671f39d97", size = 57400, upload-time = "2026-06-26T19:28:55.357Z" },
 ]
 
 [[package]]
