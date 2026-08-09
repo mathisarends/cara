@@ -50,8 +50,8 @@ def _register_audio_tools(tools: agenttoolkit.Tools) -> None:
 
     @tools.action(
         description=(
-            "Frage die aktuelle Wiedergabelautstärke des aktiven "
-            "Audio-Ausgangs ab, als Wert von 0.0 bis 1.0."
+            "Get the current playback volume of the active audio output, "
+            "as a value from 0.0 to 1.0."
         ),
         available_when=provided(AudioPlayer),
     )
@@ -61,9 +61,9 @@ def _register_audio_tools(tools: agenttoolkit.Tools) -> None:
 
     @tools.action(
         description=(
-            "Stelle die Wiedergabelautstärke des aktiven Audio-Ausgangs auf "
-            "einen Zielwert. "
-            "Frage vorher get_volume ab, um den aktuellen Wert zu kennen."
+            "Set the playback volume of the active audio output to a "
+            "target value. "
+            "Call get_volume first to know the current value."
         ),
         params=SetVolumeParams,
         available_when=provided(AudioPlayer),

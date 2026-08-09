@@ -31,7 +31,7 @@ def create_codex_model(
     """Create Cara's Codex client with its Responses features enabled."""
     return ChatCodex.from_cli(
         model=model.value,
-        reasoning_effort=reasoning_effort.value,
+        reasoning_effort=reasoning_effort,
         reasoning_summary="auto",
         reasoning={"context": "all_turns"},
         continuation_mode=ContinuationMode.PREVIOUS_RESPONSE_ID,
