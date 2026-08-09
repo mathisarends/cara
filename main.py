@@ -41,6 +41,8 @@ load_dotenv(override=True)
 _PROJECT_ROOT = Path(__file__).parent
 _WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
 _SKILLS_ROOT = _PROJECT_ROOT / "skills"
+_CARA_SRC = _PROJECT_ROOT / "cara" / "src" / "cara"
+_CARA_EXAMPLES = _PROJECT_ROOT / "cara" / "examples"
 
 
 async def main(mode: str = "voice") -> None:
@@ -127,8 +129,8 @@ def _create_workspace() -> LocalWorkspace:
     return LocalWorkspace(
         _WORKSPACE_ROOT,
         mounts={
-            "/src/cara": _PROJECT_ROOT / "cara",
-            "/experiments": _PROJECT_ROOT / "experiments",
+            "/src/cara": _CARA_SRC,
+            "/experiments": _CARA_EXAMPLES,
             "/skills": _SKILLS_ROOT,
         },
         max_file_bytes=1_000_000,
@@ -137,8 +139,8 @@ def _create_workspace() -> LocalWorkspace:
 
 def _editable_sandbox_mounts() -> tuple[BindMount, ...]:
     return (
-        BindMount.read_write(_PROJECT_ROOT / "cara", "/src/cara"),
-        BindMount.read_write(_PROJECT_ROOT / "experiments", "/experiments"),
+        BindMount.read_write(_CARA_SRC, "/src/cara"),
+        BindMount.read_write(_CARA_EXAMPLES, "/experiments"),
         BindMount.read_write(_SKILLS_ROOT, "/skills"),
     )
 
