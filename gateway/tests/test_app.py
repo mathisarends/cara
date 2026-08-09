@@ -57,6 +57,14 @@ def test_health() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_readiness() -> None:
+    with TestClient(create_app()) as client:
+        response = client.get("/v1/readiness")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+
+
 def test_session_rest_lifecycle() -> None:
     with TestClient(create_app()) as client:
         created = client.post(
@@ -75,6 +83,7 @@ def test_openapi_has_stable_operation_ids_and_response_models() -> None:
 
     paths = schema["paths"]
     assert paths["/v1/health"]["get"]["operationId"] == "get_gateway_health"
+    assert paths["/v1/readiness"]["get"]["operationId"] == "get_gateway_readiness"
     assert paths["/v1/sessions"]["post"]["operationId"] == "create_session"
     assert paths["/v1/sessions/{session_id}"]["get"]["operationId"] == "get_session"
     assert (

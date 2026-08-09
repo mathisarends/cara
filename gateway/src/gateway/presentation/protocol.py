@@ -116,5 +116,9 @@ class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
 
 
+class ReadinessResponse(BaseModel):
+    status: Literal["ready"] = "ready"
+
+
 class ErrorResponse(BaseModel):
     detail: str = Field(description="Human-readable error description.")

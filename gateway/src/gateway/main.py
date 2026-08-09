@@ -7,7 +7,7 @@ from gateway.application import AgentRunner
 from gateway.dependencies import GatewayProvider
 from gateway.infrastructure import EchoAgentRunner
 from gateway.lifespan import lifespan
-from gateway.presentation import router
+from gateway.presentation import api_router, health_router
 
 _API_PREFIX = "/v1"
 
@@ -31,7 +31,8 @@ def create_app(agent: AgentRunner | None = None) -> FastAPI:
             {"name": "sessions", "description": "Conversation session lifecycle."},
         ],
     )
-    application.include_router(router, prefix=_API_PREFIX)
+    application.include_router(health_router, prefix=_API_PREFIX)
+    application.include_router(api_router, prefix=_API_PREFIX)
     setup_dishka(container, application)
     return application
 

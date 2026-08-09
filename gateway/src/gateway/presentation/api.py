@@ -19,7 +19,6 @@ from gateway.presentation.protocol import (
     CommandType,
     ErrorResponse,
     EventEnvelope,
-    HealthResponse,
     RunCancelCommand,
     SessionCreateCommand,
     SessionCreateRequest,
@@ -29,18 +28,6 @@ from gateway.presentation.protocol import (
 )
 
 router = APIRouter()
-
-
-@router.get(
-    "/health",
-    operation_id="get_gateway_health",
-    response_model=HealthResponse,
-    response_description="The gateway is ready to accept requests.",
-    summary="Check gateway health",
-    tags=["system"],
-)
-def health() -> HealthResponse:
-    return HealthResponse()
 
 
 @router.post(
