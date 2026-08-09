@@ -31,7 +31,9 @@ class FakeSonosClient:
         self.played: list[tuple[bytes, dict[str, object]]] = []
         self.closed = False
 
-    async def play_audio_clip_data(self, audio: bytes, **kwargs: object) -> FakeHostedAudioClip:
+    async def play_audio_clip_data(
+        self, audio: bytes, **kwargs: object
+    ) -> FakeHostedAudioClip:
         self.played.append((audio, kwargs))
         return self.clip
 

@@ -38,7 +38,9 @@ class SileroVoiceActivityDetector(VoiceActivityDetector):
     def is_speech(self, frame: bytes) -> bool:
         expected_bytes = _FRAME_SAMPLES * np.dtype(np.int16).itemsize
         if len(frame) != expected_bytes:
-            raise ValueError(f"Silero VAD expects {expected_bytes} PCM bytes, got {len(frame)}")
+            raise ValueError(
+                f"Silero VAD expects {expected_bytes} PCM bytes, got {len(frame)}"
+            )
 
         samples = np.frombuffer(frame, dtype=np.int16).astype(np.float32) / 32768.0
         model_input = np.concatenate((self._context, samples.reshape(1, -1)), axis=1)

@@ -9,7 +9,14 @@ import asyncio
 import tempfile
 from pathlib import Path
 
-from scheduler import AgentPromptPayload, EverySchedule, JobDefinition, JobRunner, NoDelivery, Scheduler
+from scheduler import (
+    AgentPromptPayload,
+    EverySchedule,
+    JobDefinition,
+    JobRunner,
+    NoDelivery,
+    Scheduler,
+)
 
 
 class ConsoleJobRunner(JobRunner):
@@ -50,7 +57,8 @@ async def main() -> None:
             await asyncio.wait_for(runner.wait_until_complete(), timeout=6)
 
             active_jobs = await scheduler.list()
-            print(f"stored recurring jobs: {[active_job.id for active_job in active_jobs]}")
+            active_job_ids = [active_job.id for active_job in active_jobs]
+            print(f"stored recurring jobs: {active_job_ids}")
             await scheduler.remove(job.id)
             print("removed: scheduler-smoke-test")
 

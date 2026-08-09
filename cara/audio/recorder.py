@@ -33,11 +33,16 @@ class MicrophoneInputSettings:
         if self.candidate_silence_seconds <= 0:
             raise ValueError("candidate_silence_seconds must be positive")
         if self.fallback_silence_seconds < self.candidate_silence_seconds:
-            raise ValueError("fallback_silence_seconds must not be shorter than candidate_silence_seconds")
+            raise ValueError(
+                "fallback_silence_seconds must not be shorter than "
+                "candidate_silence_seconds"
+            )
         if self.min_record_seconds < 0:
             raise ValueError("min_record_seconds must not be negative")
         if self.max_record_seconds <= self.candidate_silence_seconds:
-            raise ValueError("max_record_seconds must be longer than candidate_silence_seconds")
+            raise ValueError(
+                "max_record_seconds must be longer than candidate_silence_seconds"
+            )
 
 
 class MicrophoneRecorder(SpeechRecorder):
@@ -71,7 +76,9 @@ class MicrophoneRecorder(SpeechRecorder):
         def notify_speech_started() -> None:
             nonlocal speech_started_notification
             if on_speech_started is not None:
-                speech_started_notification = asyncio.run_coroutine_threadsafe(on_speech_started(), loop)
+                speech_started_notification = asyncio.run_coroutine_threadsafe(
+                    on_speech_started(), loop
+                )
 
         recording = loop.run_in_executor(
             None,
@@ -107,13 +114,19 @@ class MicrophoneRecorder(SpeechRecorder):
         chunk = self._vad.frame_samples
 
         frames: list[bytes] = []
-        preroll: deque[bytes] = deque(maxlen=max(1, math.ceil(_PREROLL_SECONDS * rate / chunk)))
+        preroll: deque[bytes] = deque(
+            maxlen=max(1, math.ceil(_PREROLL_SECONDS * rate / chunk))
+        )
         started_at = time.monotonic()
         voice_started = False
         voice_chunks = 0
         silent_chunks = 0
-        candidate_silent_chunks = max(1, math.ceil(config.candidate_silence_seconds * rate / chunk))
-        fallback_silent_chunks = max(1, math.ceil(config.fallback_silence_seconds * rate / chunk))
+        candidate_silent_chunks = max(
+            1, math.ceil(config.candidate_silence_seconds * rate / chunk)
+        )
+        fallback_silent_chunks = max(
+            1, math.ceil(config.fallback_silence_seconds * rate / chunk)
+        )
         minimum_recorded_chunks = math.ceil(config.min_record_seconds * rate / chunk)
         maximum_recorded_chunks = math.ceil(config.max_record_seconds * rate / chunk)
         turn_check: Future[bool] | None = None
@@ -122,7 +135,9 @@ class MicrophoneRecorder(SpeechRecorder):
 
         self._vad.reset()
         logger.info("Recording user utterance...")
-        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="cara-turn-detection") as turn_executor:
+        with ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="cara-turn-detection"
+        ) as turn_executor:
             while True:
                 if cancel is not None and cancel.is_set():
                     logger.info("Recording cancelled.")
@@ -143,9 +158,12 @@ class MicrophoneRecorder(SpeechRecorder):
                         frames.extend(preroll)
                         preroll.clear()
                     elif (
-                        initial_silence_timeout is not None and time.monotonic() - started_at >= initial_silence_timeout
+                        initial_silence_timeout is not None
+                        and time.monotonic() - started_at >= initial_silence_timeout
                     ):
-                        logger.info("No speech detected within %.1fs.", initial_silence_timeout)
+                        logger.info(
+                            "No speech detected within %.1fs.", initial_silence_timeout
+                        )
                         return None
                     continue
 
@@ -177,19 +195,29 @@ class MicrophoneRecorder(SpeechRecorder):
                             logger.info("Smart Turn detected a complete utterance.")
                             break
 
-                if silent_chunks >= candidate_silent_chunks and turn_check is None and not candidate_checked:
+                if (
+                    silent_chunks >= candidate_silent_chunks
+                    and turn_check is None
+                    and not candidate_checked
+                ):
                     utterance = b"".join(frames)
-                    turn_check = turn_executor.submit(self._turn_detector.is_complete, utterance)
+                    turn_check = turn_executor.submit(
+                        self._turn_detector.is_complete, utterance
+                    )
                     turn_check_invalidated = False
 
                 if silent_chunks >= fallback_silent_chunks:
                     logger.info(
-                        "Ending recording after %.1fs of silence (Smart Turn fallback).",
+                        "Ending recording after %.1fs of silence "
+                        "(Smart Turn fallback).",
                         config.fallback_silence_seconds,
                     )
                     break
                 if voice_chunks >= maximum_recorded_chunks:
-                    logger.warning("Recording reached the %.1fs runaway limit.", config.max_record_seconds)
+                    logger.warning(
+                        "Recording reached the %.1fs runaway limit.",
+                        config.max_record_seconds,
+                    )
                     break
 
         buffer = io.BytesIO()
@@ -207,8 +235,12 @@ class MicrophoneRecorder(SpeechRecorder):
         mic = self._microphone
         if mic.channels != 1:
             raise ValueError("Voice and turn detection require mono microphone audio")
-        if mic.rate != self._vad.sample_rate or mic.rate != self._turn_detector.sample_rate:
+        if (
+            mic.rate != self._vad.sample_rate
+            or mic.rate != self._turn_detector.sample_rate
+        ):
             raise ValueError(
                 "Voice and turn detection require matching sample rates "
-                f"(microphone={mic.rate}, vad={self._vad.sample_rate}, turn={self._turn_detector.sample_rate})"
+                f"(microphone={mic.rate}, vad={self._vad.sample_rate}, "
+                f"turn={self._turn_detector.sample_rate})"
             )

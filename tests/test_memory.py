@@ -66,7 +66,9 @@ def test_seed_search_and_delete_mock_memory(tmp_path: Path) -> None:
     assert results[0].text_score == 0
     assert results[0].score == 0.7 * results[0].vector_score
 
-    deleted = asyncio.run(delete_memory_dataset(database, source, dataset="test-mock", dimensions=3))
+    deleted = asyncio.run(
+        delete_memory_dataset(database, source, dataset="test-mock", dimensions=3)
+    )
 
     assert deleted == indexed
     with sqlite3.connect(database) as connection:
@@ -74,13 +76,17 @@ def test_seed_search_and_delete_mock_memory(tmp_path: Path) -> None:
         sqlite_vec.load(connection)
         connection.enable_load_extension(False)
         assert connection.execute("SELECT count(*) FROM documents").fetchone() == (0,)
-        assert connection.execute("SELECT count(*) FROM document_embeddings").fetchone() == (0,)
+        assert connection.execute(
+            "SELECT count(*) FROM document_embeddings"
+        ).fetchone() == (0,)
         assert connection.execute(
             "SELECT count(*) FROM embedding_cache WHERE namespace LIKE '%:test-mock'"
         ).fetchone() == (0,)
 
 
-def test_search_memory_returns_chunks_instead_of_parent_documents(tmp_path: Path) -> None:
+def test_search_memory_returns_chunks_instead_of_parent_documents(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "memory"
     database = tmp_path / "memory.db"
     _write_memory(source)
@@ -101,7 +107,9 @@ def test_search_memory_returns_chunks_instead_of_parent_documents(tmp_path: Path
     assert results[0].document.parent_id == "daily/2026-08-01"
 
 
-def test_search_memory_tool_returns_concise_source_attributed_excerpts(tmp_path: Path) -> None:
+def test_search_memory_tool_returns_concise_source_attributed_excerpts(
+    tmp_path: Path,
+) -> None:
     source = tmp_path / "memory"
     database = tmp_path / "memory.db"
     _write_memory(source)
@@ -114,9 +122,15 @@ def test_search_memory_tool_returns_concise_source_attributed_excerpts(tmp_path:
             dimensions=3,
         )
     )
-    tools = create_tools(create_tool_context(HybridMemorySearch(database, embedding_provider=provider, dimensions=3)))
+    tools = create_tools(
+        create_tool_context(
+            HybridMemorySearch(database, embedding_provider=provider, dimensions=3)
+        )
+    )
 
-    response = asyncio.run(tools.execute("search_memory", {"query": "SQLite", "limit": 1}))
+    response = asyncio.run(
+        tools.execute("search_memory", {"query": "SQLite", "limit": 1})
+    )
 
     assert isinstance(response, str)
     assert response == (

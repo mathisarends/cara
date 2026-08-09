@@ -32,7 +32,9 @@ class Conversation:
         self._history.append(AssistantMessage(tool_calls=[tool_call]))
 
     def add_tool_result(self, tool_call_id: str, content: str) -> None:
-        self._history.append(ToolResultMessage(tool_call_id=tool_call_id, content=content))
+        self._history.append(
+            ToolResultMessage(tool_call_id=tool_call_id, content=content)
+        )
 
     def to_llm_messages(self) -> list[Message]:
         return [SystemMessage(content=self._system_prompt.render()), *self._history]

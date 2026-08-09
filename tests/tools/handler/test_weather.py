@@ -5,7 +5,9 @@ import httpx
 
 from cara.tools.handler.weather import Location, OpenMeteoClient, WeatherReport
 
-_BERLIN = Location(name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin")
+_BERLIN = Location(
+    name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin"
+)
 
 _FORECAST = {
     "current": {
@@ -46,7 +48,9 @@ def _client(routes: dict[str, dict]) -> OpenMeteoClient:
 
 
 def test_report_parses_forecast_payload_via_model_validate() -> None:
-    report = WeatherReport.model_validate({**_FORECAST["current"], "location_name": "Berlin"})
+    report = WeatherReport.model_validate(
+        {**_FORECAST["current"], "location_name": "Berlin"}
+    )
 
     assert report.temperature_c == 24.1
     assert report.apparent_temperature_c == 22.0
@@ -56,7 +60,9 @@ def test_report_parses_forecast_payload_via_model_validate() -> None:
 
 
 def test_report_maps_unknown_weather_code_to_fallback() -> None:
-    report = WeatherReport.model_validate({**_FORECAST["current"], "weather_code": 123, "location_name": "Berlin"})
+    report = WeatherReport.model_validate(
+        {**_FORECAST["current"], "weather_code": 123, "location_name": "Berlin"}
+    )
 
     assert report.description == "unbekannte Wetterlage"
 
@@ -83,7 +89,9 @@ def test_locate_resolves_first_geocoding_result() -> None:
 
     location = asyncio.run(client.locate("Hamburg"))
 
-    assert location == Location(name="Hamburg", latitude=53.55, longitude=9.99, timezone="Europe/Berlin")
+    assert location == Location(
+        name="Hamburg", latitude=53.55, longitude=9.99, timezone="Europe/Berlin"
+    )
 
 
 def test_locate_returns_none_when_no_results() -> None:

@@ -4,9 +4,16 @@ from datetime import datetime
 from cara.tools import create_tool_context, create_tools
 from cara.tools.catalog import _render_weather_report
 from cara.tools.handler import IpLocationClient
-from cara.tools.handler.weather import HourlyForecast, Location, OpenMeteoClient, WeatherReport
+from cara.tools.handler.weather import (
+    HourlyForecast,
+    Location,
+    OpenMeteoClient,
+    WeatherReport,
+)
 
-_HOME = Location(name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin")
+_HOME = Location(
+    name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin"
+)
 
 
 def _report(name: str) -> WeatherReport:
@@ -58,9 +65,13 @@ def test_render_weather_report_drops_apparent_temperature_when_close() -> None:
 
 
 def test_render_weather_report_includes_apparent_temperature_when_it_diverges() -> None:
-    report = _report("Berlin").model_copy(update={"temperature_c": 24.1, "apparent_temperature_c": 22.0})
+    report = _report("Berlin").model_copy(
+        update={"temperature_c": 24.1, "apparent_temperature_c": 22.0}
+    )
 
-    assert _render_weather_report(report) == ("## Wetter in Berlin\n\n**24 °C**, gefühlt 22 °C, klar, Wind 5 km/h.")
+    assert _render_weather_report(report) == (
+        "## Wetter in Berlin\n\n**24 °C**, gefühlt 22 °C, klar, Wind 5 km/h."
+    )
 
 
 def test_render_weather_report_appends_hourly_outlook() -> None:
@@ -96,7 +107,11 @@ def test_weather_tool_is_registered_without_availability_checks() -> None:
 
 def test_weather_tool_description_lets_location_be_omitted() -> None:
     tools = _tools(_StubClient(), _StubLocationClient(_HOME))
-    schema = next(item for item in tools.get_schema("openai") if item["function"]["name"] == "weather_report")
+    schema = next(
+        item
+        for item in tools.get_schema("openai")
+        if item["function"]["name"] == "weather_report"
+    )
 
     assert "location" in schema["function"]["description"]
     assert schema["function"]["parameters"]["properties"].keys() == {"location"}
@@ -117,7 +132,9 @@ def test_weather_uses_the_ip_location_when_no_location_given() -> None:
 
 
 def test_weather_uses_the_requested_location_when_given() -> None:
-    munich = Location(name="München", latitude=48.14, longitude=11.58, timezone="Europe/Berlin")
+    munich = Location(
+        name="München", latitude=48.14, longitude=11.58, timezone="Europe/Berlin"
+    )
     client = _StubClient(locations={"München": munich})
     location_client = _StubLocationClient(_HOME)
     tools = _tools(client, location_client)

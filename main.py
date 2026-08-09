@@ -9,7 +9,15 @@ from dotenv import load_dotenv
 from llmify import ChatModel
 from transitbus import EventBus
 
-from cara import Agent, HueListener, SpeechInput, SpeechOutput, SpeechSettings, TerminalSession, VoiceSession
+from cara import (
+    Agent,
+    HueListener,
+    SpeechInput,
+    SpeechOutput,
+    SpeechSettings,
+    TerminalSession,
+    VoiceSession,
+)
 from cara.audio import (
     AudioOutput,
     AudioPlayer,
@@ -24,7 +32,9 @@ from cara.speech import OpenAISpeechToText, OpenAITextToSpeech
 from cara.tools import build_tools
 from cara.wakeword import WakeWord, WakeWordListener
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 load_dotenv(override=True)
 
@@ -134,7 +144,9 @@ def _editable_sandbox_mounts() -> tuple[BindMount, ...]:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run Cara through voice or terminal input.")
+    parser = argparse.ArgumentParser(
+        description="Run Cara through voice or terminal input."
+    )
     parser.add_argument(
         "--mode",
         choices=("voice", "terminal"),

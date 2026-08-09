@@ -10,7 +10,12 @@ _IP_LOCATION_URL = "https://ipwho.is/"
 class IpLocationClient:
     """Determine the current approximate location from the public IP address."""
 
-    def __init__(self, *, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 10.0) -> None:
+    def __init__(
+        self,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+        timeout: float = 10.0,
+    ) -> None:
         self._transport = transport
         self._timeout = timeout
 
@@ -27,7 +32,9 @@ class IpLocationClient:
         )
 
     async def _get(self) -> dict[str, Any]:
-        async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout) as client:
+        async with httpx.AsyncClient(
+            transport=self._transport, timeout=self._timeout
+        ) as client:
             response = await client.get(_IP_LOCATION_URL, params={"lang": "de"})
             response.raise_for_status()
             return response.json()

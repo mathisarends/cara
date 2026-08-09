@@ -30,7 +30,9 @@ def test_earcon_asset_is_16_bit_pcm_wav(earcon: Earcon) -> None:
         assert audio.getsampwidth() == 2
 
 
-def test_play_uses_wav_bytes_and_caches_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_play_uses_wav_bytes_and_caches_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     expected = b"wav audio"
     path = tmp_path / "wake.wav"
     path.write_bytes(expected)
@@ -57,7 +59,9 @@ def test_play_uses_wav_bytes_and_caches_file(monkeypatch: pytest.MonkeyPatch, tm
     assert reads == 1
 
 
-def test_play_soon_returns_before_playback_and_logs_errors(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_play_soon_returns_before_playback_and_logs_errors(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     (tmp_path / "interrupt.wav").write_bytes(b"interrupt")
 
     async def run() -> RecordingAudioPlayer:

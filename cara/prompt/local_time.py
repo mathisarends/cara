@@ -2,7 +2,15 @@ from collections.abc import Callable
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-_WEEKDAYS = ("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag")
+_WEEKDAYS = (
+    "Montag",
+    "Dienstag",
+    "Mittwoch",
+    "Donnerstag",
+    "Freitag",
+    "Samstag",
+    "Sonntag",
+)
 _MONTHS = (
     "Januar",
     "Februar",
@@ -22,7 +30,9 @@ _MONTHS = (
 class LocalTimePrompt:
     """Render the current local weekday, date, and time for the system prompt."""
 
-    def __init__(self, *, timezone: str, clock: Callable[[], datetime] | None = None) -> None:
+    def __init__(
+        self, *, timezone: str, clock: Callable[[], datetime] | None = None
+    ) -> None:
         self._clock = clock or (lambda: datetime.now(ZoneInfo(timezone)))
 
     def render(self) -> str:

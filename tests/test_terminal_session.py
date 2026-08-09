@@ -1,7 +1,14 @@
 import asyncio
 from pathlib import Path
 
-from llmify import Function, StreamEnd, StreamTextDelta, StreamToolCall, ToolCall, UserMessage
+from llmify import (
+    Function,
+    StreamEnd,
+    StreamTextDelta,
+    StreamToolCall,
+    ToolCall,
+    UserMessage,
+)
 from transitbus import EventBus
 
 from cara.agent import Agent
@@ -23,7 +30,11 @@ class EchoChatModel:
 
     async def stream(self, messages, *, tools):
         self.messages.append(messages)
-        user = next(message for message in reversed(messages) if isinstance(message, UserMessage))
+        user = next(
+            message
+            for message in reversed(messages)
+            if isinstance(message, UserMessage)
+        )
         completion = f"Antwort auf {user.content}"
         yield StreamTextDelta(delta="Antwort auf ")
         yield StreamTextDelta(delta=user.content)
@@ -118,7 +129,8 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
     asyncio.run(session.run())
 
     assert outputs == [
-        '\u256d\u2500 tool  weather_lookup\n\u2502  {\n\u2502    "location": "Aurich"\n\u2502  }',
+        '\u256d\u2500 tool  weather_lookup\n\u2502  {\n\u2502    "location": '
+        '"Aurich"\n\u2502  }',
         "\u2570\u2500 done  weather_lookup\n   Wetter f\u00fcr Aurich",
         "cara \u276f ",
         "15 Grad ",
@@ -135,7 +147,9 @@ def test_terminal_session_emits_turn_and_tool_lifecycle(tmp_path: Path) -> None:
         async def stream(self, messages, *, tools):
             self._calls += 1
             if self._calls == 1:
-                tool_call = ToolCall(id="call", function=Function(name="lookup", arguments="{}"))
+                tool_call = ToolCall(
+                    id="call", function=Function(name="lookup", arguments="{}")
+                )
                 yield StreamEnd(tool_calls=[tool_call], stop_reason="tool_calls")
                 return
             yield StreamEnd(completion="done")
@@ -179,7 +193,12 @@ def test_terminal_session_emits_turn_and_tool_lifecycle(tmp_path: Path) -> None:
             return "result"
 
         inputs = iter(("hello", "/exit"))
-        agent = Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path, event_bus=event_bus)
+        agent = Agent(
+            llm=ToolCallingChatModel(),
+            tools=tools,
+            prompt_root=tmp_path,
+            event_bus=event_bus,
+        )
         session = TerminalSession(
             agent,
             input_reader=lambda prompt: next(inputs),

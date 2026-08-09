@@ -15,6 +15,7 @@ class OpenAICredentials(BaseSettings):
     def require_api_key(self) -> str:
         if self.api_key is None:
             raise RuntimeError(
-                "OPENAI_API_KEY is not set. Add it to your environment or to the project's .env file."
+                "OPENAI_API_KEY is not set. Add it to your environment "
+                "or to the project's .env file."
             )
         return self.api_key.get_secret_value()

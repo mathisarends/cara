@@ -10,7 +10,8 @@ def _skills(tmp_path: Path) -> Skills:
     directory = tmp_path / "pdf"
     directory.mkdir()
     (directory / "SKILL.md").write_text(
-        "---\nname: pdf\ndescription: Read PDFs.\n---\nUse the bundled parser to extract text.\n",
+        "---\nname: pdf\ndescription: Read PDFs.\n---\n"
+        "Use the bundled parser to extract text.\n",
         encoding="utf-8",
     )
     return Skills.from_dir(tmp_path)
@@ -20,7 +21,10 @@ def test_load_skill_tool_is_unavailable_without_skills() -> None:
     tools = create_tools()
 
     assert tools.get("load_skill") is not None
-    assert all(schema["function"]["name"] != "load_skill" for schema in tools.get_schema("openai"))
+    assert all(
+        schema["function"]["name"] != "load_skill"
+        for schema in tools.get_schema("openai")
+    )
 
 
 def test_load_skill_tool_is_available_with_skills(tmp_path: Path) -> None:

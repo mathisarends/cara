@@ -80,12 +80,16 @@ def test_audio_player_can_register_and_activate_an_output() -> None:
 def test_audio_player_reports_whether_multiple_outputs_are_configured() -> None:
     assert AudioPlayer(RecordingSink(AudioOutput.LOCAL)).has_multiple_outputs is False
 
-    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS))
+    player = AudioPlayer(
+        RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS)
+    )
 
     assert player.has_multiple_outputs is True
 
 
 def test_audio_player_describes_its_configured_outputs() -> None:
-    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS))
+    player = AudioPlayer(
+        RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS)
+    )
 
     assert player.describe_outputs() == "local, sonos"

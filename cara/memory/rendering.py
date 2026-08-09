@@ -13,7 +13,11 @@ def render_memory_results(results: Sequence[HybridMemoryResult]) -> str:
         path = document.metadata.get("path")
         source = path if isinstance(path, str) else document.parent_id or document.id
         group_key = document.parent_id or document.id
-        created_at = document.created_at.date().isoformat() if document.created_at is not None else None
+        created_at = (
+            document.created_at.date().isoformat()
+            if document.created_at is not None
+            else None
+        )
         text = document.text.strip()
 
         group = grouped.get(group_key)

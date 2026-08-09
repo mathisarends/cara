@@ -50,7 +50,9 @@ class TerminalSession:
             while True:
                 await self._dispatch(UserTurnStarted())
                 try:
-                    text = await asyncio.to_thread(self._input_reader, self._style(self._prompt, _BOLD_CYAN))
+                    text = await asyncio.to_thread(
+                        self._input_reader, self._style(self._prompt, _BOLD_CYAN)
+                    )
                 except EOFError:
                     return
 
@@ -72,7 +74,9 @@ class TerminalSession:
         finally:
             await self._dispatch(SessionEnded())
 
-    async def _dispatch(self, event: SessionStarted | UserTurnStarted | SessionEnded) -> None:
+    async def _dispatch(
+        self, event: SessionStarted | UserTurnStarted | SessionEnded
+    ) -> None:
         if self._event_bus is not None:
             await self._event_bus.dispatch(event)
 
@@ -89,14 +93,22 @@ class TerminalSession:
 
     def _show_tool_call(self, name: str, arguments: dict[str, object]) -> None:
         self._finish_response()
-        rendered_arguments = json.dumps(arguments, ensure_ascii=False, indent=2, sort_keys=True)
+        rendered_arguments = json.dumps(
+            arguments, ensure_ascii=False, indent=2, sort_keys=True
+        )
         lines = [self._style(f"\u256d\u2500 tool  {name}", _BOLD_CYAN)]
-        lines.extend(self._style(f"\u2502  {line}", _DIM) for line in rendered_arguments.splitlines())
+        lines.extend(
+            self._style(f"\u2502  {line}", _DIM)
+            for line in rendered_arguments.splitlines()
+        )
         self._output_writer("\n".join(lines))
 
     def _show_tool_result(self, name: str, content: str) -> None:
         lines = [self._style(f"\u2570\u2500 done  {name}", _GREEN)]
-        lines.extend(self._style(f"   {line}", _DIM) for line in (content.splitlines() or ["(no output)"]))
+        lines.extend(
+            self._style(f"   {line}", _DIM)
+            for line in (content.splitlines() or ["(no output)"])
+        )
         self._output_writer("\n".join(lines))
 
     def _style(self, text: str, style: str) -> str:

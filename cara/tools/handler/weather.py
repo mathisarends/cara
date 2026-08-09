@@ -7,7 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 _GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 
-_CURRENT_FIELDS = "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day"
+_CURRENT_FIELDS = (
+    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day"
+)
 _HOURLY_FIELDS = "temperature_2m,weather_code,precipitation_probability"
 _HOURLY_HOURS_AHEAD = 24
 
@@ -87,7 +89,12 @@ class WeatherReport(BaseModel):
 class OpenMeteoClient:
     """Current weather and place lookup via the keyless Open-Meteo APIs."""
 
-    def __init__(self, *, transport: httpx.AsyncBaseTransport | None = None, timeout: float = 10.0) -> None:
+    def __init__(
+        self,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+        timeout: float = 10.0,
+    ) -> None:
         self._transport = transport
         self._timeout = timeout
 
@@ -121,11 +128,17 @@ class OpenMeteoClient:
             },
         )
         current_time = datetime.fromisoformat(data["current"]["time"])
-        hourly = _upcoming_hourly_entries(data["hourly"], after=current_time, limit=_HOURLY_HOURS_AHEAD)
-        return WeatherReport.model_validate({**data["current"], "location_name": location.name, "hourly": hourly})
+        hourly = _upcoming_hourly_entries(
+            data["hourly"], after=current_time, limit=_HOURLY_HOURS_AHEAD
+        )
+        return WeatherReport.model_validate(
+            {**data["current"], "location_name": location.name, "hourly": hourly}
+        )
 
     async def _get(self, url: str, params: dict[str, object]) -> dict:
-        async with httpx.AsyncClient(transport=self._transport, timeout=self._timeout) as client:
+        async with httpx.AsyncClient(
+            transport=self._transport, timeout=self._timeout
+        ) as client:
             response = await client.get(url, params=params)
             response.raise_for_status()
             return response.json()
@@ -138,7 +151,9 @@ def _with_weather_description(data: Any) -> Any:
     return data
 
 
-def _upcoming_hourly_entries(hourly: dict[str, list], *, after: datetime, limit: int) -> list[dict]:
+def _upcoming_hourly_entries(
+    hourly: dict[str, list], *, after: datetime, limit: int
+) -> list[dict]:
     entries: list[dict] = []
     for index, time_str in enumerate(hourly["time"]):
         if datetime.fromisoformat(time_str) < after:

@@ -1,7 +1,11 @@
 import asyncio
 
 from cara.tools import create_tool_context, create_tools
-from cara.tools.handler.web_search import SearchResponse, SearchResult, TavilySearchClient
+from cara.tools.handler.web_search import (
+    SearchResponse,
+    SearchResult,
+    TavilySearchClient,
+)
 
 
 class _StubClient(TavilySearchClient):
@@ -25,7 +29,9 @@ def test_web_search_tool_is_registered_without_availability_checks() -> None:
 def test_web_search_returns_the_client_summary() -> None:
     response = SearchResponse(
         answer="Die Antwort.",
-        results=[SearchResult(title="Titel", url="https://example.com", content="Inhalt")],
+        results=[
+            SearchResult(title="Titel", url="https://example.com", content="Inhalt")
+        ],
     )
     client = _StubClient(response)
     tools = _tools(client)

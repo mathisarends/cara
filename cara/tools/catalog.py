@@ -30,7 +30,12 @@ from agenttoolkit.builtins.fs import Entry
 
 from cara.audio import AudioPlayer
 from cara.memory import HybridMemorySearch, render_memory_results
-from cara.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient, WeatherReport
+from cara.tools.handler import (
+    IpLocationClient,
+    OpenMeteoClient,
+    TavilySearchClient,
+    WeatherReport,
+)
 from cara.tools.params import (
     BashParams,
     EditFileParams,
@@ -84,8 +89,13 @@ def create_tool_context(
 ) -> ToolContext:
     if workspace is not None and workspace_mounts:
         raise ValueError("Use either workspace or workspace_mounts, not both.")
-    if sandbox is not None and (sandbox_environment or sandbox_mounts or sandbox_network_access):
-        raise ValueError("Configure environment, mounts, and network access on the provided sandbox directly.")
+    if sandbox is not None and (
+        sandbox_environment or sandbox_mounts or sandbox_network_access
+    ):
+        raise ValueError(
+            "Configure environment, mounts, and network access on the "
+            "provided sandbox directly."
+        )
     selected_workspace = workspace or _default_workspace(workspace_mounts)
     selected_sandbox = sandbox or _default_sandbox(
         selected_workspace,
@@ -96,7 +106,9 @@ def create_tool_context(
     return ToolContext(selected_workspace, selected_sandbox, *dependencies)
 
 
-def _default_workspace(additional_mounts: Mapping[str, Path] | None = None) -> LocalWorkspace:
+def _default_workspace(
+    additional_mounts: Mapping[str, Path] | None = None,
+) -> LocalWorkspace:
     return LocalWorkspace(
         Path(gettempdir()) / "cara" / "workspace",
         mounts=additional_mounts,
@@ -153,7 +165,12 @@ def build_tools(
     sandbox_network_access: bool = False,
     tools: agenttoolkit.Tools | None = None,
 ) -> _ManagedTools:
-    configured_dependencies = [*dependencies, IpLocationClient(), OpenMeteoClient(), TavilySearchClient()]
+    configured_dependencies = [
+        *dependencies,
+        IpLocationClient(),
+        OpenMeteoClient(),
+        TavilySearchClient(),
+    ]
     if skills is not None:
         configured_dependencies.append(skills)
     tool_context = create_tool_context(
@@ -174,7 +191,8 @@ def build_tools(
 def register_tools(tools: agenttoolkit.Tools) -> None:
     @tools.action(
         description=(
-            "Load a skill's full instructions into context before carrying out a task it covers. "
+            "Load a skill's full instructions into context before carrying "
+            "out a task it covers. "
             "Call this first whenever a request matches one of the listed skills."
         ),
         params=LoadSkillParams,
@@ -194,15 +212,20 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
             fallback="Switch audio playback to another configured audio sink.",
         ),
         params=SetAudioOutputParams,
-        available_when=requires(AudioPlayer, predicate=lambda player: player.has_multiple_outputs),
+        available_when=requires(
+            AudioPlayer, predicate=lambda player: player.has_multiple_outputs
+        ),
     )
-    async def set_audio_output(params: SetAudioOutputParams, player: Inject[AudioPlayer]) -> str:
+    async def set_audio_output(
+        params: SetAudioOutputParams, player: Inject[AudioPlayer]
+    ) -> str:
         player.set_output(params.output)
         return f"Audio output switched to {params.output.value!r}."
 
     @tools.action(
         description=(
-            "Frage die aktuelle Wiedergabelautstärke des aktiven Audio-Ausgangs ab, als Wert von 0.0 bis 1.0."
+            "Frage die aktuelle Wiedergabelautstärke des aktiven "
+            "Audio-Ausgangs ab, als Wert von 0.0 bis 1.0."
         ),
         available_when=provided(AudioPlayer),
     )
@@ -212,7 +235,8 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
 
     @tools.action(
         description=(
-            "Stelle die Wiedergabelautstärke des aktiven Audio-Ausgangs auf einen Zielwert. "
+            "Stelle die Wiedergabelautstärke des aktiven Audio-Ausgangs auf "
+            "einen Zielwert. "
             "Frage vorher get_volume ab, um den aktuellen Wert zu kennen."
         ),
         params=SetVolumeParams,
@@ -224,8 +248,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
 
     @tools.action(
         description=(
-            "Frage das Wetter ab, für den aktuellen Standort oder einen angegebenen Ort. "
-            "Nutze params.location nur, wenn explizit nach einem bestimmten Ort gefragt wird."
+            "Frage das Wetter ab, für den aktuellen Standort oder einen "
+            "angegebenen Ort. Nutze params.location nur, wenn explizit "
+            "nach einem bestimmten Ort gefragt wird."
         ),
         params=WeatherParams,
     )
@@ -244,17 +269,21 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         return _render_weather_report(report)
 
     @tools.action(
-        description="Durchsuche das Internet nach aktuellen Informationen, News oder Fakten.",
+        description=(
+            "Durchsuche das Internet nach aktuellen Informationen, News oder Fakten."
+        ),
         params=WebSearchParams,
     )
-    async def web_search(params: WebSearchParams, client: Inject[TavilySearchClient]) -> str:
+    async def web_search(
+        params: WebSearchParams, client: Inject[TavilySearchClient]
+    ) -> str:
         response = await client.search(params.query, max_results=params.max_results)
         return response.summary()
 
     @tools.action(
         description=(
-            "Search older daily notes and durable memory. Returns concise original excerpts "
-            "with their source and date, ordered by relevance."
+            "Search older daily notes and durable memory. Returns concise "
+            "original excerpts with their source and date, ordered by relevance."
         ),
         params=SearchMemoryParams,
         available_when=provided(HybridMemorySearch),
@@ -275,15 +304,18 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         description="Execute a Bash command in the isolated workspace sandbox.",
         params=BashParams,
     )
-    async def bash(params: BashParams, workspace: Inject[Workspace], sandbox: Inject[CommandRunner]) -> str:
+    async def bash(
+        params: BashParams, workspace: Inject[Workspace], sandbox: Inject[CommandRunner]
+    ) -> str:
         result = await sandbox.execute(params.command, cwd=workspace.root)
         result.check_returncode()
         return result.output.rstrip() or "(no output)"
 
     @tools.action(
         description=(
-            "List files and directories under a workspace path. Directories end with a slash. "
-            "The application workspace instructions describe the available mounted directories."
+            "List files and directories under a workspace path. Directories "
+            "end with a slash. The application workspace instructions "
+            "describe the available mounted directories."
         ),
         params=ListFilesParams,
     )
@@ -292,7 +324,9 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         return _render_entries(entries, empty="(empty)")
 
     @tools.action(
-        description="Find workspace files and directories whose paths match a glob pattern.",
+        description=(
+            "Find workspace files and directories whose paths match a glob pattern."
+        ),
         params=GlobParams,
     )
     async def glob(params: GlobParams, workspace: Inject[Workspace]) -> str:
@@ -316,12 +350,16 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
             first_context_line = match.line_number - len(match.context_before)
             rendered.extend(
                 f"{match.path}-{line_number}-{line}"
-                for line_number, line in enumerate(match.context_before, start=first_context_line)
+                for line_number, line in enumerate(
+                    match.context_before, start=first_context_line
+                )
             )
             rendered.append(f"{match.path}:{match.line_number}:{match.line}")
             rendered.extend(
                 f"{match.path}-{line_number}-{line}"
-                for line_number, line in enumerate(match.context_after, start=match.line_number + 1)
+                for line_number, line in enumerate(
+                    match.context_after, start=match.line_number + 1
+                )
             )
         return "\n".join(rendered) if rendered else "(no matches)"
 
@@ -342,7 +380,10 @@ def register_tools(tools: agenttoolkit.Tools) -> None:
         return f"Wrote {params.path}."
 
     @tools.action(
-        description="Replace an exact snippet in an existing file. old_text must occur exactly once.",
+        description=(
+            "Replace an exact snippet in an existing file. "
+            "old_text must occur exactly once."
+        ),
         params=EditFileParams,
     )
     async def edit_file(params: EditFileParams, workspace: Inject[Workspace]) -> str:
@@ -366,7 +407,9 @@ def _render_weather_report(report: WeatherReport) -> str:
         f"{hour.precipitation_probability}% |"
         for hour in report.hourly
     )
-    table = "\n".join(["| Uhrzeit | Wetter | Temp | Regen |", "| --- | --- | --- | --- |", *rows])
+    table = "\n".join(
+        ["| Uhrzeit | Wetter | Temp | Regen |", "| --- | --- | --- | --- |", *rows]
+    )
     return f"{summary}\n\n{table}"
 
 

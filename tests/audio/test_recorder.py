@@ -158,7 +158,9 @@ def test_recorder_detects_speech_start_on_the_first_voice_frame() -> None:
     )
     detected_at: list[int] = []
 
-    audio = recorder._record_until_silence_sync(on_speech_started=lambda: detected_at.append(microphone.reads))
+    audio = recorder._record_until_silence_sync(
+        on_speech_started=lambda: detected_at.append(microphone.reads)
+    )
 
     assert audio is not None
     assert detected_at == [2]
@@ -194,7 +196,9 @@ def test_incomplete_turn_keeps_recording_across_a_thought_pause() -> None:
     recorder = MicrophoneRecorder(
         microphone,
         _settings(),
-        vad=SequenceVoiceActivityDetector([True, True, False, False, False, True, True, False, False, False]),
+        vad=SequenceVoiceActivityDetector(
+            [True, True, False, False, False, True, True, False, False, False]
+        ),
         turn_detector=detector,
     )
 
@@ -245,7 +249,9 @@ def test_long_silence_is_a_fallback_after_an_incomplete_answer() -> None:
 
 def test_ready_event_suspends_endpoint_detection() -> None:
     ready = threading.Event()
-    microphone = SequenceMicrophone(on_read=lambda read: ready.set() if read == 5 else None)
+    microphone = SequenceMicrophone(
+        on_read=lambda read: ready.set() if read == 5 else None
+    )
     detector = SequenceTurnDetector([True])
     recorder = MicrophoneRecorder(
         microphone,

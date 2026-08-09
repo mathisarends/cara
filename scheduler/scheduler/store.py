@@ -49,21 +49,27 @@ class JobStore:
 
     async def get(self, job_id: str) -> JobDefinition | None:
         connection = self._require_connection()
-        cursor = await connection.execute("SELECT definition FROM scheduled_jobs WHERE id = ?", (job_id,))
+        cursor = await connection.execute(
+            "SELECT definition FROM scheduled_jobs WHERE id = ?", (job_id,)
+        )
         row = await cursor.fetchone()
         await cursor.close()
         return JobDefinition.model_validate_json(row[0]) if row is not None else None
 
     async def list(self) -> list[JobDefinition]:
         connection = self._require_connection()
-        cursor = await connection.execute("SELECT definition FROM scheduled_jobs ORDER BY id")
+        cursor = await connection.execute(
+            "SELECT definition FROM scheduled_jobs ORDER BY id"
+        )
         rows = await cursor.fetchall()
         await cursor.close()
         return [JobDefinition.model_validate_json(row[0]) for row in rows]
 
     async def remove(self, job_id: str) -> bool:
         connection = self._require_connection()
-        cursor = await connection.execute("DELETE FROM scheduled_jobs WHERE id = ?", (job_id,))
+        cursor = await connection.execute(
+            "DELETE FROM scheduled_jobs WHERE id = ?", (job_id,)
+        )
         await connection.commit()
         removed = cursor.rowcount > 0
         await cursor.close()

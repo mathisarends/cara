@@ -63,7 +63,9 @@ def test_first_recording_arms_after_wake_earcon(tmp_path: Path) -> None:
         event_bus = EventBus()
         speech_settings = SpeechSettings()
         session = VoiceSession(
-            agent=Agent(llm=UnusedDependency(), tools=create_tools(), prompt_root=tmp_path),
+            agent=Agent(
+                llm=UnusedDependency(), tools=create_tools(), prompt_root=tmp_path
+            ),
             speech_input=SpeechInput(
                 EmptyRecorder(events),
                 UnusedDependency(),

@@ -21,10 +21,14 @@ load_dotenv()
 def _spogo_config_root() -> Path:
     app_data = os.environ.get("APPDATA")
     if app_data is None:
-        raise RuntimeError("APPDATA is required to locate the Spogo configuration on Windows.")
+        raise RuntimeError(
+            "APPDATA is required to locate the Spogo configuration on Windows."
+        )
     config_root = Path(app_data) / "spogo"
     if not config_root.is_dir():
-        raise FileNotFoundError(f"Spogo configuration directory does not exist: {config_root}")
+        raise FileNotFoundError(
+            f"Spogo configuration directory does not exist: {config_root}"
+        )
     return config_root
 
 
@@ -50,7 +54,9 @@ async def main() -> None:
             BindMount.read_write(_PROJECT_ROOT / "experiments", "/experiments"),
             BindMount.read_write(_SKILLS_ROOT, "/skills"),
             BindMount.read_write(_spogo_config_root(), "/spogo"),
-            BindMount.read_only(_PROJECT_ROOT / "docker" / "spogo.toml", "/etc/spogo.toml"),
+            BindMount.read_only(
+                _PROJECT_ROOT / "docker" / "spogo.toml", "/etc/spogo.toml"
+            ),
         ),
         sandbox_network_access=True,
     ) as tools:
@@ -61,7 +67,8 @@ async def main() -> None:
             skills=skills,
             extend_system_prompt=(
                 "Die lokalen Skills sind unter `/skills` schreibbar eingebunden. "
-                "Lies bestehende Dateien vor Änderungen und speichere neue oder geänderte Skills dort."
+                "Lies bestehende Dateien vor Änderungen und speichere neue "
+                "oder geänderte Skills dort."
             ),
             event_bus=event_bus,
         )

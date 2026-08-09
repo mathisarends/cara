@@ -42,7 +42,9 @@ class RecordingPyAudio:
         self.terminated = True
 
 
-def _wav_audio(*, frames: bytes, frame_rate: int = 8000, channels: int = 1, sample_width: int = 2) -> bytes:
+def _wav_audio(
+    *, frames: bytes, frame_rate: int = 8000, channels: int = 1, sample_width: int = 2
+) -> bytes:
     output = io.BytesIO()
     with wave.open(output, "wb") as wav:
         wav.setnchannels(channels)
@@ -129,7 +131,9 @@ class FullDuplexPyAudio(RecordingPyAudio):
         return self.stream
 
 
-def test_microphone_and_local_audio_sink_share_one_portaudio_lifecycle(monkeypatch) -> None:
+def test_microphone_and_local_audio_sink_share_one_portaudio_lifecycle(
+    monkeypatch,
+) -> None:
     pa = FullDuplexPyAudio()
     constructions = 0
 

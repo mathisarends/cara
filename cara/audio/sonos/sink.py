@@ -101,7 +101,9 @@ class SonosAudioSink(AudioSink):
             return self._client
 
 
-async def _wait_until_finished(clip: HostedAudioClip, cancel: asyncio.Event | None) -> None:
+async def _wait_until_finished(
+    clip: HostedAudioClip, cancel: asyncio.Event | None
+) -> None:
     if cancel is None:
         await clip.wait_until_finished()
         return
@@ -109,7 +111,9 @@ async def _wait_until_finished(clip: HostedAudioClip, cancel: asyncio.Event | No
     finished = asyncio.create_task(clip.wait_until_finished())
     interrupted = asyncio.create_task(cancel.wait())
     try:
-        done, _ = await asyncio.wait((finished, interrupted), return_when=asyncio.FIRST_COMPLETED)
+        done, _ = await asyncio.wait(
+            (finished, interrupted), return_when=asyncio.FIRST_COMPLETED
+        )
         if finished in done:
             await finished
         else:

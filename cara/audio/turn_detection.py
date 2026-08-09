@@ -61,7 +61,9 @@ def _whisper_log_mel_features(audio: np.ndarray) -> np.ndarray:
 
     audio = (audio - audio.mean()) / np.sqrt(audio.var() + 1e-7)
     centered = np.pad(audio, (_FFT_SIZE // 2, _FFT_SIZE // 2), mode="reflect")
-    frames = np.lib.stride_tricks.sliding_window_view(centered, _FFT_SIZE)[::_HOP_LENGTH]
+    frames = np.lib.stride_tricks.sliding_window_view(centered, _FFT_SIZE)[
+        ::_HOP_LENGTH
+    ]
     windowed = frames * _hann_window()
     spectrum = np.fft.rfft(windowed, n=_FFT_SIZE, axis=1)
     power = np.abs(spectrum).astype(np.float64) ** 2
@@ -102,7 +104,10 @@ def _hertz_to_mel(frequency: float | np.ndarray) -> float | np.ndarray:
     mels = 3.0 * frequency / 200.0
     if isinstance(frequency, np.ndarray):
         log_region = frequency >= minimum_log_hertz
-        mels[log_region] = minimum_log_mel + np.log(frequency[log_region] / minimum_log_hertz) * log_step
+        mels[log_region] = (
+            minimum_log_mel
+            + np.log(frequency[log_region] / minimum_log_hertz) * log_step
+        )
     elif frequency >= minimum_log_hertz:
         mels = minimum_log_mel + np.log(frequency / minimum_log_hertz) * log_step
     return mels
@@ -114,5 +119,7 @@ def _mel_to_hertz(mels: np.ndarray) -> np.ndarray:
     log_step = np.log(6.4) / 27.0
     frequencies = 200.0 * mels / 3.0
     log_region = mels >= minimum_log_mel
-    frequencies[log_region] = minimum_log_hertz * np.exp(log_step * (mels[log_region] - minimum_log_mel))
+    frequencies[log_region] = minimum_log_hertz * np.exp(
+        log_step * (mels[log_region] - minimum_log_mel)
+    )
     return frequencies

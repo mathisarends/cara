@@ -67,4 +67,7 @@ class AudioPlayer(AudioPlayback):
 
     def _unknown_output_message(self, output: AudioOutput) -> str:
         available = ", ".join(item.value for item in self._sinks)
-        return f"Audio output {output.value!r} is not configured. Available outputs: {available}."
+        return (
+            f"Audio output {output.value!r} is not configured. "
+            f"Available outputs: {available}."
+        )

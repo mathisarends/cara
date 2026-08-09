@@ -74,7 +74,9 @@ class RecordingHue:
         self.closed = True
 
 
-async def _dispatch_and_drain(event_bus: EventBus, listener: HueListener, event: Event) -> None:
+async def _dispatch_and_drain(
+    event_bus: EventBus, listener: HueListener, event: Event
+) -> None:
     await event_bus.dispatch(event)
     await asyncio.wait_for(listener._jobs.join(), timeout=1)
 
@@ -90,12 +92,24 @@ def test_hue_listener_reacts_to_channel_agnostic_turn_lifecycle() -> None:
 
             await _dispatch_and_drain(event_bus, listener, UserTurnStarted())
             await _dispatch_and_drain(event_bus, listener, AssistantTurnStarted())
-            await _dispatch_and_drain(event_bus, listener, ToolCallStarted(tool_name="weather"))
-            await _dispatch_and_drain(event_bus, listener, ToolCallFinished(tool_name="weather"))
-            await _dispatch_and_drain(event_bus, listener, ToolCallStarted(tool_name="calendar"))
-            await _dispatch_and_drain(event_bus, listener, ToolCallStarted(tool_name="mail"))
-            await _dispatch_and_drain(event_bus, listener, ToolCallFinished(tool_name="calendar"))
-            await _dispatch_and_drain(event_bus, listener, ToolCallFinished(tool_name="mail"))
+            await _dispatch_and_drain(
+                event_bus, listener, ToolCallStarted(tool_name="weather")
+            )
+            await _dispatch_and_drain(
+                event_bus, listener, ToolCallFinished(tool_name="weather")
+            )
+            await _dispatch_and_drain(
+                event_bus, listener, ToolCallStarted(tool_name="calendar")
+            )
+            await _dispatch_and_drain(
+                event_bus, listener, ToolCallStarted(tool_name="mail")
+            )
+            await _dispatch_and_drain(
+                event_bus, listener, ToolCallFinished(tool_name="calendar")
+            )
+            await _dispatch_and_drain(
+                event_bus, listener, ToolCallFinished(tool_name="mail")
+            )
             await _dispatch_and_drain(event_bus, listener, SessionEnded())
             return hue
         finally:

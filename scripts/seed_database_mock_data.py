@@ -22,7 +22,9 @@ async def main(database: Path) -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Seed the SQLite memory index with mock Markdown notes.")
+    parser = argparse.ArgumentParser(
+        description="Seed the SQLite memory index with mock Markdown notes."
+    )
     parser.add_argument("--database", type=Path, default=DEFAULT_MEMORY_DATABASE)
     return parser.parse_args()
 

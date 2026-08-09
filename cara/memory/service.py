@@ -132,7 +132,10 @@ def _select_memory_chunks(
     selected = [candidates[0]]
     for candidate in candidates[1:limit]:
         previous_score = selected[-1].score
-        if previous_score > 0 and candidate.score < previous_score * _SIGNIFICANT_SCORE_DROP_RATIO:
+        if (
+            previous_score > 0
+            and candidate.score < previous_score * _SIGNIFICANT_SCORE_DROP_RATIO
+        ):
             break
         selected.append(candidate)
     return selected

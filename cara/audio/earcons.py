@@ -20,13 +20,17 @@ class Earcon(StrEnum):
 
 
 class EarconPlayer:
-    def __init__(self, player: AudioPlayback, *, sounds_dir: Path | None = None) -> None:
+    def __init__(
+        self, player: AudioPlayback, *, sounds_dir: Path | None = None
+    ) -> None:
         self._player = player
         self._sounds_dir = sounds_dir or _DEFAULT_SOUNDS_DIR
         self._cache: dict[Earcon, bytes] = {}
         self._background: set[asyncio.Task[None]] = set()
 
-    async def play(self, earcon: Earcon, *, cancel: asyncio.Event | None = None) -> None:
+    async def play(
+        self, earcon: Earcon, *, cancel: asyncio.Event | None = None
+    ) -> None:
         await self._player.play(self._load(earcon), cancel=cancel)
 
     def play_soon(self, earcon: Earcon) -> None:

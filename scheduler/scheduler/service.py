@@ -12,7 +12,13 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from scheduler.models import AtSchedule, CronSchedule, EverySchedule, JobDefinition, ScheduledJob
+from scheduler.models import (
+    AtSchedule,
+    CronSchedule,
+    EverySchedule,
+    JobDefinition,
+    ScheduledJob,
+)
 from scheduler.store import JobStore
 
 logger = logging.getLogger(__name__)
@@ -41,7 +47,11 @@ class Scheduler:
         self._timezone = ZoneInfo(timezone)
         self._scheduler = AsyncIOScheduler(
             timezone=self._timezone,
-            job_defaults={"coalesce": True, "max_instances": 1, "misfire_grace_time": 300},
+            job_defaults={
+                "coalesce": True,
+                "max_instances": 1,
+                "misfire_grace_time": 300,
+            },
         )
 
     @property
@@ -72,7 +82,9 @@ class Scheduler:
     async def __aexit__(self, *exc_info: object) -> None:
         await self.shutdown()
 
-    async def add(self, job: JobDefinition, *, replace_existing: bool = False) -> ScheduledJob:
+    async def add(
+        self, job: JobDefinition, *, replace_existing: bool = False
+    ) -> ScheduledJob:
         self._require_running()
         trigger = _create_trigger(job)
         await self._store.add(job, replace_existing=replace_existing)
@@ -183,7 +195,9 @@ def _create_trigger(job: JobDefinition) -> DateTrigger | IntervalTrigger | CronT
     if isinstance(schedule, EverySchedule):
         return IntervalTrigger(seconds=schedule.seconds)
     if isinstance(schedule, CronSchedule):
-        return CronTrigger.from_crontab(schedule.expression, timezone=ZoneInfo(schedule.timezone))
+        return CronTrigger.from_crontab(
+            schedule.expression, timezone=ZoneInfo(schedule.timezone)
+        )
     raise TypeError(f"unsupported schedule: {type(schedule).__name__}")
 
 

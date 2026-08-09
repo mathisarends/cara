@@ -35,7 +35,11 @@ def test_current_returns_location_for_the_public_ip() -> None:
 
 
 def test_current_reports_an_api_level_error() -> None:
-    client = _client(lambda request: httpx.Response(200, json={"success": False, "message": "Reserved range"}))
+    client = _client(
+        lambda request: httpx.Response(
+            200, json={"success": False, "message": "Reserved range"}
+        )
+    )
 
     with pytest.raises(RuntimeError, match="Reserved range"):
         asyncio.run(client.current())

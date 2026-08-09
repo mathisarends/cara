@@ -10,7 +10,9 @@ import yaml
 _MAX_NAME_LENGTH = 64
 _MAX_DESCRIPTION_LENGTH = 1024
 _NAME_PATTERN = re.compile(r"^(?!.*--)[a-z0-9]+(?:-[a-z0-9]+)*$")
-_TODO_PATTERN = re.compile(r"""(?m)^(?:description:\s*["']?\[?TODO\b|(?:\d+\.\s+)TODO:)""")
+_TODO_PATTERN = re.compile(
+    r"""(?m)^(?:description:\s*["']?\[?TODO\b|(?:\d+\.\s+)TODO:)"""
+)
 _FRONTMATTER_PATTERN = re.compile(
     r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\Z)(.*)\Z",
     re.DOTALL,

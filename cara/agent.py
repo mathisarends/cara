@@ -146,7 +146,9 @@ class Agent:
                     end = event
 
             if end is None:
-                raise RuntimeError("The Responses stream ended without a terminal event.")
+                raise RuntimeError(
+                    "The Responses stream ended without a terminal event."
+                )
 
             state = end.provider_state
             if not end.tool_calls:
@@ -154,7 +156,9 @@ class Agent:
                 return end.completion.strip()
 
             if round_index == _MAX_TOOL_ROUNDS:
-                raise LLMifyError(f"Tool loop exceeded max_tool_rounds={_MAX_TOOL_ROUNDS}.")
+                raise LLMifyError(
+                    f"Tool loop exceeded max_tool_rounds={_MAX_TOOL_ROUNDS}."
+                )
 
             tool_results: list[ToolResultMessage] = []
             for tool_call in end.tool_calls:
@@ -163,7 +167,9 @@ class Agent:
                     on_tool_call=on_tool_call,
                     on_tool_result=on_tool_result,
                 )
-                tool_results.append(ToolResultMessage(tool_call_id=tool_call.id, content=content))
+                tool_results.append(
+                    ToolResultMessage(tool_call_id=tool_call.id, content=content)
+                )
             messages = tool_results
 
         raise AssertionError("unreachable")
@@ -262,6 +268,8 @@ class Agent:
 
         return answer, bool(completion.tool_calls)
 
-    async def _dispatch(self, event: AssistantTurnStarted | ToolCallStarted | ToolCallFinished) -> None:
+    async def _dispatch(
+        self, event: AssistantTurnStarted | ToolCallStarted | ToolCallFinished
+    ) -> None:
         if self._event_bus is not None:
             await self._event_bus.dispatch(event)

@@ -43,7 +43,9 @@ def test_summary_includes_answer_and_results() -> None:
     summary = response.summary()
 
     assert "In Berlin ist es aktuell sonnig." in summary
-    assert "Wetter Berlin (https://example.com/wetter-berlin): Sonnig, 24 Grad." in summary
+    assert (
+        "Wetter Berlin (https://example.com/wetter-berlin): Sonnig, 24 Grad." in summary
+    )
 
 
 def test_summary_reports_no_results_when_empty() -> None:

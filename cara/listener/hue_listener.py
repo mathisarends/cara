@@ -154,7 +154,9 @@ class HueListener:
         await self._apply_tint(_ASSISTANT_TINT)
 
     async def _apply_tool_progress_signal(self) -> None:
-        tint = _TOOL_PROGRESS_TINTS[self._tool_progress_index % len(_TOOL_PROGRESS_TINTS)]
+        tint = _TOOL_PROGRESS_TINTS[
+            self._tool_progress_index % len(_TOOL_PROGRESS_TINTS)
+        ]
         self._tool_progress_index += 1
         await self._apply_tint(tint)
 
@@ -168,12 +170,18 @@ class HueListener:
         temperature = (
             None
             if baseline.temperature is None
-            else _percentage_to_mirek(_clamp(baseline.temperature + tint.temperature_delta, *_TEMPERATURE_RANGE))
+            else _percentage_to_mirek(
+                _clamp(
+                    baseline.temperature + tint.temperature_delta, *_TEMPERATURE_RANGE
+                )
+            )
         )
         await self._hue.rooms.set_state(
             room.id,
             on=True,
-            brightness=_clamp(baseline.brightness + tint.brightness_delta, *_BRIGHTNESS_RANGE),
+            brightness=_clamp(
+                baseline.brightness + tint.brightness_delta, *_BRIGHTNESS_RANGE
+            ),
             mirek=temperature,
         )
 
@@ -188,7 +196,9 @@ class HueListener:
             room.id,
             on=True,
             brightness=baseline.brightness,
-            mirek=None if baseline.temperature is None else _percentage_to_mirek(baseline.temperature),
+            mirek=None
+            if baseline.temperature is None
+            else _percentage_to_mirek(baseline.temperature),
         )
 
     async def _on_bridge_event(self, event: HueEvent) -> None:
@@ -220,7 +230,9 @@ class HueListener:
             reported = _mirek_to_percentage(grouped_light.mirek)
             baseline = replace(
                 baseline,
-                temperature=_clamp(reported - tint.temperature_delta, *_TEMPERATURE_RANGE),
+                temperature=_clamp(
+                    reported - tint.temperature_delta, *_TEMPERATURE_RANGE
+                ),
             )
         self._baseline = baseline
 
@@ -234,7 +246,8 @@ class HueListener:
         return self._room
 
     async def close(self) -> None:
-        """Finish queued changes, detach from Hueify, and release the bridge connection."""
+        """Finish queued changes, detach from Hueify, and release the bridge
+        connection."""
         await self._jobs.join()
         if self._worker is not None:
             self._worker.cancel()
@@ -267,4 +280,8 @@ def _percentage_to_mirek(percentage: float) -> int:
 
 
 def _read_temperature(grouped_light: GroupedLight) -> int | None:
-    return None if grouped_light.mirek is None else _mirek_to_percentage(grouped_light.mirek)
+    return (
+        None
+        if grouped_light.mirek is None
+        else _mirek_to_percentage(grouped_light.mirek)
+    )

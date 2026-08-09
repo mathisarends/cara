@@ -63,7 +63,9 @@ class CronSchedule(_Model):
         return value
 
 
-Schedule = Annotated[AtSchedule | EverySchedule | CronSchedule, Field(discriminator="kind")]
+Schedule = Annotated[
+    AtSchedule | EverySchedule | CronSchedule, Field(discriminator="kind")
+]
 
 
 class AgentPromptPayload(_Model):

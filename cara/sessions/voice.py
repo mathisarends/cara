@@ -6,7 +6,12 @@ from transitbus import EventBus
 
 from cara.agent import Agent
 from cara.audio import Earcon, EarconPlayer
-from cara.events import AssistantInterrupted, SessionEnded, SessionStarted, UserTurnStarted
+from cara.events import (
+    AssistantInterrupted,
+    SessionEnded,
+    SessionStarted,
+    UserTurnStarted,
+)
 from cara.listener import SoundListener
 from cara.speech import SpeechInput, SpeechOutput
 from cara.wakeword.barge_in import WakeWordBargeIn
@@ -90,7 +95,9 @@ class VoiceSession:
                         follow_up = False
                         continue
                     if answer:
-                        await self._speech_output.send(answer, cancel=barge_in.interrupt)
+                        await self._speech_output.send(
+                            answer, cancel=barge_in.interrupt
+                        )
                 if barge_in.interrupt.is_set():
                     pending_transcript = await self._receive_barge_in()
                     if pending_transcript is None:

@@ -62,7 +62,12 @@ def test_conversation_retains_complete_history(tmp_path: Path) -> None:
 
     llm_messages = conversation.to_llm_messages()
 
-    assert [message.content for message in llm_messages] == ["System", "one", "two", "three"]
+    assert [message.content for message in llm_messages] == [
+        "System",
+        "one",
+        "two",
+        "three",
+    ]
 
 
 def test_tool_result_lands_in_context_paired_with_its_call(tmp_path: Path) -> None:
@@ -83,7 +88,9 @@ def test_tool_result_lands_in_context_paired_with_its_call(tmp_path: Path) -> No
     assert tool_result.content == "Use the bundled parser."
 
 
-def test_multiple_tools_are_stored_as_individual_call_result_pairs(tmp_path: Path) -> None:
+def test_multiple_tools_are_stored_as_individual_call_result_pairs(
+    tmp_path: Path,
+) -> None:
     conversation = _conversation(tmp_path)
     first = _tool_call()
     second = ToolCall(id="call-2", function=Function(name="read_file", arguments="{}"))
@@ -127,10 +134,15 @@ def test_local_time_prompt_renders_weekday_date_and_time() -> None:
 def test_local_time_is_wrapped_in_a_precise_block(tmp_path: Path) -> None:
     rendered = _composer(tmp_path, local_time=_fixed_local_time()).render()
 
-    assert rendered == "System\n\n<local_time>\nDienstag, 21. Juli 2026, 14:30 Uhr\n</local_time>"
+    assert (
+        rendered
+        == "System\n\n<local_time>\nDienstag, 21. Juli 2026, 14:30 Uhr\n</local_time>"
+    )
 
 
-def test_local_time_precedes_available_skills_in_the_system_prompt(tmp_path: Path) -> None:
+def test_local_time_precedes_available_skills_in_the_system_prompt(
+    tmp_path: Path,
+) -> None:
     composer = _composer(
         tmp_path,
         skills=_skills(tmp_path, "weather", "Wetter ansagen."),
@@ -145,28 +157,42 @@ def test_local_time_precedes_available_skills_in_the_system_prompt(tmp_path: Pat
 def test_system_prompt_is_assembled_from_the_workspace_markdown_files() -> None:
     prompt = SystemPromptComposer(root=WORKSPACE_ROOT).render()
 
-    assert prompt.index("<agents>") < prompt.index("<soul>") < prompt.index("<user>") < prompt.rindex("<memory>")
+    assert (
+        prompt.index("<agents>")
+        < prompt.index("<soul>")
+        < prompt.index("<user>")
+        < prompt.rindex("<memory>")
+    )
 
 
 def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
     (tmp_path / "USER.md").write_text("Mathis lebt in Berlin.", encoding="utf-8")
 
-    assert SystemPromptComposer(root=tmp_path).render() == "<user>\nMathis lebt in Berlin.\n</user>"
+    assert (
+        SystemPromptComposer(root=tmp_path).render()
+        == "<user>\nMathis lebt in Berlin.\n</user>"
+    )
 
 
 def test_system_prompt_can_extend_default_prompt(tmp_path: Path) -> None:
     (tmp_path / "SOUL.md").write_text("Sei direkt.", encoding="utf-8")
 
-    prompt = SystemPromptComposer(root=tmp_path, extend_system_prompt="Nutze Tools sparsam.").render()
+    prompt = SystemPromptComposer(
+        root=tmp_path, extend_system_prompt="Nutze Tools sparsam."
+    ).render()
 
     assert prompt == "<soul>\nSei direkt.\n</soul>\n\nNutze Tools sparsam."
 
 
-def test_system_prompt_can_override_default_prompt_while_retaining_memory(tmp_path: Path) -> None:
+def test_system_prompt_can_override_default_prompt_while_retaining_memory(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "SOUL.md").write_text("Sei direkt.", encoding="utf-8")
     (tmp_path / "MEMORY.md").write_text("Halbmarathon im Oktober.", encoding="utf-8")
 
-    prompt = SystemPromptComposer(root=tmp_path, override_system_prompt="Nur JSON.").render()
+    prompt = SystemPromptComposer(
+        root=tmp_path, override_system_prompt="Nur JSON."
+    ).render()
 
     assert prompt == "Nur JSON.\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
 
@@ -182,7 +208,9 @@ def test_system_prompt_rejects_extend_and_override_together(tmp_path: Path) -> N
 
 def test_system_prompt_rejects_custom_prompt_with_override(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
-        SystemPromptComposer(root=tmp_path, system_prompt="Custom", override_system_prompt="Override")
+        SystemPromptComposer(
+            root=tmp_path, system_prompt="Custom", override_system_prompt="Override"
+        )
 
 
 def test_memory_renders_files_in_order(tmp_path: Path) -> None:

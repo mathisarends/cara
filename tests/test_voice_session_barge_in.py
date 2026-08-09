@@ -116,12 +116,16 @@ class TwoTurnChatModel:
                 id="slow-tool",
                 function=Function(name="slow_tool", arguments="{}"),
             )
-            return ChatInvokeCompletion(completion="", tool_calls=[tool_call], stop_reason="tool_calls")
+            return ChatInvokeCompletion(
+                completion="", tool_calls=[tool_call], stop_reason="tool_calls"
+            )
 
         return ChatInvokeCompletion(completion="Erledigt.")
 
 
-def test_repeated_wake_word_interrupts_tool_and_starts_next_turn(tmp_path: Path) -> None:
+def test_repeated_wake_word_interrupts_tool_and_starts_next_turn(
+    tmp_path: Path,
+) -> None:
     async def run() -> tuple[
         BargeInRecorder,
         RepeatedWakeWordListener,
@@ -202,7 +206,16 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn(tmp_path: Path)
             events,
         )
 
-    recorder, wake_word_listener, stt, llm, interruptions, speech_lifecycle, tool_cancelled, events = asyncio.run(run())
+    (
+        recorder,
+        wake_word_listener,
+        stt,
+        llm,
+        interruptions,
+        speech_lifecycle,
+        tool_cancelled,
+        events,
+    ) = asyncio.run(run())
 
     assert recorder.recordings == 2
     assert wake_word_listener.detection_calls == 2
@@ -211,7 +224,11 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn(tmp_path: Path)
     assert events[:4] == ["play", "record", "play", "record"]
     assert len(interruptions) == 1
     assert speech_lifecycle == ["started", "ended", "started", "ended"]
-    assert [message.content for message in llm.messages[1] if isinstance(message, UserMessage)] == [
+    assert [
+        message.content
+        for message in llm.messages[1]
+        if isinstance(message, UserMessage)
+    ] == [
         "initial request",
         "corrected request",
     ]

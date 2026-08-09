@@ -3,7 +3,14 @@ from pathlib import Path
 from tempfile import gettempdir
 
 from agenttoolkit import Tools
-from agenttoolkit.builtins import BindMount, CommandResult, DockerSandbox, LocalWorkspace, SandboxPolicy, Workspace
+from agenttoolkit.builtins import (
+    BindMount,
+    CommandResult,
+    DockerSandbox,
+    LocalWorkspace,
+    SandboxPolicy,
+    Workspace,
+)
 
 from cara.audio import AudioOutput, AudioPlayer
 from cara.tools import create_tool_context, create_tools
@@ -36,7 +43,9 @@ def test_audio_tools_follow_injected_player_availability() -> None:
     assert "get_volume" in available
     assert "set_audio_output" not in available
 
-    context.provide(AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS)))
+    context.provide(
+        AudioPlayer(SilentOutput(AudioOutput.LOCAL), SilentOutput(AudioOutput.SONOS))
+    )
 
     assert "set_audio_output" in {schema.name for schema in tools.get_schema()}
 
@@ -57,7 +66,9 @@ def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> Non
     workspace = LocalWorkspace(tmp_path)
     tools = create_tools(create_tool_context(workspace=workspace))
 
-    write_result = asyncio.run(tools.execute("write_file", {"path": "notes/a.txt", "content": "hello"}))
+    write_result = asyncio.run(
+        tools.execute("write_file", {"path": "notes/a.txt", "content": "hello"})
+    )
     read_result = asyncio.run(tools.execute("read_file", {"path": "notes/a.txt"}))
     edit_result = asyncio.run(
         tools.execute(
@@ -79,7 +90,9 @@ def test_glob_tool_uses_agenttoolkit_workspace_matching(tmp_path: Path) -> None:
     asyncio.run(workspace.write_file("tests/test_app.py", "def test_app(): pass\n"))
     tools = create_tools(create_tool_context(workspace=workspace))
 
-    result = asyncio.run(tools.execute("glob", {"pattern": "**/*.py", "max_results": 1}))
+    result = asyncio.run(
+        tools.execute("glob", {"pattern": "**/*.py", "max_results": 1})
+    )
 
     assert result == "src/app.py"
 
@@ -210,11 +223,17 @@ def test_default_workspace_accepts_writable_additional_mounts(tmp_path: Path) ->
         )
     )
     assert result == "Wrote /skills/example/SKILL.md."
-    assert (skills_root / "example" / "SKILL.md").read_text(encoding="utf-8") == "# Example\n"
+    assert (skills_root / "example" / "SKILL.md").read_text(
+        encoding="utf-8"
+    ) == "# Example\n"
 
 
 def test_to_schema_returns_openai_function_schema() -> None:
-    schema = next(item for item in create_tools().get_schema("openai") if item["function"]["name"] == "bash")
+    schema = next(
+        item
+        for item in create_tools().get_schema("openai")
+        if item["function"]["name"] == "bash"
+    )
 
     assert schema["type"] == "function"
     assert schema["function"]["parameters"]["properties"]["command"]["type"] == "string"

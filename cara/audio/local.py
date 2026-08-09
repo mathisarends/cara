@@ -59,7 +59,9 @@ class LocalAudioSink(AudioSink):
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, functools.partial(self._play_sync, audio, cancel=cancel))
+        await loop.run_in_executor(
+            None, functools.partial(self._play_sync, audio, cancel=cancel)
+        )
 
     def _play_sync(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         device = self._device or PortAudioDevice()
@@ -87,7 +89,9 @@ class LocalAudioSink(AudioSink):
                     if cancel is not None and cancel.is_set():
                         cancelled = True
                     if not cancelled and self._trailing_silence_seconds:
-                        silence_frames = round(frame_rate * self._trailing_silence_seconds)
+                        silence_frames = round(
+                            frame_rate * self._trailing_silence_seconds
+                        )
                         silence = bytes(silence_frames * channels * sample_width)
                         stream.write(silence)
                         logger.debug(

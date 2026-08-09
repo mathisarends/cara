@@ -27,10 +27,17 @@ class SystemPromptComposer:
         local_time: LocalTimePrompt | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
-        if system_prompt is not None and (override_system_prompt is not None or extend_system_prompt is not None):
-            raise ValueError("Use system_prompt or override_system_prompt/extend_system_prompt, not both.")
+        if system_prompt is not None and (
+            override_system_prompt is not None or extend_system_prompt is not None
+        ):
+            raise ValueError(
+                "Use system_prompt or "
+                "override_system_prompt/extend_system_prompt, not both."
+            )
         if override_system_prompt is not None and extend_system_prompt is not None:
-            raise ValueError("Use either override_system_prompt or extend_system_prompt, not both.")
+            raise ValueError(
+                "Use either override_system_prompt or extend_system_prompt, not both."
+            )
         self._root = root
         self._system_prompt = system_prompt
         self._override_system_prompt = override_system_prompt
@@ -81,6 +88,10 @@ def _render_files(root: Path, file_names: tuple[str, ...]) -> str:
     sections = [
         section
         for file_name in file_names
-        if (section := render_tagged_section(root / file_name, tag=Path(file_name).stem.lower()))
+        if (
+            section := render_tagged_section(
+                root / file_name, tag=Path(file_name).stem.lower()
+            )
+        )
     ]
     return "\n\n".join(sections)

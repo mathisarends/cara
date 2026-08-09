@@ -28,11 +28,14 @@ def _normalize_name(value: str) -> str:
 
 
 def _parse_resources(value: str) -> list[str]:
-    resources = list(dict.fromkeys(part.strip() for part in value.split(",") if part.strip()))
+    resources = list(
+        dict.fromkeys(part.strip() for part in value.split(",") if part.strip())
+    )
     invalid = sorted(set(resources) - set(_RESOURCE_DIRECTORIES))
     if invalid:
         raise ValueError(
-            f"unknown resource type(s): {', '.join(invalid)}; choose from {', '.join(_RESOURCE_DIRECTORIES)}"
+            f"unknown resource type(s): {', '.join(invalid)}; "
+            f"choose from {', '.join(_RESOURCE_DIRECTORIES)}"
         )
     return resources
 
