@@ -28,9 +28,9 @@ session_router = APIRouter(
 )
 async def create_session(
     request: SessionCreateRequest,
-    service: FromDishka[ConversationService],
+    conversation_service: FromDishka[ConversationService],
 ) -> SessionResponse:
-    session = await service.create_session(request.metadata)
+    session = await conversation_service.create_session(request.metadata)
     return SessionResponse.from_domain(session)
 
 
@@ -44,9 +44,9 @@ async def create_session(
 )
 async def get_session(
     session_id: UUID,
-    service: FromDishka[ConversationService],
+    conversation_service: FromDishka[ConversationService],
 ) -> SessionResponse:
-    session = await service.get_session(session_id)
+    session = await conversation_service.get_session(session_id)
     return SessionResponse.from_domain(session)
 
 
@@ -60,24 +60,11 @@ async def get_session(
 async def start_chat(
     session_id: UUID,
     request: ChatRequest,
-    service: FromDishka[ConversationService],
+    conversation_service: FromDishka[ConversationService],
 ) -> Response:
-    session = await service.get_session(session_id)
-    service.start_turn(session.id, request.text, request.metadata)
-    return Response(status_code=202)
-
-
-@session_router.delete(
-    "/{session_id}/chat",
-    operation_id="cancel_chat",
-    response_class=Response,
-    status_code=202,
-    summary="Cancel the active chat turn",
-)
-async def cancel_chat(
-    session_id: UUID,
-    service: FromDishka[ConversationService],
-) -> Response:
-    await service.get_session(session_id)
-    await service.cancel_turn(session_id)
+    await conversation_service.start_turn(
+        session_id,
+        request.text,
+        request.metadata,
+    )
     return Response(status_code=202)

@@ -145,142 +145,69 @@ def test_openapi_has_stable_operation_ids_and_response_models() -> None:
     assert "ChatDeltaPayload" in schema["components"]["schemas"]
 
 
-def test_chat_command_streams_minimal_event_lifecycle() -> None:
-    with (
-        TestClient(_create_app()) as client,
-        client.websocket_connect("/v1/ws/terminal-1") as socket,
-    ):
-        socket.send_json(
-            {
-                "type": "session.create",
-                "request_id": "req-create",
-                "payload": {"metadata": {"channel": "terminal"}},
-            }
-        )
-        accepted = socket.receive_json()
-        created = socket.receive_json()
-        session_id = created["session_id"]
+def test_chat_streams_agent_events() -> None:
+    with TestClient(_create_app()) as client:
+        session_id = client.post("/v1/sessions", json={}).json()["id"]
+        with client.websocket_connect(f"/v1/sessions/{session_id}/events") as socket:
+            response = client.post(
+                f"/v1/sessions/{session_id}/chat",
+                json={"text": "Hallo"},
+            )
+            events = []
+            while not events or events[-1]["type"] != "chat.completed":
+                events.append(socket.receive_json())
 
-        socket.send_json(
-            {
-                "type": "chat.send",
-                "request_id": "req-chat",
-                "session_id": session_id,
-                "payload": {"text": "Hallo"},
-            }
-        )
-        events = [socket.receive_json() for _ in range(5)]
-
-    assert accepted["type"] == "command.accepted"
-    assert created["type"] == "session.created"
-    assert [event["type"] for event in events] == [
-        "command.accepted",
-        "turn.started",
-        "chat.delta",
-        "chat.completed",
-        "turn.completed",
-    ]
-    turn_events = events[1:]
-    assert [event["sequence"] for event in turn_events] == [1, 2, 3, 4]
-    assert all("run_id" not in event for event in events)
-    assert events[2]["data"] == {"text": "Hallo"}
+    assert response.status_code == 202
+    assert all(event["type"] == "chat.delta" for event in events[:-1])
+    assert [event["sequence"] for event in events] == list(range(1, len(events) + 1))
+    assert (
+        "".join(event["data"]["text"] for event in events[:-1])
+        == events[-1]["data"]["text"]
+    )
 
 
-def test_session_get_subscribes_a_second_client() -> None:
+def test_session_event_stream_supports_multiple_clients() -> None:
     with TestClient(_create_app()) as client:
         session_id = client.post("/v1/sessions", json={}).json()["id"]
         with (
-            client.websocket_connect("/v1/ws/web-1") as first,
-            client.websocket_connect("/v1/ws/terminal-1") as second,
+            client.websocket_connect(f"/v1/sessions/{session_id}/events") as first,
+            client.websocket_connect(f"/v1/sessions/{session_id}/events") as second,
         ):
-            for socket, request_id in ((first, "req-1"), (second, "req-2")):
-                socket.send_json(
-                    {
-                        "type": "session.get",
-                        "request_id": request_id,
-                        "session_id": session_id,
-                    }
-                )
-                assert socket.receive_json()["type"] == "command.accepted"
-                assert socket.receive_json()["type"] == "session.snapshot"
-
-            first.send_json(
-                {
-                    "type": "chat.send",
-                    "request_id": "req-chat",
-                    "session_id": session_id,
-                    "payload": {"text": "shared"},
-                }
+            response = client.post(
+                f"/v1/sessions/{session_id}/chat",
+                json={"text": "shared"},
             )
-            assert first.receive_json()["type"] == "command.accepted"
             first_turn_event = first.receive_json()
             second_turn_event = second.receive_json()
 
-    assert first_turn_event["type"] == "turn.started"
+    assert response.status_code == 202
+    assert first_turn_event["type"] == "chat.delta"
     assert second_turn_event["event_id"] == first_turn_event["event_id"]
 
 
-def test_invalid_command_is_rejected_without_closing_socket() -> None:
-    with (
-        TestClient(_create_app()) as client,
-        client.websocket_connect("/v1/ws/web-1") as socket,
-    ):
-        socket.send_json({"type": "chat.send", "request_id": "req-invalid"})
-        rejected = socket.receive_json()
-
-        socket.send_json(
-            {"type": "session.create", "request_id": "req-next", "payload": {}}
+def test_invalid_chat_request_is_rejected() -> None:
+    with TestClient(_create_app()) as client:
+        session_id = client.post("/v1/sessions", json={}).json()["id"]
+        response = client.post(
+            f"/v1/sessions/{session_id}/chat",
+            json={"text": ""},
         )
-        accepted = socket.receive_json()
 
-    assert rejected["type"] == "command.rejected"
-    assert rejected["data"]["code"] == "invalid_command"
-    assert accepted["type"] == "command.accepted"
-
-
-def test_missing_active_turn_uses_websocket_exception_mapping() -> None:
-    with (
-        TestClient(_create_app()) as client,
-        client.websocket_connect("/v1/ws/web-1") as socket,
-    ):
-        socket.send_json({"type": "session.create", "request_id": "create"})
-        socket.receive_json()
-        session_id = socket.receive_json()["session_id"]
-        socket.send_json(
-            {
-                "type": "chat.cancel",
-                "request_id": "cancel",
-                "session_id": session_id,
-            }
-        )
-        rejected = socket.receive_json()
-
-    assert rejected["type"] == "command.rejected"
-    assert rejected["data"] == {
-        "code": "no_active_turn",
-        "message": "Session has no active turn",
-    }
+    assert response.status_code == 422
 
 
 def test_tool_calls_keep_call_id_and_metadata() -> None:
-    with (
-        TestClient(_create_app(ToolAgentRunner())) as client,
-        client.websocket_connect("/v1/ws/web-1") as socket,
-    ):
-        socket.send_json({"type": "session.create", "request_id": "create"})
-        socket.receive_json()
-        session_id = socket.receive_json()["session_id"]
-        socket.send_json(
-            {
-                "type": "chat.send",
-                "request_id": "chat",
-                "session_id": session_id,
-                "payload": {"text": "Licht an"},
-            }
-        )
-        events = [socket.receive_json() for _ in range(6)]
+    with TestClient(_create_app(ToolAgentRunner())) as client:
+        session_id = client.post("/v1/sessions", json={}).json()["id"]
+        with client.websocket_connect(f"/v1/sessions/{session_id}/events") as socket:
+            response = client.post(
+                f"/v1/sessions/{session_id}/chat",
+                json={"text": "Licht an"},
+            )
+            events = [socket.receive_json() for _ in range(3)]
 
-    started, completed = events[2:4]
+    assert response.status_code == 202
+    started, completed = events[:2]
     assert started["type"] == "tool_call.started"
     assert started["call_id"] == "call_1"
     assert started["metadata"] == {"provider": "hue"}
@@ -299,21 +226,15 @@ def test_complete_chat_history_is_persisted(tmp_path) -> None:
 
     with (
         TestClient(_create_app(ToolAgentRunner(), settings)) as client,
-        client.websocket_connect("/v1/ws/web-1") as socket,
     ):
-        socket.send_json({"type": "session.create", "request_id": "create"})
-        socket.receive_json()
-        session_id = socket.receive_json()["session_id"]
-        socket.send_json(
-            {
-                "type": "chat.send",
-                "request_id": "chat",
-                "session_id": session_id,
-                "payload": {"text": "Licht an"},
-            }
-        )
-        events = [socket.receive_json() for _ in range(6)]
-        assert events[-1]["type"] == "turn.completed"
+        session_id = client.post("/v1/sessions", json={}).json()["id"]
+        with client.websocket_connect(f"/v1/sessions/{session_id}/events") as socket:
+            client.post(
+                f"/v1/sessions/{session_id}/chat",
+                json={"text": "Licht an"},
+            )
+            events = [socket.receive_json() for _ in range(3)]
+            assert events[-1]["type"] == "chat.completed"
 
     with sqlite3.connect(database_path) as database:
         runs_table = database.execute(
@@ -346,74 +267,22 @@ def test_complete_chat_history_is_persisted(tmp_path) -> None:
     assert json.loads(tool_call[5]) == {"on": True}
 
 
-def test_active_turn_can_be_cancelled() -> None:
-    with (
-        TestClient(_create_app(BlockingAgentRunner())) as client,
-        client.websocket_connect("/v1/ws/web-1") as socket,
-    ):
-        socket.send_json({"type": "session.create", "request_id": "create"})
-        socket.receive_json()
-        session_id = socket.receive_json()["session_id"]
-        socket.send_json(
-            {
-                "type": "chat.send",
-                "request_id": "chat",
-                "session_id": session_id,
-                "payload": {"text": "Arbeite lange"},
-            }
-        )
-        socket.receive_json()
-        socket.receive_json()
-        socket.receive_json()
-
-        socket.send_json(
-            {
-                "type": "chat.cancel",
-                "request_id": "cancel",
-                "session_id": session_id,
-            }
-        )
-        cancel_accepted = socket.receive_json()
-        cancelled = socket.receive_json()
-
-    assert cancel_accepted["type"] == "command.accepted"
-    assert cancel_accepted["request_id"] == "cancel"
-    assert cancelled["type"] == "turn.cancelled"
-    assert "run_id" not in cancelled
-
-
 def test_session_rejects_a_second_active_turn() -> None:
-    with (
-        TestClient(_create_app(BlockingAgentRunner())) as client,
-        client.websocket_connect("/v1/ws/web-1") as socket,
-    ):
-        socket.send_json({"type": "session.create", "request_id": "create"})
-        socket.receive_json()
-        session_id = socket.receive_json()["session_id"]
-        socket.send_json(
-            {
-                "type": "chat.send",
-                "request_id": "first",
-                "session_id": session_id,
-                "payload": {"text": "First"},
-            }
-        )
-        socket.receive_json()
-        socket.receive_json()
-        socket.receive_json()
+    with TestClient(_create_app(BlockingAgentRunner())) as client:
+        session_id = client.post("/v1/sessions", json={}).json()["id"]
+        with client.websocket_connect(f"/v1/sessions/{session_id}/events") as socket:
+            first = client.post(
+                f"/v1/sessions/{session_id}/chat",
+                json={"text": "First"},
+            )
+            assert socket.receive_json()["type"] == "chat.delta"
+            second = client.post(
+                f"/v1/sessions/{session_id}/chat",
+                json={"text": "Second"},
+            )
 
-        socket.send_json(
-            {
-                "type": "chat.send",
-                "request_id": "second",
-                "session_id": session_id,
-                "payload": {"text": "Second"},
-            }
-        )
-        rejected = socket.receive_json()
-
-    assert rejected["type"] == "command.rejected"
-    assert rejected["data"] == {
-        "code": "session_busy",
-        "message": "Session already has an active turn",
+    assert first.status_code == 202
+    assert second.status_code == 409
+    assert second.json() == {
+        "detail": f"Session {session_id} already has an active turn"
     }

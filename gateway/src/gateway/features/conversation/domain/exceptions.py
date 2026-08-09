@@ -45,8 +45,3 @@ class ToolCallAlreadyResolvedError(ConversationInvariantError):
 class SessionBusyError(ConversationInvariantError):
     def __init__(self, session_id: UUID) -> None:
         super().__init__(f"Session {session_id} already has an active turn")
-
-
-class NoActiveTurnError(ConversationInvariantError):
-    def __init__(self, session_id: UUID) -> None:
-        super().__init__(f"Session {session_id} has no active turn")

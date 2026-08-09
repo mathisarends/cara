@@ -8,7 +8,6 @@ from gateway.features.conversation.application.agent_event_router import (
 from gateway.features.conversation.application.event_bus import AgentEventBus
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
-    NoActiveTurnError,
     Session,
     SessionBusyError,
     SessionNotFoundError,
@@ -26,7 +25,7 @@ class ConversationService:
         self._sessions = sessions
         self._events = events
         self._agent = agent
-        self._tasks: dict[UUID, asyncio.Task[None]] = {}
+        self._background_tasks: set[asyncio.Task[None]] = set()
 
     async def create_session(self, metadata: dict[str, Any]) -> Session:
         session = Session.create(metadata)
@@ -38,41 +37,25 @@ class ConversationService:
             raise SessionNotFoundError(session_id)
         return session
 
-    def start_turn(
+    async def start_turn(
         self,
         session_id: UUID,
         text: str,
         metadata: dict[str, object],
     ) -> None:
-        current = self._tasks.get(session_id)
-        if current is not None and not current.done():
+        await self.get_session(session_id)
+        if not await self._sessions.claim_turn(session_id):
             raise SessionBusyError(session_id)
         task = asyncio.create_task(self._execute(session_id, text, metadata))
-        self._tasks[session_id] = task
-        task.add_done_callback(
-            lambda completed: self._remove_task(session_id, completed)
-        )
-
-    async def cancel_turn(self, session_id: UUID) -> None:
-        task = self._tasks.get(session_id)
-        if task is None or task.done():
-            raise NoActiveTurnError(session_id)
-        task.cancel()
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def close(self) -> None:
-        tasks = tuple(self._tasks.values())
+        tasks = tuple(self._background_tasks)
         for task in tasks:
             task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
-
-    def _remove_task(
-        self,
-        session_id: UUID,
-        completed: asyncio.Task[None],
-    ) -> None:
-        if self._tasks.get(session_id) is completed:
-            self._tasks.pop(session_id)
 
     async def _execute(
         self,
@@ -101,6 +84,8 @@ class ConversationService:
         except Exception as error:
             current_session = event_router.session if event_router else session
             await self._fail_pending_tool_calls(current_session, str(error))
+        finally:
+            await self._sessions.release_turn(session_id)
 
     async def _fail_pending_tool_calls(
         self,

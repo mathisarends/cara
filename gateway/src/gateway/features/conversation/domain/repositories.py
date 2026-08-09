@@ -10,3 +10,9 @@ class SessionRepository(ABC):
 
     @abstractmethod
     async def save(self, domain: Session) -> Session: ...
+
+    @abstractmethod
+    async def claim_turn(self, id: UUID) -> bool: ...
+
+    @abstractmethod
+    async def release_turn(self, id: UUID) -> None: ...

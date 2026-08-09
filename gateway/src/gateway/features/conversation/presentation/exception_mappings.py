@@ -2,14 +2,12 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from gateway.features.conversation.domain import (
-    NoActiveTurnError,
     SessionBusyError,
     SessionNotFoundError,
 )
 
 _HTTP_HANDLERS: tuple[tuple[type[Exception], int, str], ...] = (
     (SessionNotFoundError, 404, "Session not found"),
-    (NoActiveTurnError, 409, "Session has no active turn"),
     (SessionBusyError, 409, "Session already has an active turn"),
 )
 

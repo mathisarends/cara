@@ -17,8 +17,8 @@ event_router = APIRouter(prefix="/v1", tags=["events"])
 async def gateway_socket(
     websocket: WebSocket,
     session_id: UUID,
-    service: FromDishka[ConversationService],
+    conversation_service: FromDishka[ConversationService],
     broker: FromDishka[EventBroker],
 ) -> None:
-    await service.get_session(session_id)
+    await conversation_service.get_session(session_id)
     await serve_socket(websocket, session_id, broker)

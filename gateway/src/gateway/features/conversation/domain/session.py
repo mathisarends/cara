@@ -22,6 +22,7 @@ class Session(Aggregate):
         self,
         metadata: Mapping[str, Any] | None = None,
         entries: Sequence[SessionEntry] = (),
+        turn_active: bool = False,
         *,
         id: UUID | None = None,
         created_at: datetime | None = None,
@@ -29,6 +30,7 @@ class Session(Aggregate):
         super().__init__(id=id, created_at=created_at)
         self._metadata = dict(metadata or {})
         self._entries = list(entries)
+        self._turn_active = turn_active
 
     @classmethod
     def create(cls, metadata: Mapping[str, Any] | None = None) -> Self:
@@ -41,6 +43,10 @@ class Session(Aggregate):
     @property
     def entries(self) -> tuple[SessionEntry, ...]:
         return tuple(self._entries)
+
+    @property
+    def turn_active(self) -> bool:
+        return self._turn_active
 
     def add_user_message(self, content: str) -> UserMessage:
         if self._find_pending_tool_call_sequence() is not None:
