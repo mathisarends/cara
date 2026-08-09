@@ -17,6 +17,7 @@ members = [
     "llm",
     "retrieval",
     "scheduler",
+    "voice",
 ]
 
 [manifest.dependency-groups]
@@ -86,23 +87,17 @@ dependencies = [
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "retrieval", extra = ["openai", "sqlite"], marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "spotifyify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "transitbus", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "vocalbin", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
-    { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -111,23 +106,17 @@ requires-dist = [
     { name = "hueify", specifier = ">=0.8.1" },
     { name = "llm", editable = "llm" },
     { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
-    { name = "numpy", specifier = ">=2.4.6" },
-    { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.100.0" },
     { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
-    { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "retrieval", extras = ["openai", "sqlite"], editable = "retrieval" },
-    { name = "sonosify", specifier = ">=0.4.1" },
     { name = "spotifyify", specifier = ">=0.7.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "transitbus", specifier = ">=0.1.0" },
     { name = "tzdata", specifier = ">=2024.1" },
-    { name = "vocalbin", specifier = ">=0.3.0" },
-    { name = "wakewordkit", specifier = ">=0.2.0" },
 ]
 
 [[package]]
@@ -1054,6 +1043,37 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/08/13/85be8217aed2fed4a6a1f55cced252fa9209a58d3c00f97ac66de20790de/vocalbin-0.3.0.tar.gz", hash = "sha256:f0ac8d166612c129387cfa009324711108a756b73b638d6753b2f4a23af44993", size = 5668085, upload-time = "2026-08-01T09:24:18.772Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0e/58/fa688cf6888438ef0566d5e9d487789f0203c84dec3b04ebcc812106d57d/vocalbin-0.3.0-py3-none-any.whl", hash = "sha256:38eb532534078ef8906eacae6e3951f39be3f439f6cb125b86d689bc355d8c02", size = 24682, upload-time = "2026-08-01T09:24:12.323Z" },
+]
+
+[[package]]
+name = "voice"
+version = "0.1.0"
+source = { editable = "voice" }
+dependencies = [
+    { name = "cara", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "transitbus", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "vocalbin", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+    { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cara", editable = "cara" },
+    { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
+    { name = "numpy", specifier = ">=2.4.6" },
+    { name = "onnxruntime", specifier = ">=1.24.3" },
+    { name = "pyaudio", specifier = ">=0.2.14" },
+    { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "sonosify", specifier = ">=0.4.1" },
+    { name = "transitbus", specifier = ">=0.1.0" },
+    { name = "vocalbin", specifier = ">=0.3.0" },
+    { name = "wakewordkit", specifier = ">=0.2.0" },
 ]
 
 [[package]]
