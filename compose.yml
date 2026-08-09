@@ -1,0 +1,31 @@
+name: cara
+
+x-gateway: &gateway
+  build:
+    context: .
+    dockerfile: docker/gateway.Dockerfile
+  environment:
+    DATABASE_URL: sqlite+aiosqlite:////app/data/gateway.sqlite3
+  env_file:
+    - path: .env
+      required: false
+  volumes:
+    - gateway-data:/app/data
+
+services:
+  # Runs to completion before the gateway starts. Alembic brings up its own event
+  # loop, so it must never share a process with the server.
+  migrate:
+    <<: *gateway
+    command: ["gateway-migrate"]
+
+  gateway:
+    <<: *gateway
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+
+volumes:
+  gateway-data:

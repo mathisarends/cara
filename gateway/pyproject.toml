@@ -16,6 +16,9 @@ dependencies = [
     "uvicorn>=0.30.0",
 ]
 
+[project.scripts]
+gateway-migrate = "gateway.infrastructure.database.migrations:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

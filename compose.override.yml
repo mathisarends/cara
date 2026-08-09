@@ -1,0 +1,30 @@
+# Local development, applied automatically by `docker compose up -d`.
+# Sources are bind-mounted over the image so uvicorn reloads on edit, in any
+# workspace package the server imports — not just `gateway`.
+# Run the image as built with `docker compose -f compose.yml up -d`.
+
+x-sources: &sources
+  - ./gateway/src:/app/gateway/src:ro
+  - ./gateway/migrations:/app/gateway/migrations:ro
+  - ./cara/src:/app/cara/src:ro
+  - ./llm/src:/app/llm/src:ro
+  - ./retrieval/src:/app/retrieval/src:ro
+  - ./scheduler/src:/app/scheduler/src:ro
+
+services:
+  migrate:
+    volumes: *sources
+
+  gateway:
+    command:
+      - uvicorn
+      - gateway.main:app
+      - --host=0.0.0.0
+      - --port=8000
+      - --reload
+      - --reload-dir=/app/gateway/src
+      - --reload-dir=/app/cara/src
+      - --reload-dir=/app/llm/src
+      - --reload-dir=/app/retrieval/src
+      - --reload-dir=/app/scheduler/src
+    volumes: *sources
