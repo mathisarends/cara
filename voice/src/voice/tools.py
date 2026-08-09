@@ -2,7 +2,7 @@ import agenttoolkit
 from agenttoolkit import Inject, description_from_context, provided, requires
 from pydantic import Field
 
-from cara.tools import ToolParams
+from agent.tools import ToolParams
 from voice.audio import AudioOutput, AudioPlayer
 
 

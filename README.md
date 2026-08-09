@@ -85,7 +85,7 @@ bash scripts/discover_hue.sh
 Sonos playback and discovery are provided over the local network by the
 [`sonosify`](https://pypi.org/project/sonosify/) library; no Sonos cloud credentials are needed.
 Set `SONOS_SPEAKER_NAME`, or `SONOS_IP_ADDRESS` to skip discovery. Import Sonos explicitly from
-`cara.audio.sonos`; importing `cara` or `cara.audio` does not load it.
+`voice.audio.sonos`; importing `voice` or `voice.audio` does not load it.
 
 ## Audio outputs
 
@@ -117,7 +117,7 @@ The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `Sand
 container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
 memory, process, output, and execution-time limits. The reusable tool factory defaults to a dedicated
 `LocalWorkspace` below the system temporary directory. Cara's concrete entry point explicitly uses
-`workspace/` as its root and exposes only `cara/`, `experiments/`, and `skills/` as writable mounted
+`workspace/` as its root and exposes only `agent/`, `experiments/`, and `skills/` as writable mounted
 directories. The project `.env`, `.git`, and the rest of the repository are not exposed. Other callers can
 provide their own `Workspace` or `Sandbox`, or opt into additional sandbox mounts, environment variables,
 and network access through `build_tools()`.

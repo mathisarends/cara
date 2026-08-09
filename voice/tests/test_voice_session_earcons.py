@@ -5,8 +5,8 @@ from pathlib import Path
 
 from transitbus import EventBus
 
-from cara.agent import Agent
-from cara.tools import create_tools
+from agent.agent import Agent
+from agent.tools import create_tools
 from voice import VoiceSession
 from voice.audio import AudioOutput, AudioPlayer, EarconPlayer
 from voice.speech import SpeechInput, SpeechOutput, SpeechSettings

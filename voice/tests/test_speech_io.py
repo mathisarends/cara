@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 
 from transitbus import EventBus
 
-from cara.events import AssistantSpeechStarted, UserSpeechEnded, UserSpeechStarted
+from agent.events import AssistantSpeechStarted, UserSpeechEnded, UserSpeechStarted
 from voice.audio import AudioOutput, AudioPlayer
 from voice.speech import (
     SpeechInput,

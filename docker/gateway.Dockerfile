@@ -10,7 +10,7 @@ WORKDIR /app
 # Dependencies resolve from the workspace manifests alone, so they stay cached
 # until a pyproject or the lock file changes.
 COPY pyproject.toml uv.lock ./
-COPY cara/pyproject.toml cara/
+COPY agent/pyproject.toml agent/
 COPY gateway/pyproject.toml gateway/
 COPY gateway_client/pyproject.toml gateway_client/
 COPY llm/pyproject.toml llm/

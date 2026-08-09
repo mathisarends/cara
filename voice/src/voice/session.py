@@ -5,7 +5,7 @@ from typing import Protocol
 
 from transitbus import EventBus
 
-from cara.events import (
+from agent.events import (
     AssistantInterrupted,
     SessionEnded,
     SessionStarted,

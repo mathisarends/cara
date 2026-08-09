@@ -1,6 +1,6 @@
 from transitbus import EventBus
 
-from cara.events import AssistantInterrupted, SessionEnded
+from agent.events import AssistantInterrupted, SessionEnded
 from voice.audio.earcons import Earcon, EarconPlayer
 
 

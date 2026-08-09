@@ -4,7 +4,7 @@ import logging
 from transitbus import EventBus
 from vocalbin import TextToSpeech, TextToSpeechFormat, TextToSpeechRequest
 
-from cara.events import AssistantSpeechStarted
+from agent.events import AssistantSpeechStarted
 from voice.audio import AudioPlayback
 from voice.speech.settings import SpeechSettings
 

@@ -6,9 +6,9 @@ from pathlib import Path
 from llmify import ChatInvokeCompletion, Function, ToolCall, UserMessage
 from transitbus import EventBus
 
-from cara.agent import Agent
-from cara.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
-from cara.tools import build_tools, create_tools
+from agent.agent import Agent
+from agent.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
+from agent.tools import build_tools, create_tools
 from voice import VoiceSession
 from voice.audio import AudioOutput, AudioPlayer, EarconPlayer
 from voice.speech import (

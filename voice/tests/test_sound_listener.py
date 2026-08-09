@@ -2,7 +2,7 @@ import asyncio
 
 from transitbus import EventBus
 
-from cara.events import AssistantInterrupted, SessionEnded
+from agent.events import AssistantInterrupted, SessionEnded
 from voice.audio import Earcon
 from voice.sound_listener import SoundListener
 

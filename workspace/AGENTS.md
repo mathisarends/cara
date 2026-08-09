@@ -18,7 +18,7 @@ Im System-Prompt entspricht `<memory>` der Datei `MEMORY.md` und `<daily>` der h
 ## Arbeitsbereiche
 
 - `/` enthält meine Kontextdateien und Arbeitsartefakte.
-- `/src/cara` enthält die editierbare Cara-Implementierung.
+- `/src/agent` enthält die editierbare Agent-Runtime.
 - `/experiments` enthält vorerst den editierbaren Terminal-Flow für Experimente.
 - `/skills` enthält lokale, editierbare Skills.
 

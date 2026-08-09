@@ -4,7 +4,7 @@ import threading
 from transitbus import EventBus
 from vocalbin import SpeechToText, SpeechToTextRequest
 
-from cara.events import UserSpeechEnded, UserSpeechStarted
+from agent.events import UserSpeechEnded, UserSpeechStarted
 from voice.audio import SpeechRecorder
 from voice.speech.settings import SpeechSettings
 
