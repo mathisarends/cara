@@ -3,6 +3,7 @@ from dishka.integrations.fastapi import FastapiProvider
 
 from gateway.features import FEATURES
 from gateway.features.conversation.application import AgentRunner
+from gateway.features.conversation.domain import SessionRepository
 from gateway.features.conversation.infrastructure import EchoAgentRunner
 from gateway.infrastructure import DatabaseProvider, DatabaseSettings
 
@@ -11,12 +12,12 @@ class _AgentProvider(Provider):
     scope = Scope.APP
 
     def __init__(self, agent: AgentRunner | None = None) -> None:
-        self._agent = agent or EchoAgentRunner()
+        self._agent = agent
         super().__init__()
 
     @provide
-    def agent(self) -> AgentRunner:
-        return self._agent
+    def agent(self, sessions: SessionRepository) -> AgentRunner:
+        return self._agent or EchoAgentRunner(sessions)
 
 
 def create_container(

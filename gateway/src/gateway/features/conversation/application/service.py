@@ -94,7 +94,7 @@ class ConversationService:
             session = await self.get_session(run.session_id)
             session.add_user_message(text)
             session = await self._sessions.save(session)
-            async for output in self._agent.stream(session, text, metadata):
+            async for output in self._agent.stream(session.id, metadata):
                 sequence = await self._emit_agent_output(
                     run,
                     session,

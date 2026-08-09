@@ -15,7 +15,6 @@ from gateway.features.conversation.domain import (
     AgentOutput,
     ChatCompleted,
     ChatDelta,
-    Session,
     ToolCallCompleted,
     ToolCallStarted,
 )
@@ -36,11 +35,10 @@ def _create_app(
 class ToolAgentRunner(AgentRunner):
     async def stream(
         self,
-        session: Session,
-        text: str,
+        session_id: UUID,
         metadata: dict[str, object],
     ) -> AsyncIterator[AgentOutput]:
-        del session, text, metadata
+        del session_id, metadata
         yield ToolCallStarted(
             call_id="call_1",
             name="lights.turn_on",
@@ -58,11 +56,10 @@ class ToolAgentRunner(AgentRunner):
 class BlockingAgentRunner(AgentRunner):
     async def stream(
         self,
-        session: Session,
-        text: str,
+        session_id: UUID,
         metadata: dict[str, object],
     ) -> AsyncIterator[AgentOutput]:
-        del session, text, metadata
+        del session_id, metadata
         yield ChatDelta(text="gestartet")
         await asyncio.Event().wait()
 

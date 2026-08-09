@@ -5,7 +5,6 @@ from uuid import UUID
 from gateway.features.conversation.domain import (
     AgentOutput,
     GatewayEvent,
-    Session,
 )
 
 
@@ -37,7 +36,6 @@ class AgentRunner(ABC):
     @abstractmethod
     def stream(
         self,
-        session: Session,
-        text: str,
+        session_id: UUID,
         metadata: dict[str, object],
     ) -> AsyncIterator[AgentOutput]: ...
