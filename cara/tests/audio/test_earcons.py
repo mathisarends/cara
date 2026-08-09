@@ -6,8 +6,7 @@ from pathlib import Path
 import pytest
 
 from cara.audio import Earcon, EarconPlayer
-
-_SOUNDS_DIR = Path(__file__).resolve().parent.parent.parent / "sounds"
+from cara.audio.earcons import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
 
 
 class RecordingAudioPlayer:

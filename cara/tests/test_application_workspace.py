@@ -3,7 +3,6 @@ from pathlib import PurePosixPath
 
 import pytest
 from agenttoolkit.builtins.fs import PathOutsideWorkspaceError
-
 from main import _create_workspace, _editable_sandbox_mounts
 
 

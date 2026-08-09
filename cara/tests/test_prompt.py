@@ -8,7 +8,7 @@ from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
 from cara.prompt import Conversation, LocalTimePrompt, SystemPromptComposer
 
-WORKSPACE_ROOT = Path(__file__).parents[1] / "workspace"
+WORKSPACE_ROOT = Path(__file__).parents[2] / "workspace"
 
 
 def _tool_call() -> ToolCall:
