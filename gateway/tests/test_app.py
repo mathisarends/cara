@@ -1,4 +1,6 @@
 import asyncio
+import json
+import sqlite3
 from collections.abc import AsyncIterator
 from unittest.mock import patch
 from uuid import UUID, uuid4
@@ -286,6 +288,54 @@ def test_tool_calls_keep_call_id_and_metadata() -> None:
     assert completed["type"] == "tool_call.completed"
     assert completed["call_id"] == "call_1"
     assert completed["data"]["result"] == {"on": True}
+
+
+def test_complete_chat_history_is_persisted(tmp_path) -> None:
+    database_path = (tmp_path / "gateway.sqlite3").as_posix()
+    settings = DatabaseSettings(database_url=f"sqlite+aiosqlite:///{database_path}")
+
+    with (
+        TestClient(_create_app(ToolAgentRunner(), settings)) as client,
+        client.websocket_connect("/v1/ws/web-1") as socket,
+    ):
+        socket.send_json({"type": "session.create", "request_id": "create"})
+        socket.receive_json()
+        session_id = socket.receive_json()["session_id"]
+        socket.send_json(
+            {
+                "type": "chat.send",
+                "request_id": "chat",
+                "session_id": session_id,
+                "payload": {"text": "Licht an"},
+            }
+        )
+        events = [socket.receive_json() for _ in range(6)]
+        assert events[-1]["type"] == "run.completed"
+
+    with sqlite3.connect(database_path) as database:
+        user_message = database.execute(
+            "SELECT position, content FROM gateway_session_user_messages"
+        ).fetchone()
+        assistant_message = database.execute(
+            "SELECT position, content FROM gateway_session_assistant_messages"
+        ).fetchone()
+        sequence = database.execute(
+            "SELECT position FROM gateway_session_tool_call_sequences"
+        ).fetchone()
+        tool_call = database.execute(
+            """
+            SELECT position, call_id, function_name, function_arguments, state, result
+            FROM gateway_session_tool_calls
+            """
+        ).fetchone()
+
+    assert user_message == (0, "Licht an")
+    assert sequence == (1,)
+    assert assistant_message == (2, "Erledigt")
+    assert tool_call[:3] == (0, "call_1", "lights.turn_on")
+    assert json.loads(tool_call[3]) == {"room": "office"}
+    assert tool_call[4] == "completed"
+    assert json.loads(tool_call[5]) == {"on": True}
 
 
 def test_run_can_be_cancelled() -> None:

@@ -76,6 +76,17 @@ class Session(Aggregate):
     def fail_tool_call(self, call_id: str, error: str) -> ToolCall:
         return self._require_pending_tool_call_sequence().fail(call_id, error)
 
+    def fail_pending_tool_calls(self, error: str) -> tuple[ToolCall, ...]:
+        sequence = self._find_pending_tool_call_sequence()
+        if sequence is None:
+            return ()
+        failed_calls: list[ToolCall] = []
+        for call in sequence.calls:
+            if call.is_pending:
+                call.fail(error)
+                failed_calls.append(call)
+        return tuple(failed_calls)
+
     def pending_tool_call_sequence(self) -> ToolCallSequence | None:
         return self._find_pending_tool_call_sequence()
 
