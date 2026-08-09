@@ -25,9 +25,8 @@ class DatabaseProvider(Provider):
 
     @provide
     async def engine(self) -> AsyncIterator[AsyncEngine]:
-        url = self._settings.async_url
-        options = {"poolclass": StaticPool} if url.endswith(":memory:") else {}
-        engine = create_async_engine(url, **options)
+        options = {"poolclass": StaticPool} if self._settings.is_in_memory else {}
+        engine = create_async_engine(self._settings.async_url, **options)
         try:
             yield engine
         finally:

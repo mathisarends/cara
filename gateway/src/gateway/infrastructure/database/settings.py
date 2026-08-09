@@ -17,3 +17,7 @@ class DatabaseSettings(BaseSettings):
         if database_url.startswith("sqlite:///"):
             return database_url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
         return database_url
+
+    @property
+    def is_in_memory(self) -> bool:
+        return self.async_url.endswith(":memory:")
