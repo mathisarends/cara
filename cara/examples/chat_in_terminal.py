@@ -14,6 +14,8 @@ from llm import CodexModel, create_codex_model
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _SKILLS_ROOT = _PROJECT_ROOT / "skills"
 _WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
+_CARA_SRC = _PROJECT_ROOT / "cara" / "src" / "cara"
+_CARA_EXAMPLES = _PROJECT_ROOT / "cara" / "examples"
 
 load_dotenv()
 
@@ -43,15 +45,15 @@ async def main() -> None:
         workspace=LocalWorkspace(
             _WORKSPACE_ROOT,
             mounts={
-                "/src/cara": _PROJECT_ROOT / "cara",
-                "/experiments": _PROJECT_ROOT / "experiments",
+                "/src/cara": _CARA_SRC,
+                "/experiments": _CARA_EXAMPLES,
                 "/skills": _SKILLS_ROOT,
             },
         ),
         sandbox_environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
         sandbox_mounts=(
-            BindMount.read_write(_PROJECT_ROOT / "cara", "/src/cara"),
-            BindMount.read_write(_PROJECT_ROOT / "experiments", "/experiments"),
+            BindMount.read_write(_CARA_SRC, "/src/cara"),
+            BindMount.read_write(_CARA_EXAMPLES, "/experiments"),
             BindMount.read_write(_SKILLS_ROOT, "/skills"),
             BindMount.read_write(_spogo_config_root(), "/spogo"),
             BindMount.read_only(

@@ -3,22 +3,18 @@ import asyncio
 import logging
 from pathlib import Path
 
+import agenttoolkit
 from agenttoolkit import Skills
 from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
 from llmify import ChatModel
 from transitbus import EventBus
 
-from cara import (
-    Agent,
-    HueListener,
-    SpeechInput,
-    SpeechOutput,
-    SpeechSettings,
-    TerminalSession,
-    VoiceSession,
-)
-from cara.audio import (
+from cara import Agent, HueListener, TerminalSession
+from cara.tools import build_tools
+from llm import CodexModel, create_codex_model
+from voice import VoiceSession
+from voice.audio import (
     AudioOutput,
     AudioPlayer,
     EarconPlayer,
@@ -26,11 +22,16 @@ from cara.audio import (
     MicrophoneRecorder,
     MicrophoneStream,
 )
-from cara.audio.device import PortAudioDevice
-from cara.speech import OpenAISpeechToText, OpenAITextToSpeech
-from cara.tools import build_tools
-from cara.wakeword import WakeWord, WakeWordListener
-from llm import CodexModel, create_codex_model
+from voice.audio.device import PortAudioDevice
+from voice.speech import (
+    OpenAISpeechToText,
+    OpenAITextToSpeech,
+    SpeechInput,
+    SpeechOutput,
+    SpeechSettings,
+)
+from voice.tools import build_audio_tools
+from voice.wakeword import WakeWord, WakeWordListener
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -73,7 +74,9 @@ async def _run_voice(llm: ChatModel, skills: Skills, event_bus: EventBus) -> Non
         active_output=AudioOutput.LOCAL,
     )
 
-    agent = _build_agent(llm, skills, audio_player, event_bus=event_bus)
+    agent = _build_agent(
+        llm, skills, audio_player, event_bus=event_bus, tools=build_audio_tools()
+    )
     speech_settings = SpeechSettings(language="de")
     voice_session = VoiceSession(
         agent=agent,
@@ -110,6 +113,7 @@ def _build_agent(
     skills: Skills,
     *tool_dependencies: object,
     event_bus: EventBus | None = None,
+    tools: agenttoolkit.Tools | None = None,
 ) -> Agent:
     return Agent(
         llm=llm,
@@ -118,6 +122,7 @@ def _build_agent(
             skills=skills,
             workspace=_create_workspace(),
             sandbox_mounts=_editable_sandbox_mounts(),
+            tools=tools,
         ),
         prompt_root=_WORKSPACE_ROOT,
         skills=skills,
