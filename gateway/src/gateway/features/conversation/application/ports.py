@@ -1,23 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from gateway.application.models import AgentOutput, GatewayEvent, Run, Session
-
-
-class SessionRepository(ABC):
-    @abstractmethod
-    async def add(self, session: Session) -> None: ...
-
-    @abstractmethod
-    async def get(self, session_id: str) -> Session | None: ...
-
-
-class RunRepository(ABC):
-    @abstractmethod
-    async def add(self, run: Run) -> None: ...
-
-    @abstractmethod
-    async def get(self, run_id: str) -> Run | None: ...
+from gateway.features.conversation.domain import (
+    AgentOutput,
+    GatewayEvent,
+    Session,
+)
 
 
 class EventPublisher(ABC):

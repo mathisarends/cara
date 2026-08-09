@@ -1,18 +1,33 @@
 import asyncio
 from collections.abc import AsyncIterator
+from unittest.mock import patch
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from gateway import create_app
-from gateway.application import (
+from gateway.container import create_container
+from gateway.features.conversation.application import AgentRunner
+from gateway.features.conversation.domain import (
     AgentOutput,
-    AgentRunner,
     ChatCompleted,
     ChatDelta,
     Session,
     ToolCallCompleted,
     ToolCallStarted,
 )
+from gateway.infrastructure import DatabaseSettings
+
+_TEST_DATABASE_SETTINGS = DatabaseSettings(database_url="sqlite+aiosqlite:///:memory:")
+
+
+def _create_app(
+    agent: AgentRunner | None = None,
+    database_settings: DatabaseSettings = _TEST_DATABASE_SETTINGS,
+) -> FastAPI:
+    container = create_container(agent, database_settings)
+    with patch("gateway.main.create_container", return_value=container):
+        return create_app()
 
 
 class ToolAgentRunner(AgentRunner):
@@ -50,7 +65,7 @@ class BlockingAgentRunner(AgentRunner):
 
 
 def test_health() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(_create_app()) as client:
         response = client.get("/v1/health")
 
     assert response.status_code == 200
@@ -58,7 +73,7 @@ def test_health() -> None:
 
 
 def test_readiness() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(_create_app()) as client:
         response = client.get("/v1/readiness")
 
     assert response.status_code == 200
@@ -66,7 +81,7 @@ def test_readiness() -> None:
 
 
 def test_session_rest_lifecycle() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(_create_app()) as client:
         created = client.post(
             "/v1/sessions", json={"metadata": {"channel": "terminal"}}
         )
@@ -77,8 +92,30 @@ def test_session_rest_lifecycle() -> None:
     assert fetched.json() == created.json()
 
 
+def test_session_not_found_uses_feature_exception_mapping() -> None:
+    with TestClient(_create_app()) as client:
+        response = client.get("/v1/sessions/missing")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Session missing not found"}
+
+
+def test_session_is_persisted_between_app_instances(tmp_path) -> None:
+    database_path = (tmp_path / "gateway.sqlite3").as_posix()
+    settings = DatabaseSettings(database_url=f"sqlite+aiosqlite:///{database_path}")
+
+    with TestClient(_create_app(database_settings=settings)) as client:
+        created = client.post("/v1/sessions", json={}).json()
+
+    with TestClient(_create_app(database_settings=settings)) as client:
+        fetched = client.get(f"/v1/sessions/{created['id']}")
+
+    assert fetched.status_code == 200
+    assert fetched.json() == created
+
+
 def test_openapi_has_stable_operation_ids_and_response_models() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(_create_app()) as client:
         schema = client.get("/openapi.json").json()
 
     paths = schema["paths"]
@@ -102,7 +139,7 @@ def test_openapi_has_stable_operation_ids_and_response_models() -> None:
 
 def test_chat_command_streams_minimal_event_lifecycle() -> None:
     with (
-        TestClient(create_app()) as client,
+        TestClient(_create_app()) as client,
         client.websocket_connect("/v1/ws/terminal-1") as socket,
     ):
         socket.send_json(
@@ -142,7 +179,7 @@ def test_chat_command_streams_minimal_event_lifecycle() -> None:
 
 
 def test_session_get_subscribes_a_second_client() -> None:
-    with TestClient(create_app()) as client:
+    with TestClient(_create_app()) as client:
         session_id = client.post("/v1/sessions", json={}).json()["id"]
         with (
             client.websocket_connect("/v1/ws/web-1") as first,
@@ -177,7 +214,7 @@ def test_session_get_subscribes_a_second_client() -> None:
 
 def test_invalid_command_is_rejected_without_closing_socket() -> None:
     with (
-        TestClient(create_app()) as client,
+        TestClient(_create_app()) as client,
         client.websocket_connect("/v1/ws/web-1") as socket,
     ):
         socket.send_json({"type": "chat.send", "request_id": "req-invalid"})
@@ -193,9 +230,34 @@ def test_invalid_command_is_rejected_without_closing_socket() -> None:
     assert accepted["type"] == "command.accepted"
 
 
+def test_missing_run_uses_websocket_exception_mapping() -> None:
+    with (
+        TestClient(_create_app()) as client,
+        client.websocket_connect("/v1/ws/web-1") as socket,
+    ):
+        socket.send_json({"type": "session.create", "request_id": "create"})
+        socket.receive_json()
+        session_id = socket.receive_json()["session_id"]
+        socket.send_json(
+            {
+                "type": "run.cancel",
+                "request_id": "cancel",
+                "session_id": session_id,
+                "payload": {"run_id": "missing"},
+            }
+        )
+        rejected = socket.receive_json()
+
+    assert rejected["type"] == "command.rejected"
+    assert rejected["data"] == {
+        "code": "run_not_found",
+        "message": "Run not found in this session",
+    }
+
+
 def test_tool_calls_keep_call_id_and_metadata() -> None:
     with (
-        TestClient(create_app(ToolAgentRunner())) as client,
+        TestClient(_create_app(ToolAgentRunner())) as client,
         client.websocket_connect("/v1/ws/web-1") as socket,
     ):
         socket.send_json({"type": "session.create", "request_id": "create"})
@@ -226,7 +288,7 @@ def test_tool_calls_keep_call_id_and_metadata() -> None:
 
 def test_run_can_be_cancelled() -> None:
     with (
-        TestClient(create_app(BlockingAgentRunner())) as client,
+        TestClient(_create_app(BlockingAgentRunner())) as client,
         client.websocket_connect("/v1/ws/web-1") as socket,
     ):
         socket.send_json({"type": "session.create", "request_id": "create"})

@@ -1,23 +1,17 @@
 import uvicorn
-from dishka import make_async_container
-from dishka.integrations.fastapi import FastapiProvider, setup_dishka
+from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 
-from gateway.application import AgentRunner
-from gateway.dependencies import GatewayProvider
-from gateway.infrastructure import EchoAgentRunner
+from gateway.container import create_container
+from gateway.features import FEATURES
 from gateway.lifespan import lifespan
-from gateway.presentation import api_router, health_router
+from gateway.presentation import health_router
 
 _API_PREFIX = "/v1"
 
 
-def create_app(agent: AgentRunner | None = None) -> FastAPI:
-    container = make_async_container(
-        GatewayProvider(agent or EchoAgentRunner()),
-        FastapiProvider(),
-    )
-    application = FastAPI(
+def create_app() -> FastAPI:
+    app = FastAPI(
         title="Cara Gateway API",
         summary="Session-based gateway for Cara clients.",
         description=(
@@ -31,10 +25,15 @@ def create_app(agent: AgentRunner | None = None) -> FastAPI:
             {"name": "sessions", "description": "Conversation session lifecycle."},
         ],
     )
-    application.include_router(health_router, prefix=_API_PREFIX)
-    application.include_router(api_router, prefix=_API_PREFIX)
-    setup_dishka(container, application)
-    return application
+    app.include_router(health_router, prefix=_API_PREFIX)
+    for feature in FEATURES:
+        feature.install(app)
+
+    setup_dishka(
+        create_container(),
+        app=app,
+    )
+    return app
 
 
 app = create_app()

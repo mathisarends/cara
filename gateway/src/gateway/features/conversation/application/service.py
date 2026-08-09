@@ -2,33 +2,24 @@ import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
-from gateway.application.models import (
+from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
+from gateway.features.conversation.domain import (
     ChatCompleted,
     ChatDelta,
     GatewayEvent,
     Run,
+    RunNotFoundError,
+    RunRepository,
     Session,
+    SessionNotFoundError,
+    SessionRepository,
     ToolCallCompleted,
     ToolCallStarted,
-    new_id,
 )
-from gateway.application.ports import (
-    AgentRunner,
-    EventPublisher,
-    RunRepository,
-    SessionRepository,
-)
+from gateway.features.conversation.domain.models import new_id
 
 
-class SessionNotFoundError(Exception):
-    pass
-
-
-class RunNotFoundError(Exception):
-    pass
-
-
-class GatewayService:
+class ConversationService:
     def __init__(
         self,
         sessions: SessionRepository,
@@ -48,11 +39,10 @@ class GatewayService:
             created_at=datetime.now(UTC),
             metadata=dict(metadata),
         )
-        await self._sessions.add(session)
-        return session
+        return await self._sessions.save(session)
 
     async def get_session(self, session_id: str) -> Session:
-        session = await self._sessions.get(session_id)
+        session = await self._sessions.find_by_id(session_id)
         if session is None:
             raise SessionNotFoundError(session_id)
         return session
@@ -64,8 +54,7 @@ class GatewayService:
             session_id=session_id,
             created_at=datetime.now(UTC),
         )
-        await self._runs.add(run)
-        return run
+        return await self._runs.save(run)
 
     def start_run(
         self,
@@ -78,7 +67,7 @@ class GatewayService:
         task.add_done_callback(lambda _: self._tasks.pop(run.id, None))
 
     async def cancel_run(self, session_id: str, run_id: str) -> Run:
-        run = await self._runs.get(run_id)
+        run = await self._runs.find_by_id(run_id)
         if run is None or run.session_id != session_id:
             raise RunNotFoundError(run_id)
         task = self._tasks.get(run_id)
@@ -102,11 +91,13 @@ class GatewayService:
         sequence = 0
         try:
             run.status = "running"
+            run = await self._runs.save(run)
             sequence = await self._emit(run, "run.started", {}, sequence=sequence)
             session = await self.get_session(run.session_id)
             async for output in self._agent.stream(session, text, metadata):
                 sequence = await self._emit_agent_output(run, output, sequence)
             run.status = "completed"
+            run = await self._runs.save(run)
             await self._emit(
                 run,
                 "run.completed",
@@ -115,6 +106,7 @@ class GatewayService:
             )
         except asyncio.CancelledError:
             run.status = "cancelled"
+            run = await self._runs.save(run)
             await self._emit(
                 run,
                 "run.cancelled",
@@ -123,6 +115,7 @@ class GatewayService:
             )
         except Exception as error:
             run.status = "failed"
+            run = await self._runs.save(run)
             await self._emit(
                 run,
                 "run.failed",

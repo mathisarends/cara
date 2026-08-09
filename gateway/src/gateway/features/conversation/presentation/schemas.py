@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, TypeAdapter
 
-from gateway.application import GatewayEvent, Session
+from gateway.features.conversation.domain import GatewayEvent, Session
 
 
 class CommandType(StrEnum):
@@ -53,7 +53,7 @@ class RunCancelCommand(BaseModel):
     payload: RunCancelPayload
 
 
-Command = Annotated[
+type Command = Annotated[
     SessionCreateCommand | SessionGetCommand | ChatSendCommand | RunCancelCommand,
     Field(discriminator="type"),
 ]
@@ -104,20 +104,12 @@ class SessionResponse(BaseModel):
     metadata: dict[str, Any] = Field(description="Client-defined session metadata.")
 
     @classmethod
-    def from_session(cls, session: Session) -> Self:
+    def from_domain(cls, session: Session) -> Self:
         return cls(
             id=session.id,
             created_at=session.created_at,
             metadata=session.metadata,
         )
-
-
-class HealthResponse(BaseModel):
-    status: Literal["ok"] = "ok"
-
-
-class ReadinessResponse(BaseModel):
-    status: Literal["ready"] = "ready"
 
 
 class ErrorResponse(BaseModel):

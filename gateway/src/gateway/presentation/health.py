@@ -1,8 +1,16 @@
-from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter
+from typing import Literal
 
-from gateway.application import GatewayService
-from gateway.presentation.protocol import HealthResponse, ReadinessResponse
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+
+class _HealthResponse(BaseModel):
+    status: Literal["ok"] = "ok"
+
+
+class _ReadinessResponse(BaseModel):
+    status: Literal["ready"] = "ready"
+
 
 router = APIRouter(tags=["system"])
 
@@ -10,24 +18,20 @@ router = APIRouter(tags=["system"])
 @router.get(
     "/health",
     operation_id="get_gateway_health",
-    response_model=HealthResponse,
+    response_model=_HealthResponse,
     response_description="The gateway process is alive.",
     summary="Check gateway health",
 )
-def health() -> HealthResponse:
-    return HealthResponse()
+def health() -> _HealthResponse:
+    return _HealthResponse()
 
 
 @router.get(
     "/readiness",
     operation_id="get_gateway_readiness",
-    response_model=ReadinessResponse,
+    response_model=_ReadinessResponse,
     response_description="The gateway application stack is ready.",
     summary="Check gateway readiness",
 )
-@inject
-async def readiness(
-    service: FromDishka[GatewayService],
-) -> ReadinessResponse:
-    del service
-    return ReadinessResponse()
+async def readiness() -> _ReadinessResponse:
+    return _ReadinessResponse()

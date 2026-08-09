@@ -4,16 +4,25 @@ version = "0.1.0"
 description = "HTTP gateway exposing Cara's capabilities as API routes."
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "aiosqlite>=0.22.0",
     "dishka>=1.4.0",
     "fastapi>=0.115.0",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
+    "sqlmodel>=0.0.31",
     "uvicorn>=0.30.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.9.1",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=1.0.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gateway"]

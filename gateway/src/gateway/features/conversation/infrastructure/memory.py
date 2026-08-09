@@ -1,37 +1,8 @@
 import asyncio
 from collections import defaultdict
 
-from gateway.application import (
-    EventBroker,
-    EventReceiver,
-    GatewayEvent,
-    Run,
-    RunRepository,
-    Session,
-    SessionRepository,
-)
-
-
-class InMemorySessionRepository(SessionRepository):
-    def __init__(self) -> None:
-        self._sessions: dict[str, Session] = {}
-
-    async def add(self, session: Session) -> None:
-        self._sessions[session.id] = session
-
-    async def get(self, session_id: str) -> Session | None:
-        return self._sessions.get(session_id)
-
-
-class InMemoryRunRepository(RunRepository):
-    def __init__(self) -> None:
-        self._runs: dict[str, Run] = {}
-
-    async def add(self, run: Run) -> None:
-        self._runs[run.id] = run
-
-    async def get(self, run_id: str) -> Run | None:
-        return self._runs.get(run_id)
+from gateway.features.conversation.application import EventBroker, EventReceiver
+from gateway.features.conversation.domain import GatewayEvent
 
 
 class _QueueEventReceiver(EventReceiver):

@@ -98,8 +98,11 @@ client-scoped `session.snapshot`.
 
 ## Deliberate v0 limits
 
-This version stores state and subscriptions in memory. It has no authentication,
-durable event log, reconnect replay, command idempotency, or multi-process fanout.
-Those concerns can be added behind the application ports without changing the
-wire format. The included agent adapter echoes input only so that the complete
-protocol can run before the real Cara agent adapter is connected.
+This version persists sessions and runs in SQLite through SQLModel. Configure the
+database with `DATABASE_URL`; the default is
+`sqlite+aiosqlite:///./gateway.sqlite3`. Live subscriptions remain in memory. It
+has no authentication, durable event log, reconnect replay, command idempotency,
+or multi-process fanout. Those concerns can be added behind the application ports
+without changing the wire format. The included agent adapter echoes input only so
+that the complete protocol can run before the real Cara agent adapter is
+connected.

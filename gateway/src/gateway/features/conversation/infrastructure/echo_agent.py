@@ -1,8 +1,8 @@
 from collections.abc import AsyncIterator
 
-from gateway.application import (
+from gateway.features.conversation.application import AgentRunner
+from gateway.features.conversation.domain import (
     AgentOutput,
-    AgentRunner,
     ChatCompleted,
     ChatDelta,
     Session,
@@ -10,8 +10,6 @@ from gateway.application import (
 
 
 class EchoAgentRunner(AgentRunner):
-    """Small runnable adapter until the real Cara agent is wired in."""
-
     async def stream(
         self,
         session: Session,
