@@ -1,5 +1,4 @@
 from .di import DatabaseProvider
-from .migrations import run_migrations
 from .models import (
     DatabaseEntity,
     SessionAssistantMessageModel,
@@ -21,5 +20,4 @@ __all__ = [
     "SessionToolCallModel",
     "SessionToolCallSequenceModel",
     "SessionUserMessageModel",
-    "run_migrations",
 ]
