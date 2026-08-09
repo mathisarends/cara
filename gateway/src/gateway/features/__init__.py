@@ -1,7 +1,7 @@
 from gateway.presentation import Feature
 
-from . import conversation
+from . import conversation, scheduling
 
-FEATURES: tuple[Feature, ...] = (conversation.feature,)
+FEATURES: tuple[Feature, ...] = (conversation.feature, scheduling.feature)
 
 __all__ = ["FEATURES"]

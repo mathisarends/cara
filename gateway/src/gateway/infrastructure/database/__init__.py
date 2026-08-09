@@ -1,6 +1,7 @@
 from .di import DatabaseProvider
 from .models import (
     DatabaseEntity,
+    ScheduledJobModel,
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,
@@ -15,6 +16,7 @@ __all__ = [
     "DatabaseEntity",
     "DatabaseSettings",
     "Repository",
+    "ScheduledJobModel",
     "SessionAssistantMessageModel",
     "SessionModel",
     "SessionToolCallModel",

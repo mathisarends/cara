@@ -138,3 +138,12 @@ class SessionToolCallModel(DatabaseEntity, table=True):
     error: str | None = None
 
     sequence: SessionToolCallSequenceModel = Relationship(back_populates="calls")
+
+
+class ScheduledJobModel(DatabaseEntity, table=True):
+    __tablename__ = "gateway_scheduled_jobs"
+
+    name: str
+    schedule: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
+    payload: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
+    enabled: bool = Field(default=True, nullable=False)

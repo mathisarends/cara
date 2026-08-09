@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
 from gateway.infrastructure.database.models import (  # noqa: F401
+    ScheduledJobModel,
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,
