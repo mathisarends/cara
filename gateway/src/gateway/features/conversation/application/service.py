@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -13,6 +14,8 @@ from gateway.features.conversation.domain import (
     SessionNotFoundError,
     SessionRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationService:
@@ -82,6 +85,10 @@ class ConversationService:
             current_session = event_router.session if event_router else session
             await self._fail_pending_tool_calls(current_session, "Turn cancelled")
         except Exception as error:
+            logger.exception(
+                "Conversation turn failed for session %s",
+                session_id,
+            )
             current_session = event_router.session if event_router else session
             await self._fail_pending_tool_calls(current_session, str(error))
         finally:

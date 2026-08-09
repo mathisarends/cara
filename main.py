@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import logging
 from uuid import UUID
 
 from gateway_client import (
@@ -15,6 +16,12 @@ from gateway_client import (
 
 _DEFAULT_GATEWAY_URL = "http://127.0.0.1:8000"
 _EXIT_COMMANDS = frozenset({"exit", "quit", ":q"})
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 async def main(base_url: str = _DEFAULT_GATEWAY_URL) -> None:

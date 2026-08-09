@@ -4,6 +4,7 @@ import sqlite3
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
+from dishka import Provider, Scope, provide
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -21,11 +22,45 @@ from gateway.infrastructure import DatabaseSettings
 _TEST_DATABASE_SETTINGS = DatabaseSettings(database_url="sqlite+aiosqlite:///:memory:")
 
 
+class StaticAgentRunner(AgentRunner):
+    async def run(
+        self,
+        session_id: UUID,
+        metadata: dict[str, object],
+        event_bus: AgentEventBus,
+    ) -> None:
+        del session_id, metadata
+        await event_bus.dispatch(ChatDelta(text="Hallo"))
+        await event_bus.dispatch(ChatCompleted(text="Hallo"))
+
+
+class _TestAgentProvider(Provider):
+    scope = Scope.APP
+
+    def __init__(self, agent: AgentRunner) -> None:
+        self._agent = agent
+        super().__init__()
+
+    @provide
+    def agent(self) -> AgentRunner:
+        return self._agent
+
+
 def _create_app(
     agent: AgentRunner | None = None,
     database_settings: DatabaseSettings = _TEST_DATABASE_SETTINGS,
 ) -> FastAPI:
-    container = create_container(agent, database_settings)
+    with (
+        patch(
+            "gateway.container._AgentProvider",
+            return_value=_TestAgentProvider(agent or StaticAgentRunner()),
+        ),
+        patch(
+            "gateway.infrastructure.database.di.DatabaseSettings",
+            return_value=database_settings,
+        ),
+    ):
+        container = create_container()
     with patch("gateway.main.create_container", return_value=container):
         return create_app()
 
@@ -181,8 +216,7 @@ def test_session_event_stream_supports_multiple_clients() -> None:
             second_turn_event = second.receive_json()
 
     assert response.status_code == 202
-    assert first_turn_event["type"] == "chat.delta"
-    assert second_turn_event["event_id"] == first_turn_event["event_id"]
+    assert second_turn_event == first_turn_event
 
 
 def test_invalid_chat_request_is_rejected() -> None:
