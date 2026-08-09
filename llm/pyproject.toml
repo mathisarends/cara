@@ -1,0 +1,20 @@
+[project]
+name = "llm"
+version = "0.1.0"
+description = "LLM client configuration and credentials, independent of Cara."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "py-llmify[openai]>=0.10.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.14.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm"]
+
+[tool.ruff]
+extend = "../pyproject.toml"
