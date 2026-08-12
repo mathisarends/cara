@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -55,14 +56,22 @@ class _GatewayResponder:
         self._client = client
         self._session_id = session_id
 
-    async def respond(self, text: str) -> str:
+    async def respond(
+        self,
+        text: str,
+        *,
+        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
+    ) -> str:
         async with self._client.event_stream(self._session_id) as events:
             await self._client.sessions.start_chat(
                 self._session_id,
                 ChatRequest(text=text, metadata={"channel": "voice"}),
             )
             try:
-                return await self._receive_response(events)
+                return await self._receive_response(
+                    events,
+                    on_interim_response=on_interim_response,
+                )
             except asyncio.CancelledError:
                 # The gateway currently has no per-turn cancellation endpoint. Keep
                 # consuming until it releases the session, otherwise a barge-in
@@ -71,13 +80,21 @@ class _GatewayResponder:
                 await self._receive_response(events)
                 raise
 
-    async def _receive_response(self, events: GatewayEventStream) -> str:
+    async def _receive_response(
+        self,
+        events: GatewayEventStream,
+        *,
+        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
+    ) -> str:
         async for event in events:
             match event:
                 case ChatDeltaEvent(data=data):
                     logger.debug("Gateway response delta: %s", data.text)
                 case ChatCompletedEvent(data=data):
-                    if data.finish_reason != "tool_calls":
+                    if data.finish_reason == "tool_calls":
+                        if data.text and on_interim_response is not None:
+                            await on_interim_response(data.text)
+                    else:
                         return data.text
                 case ToolCallStartedEvent(data=data):
                     logger.info("[tool] %s %s", data.name, data.arguments)

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import threading
+from collections.abc import Awaitable, Callable
 from typing import Protocol
 
 from transitbus import EventBus
@@ -23,7 +24,12 @@ DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS = 7.0
 
 
 class _TextResponder(Protocol):
-    async def respond(self, text: str) -> str: ...
+    async def respond(
+        self,
+        text: str,
+        *,
+        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
+    ) -> str: ...
 
 
 class _ResponseInterrupted(Exception):
@@ -85,6 +91,12 @@ class VoiceSession:
                             self._agent,
                             transcript,
                             interrupt=barge_in.interrupt,
+                            on_interim_response=lambda interim: (
+                                self._speech_output.send(
+                                    interim,
+                                    cancel=barge_in.interrupt,
+                                )
+                            ),
                         )
                     except _ResponseInterrupted:
                         pending_transcript = await self._receive_barge_in()
@@ -144,8 +156,11 @@ async def _respond_until_interrupted(
     text: str,
     *,
     interrupt: asyncio.Event,
+    on_interim_response: Callable[[str], Awaitable[None]],
 ) -> str:
-    response_task = asyncio.create_task(agent.respond(text))
+    response_task = asyncio.create_task(
+        agent.respond(text, on_interim_response=on_interim_response)
+    )
     interrupt_task = asyncio.create_task(interrupt.wait())
     try:
         done, _ = await asyncio.wait(

@@ -1,5 +1,5 @@
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from agenttoolkit import Skills, Tools
@@ -57,6 +57,7 @@ class Agent:
         on_text_delta: Callable[[str], None] | None = None,
         on_tool_call: Callable[[str, dict[str, object]], None] | None = None,
         on_tool_result: Callable[[str, str], None] | None = None,
+        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
     ) -> str:
         """Add a user turn, run the model and tools, and return the final answer.
 
@@ -72,12 +73,14 @@ class Agent:
             answer = await self._generate_answer(
                 on_tool_call=on_tool_call,
                 on_tool_result=on_tool_result,
+                on_interim_response=on_interim_response,
             )
         else:
             answer = await self._generate_streaming_answer(
                 on_text_delta=on_text_delta,
                 on_tool_call=on_tool_call,
                 on_tool_result=on_tool_result,
+                on_interim_response=on_interim_response,
             )
         self._conversation.add_assistant(answer)
         return answer
@@ -88,12 +91,14 @@ class Agent:
         on_text_delta: Callable[[str], None],
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
         on_tool_result: Callable[[str, str], None] | None,
+        on_interim_response: Callable[[str], Awaitable[None]] | None,
     ) -> str:
         if isinstance(self._llm, ChatOpenAIResponses):
             return await self._generate_streaming_responses_answer(
                 on_text_delta=on_text_delta,
                 on_tool_call=on_tool_call,
                 on_tool_result=on_tool_result,
+                on_interim_response=on_interim_response,
             )
 
         while True:
@@ -110,6 +115,8 @@ class Agent:
             if end is None:
                 raise RuntimeError("The model stream ended without a terminal event.")
 
+            if end.tool_calls and end.completion.strip() and on_interim_response:
+                await on_interim_response(end.completion.strip())
             for tool_call in end.tool_calls:
                 await self._execute_tool(
                     tool_call,
@@ -125,6 +132,7 @@ class Agent:
         on_text_delta: Callable[[str], None],
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
         on_tool_result: Callable[[str, str], None] | None,
+        on_interim_response: Callable[[str], Awaitable[None]] | None,
     ) -> str:
         messages = (
             self._conversation.to_llm_messages()
@@ -151,6 +159,8 @@ class Agent:
                 )
 
             state = end.provider_state
+            if end.tool_calls and end.completion.strip() and on_interim_response:
+                await on_interim_response(end.completion.strip())
             if not end.tool_calls:
                 self._responses_state = state
                 return end.completion.strip()
@@ -203,11 +213,13 @@ class Agent:
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
         on_tool_result: Callable[[str, str], None] | None,
+        on_interim_response: Callable[[str], Awaitable[None]] | None,
     ) -> str:
         if isinstance(self._llm, ChatOpenAIResponses):
             return await self._generate_responses_answer(
                 on_tool_call=on_tool_call,
                 on_tool_result=on_tool_result,
+                on_interim_response=on_interim_response,
             )
 
         while True:
@@ -219,6 +231,7 @@ class Agent:
                 completion,
                 on_tool_call=on_tool_call,
                 on_tool_result=on_tool_result,
+                on_interim_response=on_interim_response,
             )
             if not called_tools:
                 return answer
@@ -228,6 +241,7 @@ class Agent:
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
         on_tool_result: Callable[[str, str], None] | None,
+        on_interim_response: Callable[[str], Awaitable[None]] | None,
     ) -> str:
         messages = (
             self._conversation.to_llm_messages()
@@ -257,8 +271,11 @@ class Agent:
         *,
         on_tool_call: Callable[[str, dict[str, object]], None] | None,
         on_tool_result: Callable[[str, str], None] | None,
+        on_interim_response: Callable[[str], Awaitable[None]] | None,
     ) -> tuple[str, bool]:
         answer = completion.completion.strip()
+        if completion.tool_calls and answer and on_interim_response:
+            await on_interim_response(answer)
         for tool_call in completion.tool_calls:
             await self._execute_tool(
                 tool_call,

@@ -13,7 +13,7 @@ environments = [
 ]
 
 [tool.uv.workspace]
-members = ["agent", "cli", "config", "gateway", "gateway_client", "llm", "retrieval", "scheduler", "voice"]
+members = ["agent", "cli", "config", "gateway", "gateway_client", "llm", "openclaw_client", "retrieval", "scheduler", "voice"]
 
 [tool.uv.sources]
 agent = { workspace = true }
@@ -22,6 +22,7 @@ config = { workspace = true }
 gateway = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
+openclaw-client = { workspace = true }
 retrieval = { workspace = true }
 scheduler = { workspace = true }
 voice = { workspace = true }
@@ -49,6 +50,7 @@ known-first-party = [
     "gateway",
     "gateway_client",
     "llm",
+    "openclaw_client",
     "retrieval",
     "scheduler",
     "voice",

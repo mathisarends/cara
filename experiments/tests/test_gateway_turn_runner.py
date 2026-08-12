@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from experiments.terminal import TerminalRenderer
 from gateway_client import ChatCompletedEvent, GatewayEventType
 from main import GatewayTurnRunner
+from voice_main import _GatewayResponder
 
 
 class _EventStream(AbstractAsyncContextManager):
@@ -74,3 +75,35 @@ def test_gateway_turn_runner_keeps_consuming_after_tool_call_segment() -> None:
     asyncio.run(runner.run_turn("Suche Cara", renderer))
 
     assert stream.consumed == 2
+
+
+def test_gateway_voice_responder_emits_interim_response_and_returns_final() -> None:
+    async def run() -> tuple[list[str], str]:
+        session_id = uuid4()
+        stream = _EventStream(
+            [
+                _completed_event(
+                    session_id,
+                    1,
+                    "Ich schaue nach.",
+                    "tool_calls",
+                ),
+                _completed_event(session_id, 2, "Gefunden.", "stop"),
+            ]
+        )
+        interim_responses: list[str] = []
+
+        async def capture_interim(text: str) -> None:
+            interim_responses.append(text)
+
+        responder = _GatewayResponder(_Client(stream), session_id)
+        answer = await responder.respond(
+            "Suche Cara",
+            on_interim_response=capture_interim,
+        )
+        return interim_responses, answer
+
+    interim_responses, answer = asyncio.run(run())
+
+    assert interim_responses == ["Ich schaue nach."]
+    assert answer == "Gefunden."
