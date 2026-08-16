@@ -1,7 +1,9 @@
 import asyncio
 
+from transitbus import EventBus
 from wakewordkit import Detection, WakeWord
 
+from voice.events import WakeWordDetected
 from voice.wakeword import listener as listener_module
 from voice.wakeword.listener import WakeWordListener
 
@@ -35,8 +37,16 @@ class RecordingDetector:
 def test_listener_adapts_shared_microphone_to_async_detector(monkeypatch) -> None:
     monkeypatch.setattr(listener_module, "WakeWordDetector", RecordingDetector)
     microphone = RecordingMicrophone()
+    event_bus = EventBus()
+    detections: list[WakeWordDetected] = []
+
+    async def capture_detection(event: WakeWordDetected) -> None:
+        detections.append(event)
+
+    event_bus.on(WakeWordDetected, capture_detection)
     listener = WakeWordListener(
         microphone,
+        event_bus,
         wake_word=WakeWord.HEY_MYCROFT,
         sensitivity=0.6,
     )
@@ -48,12 +58,13 @@ def test_listener_adapts_shared_microphone_to_async_detector(monkeypatch) -> Non
     assert listener._detector.wake_word is WakeWord.HEY_MYCROFT
     assert listener._detector.threshold == 0.6
     assert listener._detector.reset_calls == 1
+    assert [event.score for event in detections] == [0.8]
 
 
 def test_listener_stops_after_current_read_when_cancelled(monkeypatch) -> None:
     monkeypatch.setattr(listener_module, "WakeWordDetector", RecordingDetector)
     microphone = RecordingMicrophone()
-    listener = WakeWordListener(microphone)
+    listener = WakeWordListener(microphone, EventBus())
     cancel = asyncio.Event()
     cancel.set()
 

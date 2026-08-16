@@ -8,7 +8,8 @@ from transitbus import EventBus
 from agent.agent import Agent
 from agent.tools import create_tools
 from voice import VoiceSession
-from voice.audio.output import AudioPlayer, EarconPlayer
+from voice.audio.output import AudioPlayer
+from voice.events.listener import EarconPlayer
 from voice.speech import SpeechInput, SpeechOutput, SpeechSettings
 from voice.wakeword.ports import WakeWordSessionSource
 

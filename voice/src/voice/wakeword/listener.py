@@ -4,9 +4,11 @@ import signal
 import sys
 from collections.abc import AsyncIterator
 
+from transitbus import EventBus
 from wakewordkit import WakeWord, WakeWordDetector
 
 from voice.audio.input import MicrophoneStream
+from voice.events import WakeWordDetected
 from voice.wakeword.ports import WakeWordSessionSource
 
 logger = logging.getLogger(__name__)
@@ -18,11 +20,13 @@ class WakeWordListener(WakeWordSessionSource):
     def __init__(
         self,
         microphone: MicrophoneStream,
+        event_bus: EventBus,
         *,
         wake_word: WakeWord = WakeWord.HEY_MYCROFT,
         sensitivity: float = 0.5,
     ) -> None:
         self._microphone = microphone
+        self._event_bus = event_bus
         self._wake_word = wake_word
         self._detector = WakeWordDetector(wake_word, threshold=sensitivity)
 
@@ -58,6 +62,7 @@ class WakeWordListener(WakeWordSessionSource):
             detection = await self._detector.process(frame)
             if detection is not None:
                 logger.info("Wake word detected (score=%.2f).", detection.score)
+                await self._event_bus.dispatch(WakeWordDetected(score=detection.score))
                 return detection.score
 
         return None

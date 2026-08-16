@@ -2,9 +2,9 @@ import asyncio
 
 from transitbus import EventBus
 
-from agent.events import AssistantInterrupted, SessionEnded
-from voice.audio.output import Earcon
-from voice.events.listener.sound_listener import SoundListener
+from agent.events import SessionEnded
+from voice.events import WakeWordDetected
+from voice.events.listener import Earcon, SoundListener
 
 
 class RecordingEarconPlayer:
@@ -14,22 +14,19 @@ class RecordingEarconPlayer:
     async def play(self, earcon: Earcon) -> None:
         self.earcons.append(earcon)
 
-    def play_soon(self, earcon: Earcon) -> None:
-        self.earcons.append(earcon)
 
-
-def test_interrupted_plays_interrupt_earcon_before_dispatch_completes() -> None:
+def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> None:
     async def run() -> list[Earcon]:
         event_bus = EventBus()
         earcons = RecordingEarconPlayer()
         SoundListener(event_bus, earcons)
-        await event_bus.dispatch(AssistantInterrupted())
+        await event_bus.dispatch(WakeWordDetected(score=0.8))
         return earcons.earcons
 
-    assert asyncio.run(run()) == [Earcon.INTERRUPT]
+    assert asyncio.run(run()) == [Earcon.WAKE]
 
 
-def test_session_ended_schedules_sleep_earcon() -> None:
+def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
     async def run() -> list[Earcon]:
         event_bus = EventBus()
         earcons = RecordingEarconPlayer()

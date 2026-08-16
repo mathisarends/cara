@@ -22,9 +22,10 @@ from gateway_client import (
 from voice import VoiceSession
 from voice.audio.device import PortAudioDevice
 from voice.audio.input import MicrophoneRecorder, MicrophoneStream
-from voice.audio.output import AudioPlayer, EarconPlayer
+from voice.audio.output import AudioPlayer
 from voice.audio.output.sonos import SonosOutput
 from voice.barge_in import WakeWordBargeIn
+from voice.events.listener import EarconPlayer
 from voice.speech import (
     SpeechInput,
     SpeechOutput,
@@ -113,6 +114,7 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
     speech_settings = SpeechSettings(language="de")
     wake_word_listener = WakeWordListener(
         microphone,
+        event_bus,
         wake_word=WakeWord.HEY_MYCROFT,
         sensitivity=0.5,
     )
