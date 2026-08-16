@@ -4,7 +4,7 @@ from transitbus import EventBus
 
 from agent.events import AssistantInterrupted, SessionEnded
 from voice.audio.output import Earcon
-from voice.sound_listener import SoundListener
+from voice.events.listener.sound_listener import SoundListener
 
 
 class RecordingEarconPlayer:
