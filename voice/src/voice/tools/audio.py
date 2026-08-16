@@ -3,7 +3,7 @@ from agenttoolkit import Inject, description_from_context, provided, requires
 from pydantic import Field
 
 from agent.tools import ToolParams
-from voice.audio import AudioOutput, AudioPlayer
+from voice.audio.output import AudioOutput, AudioPlayer
 
 
 class SetAudioOutputParams(ToolParams):

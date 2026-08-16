@@ -1,7 +1,7 @@
-from .controller import SonosController
+from .output import SonosOutput
 from .settings import SonosSettings
 
 __all__ = [
-    "SonosController",
+    "SonosOutput",
     "SonosSettings",
 ]

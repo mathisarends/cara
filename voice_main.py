@@ -20,15 +20,14 @@ from gateway_client import (
     TurnFailedEvent,
 )
 from voice import VoiceSession
-from voice.audio import (
+from voice.audio.device import PortAudioDevice
+from voice.audio.input import MicrophoneRecorder, MicrophoneStream
+from voice.audio.output import (
     AudioOutput,
     AudioPlayer,
     EarconPlayer,
-    MicrophoneRecorder,
-    MicrophoneStream,
 )
-from voice.audio.device import PortAudioDevice
-from voice.audio.sonos import SonosController
+from voice.audio.output.sonos import SonosController
 from voice.barge_in import WakeWordBargeIn
 from voice.speech import (
     SpeechInput,

@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from voice.audio import AudioOutput, AudioPlayer
+from voice.audio.output import AudioOutput, AudioPlayer
 
 
 class RecordingSink:

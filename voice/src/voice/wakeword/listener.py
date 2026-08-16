@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 
 from wakewordkit import WakeWord, WakeWordDetector
 
-from voice.audio import MicrophoneStream
+from voice.audio.input import MicrophoneStream
 from voice.wakeword.ports import WakeWordSessionSource
 
 logger = logging.getLogger(__name__)

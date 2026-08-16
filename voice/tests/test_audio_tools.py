@@ -1,7 +1,7 @@
 import asyncio
 
 from agent.tools import create_tool_context, create_tools
-from voice.audio import AudioOutput, AudioPlayer
+from voice.audio.output import AudioOutput, AudioPlayer
 from voice.tools import create_tools as create_voice_tools
 
 

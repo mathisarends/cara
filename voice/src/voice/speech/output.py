@@ -9,7 +9,7 @@ from vocalbin.openai import (
 )
 
 from agent.events import AssistantSpeechStarted
-from voice.audio import AudioPlayback
+from voice.audio.output import AudioPlayback
 from voice.speech.settings import SpeechSettings
 
 logger = logging.getLogger(__name__)

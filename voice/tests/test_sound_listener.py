@@ -3,7 +3,7 @@ import asyncio
 from transitbus import EventBus
 
 from agent.events import AssistantInterrupted, SessionEnded
-from voice.audio import Earcon
+from voice.audio.output import Earcon
 from voice.sound_listener import SoundListener
 
 

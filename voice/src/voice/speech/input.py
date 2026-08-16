@@ -5,7 +5,7 @@ from transitbus import EventBus
 from vocalbin.openai import SpeechToText, SpeechToTextConfig
 
 from agent.events import UserSpeechEnded, UserSpeechStarted
-from voice.audio import SpeechRecorder
+from voice.audio.input import SpeechRecorder
 from voice.speech.settings import SpeechSettings
 
 logger = logging.getLogger(__name__)

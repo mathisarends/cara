@@ -3,10 +3,10 @@ import io
 import struct
 import wave
 
-from voice.audio import device as device_module
+import voice.audio.device as device_module
 from voice.audio.device import PortAudioDevice
-from voice.audio.local import LocalAudioSink
-from voice.audio.microphone import MicrophoneStream
+from voice.audio.input import MicrophoneStream
+from voice.audio.output import LocalAudioSink
 
 
 class RecordingOutputStream:

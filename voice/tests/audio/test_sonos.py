@@ -2,8 +2,8 @@ import asyncio
 
 from sonosify import ClipPriority, ClipType
 
-import voice.audio.sonos.controller as controller_module
-from voice.audio.sonos import SonosController, SonosSettings
+import voice.audio.output.sonos.controller as controller_module
+from voice.audio.output.sonos import SonosController, SonosSettings
 
 
 class FakeHostedAudioClip:

@@ -12,7 +12,7 @@ from agent.events import (
     SessionStarted,
     UserTurnStarted,
 )
-from voice.audio import Earcon, EarconPlayer
+from voice.audio.output import Earcon, EarconPlayer
 from voice.barge_in import BargeIn
 from voice.sound_listener import SoundListener
 from voice.speech import SpeechInput, SpeechOutput

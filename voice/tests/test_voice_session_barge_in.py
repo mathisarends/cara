@@ -10,7 +10,7 @@ from agent.agent import Agent
 from agent.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
 from agent.tools import build_tools, create_tools
 from voice import VoiceSession
-from voice.audio import AudioOutput, AudioPlayer, EarconPlayer
+from voice.audio.output import AudioOutput, AudioPlayer, EarconPlayer
 from voice.barge_in import WakeWordBargeIn
 from voice.speech import (
     SpeechInput,

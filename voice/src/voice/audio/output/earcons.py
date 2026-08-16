@@ -3,7 +3,7 @@ import logging
 from enum import StrEnum
 from pathlib import Path
 
-from voice.audio.ports import AudioPlayback
+from voice.audio.output.ports import AudioPlayback
 
 logger = logging.getLogger(__name__)
 
