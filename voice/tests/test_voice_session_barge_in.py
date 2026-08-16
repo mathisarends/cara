@@ -11,6 +11,7 @@ from agent.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarte
 from agent.tools import build_tools, create_tools
 from voice import VoiceSession
 from voice.audio import AudioOutput, AudioPlayer, EarconPlayer
+from voice.barge_in import WakeWordBargeIn
 from voice.speech import (
     SpeechInput,
     SpeechOutput,
@@ -201,6 +202,7 @@ def test_repeated_wake_word_interrupts_tool_and_starts_next_turn(
                 event_bus,
             ),
             wake_word_listener=wake_word_listener,
+            barge_in=WakeWordBargeIn(wake_word_listener),
             event_bus=event_bus,
             earcons=EarconPlayer(player),
         )

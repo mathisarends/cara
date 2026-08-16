@@ -2,7 +2,7 @@ import asyncio
 import logging
 import threading
 from collections.abc import Awaitable, Callable
-from typing import Protocol
+from typing import Protocol, Self
 
 from transitbus import EventBus
 
@@ -13,9 +13,9 @@ from agent.events import (
     UserTurnStarted,
 )
 from voice.audio import Earcon, EarconPlayer
+from voice.barge_in import BargeIn
 from voice.sound_listener import SoundListener
 from voice.speech import SpeechInput, SpeechOutput
-from voice.wakeword.barge_in import WakeWordBargeIn
 from voice.wakeword.ports import WakeWordSessionSource
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,32 @@ class _ResponseInterrupted(Exception):
     pass
 
 
+class _BargeInMonitor:
+    def __init__(self, detector: BargeIn) -> None:
+        self._detector = detector
+        self._interrupt = asyncio.Event()
+        self._cancel = asyncio.Event()
+        self._listening: asyncio.Task[None] | None = None
+
+    @property
+    def interrupt(self) -> asyncio.Event:
+        return self._interrupt
+
+    async def __aenter__(self) -> Self:
+        self._listening = asyncio.create_task(self._listen())
+        return self
+
+    async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        self._cancel.set()
+        if self._listening is not None:
+            await self._listening
+
+    async def _listen(self) -> None:
+        await self._detector.wait(cancel=self._cancel)
+        if not self._cancel.is_set():
+            self._interrupt.set()
+
+
 class VoiceSession:
     """Coordinates wake-word-driven conversations over speech input and output."""
 
@@ -46,6 +72,7 @@ class VoiceSession:
         speech_input: SpeechInput,
         speech_output: SpeechOutput,
         wake_word_listener: WakeWordSessionSource,
+        barge_in: BargeIn,
         event_bus: EventBus,
         earcons: EarconPlayer,
         follow_up_timeout_seconds: float = DEFAULT_FOLLOW_UP_TIMEOUT_SECONDS,
@@ -54,6 +81,7 @@ class VoiceSession:
         self._speech_input = speech_input
         self._speech_output = speech_output
         self._wake_word_listener = wake_word_listener
+        self._barge_in = barge_in
         self._event_bus = event_bus
         self._earcons = earcons
         self._follow_up_timeout_seconds = follow_up_timeout_seconds
@@ -85,7 +113,7 @@ class VoiceSession:
                     logger.info("Ignoring empty transcription")
                     break
 
-                async with WakeWordBargeIn(self._wake_word_listener) as barge_in:
+                async with _BargeInMonitor(self._barge_in) as barge_in:
                     try:
                         answer = await _respond_until_interrupted(
                             self._agent,

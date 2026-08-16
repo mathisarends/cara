@@ -9,7 +9,7 @@ class WakeWordDetectionSource(ABC):
         """Listen until the wake word is detected or cancellation is requested."""
 
 
-class WakeWordSessionSource(WakeWordDetectionSource):
+class WakeWordSessionSource(ABC):
     @abstractmethod
     def detections(self) -> AsyncIterator[float]:
         """Yield every wake-word detection used to start a voice session."""

@@ -30,10 +30,12 @@ class _SpeechOutput:
 
 
 class _WakeWordListener:
-    async def detect_once(self, *, cancel=None):
-        assert cancel is not None
+    pass
+
+
+class _NeverBargeIn:
+    async def wait(self, *, cancel: asyncio.Event) -> None:
         await cancel.wait()
-        return None
 
 
 class _Earcons:
@@ -49,6 +51,7 @@ def test_voice_session_speaks_interim_response_before_final_answer() -> None:
             speech_input=_SpeechInput(),
             speech_output=speech_output,
             wake_word_listener=_WakeWordListener(),
+            barge_in=_NeverBargeIn(),
             event_bus=EventBus(),
             earcons=_Earcons(),
         )

@@ -50,10 +50,10 @@ class NoWakeWordListener(WakeWordSessionSource):
     async def detections(self):
         yield 0.0
 
-    async def detect_once(self, *, cancel: asyncio.Event | None = None) -> float | None:
-        assert cancel is not None
+
+class NoBargeIn:
+    async def wait(self, *, cancel: asyncio.Event) -> None:
         await cancel.wait()
-        return None
 
 
 def test_first_recording_arms_after_wake_earcon(tmp_path: Path) -> None:
@@ -79,6 +79,7 @@ def test_first_recording_arms_after_wake_earcon(tmp_path: Path) -> None:
                 event_bus,
             ),
             wake_word_listener=NoWakeWordListener(),
+            barge_in=NoBargeIn(),
             event_bus=event_bus,
             earcons=EarconPlayer(player),
         )

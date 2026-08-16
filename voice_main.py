@@ -29,6 +29,7 @@ from voice.audio import (
 )
 from voice.audio.device import PortAudioDevice
 from voice.audio.sonos import SonosController
+from voice.barge_in import WakeWordBargeIn
 from voice.speech import (
     SpeechInput,
     SpeechOutput,
@@ -118,6 +119,11 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
         active_output=AudioOutput.SONOS,
     )
     speech_settings = SpeechSettings(language="de")
+    wake_word_listener = WakeWordListener(
+        microphone,
+        wake_word=WakeWord.HEY_MYCROFT,
+        sensitivity=0.5,
+    )
 
     try:
         async with GatewayClient(base_url) as client:
@@ -143,11 +149,8 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
                     speech_settings,
                     event_bus,
                 ),
-                wake_word_listener=WakeWordListener(
-                    microphone,
-                    wake_word=WakeWord.HEY_MYCROFT,
-                    sensitivity=0.5,
-                ),
+                wake_word_listener=wake_word_listener,
+                barge_in=WakeWordBargeIn(wake_word_listener),
                 event_bus=event_bus,
                 earcons=EarconPlayer(audio_player),
             )
