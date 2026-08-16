@@ -1,17 +1,15 @@
 from collections.abc import AsyncIterable, AsyncIterator
 
-from vocalbin.cartesia.events import TurnEagerEnd, TurnEnd, TurnUpdate
-from vocalbin.cartesia.stt import (
-    SpeechToText as _VocalbinSpeechToText,
+from vocalbin.cartesia.events import (
+    TurnEagerEnd,
+    TurnEnd,
+    TurnResume,
+    TurnStart,
+    TurnUpdate,
 )
-from vocalbin.cartesia.stt import (
-    SpeechToTextConfig,
-    SpeechToTextEncoding,
-    SpeechToTextError,
-    SpeechToTextModel,
-)
+from vocalbin.cartesia.stt import SpeechToText as _VocalbinSpeechToText
 
-from voice.stt.port import SpeechToText, Transcription
+from voice.stt.port import SpeechToText, Transcription, TranscriptionKind
 
 
 class CartesiaSpeechToText(_VocalbinSpeechToText, SpeechToText):
@@ -22,16 +20,13 @@ class CartesiaSpeechToText(_VocalbinSpeechToText, SpeechToText):
     ) -> AsyncIterator[Transcription]:
         async for event in self.stream(audio):
             match event:
-                case TurnUpdate(transcript=text) | TurnEagerEnd(transcript=text):
-                    yield Transcription(text=text, is_final=False)
+                case TurnStart():
+                    yield Transcription("", False, TranscriptionKind.START)
+                case TurnUpdate(transcript=text):
+                    yield Transcription(text, False, TranscriptionKind.UPDATE)
+                case TurnEagerEnd(transcript=text):
+                    yield Transcription(text, False, TranscriptionKind.EAGER_END)
+                case TurnResume():
+                    yield Transcription("", False, TranscriptionKind.RESUME)
                 case TurnEnd(transcript=text):
-                    yield Transcription(text=text, is_final=True)
-
-
-__all__ = [
-    "CartesiaSpeechToText",
-    "SpeechToTextConfig",
-    "SpeechToTextEncoding",
-    "SpeechToTextError",
-    "SpeechToTextModel",
-]
+                    yield Transcription(text, True, TranscriptionKind.END)

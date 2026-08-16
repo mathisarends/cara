@@ -1,7 +1,6 @@
-from .cartesia import (
+from vocalbin.cartesia.tts import (
     AudioEncoding,
     BitRate,
-    CartesiaTextToSpeech,
     GenerationConfig,
     Mp3OutputFormat,
     OutputFormat,
@@ -14,6 +13,8 @@ from .cartesia import (
     Voice,
     WavOutputFormat,
 )
+
+from .cartesia import CartesiaTextToSpeech
 from .port import TextToSpeech
 
 __all__ = [

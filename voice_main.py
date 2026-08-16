@@ -1,176 +1,79 @@
-import argparse
 import asyncio
+import contextlib
 import logging
-from collections.abc import Awaitable, Callable
-from uuid import UUID
 
 from dotenv import load_dotenv
 from transitbus import EventBus
 
-from gateway_client import (
-    ChatCompletedEvent,
-    ChatDeltaEvent,
-    ChatRequest,
-    GatewayClient,
-    GatewayError,
-    GatewayEventStream,
-    SessionCreateRequest,
-    ToolCallCompletedEvent,
-    ToolCallStartedEvent,
-    TurnFailedEvent,
-)
-from voice import VoiceSession
+from agent.events import SessionEnded, SessionStarted
+from voice.audio import AudioHub, PlaybackCoordinator
 from voice.audio.device import PortAudioDevice
-from voice.audio.input import MicrophoneRecorder, MicrophoneStream
-from voice.audio.output import AudioPlayer
-from voice.audio.output.sonos import SonosOutput
-from voice.barge_in import WakeWordBargeIn
-from voice.events.listener import EarconPlayer
-from voice.speech import (
-    SpeechInput,
-    SpeechOutput,
-    SpeechSettings,
-    SpeechToText,
-    TextToSpeech,
-)
+from voice.audio.input import MicrophoneAudioInput
+from voice.audio.output import LocalAudioOutput
+from voice.echo_cancellation import EchoCancellation
+from voice.events.listener import EarconPlayer, SoundListener
+from voice.llm import EchoLanguageModel
+from voice.pipeline import TurnController
+from voice.stt import CartesiaSpeechToText, SpeechToTextConfig
+from voice.tts import CartesiaTextToSpeech, RawOutputFormat, TextToSpeechConfig
 from voice.wakeword import WakeWord, WakeWordListener
 
-DEFAULT_GATEWAY_URL = "http://127.0.0.1:8000"
-
 logger = logging.getLogger(__name__)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+_CARTESIA_VOICE_ID = "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4"
 
 
-class _GatewayResponder:
-    """Adapts one persistent gateway session to VoiceSession's text interface."""
-
-    def __init__(self, client: GatewayClient, session_id: UUID) -> None:
-        self._client = client
-        self._session_id = session_id
-
-    async def respond(
-        self,
-        text: str,
-        *,
-        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
-    ) -> str:
-        async with self._client.event_stream(self._session_id) as events:
-            await self._client.sessions.start_chat(
-                self._session_id,
-                ChatRequest(text=text, metadata={"channel": "voice"}),
-            )
-            try:
-                return await self._receive_response(
-                    events,
-                    on_interim_response=on_interim_response,
-                )
-            except asyncio.CancelledError:
-                # The gateway currently has no per-turn cancellation endpoint. Keep
-                # consuming until it releases the session, otherwise a barge-in
-                # would immediately collide with the still-running gateway turn.
-                logger.info("Voice turn interrupted; waiting for gateway cleanup.")
-                await self._receive_response(events)
-                raise
-
-    async def _receive_response(
-        self,
-        events: GatewayEventStream,
-        *,
-        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
-    ) -> str:
-        async for event in events:
-            match event:
-                case ChatDeltaEvent(data=data):
-                    logger.debug("Gateway response delta: %s", data.text)
-                case ChatCompletedEvent(data=data):
-                    if data.finish_reason == "tool_calls":
-                        if data.text and on_interim_response is not None:
-                            await on_interim_response(data.text)
-                    else:
-                        return data.text
-                case ToolCallStartedEvent(data=data):
-                    logger.info("[tool] %s %s", data.name, data.arguments)
-                case ToolCallCompletedEvent(data=data):
-                    status = "error" if data.is_error else "ok"
-                    logger.info("[tool] %s -> %s", data.name, status)
-                case TurnFailedEvent(data=data):
-                    raise GatewayError(f"{data.code}: {data.message}")
-
-        raise GatewayError("Gateway event stream ended before the turn completed.")
-
-
-async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
+async def main() -> None:
     load_dotenv(override=True)
     event_bus = EventBus()
-    audio_device = PortAudioDevice()
-    microphone = MicrophoneStream(device=audio_device)
-    sonos_output = SonosOutput()
-    audio_player = AudioPlayer(sonos_output)
-    speech_settings = SpeechSettings(language="de")
-    wake_word_listener = WakeWordListener(
-        microphone,
-        event_bus,
+    device = PortAudioDevice()
+    microphone = MicrophoneAudioInput(device=device)
+    physical_output = LocalAudioOutput(device=device)
+    audio_input, audio_output = EchoCancellation().wrap(microphone, physical_output)
+    hub = AudioHub(audio_input)
+    playback = PlaybackCoordinator(audio_output)
+    wake_words = WakeWordListener(
+        hub,
         wake_word=WakeWord.HEY_MYCROFT,
         sensitivity=0.5,
+        cooldown=1.5,
     )
+    speech_to_text = CartesiaSpeechToText(
+        default_config=SpeechToTextConfig(sample_rate=16_000)
+    )
+    text_to_speech = CartesiaTextToSpeech(
+        default_config=TextToSpeechConfig(
+            voice_id=_CARTESIA_VOICE_ID,
+            language="de",
+            output_format=RawOutputFormat(sample_rate=24_000),
+        )
+    )
+    earcons = EarconPlayer(playback)
+    SoundListener(event_bus, earcons)
 
+    controller = TurnController(
+        hub=hub,
+        wake_words=wake_words,
+        speech_to_text=speech_to_text,
+        llm=EchoLanguageModel(),
+        text_to_speech=text_to_speech,
+        playback=playback,
+        event_bus=event_bus,
+    )
     try:
-        async with GatewayClient(base_url) as client:
-            session = await client.sessions.create_session(
-                SessionCreateRequest(metadata={"channel": "voice"})
-            )
-            logger.info("Connected to %s (voice session %s)", base_url, session.id)
-            logger.info(
-                'Listening for the wake word "Hey Mycroft". Press Ctrl+C to quit.'
-            )
-
-            voice_session = VoiceSession(
-                agent=_GatewayResponder(client, session.id),
-                speech_input=SpeechInput(
-                    MicrophoneRecorder(microphone),
-                    SpeechToText(),
-                    speech_settings,
-                    event_bus,
-                ),
-                speech_output=SpeechOutput(
-                    TextToSpeech(),
-                    audio_player,
-                    speech_settings,
-                    event_bus,
-                ),
-                wake_word_listener=wake_word_listener,
-                barge_in=WakeWordBargeIn(wake_word_listener),
-                event_bus=event_bus,
-                earcons=EarconPlayer(audio_player),
-            )
-            await voice_session.run()
+        logger.info('Listening for "Hey Mycroft". Press Ctrl+C to quit.')
+        await event_bus.dispatch(SessionStarted())
+        try:
+            await controller.run()
+        finally:
+            await event_bus.dispatch(SessionEnded())
     finally:
-        await audio_player.stop()
-        microphone.close()
-        audio_device.close()
-
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Talk to Cara through the gateway using microphone and speakers."
-    )
-    parser.add_argument(
-        "--url",
-        default=DEFAULT_GATEWAY_URL,
-        help=f"Gateway base URL (default: {DEFAULT_GATEWAY_URL}).",
-    )
-    return parser.parse_args()
+        await speech_to_text.aclose()
+        await text_to_speech.aclose()
+        await playback.stop()
+        device.close()
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main(_parse_args().url))
-    except (KeyboardInterrupt, EOFError):
-        print()
-    except GatewayError as exc:
-        raise SystemExit(f"Gateway error: {exc}") from exc
+    logging.basicConfig(level=logging.INFO)
+    with contextlib.suppress(KeyboardInterrupt, EOFError):
+        asyncio.run(main())

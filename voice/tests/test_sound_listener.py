@@ -20,7 +20,9 @@ def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> Non
         event_bus = EventBus()
         earcons = RecordingEarconPlayer()
         SoundListener(event_bus, earcons)
-        await event_bus.dispatch(WakeWordDetected(score=0.8))
+        await event_bus.dispatch(
+            WakeWordDetected(score=0.8, sequence=4, name="hey_mycroft")
+        )
         return earcons.earcons
 
     assert asyncio.run(run()) == [Earcon.WAKE]

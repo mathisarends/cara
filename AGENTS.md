@@ -2,7 +2,7 @@
 
 - Package `__init__.py` files that re-export symbols from sibling modules must use explicit relative imports, for example `from .module import PublicName`.
 - Otherwise, prefer absolute imports from the `agent` package, for example `from agent.events import EventBus`.
-- Re-export only the intended public API from package `__init__.py` files. Keep implementation details private to their modules and list exported names in `__all__` when a package exposes a curated API.
+- Re-export only the intended public API from package `__init__.py` files. Define `__all__` only in package `__init__.py` files; never add it to regular modules. Mark module-private implementation details with a leading underscore.
 - Do not add `from __future__ import annotations` defensively by default; the project targets Python 3.14, so only use it when a concrete compatibility reason requires it.
 - Avoid defensive `getattr` probing for known APIs. Prefer concrete types, typed protocols, or explicit branches over duck-typed fallback logic unless the code genuinely supports multiple external shapes.
 - Use dataclasses only for classes that are primarily data containers. Prefer regular classes when a class owns significant behavior or validation logic.

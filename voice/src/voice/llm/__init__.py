@@ -1,3 +1,4 @@
-from .mock import StreamingEchoLLM
+from .mock import EchoLanguageModel
+from .port import LanguageModel
 
-__all__ = ["StreamingEchoLLM"]
+__all__ = ["EchoLanguageModel", "LanguageModel"]

@@ -1,11 +1,12 @@
-from .cartesia import (
-    CartesiaSpeechToText,
+from vocalbin.cartesia.stt import (
     SpeechToTextConfig,
     SpeechToTextEncoding,
     SpeechToTextError,
     SpeechToTextModel,
 )
-from .port import SpeechToText, Transcription
+
+from .cartesia import CartesiaSpeechToText
+from .port import SpeechToText, Transcription, TranscriptionKind
 
 __all__ = [
     "CartesiaSpeechToText",
@@ -15,4 +16,5 @@ __all__ = [
     "SpeechToTextError",
     "SpeechToTextModel",
     "Transcription",
+    "TranscriptionKind",
 ]

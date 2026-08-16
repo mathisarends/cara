@@ -1,7 +1,5 @@
-from .microphone import MicrophoneStream
-from .ports import SpeechRecorder
+from .local import MicrophoneAudioInput
 
 __all__ = [
-    "MicrophoneStream",
-    "SpeechRecorder",
+    "MicrophoneAudioInput",
 ]

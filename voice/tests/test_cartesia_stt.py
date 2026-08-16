@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from vocalbin.cartesia.events import Connected, TurnEagerEnd, TurnEnd, TurnUpdate
 from vocalbin.cartesia.stt import SpeechToText as VocalbinSpeechToText
 
-from voice.stt import CartesiaSpeechToText, Transcription
+from voice.stt import CartesiaSpeechToText, Transcription, TranscriptionKind
 
 
 async def _audio() -> AsyncIterator[bytes]:
@@ -27,6 +27,6 @@ def test_transcribe_maps_cartesia_transcript_events(monkeypatch) -> None:
 
     assert asyncio.run(run()) == [
         Transcription(text="Hal", is_final=False),
-        Transcription(text="Hallo", is_final=False),
-        Transcription(text="Hallo Cara", is_final=True),
+        Transcription("Hallo", False, TranscriptionKind.EAGER_END),
+        Transcription("Hallo Cara", True, TranscriptionKind.END),
     ]
