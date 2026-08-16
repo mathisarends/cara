@@ -6,7 +6,6 @@ from collections.abc import AsyncIterator
 from transitbus import EventBus
 
 from agent.events import (
-    AssistantInterrupted,
     AssistantSpeechStarted,
     AssistantTurnStarted,
     UserSpeechEnded,
@@ -24,13 +23,11 @@ from voice.events import (
     UserTranscriptionUpdated,
     VoiceTurnFailed,
     VoiceTurnTimedOut,
-    WakeWordDetected,
 )
+from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
 from voice.llm import ChatModel
-from voice.pipeline.models import TurnState
 from voice.stt import SpeechToText, Transcription
 from voice.tts import TextToSpeech
-from voice.wakeword import WakeWordDetection, WakeWordSource
 
 _END = object()
 
@@ -47,7 +44,7 @@ class TurnController:
         self,
         *,
         audio_hub: AudioHub,
-        wake_word: WakeWordSource,
+        wake_word_phrase: str,
         speech_to_text: SpeechToText,
         llm: ChatModel,
         text_to_speech: TextToSpeech,
@@ -63,81 +60,63 @@ class TurnController:
         if text_queue_size <= 0:
             raise ValueError("text_queue_size must be positive")
         self._audio_hub = audio_hub
-        self._wake_word = wake_word
         self._stt = speech_to_text
         self._llm = llm
         self._tts = text_to_speech
         self._playback = playback
         self._event_bus = event_bus
-        self._wake_word_phrase = wake_word.phrase
+        self._wake_word_phrase = wake_word_phrase
         self._pre_roll = command_pre_roll_seconds
         self._speech_start_timeout = speech_start_timeout
         self._tts_sample_rate = tts_sample_rate
         self._text_queue_size = text_queue_size
-        self._state = TurnState.STARTING
         self._next_turn_id = 0
         self._active_turn_id: int | None = None
         self._active_task: asyncio.Task[None] | None = None
+        self._closed = False
+
+        event_bus.on(VoiceTurnRequested, self._on_turn_requested)
 
     @property
-    def state(self) -> TurnState:
-        return self._state
-
-    @property
-    def active_turn_id(self) -> int | None:
-        return self._active_turn_id
-
-    async def run(self) -> None:
-        await self._audio_hub.start()
-        self._state = TurnState.ARMED
-        try:
-            async for detection in self._wake_word.detections():
-                await self._handle_detection(detection)
-        finally:
-            await self.close()
+    def has_active_turn(self) -> bool:
+        return self._active_task is not None and not self._active_task.done()
 
     async def close(self) -> None:
-        task, self._active_task = self._active_task, None
-        self._active_turn_id = None
-        if task is not None:
-            task.cancel()
-            await asyncio.gather(task, return_exceptions=True)
-        await self._playback.interrupt()
-        await self._audio_hub.stop()
+        self._closed = True
+        await self.interrupt()
 
-    async def _handle_detection(self, detection: WakeWordDetection) -> None:
-        if self._state is TurnState.LISTENING:
+    async def interrupt(self) -> bool:
+        task = self._active_task
+        if task is None or task.done():
+            return False
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        return True
+
+    async def _on_turn_requested(self, event: VoiceTurnRequested) -> None:
+        if self._closed:
             return
-
+        if self.has_active_turn:
+            raise RuntimeError("Cannot start a voice turn while another is active.")
         cursor = await self._audio_hub.cursor_for_detection(
-            detection.sequence, pre_roll_seconds=self._pre_roll
+            event.sequence, pre_roll_seconds=self._pre_roll
         )
-        previous = self._active_task
-        if previous is not None and not previous.done():
-            await self._playback.interrupt()
-            previous.cancel()
-            await asyncio.gather(previous, return_exceptions=True)
-            await self._event_bus.dispatch(AssistantInterrupted())
-
         self._next_turn_id += 1
         turn_id = self._next_turn_id
         self._active_turn_id = turn_id
-        self._state = TurnState.LISTENING
+        await self._event_bus.dispatch(UserTurnStarted())
+        if self._closed:
+            self._active_turn_id = None
+            await cursor.aclose()
+            await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
+            return
         self._active_task = asyncio.create_task(
             self._run_turn(turn_id, cursor), name=f"voice-turn-{turn_id}"
-        )
-        await self._event_bus.dispatch(
-            WakeWordDetected(
-                score=detection.score,
-                sequence=detection.sequence,
-                name=detection.name,
-            )
         )
 
     async def _run_turn(self, turn_id: int, cursor: AudioCursor) -> None:
         transcriptions: AsyncIterator | None = None
         try:
-            await self._event_bus.dispatch(UserTurnStarted())
             transcriptions = self._stt.transcribe(_pcm_chunks(cursor))
             try:
                 first = await asyncio.wait_for(
@@ -160,7 +139,6 @@ class TurnController:
             if not self._is_current(turn_id):
                 return
             text = _strip_known_wake_word(final_text, self._wake_word_phrase)
-            self._state = TurnState.THINKING
             await self._event_bus.dispatch(AssistantTurnStarted())
             await self._respond(turn_id, text)
         except asyncio.CancelledError:
@@ -178,7 +156,7 @@ class TurnController:
             if self._is_current(turn_id):
                 self._active_turn_id = None
                 self._active_task = None
-                self._state = TurnState.ARMED
+                await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
 
     async def _respond(self, turn_id: int, text: str) -> None:
         await self._event_bus.dispatch(AssistantResponseStarted(turn_id=turn_id))
@@ -198,7 +176,6 @@ class TurnController:
         def speech_started() -> None:
             if not self._is_current(turn_id):
                 return
-            self._state = TurnState.SPEAKING
             asyncio.ensure_future(self._event_bus.dispatch(AssistantSpeechStarted()))
 
         pcm = self._tts.synthesize(_consume_text(queue))

@@ -14,7 +14,9 @@ from collections.abc import AsyncIterable, AsyncIterator
 
 from transitbus import EventBus
 
+from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
+from voice.handler import InterruptionHandler, WakeWordHandler
 from voice.llm import EchoLanguageModel
 from voice.pipeline import TurnController
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
@@ -155,19 +157,38 @@ async def _run() -> None:
     first_audio = asyncio.Event()
     microphone = _ScriptedMicrophone()
     output = _TraceOutput(first_audio)
+    event_bus = EventBus()
+    audio_hub = AudioHub(microphone)
+    playback = PlaybackCoordinator(output)
+    wake_words = _ScriptedWakeWords(microphone, first_audio)
     controller = TurnController(
-        audio_hub=AudioHub(microphone),
-        wake_word=_ScriptedWakeWords(microphone, first_audio),
+        audio_hub=audio_hub,
+        wake_word_phrase=wake_words.phrase,
         speech_to_text=_ScriptedSpeechToText(),
         llm=EchoLanguageModel(),
         text_to_speech=_TraceTextToSpeech(),
-        playback=PlaybackCoordinator(output),
-        event_bus=EventBus(),
+        playback=playback,
+        event_bus=event_bus,
     )
-    task = asyncio.create_task(controller.run())
+    InterruptionHandler(
+        event_bus=event_bus,
+        turns=controller,
+        playback=playback,
+    )
+    wake_word_handler = WakeWordHandler(
+        event_bus=event_bus,
+        source=wake_words,
+    )
+    await event_bus.dispatch(SessionStarted())
+    await audio_hub.start()
+    task = asyncio.create_task(wake_word_handler.run())
     while output.completed < 1:
         await asyncio.sleep(0.01)
+    await event_bus.dispatch(SessionEnded())
+    wake_word_handler.close()
+    await playback.interrupt()
     await controller.close()
+    await audio_hub.stop()
     await task
     print(f"capture: total opens = {microphone.opens}")
 

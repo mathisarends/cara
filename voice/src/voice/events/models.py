@@ -11,6 +11,22 @@ class WakeWordDetected(Event):
     name: str
 
 
+class VoiceTurnRequested(Event):
+    """Requests a voice turn starting at an audio-hub sequence."""
+
+    sequence: int
+
+
+class VoiceInterruptionRequested(Event):
+    """Requests cancellation of the currently active voice turn, if any."""
+
+
+class VoiceTurnEnded(Event):
+    """Emitted whenever a requested voice turn releases its resources."""
+
+    turn_id: int
+
+
 class VoiceTurnTimedOut(Event):
     turn_id: int
 

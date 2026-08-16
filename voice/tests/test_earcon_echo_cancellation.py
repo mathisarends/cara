@@ -6,7 +6,7 @@ from pathlib import Path
 
 from voice.audio.output import AudioPlayer
 from voice.audio.ports import AudioInput, AudioOutput
-from voice.echo_cancellation import EchoCancellation, EchoCanceller
+from voice.echo_cancellation import EchoCanceller, wrap_with_echo_cancellation
 from voice.events.listener import Earcon, EarconPlayer
 
 _SAMPLE_RATE = 16_000
@@ -85,12 +85,14 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
 
     now = 0.0
     canceller = RecordingCanceller()
-    input_device, output_device = EchoCancellation(
+    input_device, output_device = wrap_with_echo_cancellation(
+        OneChunkInput(),
+        RecordingOutput(),
         canceller,
         sample_rate=_SAMPLE_RATE,
         alignment_margin_s=0,
         clock=lambda: now,
-    ).wrap(OneChunkInput(), RecordingOutput())
+    )
     earcons = EarconPlayer(AudioPlayer(output_device), sounds_dir=tmp_path)
 
     async def run() -> None:

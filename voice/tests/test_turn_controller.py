@@ -5,8 +5,10 @@ from collections.abc import AsyncIterable, AsyncIterator
 
 from transitbus import EventBus
 
+from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
-from voice.pipeline import TurnController, TurnState
+from voice.handler import InterruptionHandler, WakeWordHandler
+from voice.pipeline import TurnController
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
 from voice.wakeword import WakeWordDetection, WakeWordSource
@@ -127,24 +129,48 @@ class _Output(AudioOutput):
 
 
 def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
-    async def run() -> tuple[_Input, _SpeechToText, _LanguageModel, _Output, TurnState]:
+    async def run() -> tuple[_Input, _SpeechToText, _LanguageModel, _Output]:
         input_device = _Input()
         output = _Output()
         stt = _SpeechToText()
         llm = _LanguageModel()
+        event_bus = EventBus()
+        audio_hub = AudioHub(input_device)
+        playback = PlaybackCoordinator(output)
+        wake_words = _WakeWords(input_device, output)
         controller = TurnController(
-            audio_hub=AudioHub(input_device),
-            wake_word=_WakeWords(input_device, output),
+            audio_hub=audio_hub,
+            wake_word_phrase=wake_words.phrase,
             speech_to_text=stt,
             llm=llm,
             text_to_speech=_TextToSpeech(),
-            playback=PlaybackCoordinator(output),
-            event_bus=EventBus(),
+            playback=playback,
+            event_bus=event_bus,
         )
-        await controller.run()
-        return input_device, stt, llm, output, controller.state
+        InterruptionHandler(
+            event_bus=event_bus,
+            turns=controller,
+            playback=playback,
+        )
+        wake_word_handler = WakeWordHandler(
+            event_bus=event_bus,
+            source=wake_words,
+        )
 
-    input_device, stt, llm, output, state = asyncio.run(run())
+        await event_bus.dispatch(SessionStarted())
+        await audio_hub.start()
+        try:
+            await wake_word_handler.run()
+        finally:
+            await event_bus.dispatch(SessionEnded())
+            wake_word_handler.close()
+            await playback.interrupt()
+            await controller.close()
+            await audio_hub.stop()
+
+        return input_device, stt, llm, output
+
+    input_device, stt, llm, output = asyncio.run(run())
 
     first_clear = output.timeline.index("clear")
     after_barge_in = output.timeline[first_clear + 1 :]
@@ -153,4 +179,3 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
     assert llm.calls == ["command 1", "command 2"]
     assert b"A" not in after_barge_in
     assert b"B" in after_barge_in
-    assert state is TurnState.ARMED
