@@ -21,6 +21,8 @@ class Earcon(StrEnum):
 
 
 class EarconPlayer:
+    """Plays cached earcons through the shared, echo-referenced audio path."""
+
     def __init__(
         self, player: AudioPlayback, *, sounds_dir: Path | None = None
     ) -> None:

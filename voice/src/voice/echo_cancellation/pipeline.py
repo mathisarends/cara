@@ -12,12 +12,12 @@ class EchoCancellation:
         self,
         canceller: EchoCanceller | None = None,
         *,
-        sample_rate: int = 24000,
+        sample_rate: int | None = None,
         alignment_margin_s: float = 0.04,
         history_seconds: float = 2.0,
         clock: Clock = time.monotonic,
     ):
-        self._canceller = canceller or NlmsEchoCanceller(sample_rate)
+        self._canceller = canceller
         self._sample_rate = sample_rate
         self._alignment_margin_s = alignment_margin_s
         self._history_seconds = history_seconds
@@ -34,8 +34,17 @@ class EchoCancellation:
             )
         self._wrapped = True
 
+        if input_device.channels != 1:
+            raise ValueError("Echo cancellation requires mono microphone input.")
+        sample_rate = self._sample_rate or input_device.sample_rate
+        if input_device.sample_rate != sample_rate:
+            raise ValueError(
+                "Echo cancellation sample rate must match the microphone sample rate."
+            )
+        canceller = self._canceller or NlmsEchoCanceller(sample_rate)
+
         timeline = PlaybackTimeline(
-            self._sample_rate,
+            sample_rate,
             history_seconds=self._history_seconds,
             clock=self._clock,
         )
@@ -43,8 +52,8 @@ class EchoCancellation:
             EchoCancellingInput(
                 input_device,
                 timeline,
-                self._canceller,
-                sample_rate=self._sample_rate,
+                canceller,
+                sample_rate=sample_rate,
                 alignment_margin_s=self._alignment_margin_s,
                 clock=self._clock,
             ),

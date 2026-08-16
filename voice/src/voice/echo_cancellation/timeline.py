@@ -22,6 +22,10 @@ class PlaybackTimeline:
         self._origin: float | None = None
         self._cursor = 0.0
 
+    @property
+    def sample_rate(self) -> int:
+        return self._sample_rate
+
     def reset(self) -> None:
         self._buffer.clear()
         self._origin = None
