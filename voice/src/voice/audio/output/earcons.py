@@ -7,7 +7,8 @@ from voice.audio.output.playback import AudioPlayback
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SOUNDS_DIR = Path(__file__).with_name("sounds")
+# parents[5]: earcons.py -> output/audio/voice/src/voice(project) -> cara (repo root)
+_DEFAULT_SOUNDS_DIR = Path(__file__).parents[5] / "static" / "sounds"
 
 
 class Earcon(StrEnum):
