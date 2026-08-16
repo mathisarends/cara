@@ -133,7 +133,7 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
         stt = _SpeechToText()
         llm = _LanguageModel()
         controller = TurnController(
-            hub=AudioHub(input_device),
+            audio_hub=AudioHub(input_device),
             wake_word=_WakeWords(input_device, output),
             speech_to_text=stt,
             llm=llm,

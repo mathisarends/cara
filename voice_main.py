@@ -29,10 +29,10 @@ async def main() -> None:
     microphone = MicrophoneAudioInput(device=device)
     physical_output = LocalAudioOutput(device=device)
     audio_input, audio_output = EchoCancellation().wrap(microphone, physical_output)
-    hub = AudioHub(audio_input)
+    audio_hub = AudioHub(audio_input)
     playback = PlaybackCoordinator(audio_output)
     wake_word = WakeWordListener(
-        hub,
+        audio_hub,
         wake_word=WakeWord.HEY_MYCROFT,
         sensitivity=0.5,
         cooldown=1.5,
@@ -51,7 +51,7 @@ async def main() -> None:
     SoundListener(event_bus, earcons)
 
     controller = TurnController(
-        hub=hub,
+        audio_hub=audio_hub,
         wake_word=wake_word,
         speech_to_text=speech_to_text,
         llm=EchoLanguageModel(),

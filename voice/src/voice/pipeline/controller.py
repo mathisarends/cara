@@ -36,7 +36,7 @@ class TurnController:
     def __init__(
         self,
         *,
-        hub: AudioHub,
+        audio_hub: AudioHub,
         wake_word: WakeWordSource,
         speech_to_text: SpeechToText,
         llm: LanguageModel,
@@ -52,7 +52,7 @@ class TurnController:
             raise ValueError("speech_start_timeout must be positive")
         if text_queue_size <= 0:
             raise ValueError("text_queue_size must be positive")
-        self._hub = hub
+        self._audio_hub = audio_hub
         self._wake_word = wake_word
         self._stt = speech_to_text
         self._llm = llm
@@ -78,7 +78,7 @@ class TurnController:
         return self._active_turn_id
 
     async def run(self) -> None:
-        await self._hub.start()
+        await self._audio_hub.start()
         self._state = TurnState.ARMED
         try:
             async for detection in self._wake_word.detections():
@@ -93,13 +93,13 @@ class TurnController:
             task.cancel()
             await asyncio.gather(task, return_exceptions=True)
         await self._playback.interrupt()
-        await self._hub.stop()
+        await self._audio_hub.stop()
 
     async def _handle_detection(self, detection: WakeWordDetection) -> None:
         if self._state is TurnState.LISTENING:
             return
 
-        cursor = await self._hub.cursor_for_detection(
+        cursor = await self._audio_hub.cursor_for_detection(
             detection.sequence, pre_roll_seconds=self._pre_roll
         )
         previous = self._active_task

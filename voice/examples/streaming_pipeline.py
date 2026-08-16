@@ -156,7 +156,7 @@ async def _run() -> None:
     microphone = _ScriptedMicrophone()
     output = _TraceOutput(first_audio)
     controller = TurnController(
-        hub=AudioHub(microphone),
+        audio_hub=AudioHub(microphone),
         wake_word=_ScriptedWakeWords(microphone, first_audio),
         speech_to_text=_ScriptedSpeechToText(),
         llm=EchoLanguageModel(),
