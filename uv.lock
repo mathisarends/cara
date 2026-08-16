@@ -1500,16 +1500,16 @@ wheels = [
 
 [[package]]
 name = "vocalbin"
-version = "0.5.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cd/80/58da22356bd84eb7cbf7f0d51330b7add5d78d442feaba6a48ca11a1ab9b/vocalbin-0.5.0.tar.gz", hash = "sha256:8142453d1bc2916ee7499da99ded3adcbf96aae36d754c38a20b459aa7cfb780", size = 5986719, upload-time = "2026-08-16T09:19:49.449Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/8c/0342375b5be7f490298043f5b3905a2b5c91c0ecd28f11e27eb56210f53f/vocalbin-0.6.0.tar.gz", hash = "sha256:3588f71fc03c9740c31ab679b11b4aa4ce579036e00a9a426fdf85303d54c779", size = 5987000, upload-time = "2026-08-16T18:18:23.033Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/db/0ac30ad6ce9990cac66a3fd70fe127e14edc3b5a706d10f390fa61cb9807/vocalbin-0.5.0-py3-none-any.whl", hash = "sha256:8dc8b2ea95b1d15d725135df9a517117f774e9321e7a8dc75a7cc4c638092c56", size = 68596, upload-time = "2026-08-16T09:19:47.434Z" },
+    { url = "https://files.pythonhosted.org/packages/01/64/184687d3962d49143ad5b65510cc8771d1e75c375af4a998715c259921b5/vocalbin-0.6.0-py3-none-any.whl", hash = "sha256:417ad9703f8ed92fa40940b2e6db46c52878c82e2e864154a9faaf33eed6c70f", size = 68835, upload-time = "2026-08-16T18:18:20.778Z" },
 ]
 
 [package.optional-dependencies]
@@ -1546,7 +1546,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "sonosify", specifier = ">=0.4.3" },
     { name = "transitbus", specifier = ">=0.1.0" },
-    { name = "vocalbin", extras = ["cartesia", "openai"], specifier = ">=0.5.0" },
+    { name = "vocalbin", extras = ["cartesia", "openai"], specifier = ">=0.6.0" },
     { name = "wakewordkit", specifier = ">=0.4.0" },
 ]
 

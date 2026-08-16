@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
-from voice.pipeline.models import WakeWordDetection
+from voice.wakeword.models import WakeWordDetection
 
 
 class WakeWordSource(ABC):

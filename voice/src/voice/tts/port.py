@@ -7,3 +7,6 @@ class TextToSpeech(ABC):
 
     @abstractmethod
     def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]: ...
+
+    async def aclose(self) -> None:  # noqa: B027 - optional provider hook
+        """Release provider resources owned by this text-to-speech client."""

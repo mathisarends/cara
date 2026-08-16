@@ -1,7 +1,7 @@
 import asyncio
 import struct
 
-import voice.audio.device as device_module
+import voice.audio.session as session_module
 from voice.audio.output import LocalAudioOutput
 
 
@@ -38,7 +38,7 @@ class _PyAudio:
 def test_local_output_streams_volume_adjusted_pcm_and_closes() -> None:
     async def run() -> _PyAudio:
         backend = _PyAudio()
-        monkeypatch.setattr(device_module.pyaudio, "PyAudio", lambda: backend)
+        monkeypatch.setattr(session_module.pyaudio, "PyAudio", lambda: backend)
         output = LocalAudioOutput(trailing_silence_seconds=0)
         await output.set_volume(0.5)
         await output.start(sample_rate=16_000, channels=1)

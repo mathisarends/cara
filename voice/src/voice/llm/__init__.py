@@ -1,4 +1,4 @@
 from .mock import EchoLanguageModel
-from .port import LanguageModel
+from .port import ChatModel
 
-__all__ = ["EchoLanguageModel", "LanguageModel"]
+__all__ = ["ChatModel", "EchoLanguageModel"]

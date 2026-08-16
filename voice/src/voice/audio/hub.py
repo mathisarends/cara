@@ -6,8 +6,8 @@ import time
 from collections import deque
 from collections.abc import AsyncIterator
 
+from voice.audio.models import AudioFormat, AudioFrame
 from voice.audio.ports import AudioInput
-from voice.pipeline.models import AudioFormat, AudioFrame
 
 
 class AudioOverrunError(RuntimeError):

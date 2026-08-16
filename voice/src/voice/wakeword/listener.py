@@ -4,7 +4,7 @@ from wakewordkit import AudioFormat as DetectorAudioFormat
 from wakewordkit import WakeWord, WakeWordDetector
 
 from voice.audio.hub import AudioHub, AudioOverrunError
-from voice.pipeline.models import WakeWordDetection
+from voice.wakeword.models import WakeWordDetection
 from voice.wakeword.port import WakeWordSource
 
 _WAKE_WORD_PHRASES = {

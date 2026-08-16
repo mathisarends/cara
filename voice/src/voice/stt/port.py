@@ -26,3 +26,6 @@ class SpeechToText(ABC):
     def transcribe(
         self, audio: AsyncIterable[bytes]
     ) -> AsyncIterator[Transcription]: ...
+
+    async def aclose(self) -> None:  # noqa: B027 - optional provider hook
+        """Release provider resources owned by this speech-to-text client."""

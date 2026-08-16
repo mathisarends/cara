@@ -1,15 +1,28 @@
 import threading
+from types import TracebackType
+from typing import Self
 
 import pyaudio
 
 
-class PortAudioDevice:
+class PortAudioSession:
     """Owns the process-local PortAudio lifecycle for related audio streams."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._pa: pyaudio.PyAudio | None = None
         self._closed = False
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        _exc_type: type[BaseException] | None,
+        _exc_value: BaseException | None,
+        _traceback: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def open_stream(self, **kwargs: object) -> pyaudio.Stream:
         with self._lock:
@@ -29,7 +42,7 @@ class PortAudioDevice:
 
     def _ensure_open(self) -> pyaudio.PyAudio:
         if self._closed:
-            raise RuntimeError("Audio device is closed.")
+            raise RuntimeError("PortAudio session is closed.")
         if self._pa is None:
             self._pa = pyaudio.PyAudio()
         return self._pa

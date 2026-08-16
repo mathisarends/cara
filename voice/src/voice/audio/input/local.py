@@ -5,8 +5,8 @@ from collections.abc import AsyncIterator
 
 import pyaudio
 
-from voice.audio.device import PortAudioDevice
 from voice.audio.ports import AudioInput
+from voice.audio.session import PortAudioSession
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class MicrophoneAudioInput(AudioInput):
         sample_rate: int = 16_000,
         channels: int = 1,
         frames_per_chunk: int = 1_280,
-        device: PortAudioDevice | None = None,
+        session: PortAudioSession | None = None,
     ) -> None:
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
@@ -33,8 +33,8 @@ class MicrophoneAudioInput(AudioInput):
         self._sample_rate = sample_rate
         self._channels = channels
         self._frames_per_chunk = frames_per_chunk
-        self._device = device or PortAudioDevice()
-        self._owns_device = device is None
+        self._session = session or PortAudioSession()
+        self._owns_session = session is None
         self._stream: pyaudio.Stream | None = None
         self._active = False
 
@@ -65,8 +65,8 @@ class MicrophoneAudioInput(AudioInput):
             if stream.is_active():
                 stream.stop_stream()
             stream.close()
-        if self._owns_device:
-            self._device.close()
+        if self._owns_session:
+            self._session.close()
 
     async def stream_chunks(self) -> AsyncIterator[bytes]:
         if not self._active:
@@ -90,7 +90,7 @@ class MicrophoneAudioInput(AudioInput):
             )
 
     def _open(self) -> pyaudio.Stream:
-        return self._device.open_stream(
+        return self._session.open_stream(
             rate=self._sample_rate,
             channels=self._channels,
             format=pyaudio.paInt16,

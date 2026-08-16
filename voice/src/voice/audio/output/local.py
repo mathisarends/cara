@@ -5,8 +5,8 @@ import sys
 
 import pyaudio
 
-from voice.audio.device import PortAudioDevice
 from voice.audio.ports import AudioOutput
+from voice.audio.session import PortAudioSession
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +38,13 @@ class LocalAudioOutput(AudioOutput):
         self,
         *,
         trailing_silence_seconds: float = _DEFAULT_TRAILING_SILENCE_SECONDS,
-        device: PortAudioDevice | None = None,
+        session: PortAudioSession | None = None,
     ) -> None:
         if trailing_silence_seconds < 0:
             raise ValueError("trailing_silence_seconds must not be negative.")
         self._trailing_silence_seconds = trailing_silence_seconds
-        self._device = device or PortAudioDevice()
-        self._owns_device = device is None
+        self._session = session or PortAudioSession()
+        self._owns_session = session is None
         self._stream: pyaudio.Stream | None = None
         self._sample_rate: int | None = None
         self._channels: int | None = None
@@ -67,7 +67,7 @@ class LocalAudioOutput(AudioOutput):
         ):
             return
         self._close_stream()
-        self._stream = self._device.open_stream(
+        self._stream = self._session.open_stream(
             format=pyaudio.paInt16,
             channels=channels,
             rate=sample_rate,
@@ -79,8 +79,8 @@ class LocalAudioOutput(AudioOutput):
     async def stop(self) -> None:
         await self.clear_buffer()
         self._close_stream()
-        if self._owns_device:
-            self._device.close()
+        if self._owns_session:
+            self._session.close()
 
     async def play_chunk(self, chunk: bytes) -> None:
         if self._stream is None:

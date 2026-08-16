@@ -16,11 +16,11 @@ from agent.events import (
 from voice.audio.hub import AudioCursor, AudioHub
 from voice.audio.playback_coordinator import PlaybackCoordinator
 from voice.events import VoiceTurnFailed, VoiceTurnTimedOut, WakeWordDetected
-from voice.llm import LanguageModel
-from voice.pipeline.models import TurnState, WakeWordDetection
+from voice.llm import ChatModel
+from voice.pipeline.models import TurnState
 from voice.stt import SpeechToText
 from voice.tts import TextToSpeech
-from voice.wakeword import WakeWordSource
+from voice.wakeword import WakeWordDetection, WakeWordSource
 
 _END = object()
 
@@ -39,7 +39,7 @@ class TurnController:
         audio_hub: AudioHub,
         wake_word: WakeWordSource,
         speech_to_text: SpeechToText,
-        llm: LanguageModel,
+        llm: ChatModel,
         text_to_speech: TextToSpeech,
         playback: PlaybackCoordinator,
         event_bus: EventBus,
