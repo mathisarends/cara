@@ -2,7 +2,7 @@ import logging
 import threading
 
 from transitbus import EventBus
-from vocalbin import SpeechToText, SpeechToTextRequest
+from vocalbin.openai import SpeechToText, SpeechToTextConfig
 
 from agent.events import UserSpeechEnded, UserSpeechStarted
 from voice.audio import SpeechRecorder
@@ -42,7 +42,8 @@ class SpeechInput:
 
         await self._event_bus.dispatch(UserSpeechEnded())
         response = await self._stt.transcribe(
-            SpeechToTextRequest(audio=audio, language=self._settings.language),
+            audio,
+            config=SpeechToTextConfig(language=self._settings.language),
         )
         transcript = response.text.strip()
         if transcript:

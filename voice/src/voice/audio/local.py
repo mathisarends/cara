@@ -7,7 +7,7 @@ import sys
 import wave
 
 from voice.audio.device import PortAudioDevice
-from voice.audio.ports import AudioOutput, AudioSink
+from voice.audio.ports import AudioController, AudioOutput
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def _apply_volume(chunk: bytes, volume: float) -> bytes:
     return samples.tobytes()
 
 
-class LocalAudioSink(AudioSink):
+class LocalAudioSink(AudioController):
     """Plays WAV audio through the default output device."""
 
     def __init__(

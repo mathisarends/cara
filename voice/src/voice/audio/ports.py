@@ -3,6 +3,7 @@ import threading
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from enum import StrEnum
+from typing import Protocol
 
 
 class AudioOutput(StrEnum):
@@ -66,26 +67,34 @@ class TurnDetector(ABC):
         """Return whether the mono int16 PCM utterance is a complete turn."""
 
 
-class AudioPlayback(ABC):
+class AudioPlayback(Protocol):
     """Plays WAV-encoded audio."""
 
-    @abstractmethod
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         """Play the given WAV audio and return once playback is finished."""
+        ...
 
 
-class AudioSink(AudioPlayback):
+class VolumeControl(Protocol):
+    """Reads and changes an audio destination's volume."""
+
+    async def get_volume(self) -> float:
+        """Return the current volume, from 0.0 (silent) to 1.0 (full)."""
+        ...
+
+    async def set_volume(self, volume: float) -> None:
+        """Set the volume, clamped to 0.0-1.0."""
+        ...
+
+
+class AudioSink(AudioPlayback, Protocol):
     """Plays audio through a specific, selectable destination."""
 
     @property
-    @abstractmethod
     def output(self) -> AudioOutput:
         """Return the output represented by this sink."""
+        ...
 
-    @abstractmethod
-    async def get_volume(self) -> float:
-        """Return the current playback volume, from 0.0 (silent) to 1.0 (full)."""
 
-    @abstractmethod
-    async def set_volume(self, volume: float) -> None:
-        """Set the playback volume, clamped to 0.0-1.0."""
+class AudioController(AudioSink, VolumeControl, Protocol):
+    """Controls playback and volume for one selectable audio destination."""

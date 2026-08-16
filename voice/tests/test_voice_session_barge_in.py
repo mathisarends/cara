@@ -15,9 +15,9 @@ from voice.speech import (
     SpeechInput,
     SpeechOutput,
     SpeechSettings,
-    SpeechToTextRequest,
+    SpeechToTextConfig,
     SpeechToTextResponse,
-    TextToSpeechRequest,
+    TextToSpeechConfig,
     TextToSpeechResponse,
 )
 from voice.wakeword.ports import WakeWordSessionSource
@@ -69,24 +69,35 @@ class MappingSpeechToText:
     def __init__(self) -> None:
         self.audio: list[bytes] = []
 
-    async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
-        assert request.audio is not None
-        self.audio.append(request.audio)
+    async def transcribe(
+        self,
+        audio: bytes,
+        *,
+        config: SpeechToTextConfig | None = None,
+    ) -> SpeechToTextResponse:
+        assert config is not None
+        self.audio.append(audio)
         return SpeechToTextResponse(
-            text=request.audio.decode(),
-            model=request.model,
-            response_format=request.response_format,
+            text=audio.decode(),
+            model=config.model,
+            response_format=config.response_format,
             raw={},
         )
 
 
 class ImmediateTextToSpeech:
-    async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
+    async def generate(
+        self,
+        text: str,
+        *,
+        config: TextToSpeechConfig | None = None,
+    ) -> TextToSpeechResponse:
+        assert config is not None
         return TextToSpeechResponse(
-            audio=request.text.encode(),
-            model=request.model,
-            voice=request.voice,
-            response_format=request.response_format,
+            audio=text.encode(),
+            model=config.model,
+            voice=config.voice,
+            response_format=config.response_format,
             content_type="audio/wav",
         )
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from vocalbin import TextToSpeechVoice
+from vocalbin.openai import TextToSpeechVoice
 
 DEFAULT_TTS_VOICE_INSTRUCTIONS = "Sprich freundlich, ruhig und klar auf Deutsch."
 

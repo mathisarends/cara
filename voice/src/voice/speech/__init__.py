@@ -1,14 +1,12 @@
 """Speech services and text/audio input-output adapters."""
 
-from vocalbin import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
+from vocalbin.openai import (
     SpeechToText,
-    SpeechToTextRequest,
+    SpeechToTextConfig,
     SpeechToTextResponse,
     TextToSpeech,
+    TextToSpeechConfig,
     TextToSpeechFormat,
-    TextToSpeechRequest,
     TextToSpeechResponse,
     TextToSpeechVoice,
 )
@@ -18,17 +16,15 @@ from .output import SpeechOutput
 from .settings import SpeechSettings
 
 __all__ = [
-    "OpenAISpeechToText",
-    "OpenAITextToSpeech",
     "SpeechToText",
-    "SpeechToTextRequest",
+    "SpeechToTextConfig",
     "SpeechToTextResponse",
     "SpeechInput",
     "SpeechOutput",
     "SpeechSettings",
     "TextToSpeech",
+    "TextToSpeechConfig",
     "TextToSpeechFormat",
-    "TextToSpeechRequest",
     "TextToSpeechResponse",
     "TextToSpeechVoice",
 ]

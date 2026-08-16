@@ -28,13 +28,13 @@ from voice.audio import (
     MicrophoneStream,
 )
 from voice.audio.device import PortAudioDevice
-from voice.audio.sonos import SonosAudioSink
+from voice.audio.sonos import SonosController
 from voice.speech import (
-    OpenAISpeechToText,
-    OpenAITextToSpeech,
     SpeechInput,
     SpeechOutput,
     SpeechSettings,
+    SpeechToText,
+    TextToSpeech,
 )
 from voice.wakeword import WakeWord, WakeWordListener
 
@@ -112,9 +112,9 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
     event_bus = EventBus()
     audio_device = PortAudioDevice()
     microphone = MicrophoneStream(device=audio_device)
-    sonos_sink = SonosAudioSink()
+    sonos_controller = SonosController()
     audio_player = AudioPlayer(
-        sonos_sink,
+        sonos_controller,
         active_output=AudioOutput.SONOS,
     )
     speech_settings = SpeechSettings(language="de")
@@ -133,12 +133,12 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
                 agent=_GatewayResponder(client, session.id),
                 speech_input=SpeechInput(
                     MicrophoneRecorder(microphone),
-                    OpenAISpeechToText(),
+                    SpeechToText(),
                     speech_settings,
                     event_bus,
                 ),
                 speech_output=SpeechOutput(
-                    OpenAITextToSpeech(),
+                    TextToSpeech(),
                     audio_player,
                     speech_settings,
                     event_bus,
@@ -153,7 +153,7 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
             )
             await voice_session.run()
     finally:
-        await sonos_sink.close()
+        await sonos_controller.close()
         microphone.close()
         audio_device.close()
 

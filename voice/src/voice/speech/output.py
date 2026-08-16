@@ -2,7 +2,11 @@ import asyncio
 import logging
 
 from transitbus import EventBus
-from vocalbin import TextToSpeech, TextToSpeechFormat, TextToSpeechRequest
+from vocalbin.openai import (
+    TextToSpeech,
+    TextToSpeechConfig,
+    TextToSpeechFormat,
+)
 
 from agent.events import AssistantSpeechStarted
 from voice.audio import AudioPlayback
@@ -28,13 +32,13 @@ class SpeechOutput:
 
     async def send(self, text: str, *, cancel: asyncio.Event | None = None) -> None:
         logger.info("[says] %s", text)
-        response = await self._tts.synthesize(
-            TextToSpeechRequest(
-                text=text,
+        response = await self._tts.generate(
+            text,
+            config=TextToSpeechConfig(
                 voice=self._settings.tts_voice,
                 response_format=TextToSpeechFormat.WAV,
                 instructions=self._settings.tts_voice_instructions,
-            )
+            ),
         )
         await self._event_bus.dispatch(AssistantSpeechStarted())
         await self._player.play(response.audio, cancel=cancel)

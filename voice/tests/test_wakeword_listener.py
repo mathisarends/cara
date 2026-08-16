@@ -1,7 +1,6 @@
 import asyncio
-from collections.abc import AsyncIterator
 
-from wakewordkit import AudioInput, Detection, WakeWord
+from wakewordkit import Detection, WakeWord
 
 from voice.wakeword import listener as listener_module
 from voice.wakeword.listener import WakeWordListener
@@ -28,13 +27,9 @@ class RecordingDetector:
     def reset(self) -> None:
         self.reset_calls += 1
 
-    async def alisten(self, source: AudioInput) -> AsyncIterator[Detection]:
-        try:
-            frame = source.read()
-        except StopIteration:
-            return
+    async def process(self, frame: bytes) -> Detection | None:
         assert frame == b"audio"
-        yield Detection(name="hey_mycroft", score=0.8)
+        return Detection(name="hey_mycroft", score=0.8)
 
 
 def test_listener_adapts_shared_microphone_to_async_detector(monkeypatch) -> None:
@@ -65,4 +60,4 @@ def test_listener_stops_after_current_read_when_cancelled(monkeypatch) -> None:
     score = asyncio.run(listener.detect_once(cancel=cancel))
 
     assert score is None
-    assert microphone.frame_sizes == [1280]
+    assert microphone.frame_sizes == []

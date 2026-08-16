@@ -11,9 +11,9 @@ from voice.speech import (
     SpeechInput,
     SpeechOutput,
     SpeechSettings,
-    SpeechToTextRequest,
+    SpeechToTextConfig,
     SpeechToTextResponse,
-    TextToSpeechRequest,
+    TextToSpeechConfig,
     TextToSpeechResponse,
 )
 
@@ -34,11 +34,18 @@ class StaticRecorder:
 
 
 class StaticSpeechToText:
-    async def transcribe(self, request: SpeechToTextRequest) -> SpeechToTextResponse:
+    async def transcribe(
+        self,
+        audio: bytes,
+        *,
+        config: SpeechToTextConfig | None = None,
+    ) -> SpeechToTextResponse:
+        assert audio == b"audio"
+        assert config is not None
         return SpeechToTextResponse(
             text=" Hallo Welt ",
-            model=request.model,
-            response_format=request.response_format,
+            model=config.model,
+            response_format=config.response_format,
             raw={},
         )
 
@@ -47,13 +54,19 @@ class RecordingTextToSpeech:
     def __init__(self) -> None:
         self.texts: list[str] = []
 
-    async def synthesize(self, request: TextToSpeechRequest) -> TextToSpeechResponse:
-        self.texts.append(request.text)
+    async def generate(
+        self,
+        text: str,
+        *,
+        config: TextToSpeechConfig | None = None,
+    ) -> TextToSpeechResponse:
+        assert config is not None
+        self.texts.append(text)
         return TextToSpeechResponse(
-            audio=request.text.encode(),
-            model=request.model,
-            voice=request.voice,
-            response_format=request.response_format,
+            audio=text.encode(),
+            model=config.model,
+            voice=config.voice,
+            response_format=config.response_format,
             content_type="audio/wav",
         )
 

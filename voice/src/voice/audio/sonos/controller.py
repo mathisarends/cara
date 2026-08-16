@@ -1,16 +1,18 @@
 import asyncio
 import logging
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from sonosify import (
     ClipPriority,
     ClipType,
     HostedAudioClip,
     SonosClient,
-    SonosController,
+)
+from sonosify import (
+    SonosController as SonosifyController,
 )
 
-from voice.audio.ports import AudioOutput, AudioSink
+from voice.audio.ports import AudioController, AudioOutput
+from voice.audio.sonos.settings import SonosSettings
 
 logger = logging.getLogger(__name__)
 
@@ -20,21 +22,8 @@ _CLIP_APP_ID = "cara"
 _CLIP_NAME = "Cara"
 
 
-class SonosSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="SONOS_",
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-    speaker_name: str | None = None
-    ip_address: str | None = None
-    local_host: str | None = None
-
-
-class SonosAudioSink(AudioSink):
-    """Plays WAV audio on a Sonos speaker through its local control API."""
+class SonosController(AudioController):
+    """Controls playback and volume on a Sonos speaker."""
 
     def __init__(
         self,
@@ -93,7 +82,7 @@ class SonosAudioSink(AudioSink):
             return self._client
         async with self._client_lock:
             if self._client is None:
-                controller = SonosController()
+                controller = SonosifyController()
                 self._client = await controller.client(
                     self._settings.speaker_name,
                     ip=self._settings.ip_address,
