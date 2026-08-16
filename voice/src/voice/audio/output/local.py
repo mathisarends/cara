@@ -6,7 +6,7 @@ import sys
 import pyaudio
 
 from voice.audio.device import PortAudioDevice
-from voice.audio.output.destination import AudioDestination, RoutedAudioOutput
+from voice.audio.ports import AudioOutput
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def _apply_volume(chunk: bytes, volume: float) -> bytes:
     return samples.tobytes()
 
 
-class LocalAudioOutput(RoutedAudioOutput):
+class LocalAudioOutput(AudioOutput):
     """Streams raw PCM chunks through a local PortAudio output."""
 
     def __init__(
@@ -54,10 +54,6 @@ class LocalAudioOutput(RoutedAudioOutput):
     @property
     def is_playing(self) -> bool:
         return self._writing
-
-    @property
-    def destination(self) -> AudioDestination:
-        return AudioDestination.LOCAL
 
     async def start(self, *, sample_rate: int, channels: int) -> None:
         if sample_rate <= 0:

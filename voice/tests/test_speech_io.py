@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from transitbus import EventBus
 
 from agent.events import AssistantSpeechStarted, UserSpeechEnded, UserSpeechStarted
-from voice.audio.output import AudioOutput, AudioPlayer
+from voice.audio.output import AudioPlayer
 from voice.speech import (
     SpeechInput,
     SpeechOutput,
@@ -74,10 +74,6 @@ class RecordingTextToSpeech:
 class RecordingAudioPlayer:
     def __init__(self) -> None:
         self.audio: list[bytes] = []
-
-    @property
-    def output(self) -> AudioOutput:
-        return AudioOutput.LOCAL
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         self.audio.append(audio)

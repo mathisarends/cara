@@ -1,22 +1,38 @@
 import asyncio
+import io
+import wave
 
-import pytest
+from voice.audio.output import AudioPlayer
+from voice.audio.ports import AudioOutput
 
-from voice.audio.output import AudioOutput, AudioPlayer
 
-
-class RecordingSink:
-    def __init__(self, output: AudioOutput) -> None:
-        self._output = output
-        self.audio: list[bytes] = []
+class RecordingOutput(AudioOutput):
+    def __init__(self) -> None:
+        self.started_with: tuple[int, int] | None = None
+        self.chunks: list[bytes] = []
+        self.stopped = False
+        self.cleared = False
+        self.finished = False
         self.volume = 1.0
 
     @property
-    def output(self) -> AudioOutput:
-        return self._output
+    def is_playing(self) -> bool:
+        return bool(self.chunks) and not self.finished
 
-    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        self.audio.append(audio)
+    async def start(self, *, sample_rate: int, channels: int) -> None:
+        self.started_with = (sample_rate, channels)
+
+    async def stop(self) -> None:
+        self.stopped = True
+
+    async def play_chunk(self, chunk: bytes) -> None:
+        self.chunks.append(chunk)
+
+    async def finish_response(self) -> None:
+        self.finished = True
+
+    async def clear_buffer(self) -> None:
+        self.cleared = True
 
     async def get_volume(self) -> float:
         return self.volume
@@ -25,71 +41,54 @@ class RecordingSink:
         self.volume = volume
 
 
-def test_audio_player_delegates_to_the_active_output() -> None:
-    async def run() -> tuple[RecordingSink, RecordingSink]:
-        local = RecordingSink(AudioOutput.LOCAL)
-        sonos = RecordingSink(AudioOutput.SONOS)
-        player = AudioPlayer(local, sonos)
-
-        await player.play(b"local")
-        player.set_output(AudioOutput.SONOS)
-        await player.play(b"remote")
-
-        return local, sonos
-
-    local, sonos = asyncio.run(run())
-
-    assert local.audio == [b"local"]
-    assert sonos.audio == [b"remote"]
+def _wav(pcm: bytes, *, sample_rate: int = 16_000, channels: int = 1) -> bytes:
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav_file:
+        wav_file.setnchannels(channels)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(pcm)
+    return buffer.getvalue()
 
 
-def test_audio_player_reports_when_an_output_is_not_configured() -> None:
-    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL))
+def test_audio_player_delegates_to_output() -> None:
+    async def run() -> RecordingOutput:
+        output = RecordingOutput()
+        player = AudioPlayer(output)
 
-    with pytest.raises(ValueError, match="Available outputs: local"):
-        player.set_output(AudioOutput.SONOS)
+        await player.play(_wav(b"\x01\x00\x02\x00"))
+
+        return output
+
+    output = asyncio.run(run())
+
+    assert output.started_with == (16_000, 1)
+    assert b"".join(output.chunks) == b"\x01\x00\x02\x00"
+    assert output.finished is True
 
 
-def test_audio_player_delegates_volume_control_to_the_active_output() -> None:
+def test_audio_player_delegates_volume_control_to_output() -> None:
     async def run() -> tuple[float, float]:
-        local = RecordingSink(AudioOutput.LOCAL)
-        sonos = RecordingSink(AudioOutput.SONOS)
-        player = AudioPlayer(local, sonos)
+        output = RecordingOutput()
+        player = AudioPlayer(output)
 
         await player.set_volume(0.3)
-        player.set_output(AudioOutput.SONOS)
-        await player.set_volume(0.8)
 
-        return local.volume, await player.get_volume()
+        return output.volume, await player.get_volume()
 
-    local_volume, sonos_volume = asyncio.run(run())
+    output_volume, reported_volume = asyncio.run(run())
 
-    assert local_volume == 0.3
-    assert sonos_volume == 0.8
+    assert output_volume == 0.3
+    assert reported_volume == 0.3
 
 
-def test_audio_player_can_register_and_activate_an_output() -> None:
-    player = AudioPlayer(RecordingSink(AudioOutput.LOCAL))
+def test_audio_player_stops_output() -> None:
+    async def run() -> bool:
+        output = RecordingOutput()
+        player = AudioPlayer(output)
 
-    player.register_output(RecordingSink(AudioOutput.SONOS), activate=True)
+        await player.stop()
 
-    assert player.active_output is AudioOutput.SONOS
-    assert player.available_outputs == (AudioOutput.LOCAL, AudioOutput.SONOS)
+        return output.stopped
 
-
-def test_audio_player_reports_whether_multiple_outputs_are_configured() -> None:
-    assert AudioPlayer(RecordingSink(AudioOutput.LOCAL)).has_multiple_outputs is False
-
-    player = AudioPlayer(
-        RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS)
-    )
-
-    assert player.has_multiple_outputs is True
-
-
-def test_audio_player_describes_its_configured_outputs() -> None:
-    player = AudioPlayer(
-        RecordingSink(AudioOutput.LOCAL), RecordingSink(AudioOutput.SONOS)
-    )
-
-    assert player.describe_outputs() == "local, sonos"
+    assert asyncio.run(run()) is True

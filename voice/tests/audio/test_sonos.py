@@ -1,9 +1,11 @@
 import asyncio
+import io
+import wave
 
 from sonosify import ClipPriority, ClipType
 
-import voice.audio.output.sonos.controller as controller_module
-from voice.audio.output.sonos import SonosController, SonosSettings
+import voice.audio.output.sonos as sonos_module
+from voice.audio.output.sonos import SonosOutput, SonosSettings
 
 
 class FakeHostedAudioClip:
@@ -47,72 +49,74 @@ class FakeSonosClient:
         self.closed = True
 
 
-def _controller(client: FakeSonosClient) -> SonosController:
-    return SonosController(client=client, settings=SonosSettings(speaker_name="Zimmer"))
+def _output(client: FakeSonosClient) -> SonosOutput:
+    return SonosOutput(client=client, settings=SonosSettings(speaker_name="Zimmer"))
 
 
 def test_get_volume_converts_from_the_sonos_0_100_scale() -> None:
-    controller = _controller(FakeSonosClient(volume=40))
+    output = _output(FakeSonosClient(volume=40))
 
-    assert asyncio.run(controller.get_volume()) == 0.4
+    assert asyncio.run(output.get_volume()) == 0.4
 
 
 def test_set_volume_converts_to_the_sonos_0_100_scale() -> None:
     client = FakeSonosClient()
-    controller = _controller(client)
+    output = _output(client)
 
-    asyncio.run(controller.set_volume(0.75))
+    asyncio.run(output.set_volume(0.75))
 
-    assert asyncio.run(controller.get_volume()) == 0.75
+    assert asyncio.run(output.get_volume()) == 0.75
 
 
 def test_set_volume_clamps_out_of_range_values() -> None:
     client = FakeSonosClient()
-    controller = _controller(client)
+    output = _output(client)
 
-    asyncio.run(controller.set_volume(1.5))
-    assert asyncio.run(controller.get_volume()) == 1.0
+    asyncio.run(output.set_volume(1.5))
+    assert asyncio.run(output.get_volume()) == 1.0
 
-    asyncio.run(controller.set_volume(-0.5))
-    assert asyncio.run(controller.get_volume()) == 0.0
+    asyncio.run(output.set_volume(-0.5))
+    assert asyncio.run(output.get_volume()) == 0.0
 
 
-def test_play_uses_sonosifys_hosted_clip_api() -> None:
+def test_finish_response_uses_sonosifys_hosted_clip_api() -> None:
     async def run() -> tuple[FakeSonosClient, FakeHostedAudioClip]:
         client = FakeSonosClient()
-        controller = _controller(client)
-        play = asyncio.create_task(controller.play(b"wav-data"))
+        output = _output(client)
+        await output.start(sample_rate=16_000, channels=1)
+        await output.play_chunk(b"\x01\x00\x02\x00")
+        finish = asyncio.create_task(output.finish_response())
         await asyncio.sleep(0)
         client.clip.finished.set()
-        await play
+        await finish
         return client, client.clip
 
     client, clip = asyncio.run(run())
-
-    assert client.played == [
-        (
-            b"wav-data",
-            {
-                "local_host": None,
-                "app_id": "cara",
-                "name": "Cara",
-                "priority": ClipPriority.HIGH,
-                "clip_type": ClipType.CUSTOM,
-            },
-        )
-    ]
+    audio, options = client.played[0]
+    with wave.open(io.BytesIO(audio), "rb") as wav_file:
+        assert wav_file.getframerate() == 16_000
+        assert wav_file.getnchannels() == 1
+        assert wav_file.readframes(wav_file.getnframes()) == b"\x01\x00\x02\x00"
+    assert options == {
+        "local_host": None,
+        "app_id": "cara",
+        "name": "Cara",
+        "priority": ClipPriority.HIGH,
+        "clip_type": ClipType.CUSTOM,
+    }
     assert clip.closed
 
 
-def test_play_cancels_a_running_hosted_clip() -> None:
+def test_clear_buffer_cancels_a_running_hosted_clip() -> None:
     async def run() -> FakeHostedAudioClip:
         client = FakeSonosClient()
-        controller = _controller(client)
-        cancel = asyncio.Event()
-        play = asyncio.create_task(controller.play(b"wav-data", cancel=cancel))
+        output = _output(client)
+        await output.start(sample_rate=16_000, channels=1)
+        await output.play_chunk(b"\x00\x00")
+        finish = asyncio.create_task(output.finish_response())
         await asyncio.sleep(0)
-        cancel.set()
-        await play
+        await output.clear_buffer()
+        await asyncio.gather(finish, return_exceptions=True)
         return client.clip
 
     clip = asyncio.run(run())
@@ -121,27 +125,16 @@ def test_play_cancels_a_running_hosted_clip() -> None:
     assert clip.closed
 
 
-def test_play_skips_when_already_cancelled() -> None:
+def test_stop_leaves_an_injected_client_open() -> None:
     client = FakeSonosClient()
-    controller = _controller(client)
-    cancel = asyncio.Event()
-    cancel.set()
+    output = _output(client)
 
-    asyncio.run(controller.play(b"ignored", cancel=cancel))
-
-    assert client.played == []
-
-
-def test_close_leaves_an_injected_client_open() -> None:
-    client = FakeSonosClient()
-    controller = _controller(client)
-
-    asyncio.run(controller.close())
+    asyncio.run(output.stop())
 
     assert not client.closed
 
 
-def test_controller_resolves_and_owns_a_local_client(monkeypatch) -> None:
+def test_output_resolves_and_owns_a_local_client(monkeypatch) -> None:
     client = FakeSonosClient(volume=40)
 
     class FakeController:
@@ -150,15 +143,15 @@ def test_controller_resolves_and_owns_a_local_client(monkeypatch) -> None:
             assert ip == "192.168.1.42"
             return client
 
-    monkeypatch.setattr(controller_module, "SonosifyController", FakeController)
-    controller = SonosController(
+    monkeypatch.setattr(sonos_module, "SonosifyController", FakeController)
+    output = SonosOutput(
         settings=SonosSettings(
             speaker_name="Zimmer",
             ip_address="192.168.1.42",
         )
     )
 
-    assert asyncio.run(controller.get_volume()) == 0.4
-    asyncio.run(controller.close())
+    assert asyncio.run(output.get_volume()) == 0.4
+    asyncio.run(output.stop())
 
     assert client.closed

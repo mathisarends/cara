@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 import pyaudio
 
 from voice.audio.device import PortAudioDevice
-from voice.audio.input.port import AudioInput
+from voice.audio.ports import AudioInput
 
 logger = logging.getLogger(__name__)
 

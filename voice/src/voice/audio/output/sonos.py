@@ -4,11 +4,11 @@ import logging
 import wave
 from contextlib import suppress
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sonosify import ClipPriority, ClipType, HostedAudioClip, SonosClient
 from sonosify import SonosController as SonosifyController
 
-from voice.audio.output.destination import AudioDestination, RoutedAudioOutput
-from voice.audio.output.sonos.settings import SonosSettings
+from voice.audio.ports import AudioOutput
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,20 @@ _CLIP_NAME = "Cara"
 _BYTES_PER_SAMPLE = 2
 
 
-class SonosOutput(RoutedAudioOutput):
+class SonosSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="SONOS_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    speaker_name: str | None = None
+    ip_address: str | None = None
+    local_host: str | None = None
+
+
+class SonosOutput(AudioOutput):
     """Buffers PCM chunks and plays each completed response as a Sonos clip."""
 
     def __init__(
@@ -42,10 +55,6 @@ class SonosOutput(RoutedAudioOutput):
     @property
     def is_playing(self) -> bool:
         return bool(self._pcm) or self._clip is not None
-
-    @property
-    def destination(self) -> AudioDestination:
-        return AudioDestination.SONOS
 
     async def start(self, *, sample_rate: int, channels: int) -> None:
         if sample_rate <= 0:

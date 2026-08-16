@@ -1,5 +1,4 @@
-from .input.port import AudioInput
-from .output.port import AudioOutput
+from .ports import AudioInput, AudioOutput
 
 __all__ = [
     "AudioInput",

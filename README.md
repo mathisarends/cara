@@ -117,26 +117,19 @@ bash scripts/discover_hue.sh
 Sonos playback and discovery are provided over the local network by the
 [`sonosify`](https://pypi.org/project/sonosify/) library; no Sonos cloud credentials are needed.
 Set `SONOS_SPEAKER_NAME`, or `SONOS_IP_ADDRESS` to skip discovery. Import Sonos explicitly from
-`voice.audio.sonos`; importing `voice` or `voice.audio` does not load it.
+`voice.audio.output.sonos`; importing `voice` or `voice.audio` does not load it.
 
 ## Audio outputs
 
-`AudioPlayer` delegates playback to a named audio sink. Register every sink that should be
-available at runtime and pass the player to `SpeechOutput` and the tool context:
+`AudioPlayer` delegates playback to one audio output. Pass the player to `SpeechOutput`
+and the tool context:
 
 ```python
-audio_player = AudioPlayer(
-    LocalAudioSink(),
-    SonosAudioSink(),
-    active_output=AudioOutput.SONOS,
-)
+audio_player = AudioPlayer(SonosOutput())
 
 speech_output = SpeechOutput(tts, audio_player, speech_settings, event_bus)
 tools = build_tools(audio_player)
 ```
-
-The built-in `set_audio_output` tool receives this player through the tool context and can switch to
-another registered output, such as `local` or `sonos`, while the assistant is running.
 
 ## Tool safety
 

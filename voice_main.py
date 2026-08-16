@@ -22,12 +22,8 @@ from gateway_client import (
 from voice import VoiceSession
 from voice.audio.device import PortAudioDevice
 from voice.audio.input import MicrophoneRecorder, MicrophoneStream
-from voice.audio.output import (
-    AudioOutput,
-    AudioPlayer,
-    EarconPlayer,
-)
-from voice.audio.output.sonos import SonosController
+from voice.audio.output import AudioPlayer, EarconPlayer
+from voice.audio.output.sonos import SonosOutput
 from voice.barge_in import WakeWordBargeIn
 from voice.speech import (
     SpeechInput,
@@ -112,11 +108,8 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
     event_bus = EventBus()
     audio_device = PortAudioDevice()
     microphone = MicrophoneStream(device=audio_device)
-    sonos_controller = SonosController()
-    audio_player = AudioPlayer(
-        sonos_controller,
-        active_output=AudioOutput.SONOS,
-    )
+    sonos_output = SonosOutput()
+    audio_player = AudioPlayer(sonos_output)
     speech_settings = SpeechSettings(language="de")
     wake_word_listener = WakeWordListener(
         microphone,
@@ -155,7 +148,7 @@ async def main(base_url: str = DEFAULT_GATEWAY_URL) -> None:
             )
             await voice_session.run()
     finally:
-        await sonos_controller.close()
+        await audio_player.stop()
         microphone.close()
         audio_device.close()
 

@@ -10,7 +10,7 @@ from agent.agent import Agent
 from agent.events import AssistantInterrupted, UserSpeechEnded, UserSpeechStarted
 from agent.tools import build_tools, create_tools
 from voice import VoiceSession
-from voice.audio.output import AudioOutput, AudioPlayer, EarconPlayer
+from voice.audio.output import AudioPlayer, EarconPlayer
 from voice.barge_in import WakeWordBargeIn
 from voice.speech import (
     SpeechInput,
@@ -106,10 +106,6 @@ class ImmediateTextToSpeech:
 class ImmediateAudioPlayer:
     def __init__(self, events: list[str]) -> None:
         self._events = events
-
-    @property
-    def output(self) -> AudioOutput:
-        return AudioOutput.LOCAL
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         self._events.append("play")

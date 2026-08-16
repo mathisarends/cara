@@ -8,7 +8,7 @@ from transitbus import EventBus
 from agent.agent import Agent
 from agent.tools import create_tools
 from voice import VoiceSession
-from voice.audio.output import AudioOutput, AudioPlayer, EarconPlayer
+from voice.audio.output import AudioPlayer, EarconPlayer
 from voice.speech import SpeechInput, SpeechOutput, SpeechSettings
 from voice.wakeword.ports import WakeWordSessionSource
 
@@ -16,10 +16,6 @@ from voice.wakeword.ports import WakeWordSessionSource
 class RecordingPlayer:
     def __init__(self, events: list[str]) -> None:
         self._events = events
-
-    @property
-    def output(self) -> AudioOutput:
-        return AudioOutput.LOCAL
 
     async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
         self._events.append("play")
