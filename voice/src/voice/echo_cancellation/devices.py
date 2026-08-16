@@ -1,7 +1,8 @@
 import time
 from collections.abc import AsyncIterator
 
-from voice.audio import AudioInput, AudioOutput
+from voice.audio.input.port import AudioInput
+from voice.audio.output.port import AudioOutput
 from voice.echo_cancellation.ports import Clock, EchoCanceller
 from voice.echo_cancellation.timeline import PlaybackTimeline
 

@@ -1,6 +1,7 @@
 import time
 
-from voice.audio import AudioInput, AudioOutput
+from voice.audio.input.port import AudioInput
+from voice.audio.output.port import AudioOutput
 from voice.echo_cancellation.cancellers import NlmsEchoCanceller
 from voice.echo_cancellation.devices import EchoCancellingInput, ReferenceTapOutput
 from voice.echo_cancellation.ports import Clock, EchoCanceller

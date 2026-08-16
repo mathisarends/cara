@@ -1,33 +1,7 @@
-from .earcons import Earcon, EarconPlayer
-from .local import LocalAudioSink
-from .microphone import MicrophoneStream
-from .player import AudioPlayer
-from .ports import (
-    AudioController,
-    AudioOutput,
-    AudioPlayback,
-    AudioSink,
-    SpeechRecorder,
-    TurnDetector,
-    VolumeControl,
-)
-from .recorder import MicrophoneInputSettings, MicrophoneRecorder
-from .turn_detection import SmartTurnDetector
+from .input.port import AudioInput
+from .output.port import AudioOutput
 
 __all__ = [
-    "AudioController",
-    "AudioPlayer",
+    "AudioInput",
     "AudioOutput",
-    "AudioPlayback",
-    "AudioSink",
-    "Earcon",
-    "EarconPlayer",
-    "MicrophoneRecorder",
-    "MicrophoneInputSettings",
-    "MicrophoneStream",
-    "SpeechRecorder",
-    "SmartTurnDetector",
-    "TurnDetector",
-    "VolumeControl",
-    "LocalAudioSink",
 ]
