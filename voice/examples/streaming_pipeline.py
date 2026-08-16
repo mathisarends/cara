@@ -16,10 +16,10 @@ from transitbus import EventBus
 
 from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
 from voice.llm import EchoLanguageModel
-from voice.pipeline import TurnController, WakeWordDetection
+from voice.pipeline import TurnController
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
-from voice.wakeword import WakeWordSource
+from voice.wakeword import WakeWordDetection, WakeWordSource
 
 
 class _ScriptedMicrophone(AudioInput):
