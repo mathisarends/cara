@@ -1,5 +1,5 @@
 from voice.audio.turn_detection import SmartTurnDetector
-from voice.audio.vad import SileroVoiceActivityDetector
+from voice.vad import SileroVoiceActivityDetector
 
 
 def test_silero_classifies_one_silent_frame_as_non_speech() -> None:

@@ -9,12 +9,10 @@ from .ports import (
     AudioSink,
     SpeechRecorder,
     TurnDetector,
-    VoiceActivityDetector,
     VolumeControl,
 )
 from .recorder import MicrophoneInputSettings, MicrophoneRecorder
 from .turn_detection import SmartTurnDetector
-from .vad import SileroVoiceActivityDetector
 
 __all__ = [
     "AudioController",
@@ -29,9 +27,7 @@ __all__ = [
     "MicrophoneStream",
     "SpeechRecorder",
     "SmartTurnDetector",
-    "SileroVoiceActivityDetector",
     "TurnDetector",
     "VolumeControl",
-    "VoiceActivityDetector",
     "LocalAudioSink",
 ]

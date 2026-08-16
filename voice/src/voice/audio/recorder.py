@@ -12,9 +12,9 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 
 from voice.audio.microphone import MicrophoneStream
-from voice.audio.ports import SpeechRecorder, TurnDetector, VoiceActivityDetector
+from voice.audio.ports import SpeechRecorder, TurnDetector
 from voice.audio.turn_detection import SmartTurnDetector
-from voice.audio.vad import SileroVoiceActivityDetector
+from voice.vad import SileroVoiceActivityDetector, VoiceActivityDetector
 
 logger = logging.getLogger(__name__)
 

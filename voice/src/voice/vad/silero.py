@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 
-from voice.audio.ports import VoiceActivityDetector
+from voice.vad.ports import VoiceActivityDetector
 
 _SAMPLE_RATE = 16_000
 _FRAME_SAMPLES = 512

@@ -10,10 +10,10 @@ dependencies = [
     "onnxruntime>=1.24.3",
     "pyaudio>=0.2.14",
     "pydantic>=2.7.0",
-    "sonosify>=0.4.1",
+    "sonosify>=0.4.3",
     "transitbus>=0.1.0",
-    "vocalbin>=0.3.0",
-    "wakewordkit>=0.2.0",
+    "vocalbin[cartesia, openai]>=0.5.0",
+    "wakewordkit>=0.4.0",
 ]
 
 [build-system]
