@@ -1,7 +1,6 @@
-from transitbus import EventBus
-
 from agent.events import SessionEnded, SessionStarted, UserSpeechEnded, UserTurnStarted
 from voice.events import WakeWordDetected
+from voice.events.bus import EventBus
 from voice.events.models import (
     VoiceInterruptionRequested,
     VoiceTurnEnded,
@@ -50,18 +49,18 @@ class WakeWordHandler:
     def _is_enabled(self) -> bool:
         return self._session_active and not self._listening
 
-    def _on_session_started(self, _: SessionStarted) -> None:
+    async def _on_session_started(self, _: SessionStarted) -> None:
         self._session_active = True
         self._listening = False
 
-    def _on_session_ended(self, _: SessionEnded) -> None:
+    async def _on_session_ended(self, _: SessionEnded) -> None:
         self._session_active = False
 
-    def _on_user_turn_started(self, _: UserTurnStarted) -> None:
+    async def _on_user_turn_started(self, _: UserTurnStarted) -> None:
         self._listening = True
 
-    def _on_user_speech_ended(self, _: UserSpeechEnded) -> None:
+    async def _on_user_speech_ended(self, _: UserSpeechEnded) -> None:
         self._listening = False
 
-    def _on_voice_turn_ended(self, _: VoiceTurnEnded) -> None:
+    async def _on_voice_turn_ended(self, _: VoiceTurnEnded) -> None:
         self._listening = False

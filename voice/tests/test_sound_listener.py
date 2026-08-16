@@ -1,9 +1,8 @@
 import asyncio
 
-from transitbus import EventBus
-
 from agent.events import SessionEnded
 from voice.events import WakeWordDetected
+from voice.events.bus import EventBus
 from voice.events.listener import Earcon, SoundListener
 
 

@@ -1,8 +1,7 @@
 from typing import Protocol
 
-from transitbus import EventBus
-
 from agent.events import AssistantInterrupted, AssistantTurnStarted
+from voice.events.bus import EventBus
 
 
 class LightVisualization(Protocol):

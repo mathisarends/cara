@@ -1,7 +1,6 @@
-from transitbus import EventBus
-
 from agent.events import AssistantInterrupted
 from voice.audio import PlaybackCoordinator
+from voice.events.bus import EventBus
 from voice.events.models import VoiceInterruptionRequested
 from voice.pipeline import TurnController
 

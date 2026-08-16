@@ -2,11 +2,10 @@ import asyncio
 from enum import StrEnum
 from pathlib import Path
 
-from transitbus import EventBus
-
 from agent.events import SessionEnded
 from voice.audio.output import AudioPlayback
-from voice.events import WakeWordDetected
+from voice.events import FollowUpTimedOut, WakeWordDetected
+from voice.events.bus import EventBus
 
 # parents[5]: sound_listener.py -> listener/events/voice/src/voice(project) -> cara
 _DEFAULT_SOUNDS_DIR = Path(__file__).parents[5] / "static" / "sounds"
@@ -46,10 +45,14 @@ class SoundListener:
         self._earcons = earcons
 
         event_bus.on(WakeWordDetected, self._on_wake_word_detected)
+        event_bus.on(FollowUpTimedOut, self._on_follow_up_timed_out)
         event_bus.on(SessionEnded, self._on_session_ended)
 
     async def _on_wake_word_detected(self, event: WakeWordDetected) -> None:
         await self._earcons.play(Earcon.WAKE)
+
+    async def _on_follow_up_timed_out(self, event: FollowUpTimedOut) -> None:
+        await self._earcons.play(Earcon.SLEEP)
 
     async def _on_session_ended(self, event: SessionEnded) -> None:
         await self._earcons.play(Earcon.SLEEP)

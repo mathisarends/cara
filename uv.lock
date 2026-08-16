@@ -1530,7 +1530,6 @@ dependencies = [
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "transitbus", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "vocalbin", extra = ["cartesia"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
@@ -1545,7 +1544,6 @@ requires-dist = [
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "sonosify", specifier = ">=0.4.3" },
-    { name = "transitbus", specifier = ">=0.1.0" },
     { name = "vocalbin", extras = ["cartesia", "openai"], specifier = ">=0.6.0" },
     { name = "wakewordkit", specifier = ">=0.4.0" },
 ]

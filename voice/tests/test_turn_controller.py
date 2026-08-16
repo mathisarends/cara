@@ -3,10 +3,9 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
-from transitbus import EventBus
-
 from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
+from voice.events.bus import EventBus
 from voice.handler import InterruptionHandler, WakeWordHandler
 from voice.pipeline import TurnController
 from voice.stt import SpeechToText, Transcription, TranscriptionKind

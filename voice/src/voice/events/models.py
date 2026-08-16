@@ -1,6 +1,10 @@
-from transitbus import Event
+from pydantic import BaseModel, ConfigDict
 
 from voice.stt import TranscriptionKind
+
+
+class Event(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 class WakeWordDetected(Event):
@@ -12,9 +16,10 @@ class WakeWordDetected(Event):
 
 
 class VoiceTurnRequested(Event):
-    """Requests a voice turn starting at an audio-hub sequence."""
+    """Requests a voice turn; without a sequence it starts at live audio."""
 
-    sequence: int
+    sequence: int | None = None
+    speech_start_timeout: float | None = None
 
 
 class VoiceInterruptionRequested(Event):
@@ -34,6 +39,18 @@ class VoiceTurnTimedOut(Event):
 class VoiceTurnFailed(Event):
     turn_id: int
     message: str
+
+
+class FollowUpCountdown(Event):
+    """Emitted once per remaining second while a follow-up window runs out."""
+
+    remaining_seconds: int
+
+
+class FollowUpTimedOut(Event):
+    """Emitted when a follow-up window closes without the user speaking."""
+
+    timeout_seconds: float
 
 
 class UserTranscriptionUpdated(Event):

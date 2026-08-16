@@ -1,15 +1,14 @@
 import logging
 
-from transitbus import EventBus
-
 from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
 from voice.echo_cancellation import wrap_with_echo_cancellation
+from voice.events.bus import EventBus
 from voice.events.listener import EarconPlayer, SoundListener
-from voice.handler import InterruptionHandler, WakeWordHandler
+from voice.handler import FollowUpHandler, InterruptionHandler, WakeWordHandler
 from voice.llm import ChatModel
 from voice.pipeline import TurnController
 from voice.stt import CartesiaSpeechToText, SpeechToText
@@ -88,6 +87,7 @@ class VoiceAgent:
             event_bus=self._event_bus,
             source=self._wake_word,
         )
+        self._follow_up_handler = FollowUpHandler(event_bus=self._event_bus)
 
     def _setup_listeners(self) -> None:
         earcons = EarconPlayer(self._playback)
@@ -114,6 +114,7 @@ class VoiceAgent:
         self._closed = True
 
         self._wake_word_handler.close()
+        self._follow_up_handler.close()
         await self._playback.interrupt()
         await self._controller.close()
         await self._audio_hub.stop()

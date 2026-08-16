@@ -3,8 +3,6 @@ import contextlib
 import re
 from collections.abc import AsyncIterator
 
-from transitbus import EventBus
-
 from agent.events import (
     AssistantSpeechStarted,
     AssistantTurnStarted,
@@ -24,6 +22,7 @@ from voice.events import (
     VoiceTurnFailed,
     VoiceTurnTimedOut,
 )
+from voice.events.bus import EventBus
 from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
 from voice.llm import ChatModel
 from voice.stt import SpeechToText, Transcription
@@ -98,9 +97,7 @@ class TurnController:
             return
         if self.has_active_turn:
             raise RuntimeError("Cannot start a voice turn while another is active.")
-        cursor = await self._audio_hub.cursor_for_detection(
-            event.sequence, pre_roll_seconds=self._pre_roll
-        )
+        cursor = await self._cursor_for(event)
         self._next_turn_id += 1
         turn_id = self._next_turn_id
         self._active_turn_id = turn_id
@@ -111,16 +108,23 @@ class TurnController:
             await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
             return
         self._active_task = asyncio.create_task(
-            self._run_turn(turn_id, cursor), name=f"voice-turn-{turn_id}"
+            self._run_turn(
+                turn_id,
+                cursor,
+                event.speech_start_timeout or self._speech_start_timeout,
+            ),
+            name=f"voice-turn-{turn_id}",
         )
 
-    async def _run_turn(self, turn_id: int, cursor: AudioCursor) -> None:
+    async def _run_turn(
+        self, turn_id: int, cursor: AudioCursor, speech_start_timeout: float
+    ) -> None:
         transcriptions: AsyncIterator | None = None
         try:
             transcriptions = self._stt.transcribe(_pcm_chunks(cursor))
             try:
                 first = await asyncio.wait_for(
-                    anext(transcriptions), timeout=self._speech_start_timeout
+                    anext(transcriptions), timeout=speech_start_timeout
                 )
             except TimeoutError:
                 await self._event_bus.dispatch(VoiceTurnTimedOut(turn_id=turn_id))
@@ -205,6 +209,13 @@ class TurnController:
                 is_final=update.is_final,
                 kind=update.kind,
             )
+        )
+
+    async def _cursor_for(self, event: VoiceTurnRequested) -> AudioCursor:
+        if event.sequence is None:
+            return await self._audio_hub.cursor()
+        return await self._audio_hub.cursor_for_detection(
+            event.sequence, pre_roll_seconds=self._pre_roll
         )
 
     def _is_current(self, turn_id: int) -> bool:
