@@ -20,14 +20,7 @@ class SetVolumeParams(ToolParams):
     )
 
 
-def build_audio_tools() -> agenttoolkit.Tools:
-    """Build audio-control actions for merging into an agent's tool catalog."""
-    tools = agenttoolkit.Tools()
-    _register_audio_tools(tools)
-    return tools
-
-
-def _register_audio_tools(tools: agenttoolkit.Tools) -> None:
+def register_output_tools(tools: agenttoolkit.Tools) -> None:
     @tools.action(
         description=description_from_context(
             AudioPlayer,
@@ -48,6 +41,8 @@ def _register_audio_tools(tools: agenttoolkit.Tools) -> None:
         player.set_output(params.output)
         return f"Audio output switched to {params.output.value!r}."
 
+
+def register_volume_tools(tools: agenttoolkit.Tools) -> None:
     @tools.action(
         description=(
             "Get the current playback volume of the active audio output, "

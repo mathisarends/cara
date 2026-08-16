@@ -2,7 +2,7 @@ import asyncio
 
 from agent.tools import create_tool_context, create_tools
 from voice.audio import AudioOutput, AudioPlayer
-from voice.tools import build_audio_tools
+from voice.tools import create_tools as create_voice_tools
 
 
 class SilentOutput:
@@ -27,7 +27,7 @@ class SilentOutput:
 def test_audio_tools_follow_injected_player_availability() -> None:
     context = create_tool_context(AudioPlayer(SilentOutput(AudioOutput.LOCAL)))
     tools = create_tools(context)
-    tools.merge(build_audio_tools())
+    tools.merge(create_voice_tools())
 
     available = {schema.name for schema in tools.get_schema()}
     assert "get_volume" in available
