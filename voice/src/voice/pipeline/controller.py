@@ -37,7 +37,7 @@ class TurnController:
         self,
         *,
         hub: AudioHub,
-        wake_words: WakeWordSource,
+        wake_word: WakeWordSource,
         speech_to_text: SpeechToText,
         llm: LanguageModel,
         text_to_speech: TextToSpeech,
@@ -53,13 +53,13 @@ class TurnController:
         if text_queue_size <= 0:
             raise ValueError("text_queue_size must be positive")
         self._hub = hub
-        self._wake_words = wake_words
+        self._wake_word = wake_word
         self._stt = speech_to_text
         self._llm = llm
         self._tts = text_to_speech
         self._playback = playback
-        self._events = event_bus
-        self._wake_word_phrase = wake_words.phrase
+        self._event_bus = event_bus
+        self._wake_word_phrase = wake_word.phrase
         self._pre_roll = command_pre_roll_seconds
         self._speech_start_timeout = speech_start_timeout
         self._tts_sample_rate = tts_sample_rate
@@ -81,7 +81,7 @@ class TurnController:
         await self._hub.start()
         self._state = TurnState.ARMED
         try:
-            async for detection in self._wake_words.detections():
+            async for detection in self._wake_word.detections():
                 await self._handle_detection(detection)
         finally:
             await self.close()
@@ -107,7 +107,7 @@ class TurnController:
             await self._playback.interrupt()
             previous.cancel()
             await asyncio.gather(previous, return_exceptions=True)
-            await self._events.dispatch(AssistantInterrupted())
+            await self._event_bus.dispatch(AssistantInterrupted())
 
         self._next_turn_id += 1
         turn_id = self._next_turn_id
@@ -116,7 +116,7 @@ class TurnController:
         self._active_task = asyncio.create_task(
             self._run_turn(turn_id, cursor), name=f"voice-turn-{turn_id}"
         )
-        await self._events.dispatch(
+        await self._event_bus.dispatch(
             WakeWordDetected(
                 score=detection.score,
                 sequence=detection.sequence,
@@ -127,36 +127,36 @@ class TurnController:
     async def _run_turn(self, turn_id: int, cursor: AudioCursor) -> None:
         transcriptions: AsyncIterator | None = None
         try:
-            await self._events.dispatch(UserTurnStarted())
+            await self._event_bus.dispatch(UserTurnStarted())
             transcriptions = self._stt.transcribe(_pcm_chunks(cursor))
             try:
                 first = await asyncio.wait_for(
                     anext(transcriptions), timeout=self._speech_start_timeout
                 )
             except TimeoutError:
-                await self._events.dispatch(VoiceTurnTimedOut(turn_id=turn_id))
+                await self._event_bus.dispatch(VoiceTurnTimedOut(turn_id=turn_id))
                 return
 
-            await self._events.dispatch(UserSpeechStarted())
+            await self._event_bus.dispatch(UserSpeechStarted())
             final_text = first.text if first.is_final else None
             while final_text is None:
                 update = await anext(transcriptions)
                 if update.is_final:
                     final_text = update.text
 
-            await self._events.dispatch(UserSpeechEnded())
+            await self._event_bus.dispatch(UserSpeechEnded())
             if not self._is_current(turn_id):
                 return
             text = _strip_known_wake_word(final_text, self._wake_word_phrase)
             self._state = TurnState.THINKING
-            await self._events.dispatch(AssistantTurnStarted())
+            await self._event_bus.dispatch(AssistantTurnStarted())
             await self._respond(turn_id, text)
         except asyncio.CancelledError:
             raise
         except StopAsyncIteration:
             pass
         except Exception as error:
-            await self._events.dispatch(
+            await self._event_bus.dispatch(
                 VoiceTurnFailed(turn_id=turn_id, message=str(error))
             )
         finally:
@@ -181,7 +181,7 @@ class TurnController:
             if not self._is_current(turn_id):
                 return
             self._state = TurnState.SPEAKING
-            asyncio.ensure_future(self._events.dispatch(AssistantSpeechStarted()))
+            asyncio.ensure_future(self._event_bus.dispatch(AssistantSpeechStarted()))
 
         try:
             pcm = self._tts.synthesize(_consume_text(queue))

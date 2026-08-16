@@ -5,9 +5,17 @@ from wakewordkit import WakeWord, WakeWordDetector
 
 from voice.audio.hub import AudioHub, AudioOverrunError
 from voice.pipeline.models import WakeWordDetection
+from voice.wakeword.port import WakeWordSource
+
+_WAKE_WORD_PHRASES = {
+    WakeWord.ALEXA: "alexa",
+    WakeWord.HEY_JARVIS: "hey jarvis",
+    WakeWord.HEY_MYCROFT: "hey mycroft",
+    WakeWord.HEY_MARVIN: "hey marvin",
+}
 
 
-class WakeWordListener:
+class WakeWordListener(WakeWordSource):
     """Runs wake-word inference from an AudioHub cursor without owning a device."""
 
     def __init__(
@@ -19,7 +27,7 @@ class WakeWordListener:
         cooldown: float = 1.5,
     ) -> None:
         self._hub = hub
-        self._phrase = wake_word.label.replace("_", " ")
+        self._phrase = _WAKE_WORD_PHRASES[wake_word]
         self._detector = WakeWordDetector(
             wake_word, threshold=sensitivity, cooldown=cooldown
         )

@@ -31,7 +31,7 @@ async def main() -> None:
     audio_input, audio_output = EchoCancellation().wrap(microphone, physical_output)
     hub = AudioHub(audio_input)
     playback = PlaybackCoordinator(audio_output)
-    wake_words = WakeWordListener(
+    wake_word = WakeWordListener(
         hub,
         wake_word=WakeWord.HEY_MYCROFT,
         sensitivity=0.5,
@@ -52,7 +52,7 @@ async def main() -> None:
 
     controller = TurnController(
         hub=hub,
-        wake_words=wake_words,
+        wake_word=wake_word,
         speech_to_text=speech_to_text,
         llm=EchoLanguageModel(),
         text_to_speech=text_to_speech,

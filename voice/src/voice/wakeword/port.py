@@ -1,11 +1,15 @@
+from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from typing import Protocol
 
 from voice.pipeline.models import WakeWordDetection
 
 
-class WakeWordSource(Protocol):
+class WakeWordSource(ABC):
     @property
-    def phrase(self) -> str: ...
+    @abstractmethod
+    def phrase(self) -> str:
+        """Return the exact phrase expected at the start of a transcript."""
 
-    def detections(self) -> AsyncIterator[WakeWordDetection]: ...
+    @abstractmethod
+    def detections(self) -> AsyncIterator[WakeWordDetection]:
+        """Yield detections while the shared audio capture is running."""

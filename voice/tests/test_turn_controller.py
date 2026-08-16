@@ -9,6 +9,7 @@ from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
 from voice.pipeline import TurnController, TurnState, WakeWordDetection
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
+from voice.wakeword import WakeWordSource
 
 
 class _Input(AudioInput):
@@ -43,7 +44,7 @@ class _Input(AudioInput):
             await asyncio.sleep(0)
 
 
-class _WakeWords:
+class _WakeWords(WakeWordSource):
     def __init__(self, input_device: _Input, output: _Output) -> None:
         self._input = input_device
         self._output = output
@@ -133,7 +134,7 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
         llm = _LanguageModel()
         controller = TurnController(
             hub=AudioHub(input_device),
-            wake_words=_WakeWords(input_device, output),
+            wake_word=_WakeWords(input_device, output),
             speech_to_text=stt,
             llm=llm,
             text_to_speech=_TextToSpeech(),
