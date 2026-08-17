@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 import re
 from collections.abc import AsyncIterator
 
@@ -24,6 +25,8 @@ from voice.events.bus import EventBus
 from voice.llm import ChatModel
 from voice.stt import SpeechToText, Transcription
 from voice.tts import TextToSpeech
+
+logger = logging.getLogger(__name__)
 
 _END = object()
 
@@ -75,6 +78,11 @@ class SpeechPipeline:
                     anext(transcriptions), timeout=speech_start_timeout
                 )
             except TimeoutError:
+                logger.debug(
+                    "Turn %d: no speech within %.1fs, timing out",
+                    turn_id,
+                    speech_start_timeout,
+                )
                 await self._event_bus.dispatch(VoiceTurnTimedOut(turn_id=turn_id))
                 return
             except StopAsyncIteration:
@@ -91,6 +99,7 @@ class SpeechPipeline:
 
             await self._event_bus.dispatch(UserSpeechEnded())
             text = _strip_known_wake_word(final_text, self._wake_word_phrase)
+            logger.debug("Turn %d: user said %r", turn_id, text)
             await self._event_bus.dispatch(AssistantTurnStarted())
             await self._respond(turn_id, text)
         finally:

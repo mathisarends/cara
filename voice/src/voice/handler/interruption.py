@@ -1,7 +1,11 @@
+import logging
+
 from agent.events import AssistantInterrupted
 from voice.events.bus import EventBus
 from voice.events.models import VoiceInterruptionRequested
 from voice.pipeline import TurnManager
+
+logger = logging.getLogger(__name__)
 
 
 class InterruptionHandler:
@@ -22,5 +26,6 @@ class InterruptionHandler:
         if not self._turns.has_active_turn:
             return
 
+        logger.info("Interrupting active voice turn")
         await self._turns.interrupt()
         await self._event_bus.dispatch(AssistantInterrupted())

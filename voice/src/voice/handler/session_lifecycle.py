@@ -1,7 +1,11 @@
+import logging
+
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
 from voice.stt import SpeechToText
 from voice.tts import TextToSpeech
+
+logger = logging.getLogger(__name__)
 
 
 class SpeechResourceHandler:
@@ -23,6 +27,8 @@ class SpeechResourceHandler:
 
     async def _close_speech_to_text(self, _: VoiceResourcesClosing) -> None:
         await self._speech_to_text.aclose()
+        logger.debug("Speech-to-text resources released")
 
     async def _close_text_to_speech(self, _: VoiceResourcesClosing) -> None:
         await self._text_to_speech.aclose()
+        logger.debug("Text-to-speech resources released")

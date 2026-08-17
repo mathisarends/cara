@@ -149,6 +149,7 @@ class VoiceAgent:
         logger.info('Listening for "Hey Mycroft". Press Ctrl+C to quit.')
         try:
             await self._event_bus.dispatch(SessionStarted())
+            logger.debug("Session started")
             await self._wake_word_handler.run()
         finally:
             await self.close()
@@ -162,5 +163,6 @@ class VoiceAgent:
             return
         self._closed = True
 
+        logger.debug("Session ending, closing voice resources")
         await self._event_bus.dispatch(SessionEnded())
         await self._event_bus.dispatch(VoiceResourcesClosing())

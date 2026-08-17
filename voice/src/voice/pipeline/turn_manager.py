@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from agent.events import SessionEnded, UserTurnStarted
 from voice.audio.hub import AudioCursor, AudioHub
@@ -9,6 +10,8 @@ from voice.events.models import (
     VoiceTurnRequested,
 )
 from voice.pipeline.speech import SpeechPipeline
+
+logger = logging.getLogger(__name__)
 
 
 class TurnManager:
@@ -66,6 +69,7 @@ class TurnManager:
         self._next_turn_id += 1
         turn_id = self._next_turn_id
         self._active_turn_id = turn_id
+        logger.info("Voice turn %d started", turn_id)
         await self._event_bus.dispatch(UserTurnStarted())
         if self._closed:
             self._active_turn_id = None
@@ -95,6 +99,7 @@ class TurnManager:
         except StopAsyncIteration:
             pass
         except Exception as error:
+            logger.exception("Voice turn %d failed", turn_id)
             await self._event_bus.dispatch(
                 VoiceTurnFailed(turn_id=turn_id, message=str(error))
             )
@@ -103,6 +108,7 @@ class TurnManager:
             if self._active_turn_id == turn_id:
                 self._active_turn_id = None
                 self._active_task = None
+                logger.info("Voice turn %d ended", turn_id)
                 await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
 
     async def _cursor_for(self, event: VoiceTurnRequested) -> AudioCursor:

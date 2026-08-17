@@ -1,3 +1,5 @@
+import logging
+
 from agent.events import SessionEnded, SessionStarted, UserSpeechEnded, UserTurnStarted
 from voice.events import WakeWordDetected
 from voice.events.bus import EventBus
@@ -7,6 +9,8 @@ from voice.events.models import (
     VoiceTurnRequested,
 )
 from voice.wakeword import WakeWordListener
+
+logger = logging.getLogger(__name__)
 
 
 class WakeWordHandler:
@@ -29,6 +33,12 @@ class WakeWordHandler:
             if not self._is_enabled:
                 continue
 
+            logger.info(
+                "Wake word %r detected (score=%.2f, sequence=%d)",
+                detection.name,
+                detection.score,
+                detection.sequence,
+            )
             await self._event_bus.dispatch(VoiceInterruptionRequested())
             if self._session_active:
                 await self._event_bus.dispatch(
