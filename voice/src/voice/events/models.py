@@ -64,6 +64,11 @@ class UserTranscriptionUpdated(Event):
     kind: TranscriptionKind
 
 
+class UserAudioChunk(Event):
+    turn_id: int
+    chunk: bytes
+
+
 class AssistantResponseStarted(Event):
     turn_id: int
 

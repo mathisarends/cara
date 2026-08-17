@@ -19,6 +19,7 @@ from voice.events import (
     AssistantResponseStarted,
     AssistantTextChunk,
     AssistantTextCompleted,
+    UserAudioChunk,
     UserTranscriptionUpdated,
     VoiceTurnFailed,
     VoiceTurnTimedOut,
@@ -126,7 +127,9 @@ class TurnController:
     ) -> None:
         transcriptions: AsyncIterator | None = None
         try:
-            transcriptions = self._stt.transcribe(_pcm_chunks(cursor))
+            transcriptions = self._stt.transcribe(
+                _pcm_chunks(cursor, self._event_bus, turn_id)
+            )
             try:
                 first = await asyncio.wait_for(
                     anext(transcriptions), timeout=speech_start_timeout
@@ -227,8 +230,11 @@ class TurnController:
         return self._active_turn_id == turn_id
 
 
-async def _pcm_chunks(cursor: AudioCursor) -> AsyncIterator[bytes]:
+async def _pcm_chunks(
+    cursor: AudioCursor, event_bus: EventBus, turn_id: int
+) -> AsyncIterator[bytes]:
     async for frame in cursor:
+        await event_bus.dispatch(UserAudioChunk(turn_id=turn_id, chunk=frame.pcm))
         yield frame.pcm
 
 

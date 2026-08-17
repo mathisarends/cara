@@ -1,11 +1,16 @@
 import logging
+from pathlib import Path
 
 from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
-from voice.conversation import ConversationHistory
+from voice.conversation import (
+    ConversationAudioMixer,
+    ConversationAudioRecorder,
+    ConversationHistory,
+)
 from voice.echo_cancellation import wrap_with_echo_cancellation
 from voice.events.bus import EventBus
 from voice.events.listener import EarconPlayer, SoundListener
@@ -18,6 +23,7 @@ from voice.handler import (
 )
 from voice.listener import AgentListener, AgentListenerBridge
 from voice.llm import ChatModel
+from voice.models import AgentResult
 from voice.pipeline import TurnController
 from voice.stt import CartesiaSpeechToText, SpeechToText
 from voice.tts import CartesiaTextToSpeech, RawOutputFormat, TextToSpeech
@@ -42,9 +48,11 @@ class VoiceAgent:
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
         listener: AgentListener | None = None,
+        recording_path: str | Path | None = None,
     ) -> None:
         self._event_bus = event_bus or EventBus()
         self._conversation_history = ConversationHistory(self._event_bus)
+        self._recording_path = Path(recording_path) if recording_path else None
         self._audio_session = (
             PortAudioSession() if audio_input is None or audio_output is None else None
         )
@@ -76,7 +84,7 @@ class VoiceAgent:
         )
         self._setup_handlers(llm)
         self._closed = False
-        self._setup_listeners(listener)
+        self._setup_listeners(listener, self._recording_path)
 
     @property
     def conversation_history(self) -> ConversationHistory:
@@ -111,7 +119,11 @@ class VoiceAgent:
             audio_session=self._audio_session,
         )
 
-    def _setup_listeners(self, listener: AgentListener | None) -> None:
+    def _setup_listeners(
+        self,
+        listener: AgentListener | None,
+        recording_path: str | Path | None,
+    ) -> None:
         earcons = EarconPlayer(self._playback)
         self._sound_listener = SoundListener(self._event_bus, earcons)
         if listener is not None:
@@ -120,8 +132,16 @@ class VoiceAgent:
                 listener=listener,
             )
             self._listener_bridge.setup()
+        if recording_path is not None:
+            self._audio_recorder = ConversationAudioRecorder(
+                self._event_bus,
+                ConversationAudioMixer(
+                    recording_path,
+                    user_sample_rate=self._audio_hub.format.sample_rate,
+                ),
+            )
 
-    async def run(self) -> None:
+    async def run(self) -> AgentResult:
         if self._closed:
             raise RuntimeError("Voice agent is closed.")
 
@@ -131,6 +151,10 @@ class VoiceAgent:
             await self._wake_word_handler.run()
         finally:
             await self.close()
+        return AgentResult(
+            recording_path=self._recording_path,
+            conversation_history=self._conversation_history.turns,
+        )
 
     async def close(self) -> None:
         if self._closed:

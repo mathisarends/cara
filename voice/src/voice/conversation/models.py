@@ -1,7 +1,7 @@
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ConversationRole(StrEnum):
@@ -24,3 +24,9 @@ class HumanMessage(ConversationTurn):
 class AssistantMessage(ConversationTurn):
     role: Literal[ConversationRole.ASSISTANT] = ConversationRole.ASSISTANT
     interrupted: bool = False
+
+
+type ConversationMessage = Annotated[
+    HumanMessage | AssistantMessage,
+    Field(discriminator="role"),
+]

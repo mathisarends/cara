@@ -7,14 +7,14 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 
-from .models import AssistantMessage, ConversationTurn, HumanMessage
+from .models import AssistantMessage, ConversationMessage, HumanMessage
 
 
 class ConversationHistory:
     """Builds an ordered conversation transcript from voice events."""
 
     def __init__(self, event_bus: EventBus) -> None:
-        self._turns: list[ConversationTurn] = []
+        self._turns: list[ConversationMessage] = []
         self._assistant_text: dict[int, list[str]] = {}
         self._active_assistant_turn_id: int | None = None
 
@@ -25,7 +25,7 @@ class ConversationHistory:
         event_bus.on(AssistantInterrupted, self._on_assistant_interrupted)
 
     @property
-    def turns(self) -> tuple[ConversationTurn, ...]:
+    def turns(self) -> tuple[ConversationMessage, ...]:
         return tuple(self._turns)
 
     async def _on_user_transcription_updated(
