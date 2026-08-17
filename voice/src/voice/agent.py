@@ -5,6 +5,7 @@ from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
+from voice.conversation import ConversationHistory
 from voice.echo_cancellation import wrap_with_echo_cancellation
 from voice.events.bus import EventBus
 from voice.events.listener import EarconPlayer, SoundListener
@@ -43,6 +44,7 @@ class VoiceAgent:
         listener: AgentListener | None = None,
     ) -> None:
         self._event_bus = event_bus or EventBus()
+        self._conversation_history = ConversationHistory(self._event_bus)
         self._audio_session = (
             PortAudioSession() if audio_input is None or audio_output is None else None
         )
@@ -75,6 +77,10 @@ class VoiceAgent:
         self._setup_handlers(llm)
         self._closed = False
         self._setup_listeners(listener)
+
+    @property
+    def conversation_history(self) -> ConversationHistory:
+        return self._conversation_history
 
     def _setup_handlers(self, llm: ChatModel) -> None:
         self._controller = TurnController(
