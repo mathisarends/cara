@@ -6,13 +6,13 @@ from voice.events.models import (
     VoiceTurnEnded,
     VoiceTurnRequested,
 )
-from voice.wakeword import WakeWordSource
+from voice.wakeword import WakeWordListener
 
 
 class WakeWordHandler:
     """Publishes wake words while the session is not listening to a user turn."""
 
-    def __init__(self, *, event_bus: EventBus, source: WakeWordSource) -> None:
+    def __init__(self, *, event_bus: EventBus, source: WakeWordListener) -> None:
         self._event_bus = event_bus
         self._source = source
         self._session_active = False

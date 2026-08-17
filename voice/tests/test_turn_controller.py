@@ -10,7 +10,7 @@ from voice.handler import InterruptionHandler, WakeWordHandler
 from voice.pipeline import TurnController
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
-from voice.wakeword import WakeWordDetection, WakeWordSource
+from voice.wakeword import WakeWordDetection
 
 
 class _Input(AudioInput):
@@ -45,7 +45,7 @@ class _Input(AudioInput):
             await asyncio.sleep(0)
 
 
-class _WakeWords(WakeWordSource):
+class _WakeWords:
     def __init__(self, input_device: _Input, output: _Output) -> None:
         self._input = input_device
         self._output = output

@@ -1,12 +1,11 @@
 from wakewordkit import WakeWord
 
 from .listener import WakeWordListener
-from .models import WakeWordDetection
-from .port import WakeWordSource
+from .models import WakeWordDetection, WakeWordSettings
 
 __all__ = [
     "WakeWord",
     "WakeWordDetection",
     "WakeWordListener",
-    "WakeWordSource",
+    "WakeWordSettings",
 ]

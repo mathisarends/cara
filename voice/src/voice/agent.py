@@ -27,7 +27,7 @@ from voice.models import AgentResult
 from voice.pipeline import TurnController
 from voice.stt import CartesiaSpeechToText, SpeechToText
 from voice.tts import CartesiaTextToSpeech, RawOutputFormat, TextToSpeech
-from voice.wakeword import WakeWord, WakeWordListener, WakeWordSource
+from voice.wakeword import WakeWordListener, WakeWordSettings
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class VoiceAgent:
         event_bus: EventBus | None = None,
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
-        wake_word: WakeWordSource | None = None,
+        wake_word_settings: WakeWordSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
         listener: AgentListener | None = None,
@@ -76,11 +76,9 @@ class VoiceAgent:
             language="de",
             output_format=RawOutputFormat(sample_rate=24_000),
         )
-        self._wake_word = wake_word or WakeWordListener(
+        self._wake_word = WakeWordListener(
             self._audio_hub,
-            wake_word=WakeWord.HEY_MYCROFT,
-            sensitivity=0.5,
-            cooldown=1.5,
+            settings=wake_word_settings or WakeWordSettings(),
         )
         self._setup_handlers(llm)
         self._closed = False

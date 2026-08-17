@@ -20,7 +20,7 @@ from voice.llm import EchoLanguageModel
 from voice.pipeline import TurnController
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
-from voice.wakeword import WakeWordDetection, WakeWordSource
+from voice.wakeword import WakeWordDetection
 
 
 class _ScriptedMicrophone(AudioInput):
@@ -61,7 +61,7 @@ class _ScriptedMicrophone(AudioInput):
             await asyncio.sleep(0.005)
 
 
-class _ScriptedWakeWords(WakeWordSource):
+class _ScriptedWakeWords:
     def __init__(
         self, microphone: _ScriptedMicrophone, first_audio: asyncio.Event
     ) -> None:
