@@ -26,6 +26,10 @@ class VoiceInterruptionRequested(Event):
     """Requests cancellation of the currently active voice turn, if any."""
 
 
+class VoiceResourcesClosing(Event):
+    """Requests release of resources after session-end handlers have finished."""
+
+
 class VoiceTurnEnded(Event):
     """Emitted whenever a requested voice turn releases its resources."""
 

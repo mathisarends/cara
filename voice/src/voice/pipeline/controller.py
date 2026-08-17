@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from agent.events import (
     AssistantSpeechStarted,
     AssistantTurnStarted,
+    SessionEnded,
     UserSpeechEnded,
     UserSpeechStarted,
     UserTurnStarted,
@@ -75,6 +76,7 @@ class TurnController:
         self._closed = False
 
         event_bus.on(VoiceTurnRequested, self._on_turn_requested)
+        event_bus.on(SessionEnded, self._on_session_ended)
 
     @property
     def has_active_turn(self) -> bool:
@@ -91,6 +93,9 @@ class TurnController:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
         return True
+
+    async def _on_session_ended(self, _: SessionEnded) -> None:
+        await self.close()
 
     async def _on_turn_requested(self, event: VoiceTurnRequested) -> None:
         if self._closed:

@@ -8,7 +8,14 @@ from voice.audio.session import PortAudioSession
 from voice.echo_cancellation import wrap_with_echo_cancellation
 from voice.events.bus import EventBus
 from voice.events.listener import EarconPlayer, SoundListener
-from voice.handler import FollowUpHandler, InterruptionHandler, WakeWordHandler
+from voice.events.models import VoiceResourcesClosing
+from voice.handler import (
+    FollowUpHandler,
+    InterruptionHandler,
+    SessionLifecycleHandler,
+    WakeWordHandler,
+)
+from voice.listener import AgentListener, AgentListenerBridge
 from voice.llm import ChatModel
 from voice.pipeline import TurnController
 from voice.stt import CartesiaSpeechToText, SpeechToText
@@ -33,6 +40,7 @@ class VoiceAgent:
         wake_word: WakeWordSource | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
+        listener: AgentListener | None = None,
     ) -> None:
         self._event_bus = event_bus or EventBus()
         self._audio_session = (
@@ -66,7 +74,7 @@ class VoiceAgent:
         )
         self._setup_handlers(llm)
         self._closed = False
-        self._setup_listeners()
+        self._setup_listeners(listener)
 
     def _setup_handlers(self, llm: ChatModel) -> None:
         self._controller = TurnController(
@@ -88,10 +96,24 @@ class VoiceAgent:
             source=self._wake_word,
         )
         self._follow_up_handler = FollowUpHandler(event_bus=self._event_bus)
+        self._session_lifecycle_handler = SessionLifecycleHandler(
+            event_bus=self._event_bus,
+            audio_hub=self._audio_hub,
+            playback=self._playback,
+            speech_to_text=self._speech_to_text,
+            text_to_speech=self._text_to_speech,
+            audio_session=self._audio_session,
+        )
 
-    def _setup_listeners(self) -> None:
+    def _setup_listeners(self, listener: AgentListener | None) -> None:
         earcons = EarconPlayer(self._playback)
         self._sound_listener = SoundListener(self._event_bus, earcons)
+        if listener is not None:
+            self._listener_bridge = AgentListenerBridge(
+                event_bus=self._event_bus,
+                listener=listener,
+            )
+            self._listener_bridge.setup()
 
     async def run(self) -> None:
         if self._closed:
@@ -100,26 +122,14 @@ class VoiceAgent:
         logger.info('Listening for "Hey Mycroft". Press Ctrl+C to quit.')
         try:
             await self._event_bus.dispatch(SessionStarted())
-            await self._audio_hub.start()
             await self._wake_word_handler.run()
         finally:
-            try:
-                await self._event_bus.dispatch(SessionEnded())
-            finally:
-                await self.close()
+            await self.close()
 
     async def close(self) -> None:
         if self._closed:
             return
         self._closed = True
 
-        self._wake_word_handler.close()
-        self._follow_up_handler.close()
-        await self._playback.interrupt()
-        await self._controller.close()
-        await self._audio_hub.stop()
-        await self._speech_to_text.aclose()
-        await self._text_to_speech.aclose()
-        await self._playback.stop()
-        if self._audio_session is not None:
-            self._audio_session.close()
+        await self._event_bus.dispatch(SessionEnded())
+        await self._event_bus.dispatch(VoiceResourcesClosing())
