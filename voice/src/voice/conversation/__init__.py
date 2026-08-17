@@ -1,4 +1,15 @@
 from .history import ConversationHistory
-from .models import ConversationRole, ConversationTurn
+from .models import (
+    AssistantMessage,
+    ConversationRole,
+    ConversationTurn,
+    HumanMessage,
+)
 
-__all__ = ["ConversationHistory", "ConversationRole", "ConversationTurn"]
+__all__ = [
+    "AssistantMessage",
+    "ConversationHistory",
+    "ConversationRole",
+    "ConversationTurn",
+    "HumanMessage",
+]
