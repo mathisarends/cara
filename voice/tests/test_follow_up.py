@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
 from agent.events import SessionEnded, SessionStarted
-from voice.audio import AudioBridge, AudioInput, AudioOutput
+from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.events import FollowUpCountdown, FollowUpTimedOut
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
@@ -96,9 +96,10 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         input_device = _Input()
         stt = _SpeechToText()
         event_bus = EventBus()
-        audio = AudioBridge(
+        audio_hub = AudioHub(input_device)
+        AudioBridge(
             event_bus=event_bus,
-            input_device=input_device,
+            audio_hub=audio_hub,
             output_device=_Output(),
         )
         pipeline = SpeechPipeline(
@@ -109,7 +110,7 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
             event_bus=event_bus,
         )
         turns = TurnManager(
-            audio_hub=audio.capture,
+            audio_hub=audio_hub,
             pipeline=pipeline,
             event_bus=event_bus,
         )

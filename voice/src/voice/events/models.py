@@ -105,3 +105,9 @@ class AssistantPlaybackCompleted(Event):
     """Emitted after the produced PCM has reached the audio output."""
 
     turn_id: int
+
+
+class AudioPlaybackRequested(Event):
+    """Requests playback of a complete WAV clip on the shared audio output."""
+
+    audio: bytes

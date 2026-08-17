@@ -1,38 +1,45 @@
 import asyncio
 
 from agent.events import SessionEnded
-from voice.events import WakeWordDetected
+from voice.events import AudioPlaybackRequested, WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.listener import Earcon, SoundListener
-
-
-class RecordingEarconPlayer:
-    def __init__(self) -> None:
-        self.earcons: list[Earcon] = []
-
-    async def play(self, earcon: Earcon) -> None:
-        self.earcons.append(earcon)
+from voice.events.listener.sound_listener import _DEFAULT_SOUNDS_DIR
 
 
 def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> None:
-    async def run() -> list[Earcon]:
+    async def run() -> list[bytes]:
         event_bus = EventBus()
-        earcons = RecordingEarconPlayer()
-        SoundListener(event_bus, earcons)
+        requested: list[bytes] = []
+
+        async def capture(event: AudioPlaybackRequested) -> None:
+            requested.append(event.audio)
+
+        event_bus.on(AudioPlaybackRequested, capture)
+        SoundListener(event_bus)
         await event_bus.dispatch(
             WakeWordDetected(score=0.8, sequence=4, name="hey_mycroft")
         )
-        return earcons.earcons
+        return requested
 
-    assert asyncio.run(run()) == [Earcon.WAKE]
+    assert asyncio.run(run()) == [
+        (_DEFAULT_SOUNDS_DIR / f"{Earcon.WAKE}.wav").read_bytes()
+    ]
 
 
 def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
-    async def run() -> list[Earcon]:
+    async def run() -> list[bytes]:
         event_bus = EventBus()
-        earcons = RecordingEarconPlayer()
-        SoundListener(event_bus, earcons)
-        await event_bus.dispatch(SessionEnded())
-        return earcons.earcons
+        requested: list[bytes] = []
 
-    assert asyncio.run(run()) == [Earcon.SLEEP]
+        async def capture(event: AudioPlaybackRequested) -> None:
+            requested.append(event.audio)
+
+        event_bus.on(AudioPlaybackRequested, capture)
+        SoundListener(event_bus)
+        await event_bus.dispatch(SessionEnded())
+        return requested
+
+    assert asyncio.run(run()) == [
+        (_DEFAULT_SOUNDS_DIR / f"{Earcon.SLEEP}.wav").read_bytes()
+    ]

@@ -13,7 +13,7 @@ import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
 from agent.events import SessionEnded, SessionStarted
-from voice.audio import AudioBridge, AudioInput, AudioOutput
+from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import InterruptionHandler, WakeWordHandler
@@ -158,9 +158,10 @@ async def _run() -> None:
     microphone = _ScriptedMicrophone()
     output = _TraceOutput(first_audio)
     event_bus = EventBus()
-    audio = AudioBridge(
+    audio_hub = AudioHub(microphone)
+    AudioBridge(
         event_bus=event_bus,
-        input_device=microphone,
+        audio_hub=audio_hub,
         output_device=output,
     )
     wake_words = _ScriptedWakeWords(microphone, first_audio)
@@ -172,7 +173,7 @@ async def _run() -> None:
         event_bus=event_bus,
     )
     turns = TurnManager(
-        audio_hub=audio.capture,
+        audio_hub=audio_hub,
         pipeline=pipeline,
         event_bus=event_bus,
     )

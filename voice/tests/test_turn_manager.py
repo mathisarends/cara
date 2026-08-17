@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
 from agent.events import SessionEnded, SessionStarted
-from voice.audio import AudioBridge, AudioInput, AudioOutput
+from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import InterruptionHandler, WakeWordHandler
@@ -135,9 +135,10 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
         stt = _SpeechToText()
         llm = _LanguageModel()
         event_bus = EventBus()
-        audio = AudioBridge(
+        audio_hub = AudioHub(input_device)
+        AudioBridge(
             event_bus=event_bus,
-            input_device=input_device,
+            audio_hub=audio_hub,
             output_device=output,
         )
         wake_words = _WakeWords(input_device, output)
@@ -149,7 +150,7 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
             event_bus=event_bus,
         )
         turns = TurnManager(
-            audio_hub=audio.capture,
+            audio_hub=audio_hub,
             pipeline=pipeline,
             event_bus=event_bus,
         )

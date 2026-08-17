@@ -4,19 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from voice.events.listener import Earcon, EarconPlayer
+from voice.events import AudioPlaybackRequested, WakeWordDetected
+from voice.events.bus import EventBus
+from voice.events.listener import Earcon, SoundListener
 from voice.events.listener.sound_listener import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
-
-
-class RecordingAudioPlayer:
-    def __init__(self, *, error: Exception | None = None) -> None:
-        self.audio: list[bytes] = []
-        self._error = error
-
-    async def play(self, audio: bytes, *, cancel: asyncio.Event | None = None) -> None:
-        self.audio.append(audio)
-        if self._error is not None:
-            raise self._error
 
 
 @pytest.mark.parametrize("earcon", list(Earcon))
@@ -45,15 +36,22 @@ def test_player_warms_cache_and_play_uses_cached_wav_bytes(
 
     monkeypatch.setattr(Path, "read_bytes", count_read_bytes)
 
-    async def run() -> RecordingAudioPlayer:
-        player = RecordingAudioPlayer()
-        earcons = EarconPlayer(player, sounds_dir=tmp_path)
+    async def run() -> list[bytes]:
+        event_bus = EventBus()
+        requested: list[bytes] = []
+
+        async def capture(event: AudioPlaybackRequested) -> None:
+            requested.append(event.audio)
+
+        event_bus.on(AudioPlaybackRequested, capture)
+        SoundListener(event_bus, sounds_dir=tmp_path)
         assert reads == len(Earcon)
-        await earcons.play(Earcon.WAKE)
-        await earcons.play(Earcon.WAKE)
-        return player
+        wake_word = WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft")
+        await event_bus.dispatch(wake_word)
+        await event_bus.dispatch(wake_word)
+        return requested
 
-    player = asyncio.run(run())
+    requested = asyncio.run(run())
 
-    assert player.audio == [sounds[Earcon.WAKE], sounds[Earcon.WAKE]]
+    assert requested == [sounds[Earcon.WAKE], sounds[Earcon.WAKE]]
     assert reads == len(Earcon)

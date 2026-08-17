@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 from agent.events import AssistantSpeechStarted, SessionStarted
-from voice.audio import AudioBridge, AudioInput, AudioOutput
+from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.events import (
     AssistantAudioChunk,
     AssistantAudioCompleted,
@@ -83,7 +83,7 @@ def test_bridge_publishes_playback_completion_after_the_output_finishes() -> Non
         output = _Output()
         AudioBridge(
             event_bus=event_bus,
-            input_device=_Input(),
+            audio_hub=AudioHub(_Input()),
             output_device=output,
         )
         lifecycle: list[str] = []
@@ -124,7 +124,7 @@ def test_bridge_reports_output_failure_without_blocking_the_pipeline() -> None:
         event_bus = EventBus()
         AudioBridge(
             event_bus=event_bus,
-            input_device=_Input(),
+            audio_hub=AudioHub(_Input()),
             output_device=_FailingOutput(),
             playback_queue_size=1,
         )

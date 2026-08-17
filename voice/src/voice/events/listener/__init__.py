@@ -1,7 +1,6 @@
-from .sound_listener import Earcon, EarconPlayer, SoundListener
+from .sound_listener import Earcon, SoundListener
 
 __all__ = [
     "Earcon",
-    "EarconPlayer",
     "SoundListener",
 ]
