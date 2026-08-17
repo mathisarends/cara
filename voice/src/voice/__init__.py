@@ -11,7 +11,7 @@ from .conversation import (
 )
 from .listener import AgentListener, AgentListenerBridge
 from .models import AgentResult
-from .pipeline import TurnController
+from .pipeline import SpeechPipeline, TurnManager
 from .wakeword import WakeWordSettings
 
 __all__ = [
@@ -26,7 +26,8 @@ __all__ = [
     "ConversationRole",
     "ConversationTurn",
     "HumanMessage",
-    "TurnController",
+    "SpeechPipeline",
+    "TurnManager",
     "VoiceAgent",
     "WakeWordSettings",
 ]

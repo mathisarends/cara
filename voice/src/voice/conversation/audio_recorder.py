@@ -1,7 +1,7 @@
 import logging
 
 from agent.events import AssistantInterrupted, AssistantSpeechStarted
-from voice.events import AssistantAudioChunk, AssistantAudioCompleted, UserAudioChunk
+from voice.events import AssistantAudioChunk, AssistantPlaybackCompleted, UserAudioChunk
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
 
@@ -18,7 +18,7 @@ class ConversationAudioRecorder:
         self._assistant_speaking = False
 
         event_bus.on(AssistantSpeechStarted, self._on_assistant_started)
-        event_bus.on(AssistantAudioCompleted, self._on_assistant_stopped)
+        event_bus.on(AssistantPlaybackCompleted, self._on_assistant_stopped)
         event_bus.on(AssistantInterrupted, self._on_assistant_interrupted)
         event_bus.on(UserAudioChunk, self._on_user_audio)
         event_bus.on(AssistantAudioChunk, self._on_assistant_audio)
@@ -27,7 +27,7 @@ class ConversationAudioRecorder:
     async def _on_assistant_started(self, _: AssistantSpeechStarted) -> None:
         self._assistant_speaking = True
 
-    async def _on_assistant_stopped(self, _: AssistantAudioCompleted) -> None:
+    async def _on_assistant_stopped(self, _: AssistantPlaybackCompleted) -> None:
         self._assistant_speaking = False
         self._mixer.finalize()
 

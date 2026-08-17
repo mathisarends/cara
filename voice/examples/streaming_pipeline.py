@@ -13,11 +13,12 @@ import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
 from agent.events import SessionEnded, SessionStarted
-from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
+from voice.audio import AudioBridge, AudioInput, AudioOutput
 from voice.events.bus import EventBus
+from voice.events.models import VoiceResourcesClosing
 from voice.handler import InterruptionHandler, WakeWordHandler
 from voice.llm import EchoLanguageModel
-from voice.pipeline import TurnController
+from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
 from voice.wakeword import WakeWordDetection
@@ -157,37 +158,39 @@ async def _run() -> None:
     microphone = _ScriptedMicrophone()
     output = _TraceOutput(first_audio)
     event_bus = EventBus()
-    audio_hub = AudioHub(microphone)
-    playback = PlaybackCoordinator(output)
+    audio = AudioBridge(
+        event_bus=event_bus,
+        input_device=microphone,
+        output_device=output,
+    )
     wake_words = _ScriptedWakeWords(microphone, first_audio)
-    controller = TurnController(
-        audio_hub=audio_hub,
+    pipeline = SpeechPipeline(
         wake_word_phrase=wake_words.phrase,
         speech_to_text=_ScriptedSpeechToText(),
         llm=EchoLanguageModel(),
         text_to_speech=_TraceTextToSpeech(),
-        playback=playback,
+        event_bus=event_bus,
+    )
+    turns = TurnManager(
+        audio_hub=audio.capture,
+        pipeline=pipeline,
         event_bus=event_bus,
     )
     InterruptionHandler(
         event_bus=event_bus,
-        turns=controller,
-        playback=playback,
+        turns=turns,
     )
     wake_word_handler = WakeWordHandler(
         event_bus=event_bus,
         source=wake_words,
     )
     await event_bus.dispatch(SessionStarted())
-    await audio_hub.start()
     task = asyncio.create_task(wake_word_handler.run())
     while output.completed < 1:
         await asyncio.sleep(0.01)
     await event_bus.dispatch(SessionEnded())
     wake_word_handler.close()
-    await playback.interrupt()
-    await controller.close()
-    await audio_hub.stop()
+    await event_bus.dispatch(VoiceResourcesClosing())
     await task
     print(f"capture: total opens = {microphone.opens}")
 

@@ -7,7 +7,7 @@ from agent.events import (
     UserSpeechStarted,
 )
 from voice.events import (
-    AssistantAudioCompleted,
+    AssistantPlaybackCompleted,
     FollowUpCountdown,
     FollowUpTimedOut,
     VoiceTurnFailed,
@@ -107,6 +107,6 @@ class AgentListenerBridge:
             lambda _: listener.on_assistant_started_responding(),
         )
         bus.on(
-            AssistantAudioCompleted,
+            AssistantPlaybackCompleted,
             lambda _: listener.on_assistant_stopped_responding(),
         )

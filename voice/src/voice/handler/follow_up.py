@@ -4,7 +4,7 @@ import time
 
 from agent.events import SessionEnded, UserSpeechStarted
 from voice.events import (
-    AssistantAudioCompleted,
+    AssistantPlaybackCompleted,
     FollowUpCountdown,
     FollowUpTimedOut,
     VoiceTurnTimedOut,
@@ -40,7 +40,7 @@ class FollowUpHandler:
         self._window_open = False
         self._countdown: asyncio.Task[None] | None = None
 
-        event_bus.on(AssistantAudioCompleted, self._on_response_completed)
+        event_bus.on(AssistantPlaybackCompleted, self._on_response_completed)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on(UserSpeechStarted, self._on_user_speech_started)
         event_bus.on(VoiceTurnTimedOut, self._on_turn_timed_out)
@@ -51,7 +51,7 @@ class FollowUpHandler:
         self._armed = False
         self._close_window()
 
-    async def _on_response_completed(self, _: AssistantAudioCompleted) -> None:
+    async def _on_response_completed(self, _: AssistantPlaybackCompleted) -> None:
         self._armed = True
 
     async def _on_turn_ended(self, _: VoiceTurnEnded) -> None:

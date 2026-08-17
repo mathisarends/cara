@@ -82,10 +82,26 @@ class AssistantTextCompleted(Event):
     turn_id: int
 
 
+class AssistantAudioStarted(Event):
+    """Declares the format of the PCM stream produced for one response."""
+
+    turn_id: int
+    sample_rate: int
+    channels: int = 1
+
+
 class AssistantAudioChunk(Event):
     turn_id: int
     chunk: bytes
 
 
 class AssistantAudioCompleted(Event):
+    """Emitted when TTS has finished producing PCM for a response."""
+
+    turn_id: int
+
+
+class AssistantPlaybackCompleted(Event):
+    """Emitted after the produced PCM has reached the audio output."""
+
     turn_id: int

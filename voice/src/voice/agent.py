@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from agent.events import SessionEnded, SessionStarted
-from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
+from voice.audio import AudioBridge, AudioInput, AudioOutput
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
@@ -18,13 +18,13 @@ from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
     FollowUpHandler,
     InterruptionHandler,
-    SessionLifecycleHandler,
+    SpeechResourceHandler,
     WakeWordHandler,
 )
 from voice.listener import AgentListener, AgentListenerBridge
 from voice.llm import ChatModel
 from voice.models import AgentResult
-from voice.pipeline import TurnController
+from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import CartesiaSpeechToText, SpeechToText
 from voice.tts import CartesiaTextToSpeech, RawOutputFormat, TextToSpeech
 from voice.wakeword import WakeWordListener, WakeWordSettings
@@ -66,10 +66,14 @@ class VoiceAgent:
             physical_output,
         )
 
-        self._audio_hub = AudioHub(echo_cancelled_input)
-        self._playback = PlaybackCoordinator(echo_referenced_output)
+        self._audio = AudioBridge(
+            event_bus=self._event_bus,
+            input_device=echo_cancelled_input,
+            output_device=echo_referenced_output,
+            audio_session=self._audio_session,
+        )
         self._speech_to_text = speech_to_text or CartesiaSpeechToText(
-            sample_rate=self._audio_hub.format.sample_rate
+            sample_rate=self._audio.format.sample_rate
         )
         self._text_to_speech = text_to_speech or CartesiaTextToSpeech(
             voice_id=_DEFAULT_CARTESIA_VOICE_ID,
@@ -77,7 +81,7 @@ class VoiceAgent:
             output_format=RawOutputFormat(sample_rate=24_000),
         )
         self._wake_word = WakeWordListener(
-            self._audio_hub,
+            self._audio.capture,
             settings=wake_word_settings or WakeWordSettings(),
         )
         self._setup_handlers(llm)
@@ -89,32 +93,31 @@ class VoiceAgent:
         return self._conversation_history
 
     def _setup_handlers(self, llm: ChatModel) -> None:
-        self._controller = TurnController(
-            audio_hub=self._audio_hub,
+        self._pipeline = SpeechPipeline(
             wake_word_phrase=self._wake_word.phrase,
             speech_to_text=self._speech_to_text,
             llm=llm,
             text_to_speech=self._text_to_speech,
-            playback=self._playback,
+            event_bus=self._event_bus,
+        )
+        self._turns = TurnManager(
+            audio_hub=self._audio.capture,
+            pipeline=self._pipeline,
             event_bus=self._event_bus,
         )
         self._interruption_handler = InterruptionHandler(
             event_bus=self._event_bus,
-            turns=self._controller,
-            playback=self._playback,
+            turns=self._turns,
         )
         self._wake_word_handler = WakeWordHandler(
             event_bus=self._event_bus,
             source=self._wake_word,
         )
         self._follow_up_handler = FollowUpHandler(event_bus=self._event_bus)
-        self._session_lifecycle_handler = SessionLifecycleHandler(
+        self._speech_resource_handler = SpeechResourceHandler(
             event_bus=self._event_bus,
-            audio_hub=self._audio_hub,
-            playback=self._playback,
             speech_to_text=self._speech_to_text,
             text_to_speech=self._text_to_speech,
-            audio_session=self._audio_session,
         )
 
     def _setup_listeners(
@@ -122,7 +125,7 @@ class VoiceAgent:
         listener: AgentListener | None,
         recording_path: str | Path | None,
     ) -> None:
-        earcons = EarconPlayer(self._playback)
+        earcons = EarconPlayer(self._audio)
         self._sound_listener = SoundListener(self._event_bus, earcons)
         if listener is not None:
             self._listener_bridge = AgentListenerBridge(
@@ -135,7 +138,7 @@ class VoiceAgent:
                 self._event_bus,
                 ConversationAudioMixer(
                     recording_path,
-                    user_sample_rate=self._audio_hub.format.sample_rate,
+                    user_sample_rate=self._audio.format.sample_rate,
                 ),
             )
 

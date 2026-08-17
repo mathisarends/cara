@@ -1,12 +1,13 @@
 import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
-from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
+from agent.events import SessionEnded, SessionStarted
+from voice.audio import AudioBridge, AudioInput, AudioOutput
 from voice.events import FollowUpCountdown, FollowUpTimedOut
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnRequested
+from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
 from voice.handler import FollowUpHandler
-from voice.pipeline import TurnController
+from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
 
@@ -95,15 +96,21 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         input_device = _Input()
         stt = _SpeechToText()
         event_bus = EventBus()
-        audio_hub = AudioHub(input_device)
-        playback = PlaybackCoordinator(_Output())
-        controller = TurnController(
-            audio_hub=audio_hub,
+        audio = AudioBridge(
+            event_bus=event_bus,
+            input_device=input_device,
+            output_device=_Output(),
+        )
+        pipeline = SpeechPipeline(
             wake_word_phrase="hey mycroft",
             speech_to_text=stt,
             llm=_LanguageModel(),
             text_to_speech=_TextToSpeech(),
-            playback=playback,
+            event_bus=event_bus,
+        )
+        turns = TurnManager(
+            audio_hub=audio.capture,
+            pipeline=pipeline,
             event_bus=event_bus,
         )
         follow_up = FollowUpHandler(
@@ -121,15 +128,15 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         event_bus.on(FollowUpCountdown, capture_countdown)
         event_bus.on(FollowUpTimedOut, capture_timeout)
 
-        await audio_hub.start()
+        await event_bus.dispatch(SessionStarted())
         try:
             await event_bus.dispatch(VoiceTurnRequested(sequence=0))
             timed_out = await asyncio.wait_for(timed_out_event, timeout=5.0)
         finally:
             follow_up.close()
-            await controller.close()
-            await audio_hub.stop()
-            await playback.stop()
+            await event_bus.dispatch(SessionEnded())
+            await turns.close()
+            await event_bus.dispatch(VoiceResourcesClosing())
 
         return stt, countdowns, timed_out
 

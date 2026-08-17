@@ -1,6 +1,8 @@
 from .models import (
     AssistantAudioChunk,
     AssistantAudioCompleted,
+    AssistantAudioStarted,
+    AssistantPlaybackCompleted,
     AssistantResponseStarted,
     AssistantTextChunk,
     AssistantTextCompleted,
@@ -16,6 +18,8 @@ from .models import (
 __all__ = [
     "AssistantAudioChunk",
     "AssistantAudioCompleted",
+    "AssistantAudioStarted",
+    "AssistantPlaybackCompleted",
     "AssistantResponseStarted",
     "AssistantTextChunk",
     "AssistantTextCompleted",

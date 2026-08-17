@@ -1,3 +1,4 @@
-from .controller import TurnController
+from .speech import SpeechPipeline
+from .turn_manager import TurnManager
 
-__all__ = ["TurnController"]
+__all__ = ["SpeechPipeline", "TurnManager"]

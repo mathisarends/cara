@@ -4,10 +4,11 @@ import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
 from agent.events import SessionEnded, SessionStarted
-from voice.audio import AudioHub, AudioInput, AudioOutput, PlaybackCoordinator
+from voice.audio import AudioBridge, AudioInput, AudioOutput
 from voice.events.bus import EventBus
+from voice.events.models import VoiceResourcesClosing
 from voice.handler import InterruptionHandler, WakeWordHandler
-from voice.pipeline import TurnController
+from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
 from voice.wakeword import WakeWordDetection
@@ -134,22 +135,27 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
         stt = _SpeechToText()
         llm = _LanguageModel()
         event_bus = EventBus()
-        audio_hub = AudioHub(input_device)
-        playback = PlaybackCoordinator(output)
+        audio = AudioBridge(
+            event_bus=event_bus,
+            input_device=input_device,
+            output_device=output,
+        )
         wake_words = _WakeWords(input_device, output)
-        controller = TurnController(
-            audio_hub=audio_hub,
+        pipeline = SpeechPipeline(
             wake_word_phrase=wake_words.phrase,
             speech_to_text=stt,
             llm=llm,
             text_to_speech=_TextToSpeech(),
-            playback=playback,
+            event_bus=event_bus,
+        )
+        turns = TurnManager(
+            audio_hub=audio.capture,
+            pipeline=pipeline,
             event_bus=event_bus,
         )
         InterruptionHandler(
             event_bus=event_bus,
-            turns=controller,
-            playback=playback,
+            turns=turns,
         )
         wake_word_handler = WakeWordHandler(
             event_bus=event_bus,
@@ -157,15 +163,12 @@ def test_barge_in_cancels_old_audio_and_reuses_the_capture_loop() -> None:
         )
 
         await event_bus.dispatch(SessionStarted())
-        await audio_hub.start()
         try:
             await wake_word_handler.run()
         finally:
             await event_bus.dispatch(SessionEnded())
             wake_word_handler.close()
-            await playback.interrupt()
-            await controller.close()
-            await audio_hub.stop()
+            await event_bus.dispatch(VoiceResourcesClosing())
 
         return input_device, stt, llm, output
 
