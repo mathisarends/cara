@@ -5,8 +5,7 @@ Run from the repository root with:
     uv run python voice/examples/streaming_pipeline.py
 
 The trace demonstrates that capture remains open, eager STT updates do not start
-the model, text and PCM stream incrementally, and a second wake word interrupts
-the first response before starting another STT turn.
+the model, and text and PCM stream incrementally.
 """
 
 import asyncio
@@ -16,7 +15,7 @@ from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
-from voice.handler import InterruptionHandler, WakeWordHandler
+from voice.handler import WakeWordHandler
 from voice.llm import EchoLanguageModel
 from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
@@ -63,11 +62,8 @@ class _ScriptedMicrophone(AudioInput):
 
 
 class _ScriptedWakeWords:
-    def __init__(
-        self, microphone: _ScriptedMicrophone, first_audio: asyncio.Event
-    ) -> None:
+    def __init__(self, microphone: _ScriptedMicrophone) -> None:
         self._microphone = microphone
-        self._first_audio = first_audio
 
     @property
     def phrase(self) -> str:
@@ -75,13 +71,8 @@ class _ScriptedWakeWords:
 
     async def detections(self) -> AsyncIterator[WakeWordDetection]:
         await _wait_for_frames(self._microphone, 4)
-        print("wake: first detection")
+        print("wake: detected")
         yield WakeWordDetection(3, 0.91, "hey_mycroft")
-
-        await self._first_audio.wait()
-        sequence = self._microphone.frames_sent - 1
-        print("wake: barge-in while the first response is speaking")
-        yield WakeWordDetection(sequence, 0.94, "hey_mycroft")
 
         while self._microphone.is_active:
             await asyncio.sleep(0.01)
@@ -102,11 +93,7 @@ class _ScriptedSpeechToText(SpeechToText):
         yield Transcription("vorläufig", False, TranscriptionKind.EAGER_END)
         print(f"stt[{self._turn}]: eager end (the model is still idle)")
         await asyncio.sleep(0.02)
-        text = (
-            "Hey Mycroft erzähle eine lange Geschichte"
-            if self._turn == 1
-            else "Hey Mycroft sage kurz tschüss"
-        )
+        text = "Hey Mycroft erzähle eine lange Geschichte"
         print(f"stt[{self._turn}]: final transcript: {text!r}")
         yield Transcription(text, True, TranscriptionKind.END)
 
@@ -120,9 +107,8 @@ class _TraceTextToSpeech(TextToSpeech):
 
 
 class _TraceOutput(AudioOutput):
-    def __init__(self, first_audio: asyncio.Event) -> None:
+    def __init__(self) -> None:
         self._active = False
-        self._first_audio = first_audio
         self.completed = 0
 
     @property
@@ -137,7 +123,6 @@ class _TraceOutput(AudioOutput):
         self._active = False
 
     async def play_chunk(self, chunk: bytes) -> None:
-        self._first_audio.set()
         print(f"output: PCM {chunk!r}")
 
     async def finish_response(self) -> None:
@@ -154,9 +139,8 @@ async def _wait_for_frames(microphone: _ScriptedMicrophone, minimum: int) -> Non
 
 
 async def _run() -> None:
-    first_audio = asyncio.Event()
     microphone = _ScriptedMicrophone()
-    output = _TraceOutput(first_audio)
+    output = _TraceOutput()
     event_bus = EventBus()
     audio_hub = AudioHub(microphone)
     AudioBridge(
@@ -164,7 +148,7 @@ async def _run() -> None:
         audio_hub=audio_hub,
         output_device=output,
     )
-    wake_words = _ScriptedWakeWords(microphone, first_audio)
+    wake_words = _ScriptedWakeWords(microphone)
     pipeline = SpeechPipeline(
         wake_word_phrase=wake_words.phrase,
         speech_to_text=_ScriptedSpeechToText(),
@@ -172,14 +156,10 @@ async def _run() -> None:
         text_to_speech=_TraceTextToSpeech(),
         event_bus=event_bus,
     )
-    turns = TurnManager(
+    TurnManager(
         audio_hub=audio_hub,
         pipeline=pipeline,
         event_bus=event_bus,
-    )
-    InterruptionHandler(
-        event_bus=event_bus,
-        turns=turns,
     )
     wake_word_handler = WakeWordHandler(
         event_bus=event_bus,

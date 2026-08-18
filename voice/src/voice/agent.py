@@ -20,7 +20,6 @@ from voice.events.listener import SoundListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
     FollowUpHandler,
-    InterruptionHandler,
     SpeechResourceHandler,
     WakeWordHandler,
 )
@@ -104,10 +103,6 @@ class VoiceAgent:
             audio_hub=self._audio_hub,
             pipeline=self._pipeline,
             event_bus=self._event_bus,
-        )
-        self._interruption_handler = InterruptionHandler(
-            event_bus=self._event_bus,
-            turns=self._turns,
         )
         self._wake_word_handler = WakeWordHandler(
             event_bus=self._event_bus,

@@ -47,9 +47,9 @@ class TurnManager:
 
     async def close(self) -> None:
         self._closed = True
-        await self.interrupt()
+        await self._cancel_active_turn()
 
-    async def interrupt(self) -> bool:
+    async def _cancel_active_turn(self) -> bool:
         task = self._active_task
         if task is None or task.done():
             return False

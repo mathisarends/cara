@@ -11,11 +11,7 @@ from voice.events import (
     VoiceTurnTimedOut,
 )
 from voice.events.bus import EventBus
-from voice.events.models import (
-    VoiceInterruptionRequested,
-    VoiceTurnEnded,
-    VoiceTurnRequested,
-)
+from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +41,6 @@ class FollowUpHandler:
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on(UserSpeechStarted, self._on_user_speech_started)
         event_bus.on(VoiceTurnTimedOut, self._on_turn_timed_out)
-        event_bus.on(VoiceInterruptionRequested, self._on_interruption_requested)
         event_bus.on(SessionEnded, self._on_session_ended)
 
     def close(self) -> None:
@@ -74,10 +69,6 @@ class FollowUpHandler:
         await self._event_bus.dispatch(
             FollowUpTimedOut(timeout_seconds=self._window_seconds)
         )
-
-    async def _on_interruption_requested(self, _: VoiceInterruptionRequested) -> None:
-        self._armed = False
-        self._close_window()
 
     async def _on_session_ended(self, _: SessionEnded) -> None:
         self.close()

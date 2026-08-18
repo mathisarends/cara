@@ -23,7 +23,6 @@ class HumanMessage(ConversationTurn):
 
 class AssistantMessage(ConversationTurn):
     role: Literal[ConversationRole.ASSISTANT] = ConversationRole.ASSISTANT
-    interrupted: bool = False
 
 
 type ConversationMessage = Annotated[

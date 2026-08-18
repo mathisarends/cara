@@ -13,7 +13,6 @@ from voice.events.models import (
     AssistantAudioStarted,
     AssistantPlaybackCompleted,
     AudioPlaybackRequested,
-    VoiceInterruptionRequested,
     VoiceResourcesClosing,
     VoiceTurnEnded,
     VoiceTurnFailed,
@@ -58,7 +57,6 @@ class AudioBridge:
         event_bus.on(AssistantAudioChunk, self._on_audio_chunk)
         event_bus.on(AssistantAudioCompleted, self._on_audio_completed)
         event_bus.on(AudioPlaybackRequested, self._on_playback_requested)
-        event_bus.on(VoiceInterruptionRequested, self._on_interruption_requested)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on(VoiceResourcesClosing, self._on_resources_closing)
 
@@ -158,14 +156,6 @@ class AudioBridge:
             return
         if publish_completion:
             await self._event_bus.dispatch(AssistantPlaybackCompleted(turn_id=turn_id))
-
-    async def _on_interruption_requested(self, _: VoiceInterruptionRequested) -> None:
-        async with self._state_lock:
-            has_active_playback = self._active_turn_id is not None
-        if not has_active_playback:
-            return
-        await self._stop_active_playback()
-        await self._playback.interrupt()
 
     async def _on_turn_ended(self, event: VoiceTurnEnded) -> None:
         await self._stop_active_playback(turn_id=event.turn_id)

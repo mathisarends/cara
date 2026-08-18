@@ -1,5 +1,4 @@
 from voice.events import (
-    AssistantInterrupted,
     AssistantPlaybackCompleted,
     AssistantSpeechStarted,
     FollowUpCountdown,
@@ -39,9 +38,6 @@ class AgentListener:
 
     async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
         """The follow-up window expired without speech."""
-
-    async def on_agent_interrupted(self) -> None:
-        """The assistant was interrupted by a repeated wake word."""
 
     async def on_agent_error(self, turn_id: int, message: str) -> None:
         """A voice turn failed."""
@@ -89,7 +85,6 @@ class AgentListenerBridge:
             FollowUpTimedOut,
             lambda event: listener.on_user_inactivity_timeout(event.timeout_seconds),
         )
-        bus.on(AssistantInterrupted, lambda _: listener.on_agent_interrupted())
         bus.on(
             VoiceTurnFailed,
             lambda event: listener.on_agent_error(event.turn_id, event.message),

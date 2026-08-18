@@ -31,10 +31,6 @@ class AssistantSpeechStarted(Event):
     """Emitted immediately before the first assistant audio chunk is played."""
 
 
-class AssistantInterrupted(Event):
-    """Emitted when a repeated wake word interrupts an in-flight response."""
-
-
 class SessionEnded(Event):
     """Emitted when a voice session ends."""
 
@@ -52,10 +48,6 @@ class VoiceTurnRequested(Event):
 
     sequence: int | None = None
     speech_start_timeout: float | None = None
-
-
-class VoiceInterruptionRequested(Event):
-    """Requests cancellation of the currently active voice turn, if any."""
 
 
 class VoiceResourcesClosing(Event):

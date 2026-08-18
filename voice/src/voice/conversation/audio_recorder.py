@@ -2,7 +2,6 @@ import logging
 
 from voice.events import (
     AssistantAudioChunk,
-    AssistantInterrupted,
     AssistantPlaybackCompleted,
     AssistantSpeechStarted,
     UserAudioChunk,
@@ -24,7 +23,6 @@ class ConversationAudioRecorder:
 
         event_bus.on(AssistantSpeechStarted, self._on_assistant_started)
         event_bus.on(AssistantPlaybackCompleted, self._on_assistant_stopped)
-        event_bus.on(AssistantInterrupted, self._on_assistant_interrupted)
         event_bus.on(UserAudioChunk, self._on_user_audio)
         event_bus.on(AssistantAudioChunk, self._on_assistant_audio)
         event_bus.on(VoiceResourcesClosing, self._on_resources_closing)
@@ -33,10 +31,6 @@ class ConversationAudioRecorder:
         self._assistant_speaking = True
 
     async def _on_assistant_stopped(self, _: AssistantPlaybackCompleted) -> None:
-        self._assistant_speaking = False
-        self._mixer.finalize()
-
-    async def _on_assistant_interrupted(self, _: AssistantInterrupted) -> None:
         self._assistant_speaking = False
         self._mixer.finalize()
 

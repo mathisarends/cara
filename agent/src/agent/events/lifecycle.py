@@ -37,9 +37,5 @@ class AssistantSpeechStarted(Event):
     """Emitted immediately before the first assistant audio chunk is played."""
 
 
-class AssistantInterrupted(Event):
-    """Emitted when a repeated wake word interrupts an in-flight response."""
-
-
 class SessionEnded(Event):
     """Emitted when a text or voice session ends."""

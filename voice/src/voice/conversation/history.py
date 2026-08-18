@@ -1,5 +1,4 @@
 from voice.events import (
-    AssistantInterrupted,
     AssistantResponseStarted,
     AssistantTextChunk,
     AssistantTextCompleted,
@@ -22,7 +21,6 @@ class ConversationHistory:
         event_bus.on(AssistantResponseStarted, self._on_assistant_response_started)
         event_bus.on(AssistantTextChunk, self._on_assistant_text_chunk)
         event_bus.on(AssistantTextCompleted, self._on_assistant_text_completed)
-        event_bus.on(AssistantInterrupted, self._on_assistant_interrupted)
 
     @property
     def turns(self) -> tuple[ConversationMessage, ...]:
@@ -50,21 +48,15 @@ class ConversationHistory:
         self._assistant_text.setdefault(event.turn_id, []).append(event.chunk)
 
     async def _on_assistant_text_completed(self, event: AssistantTextCompleted) -> None:
-        self._complete_assistant_turn(event.turn_id, interrupted=False)
+        self._complete_assistant_turn(event.turn_id)
 
-    async def _on_assistant_interrupted(self, _: AssistantInterrupted) -> None:
-        turn_id = self._active_assistant_turn_id
-        if turn_id is not None:
-            self._complete_assistant_turn(turn_id, interrupted=True)
-
-    def _complete_assistant_turn(self, turn_id: int, *, interrupted: bool) -> None:
+    def _complete_assistant_turn(self, turn_id: int) -> None:
         transcript = "".join(self._assistant_text.pop(turn_id, []))
         if transcript:
             self._turns.append(
                 AssistantMessage(
                     turn_id=turn_id,
                     transcript=transcript,
-                    interrupted=interrupted,
                 )
             )
         if self._active_assistant_turn_id == turn_id:

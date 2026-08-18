@@ -1,5 +1,4 @@
 from .lifecycle import (
-    AssistantInterrupted,
     AssistantSpeechStarted,
     AssistantTurnStarted,
     SessionEnded,
@@ -12,7 +11,6 @@ from .lifecycle import (
 )
 
 __all__ = [
-    "AssistantInterrupted",
     "AssistantSpeechStarted",
     "AssistantTurnStarted",
     "SessionEnded",
