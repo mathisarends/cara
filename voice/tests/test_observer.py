@@ -46,3 +46,10 @@ def test_voice_agent_exposes_observers_without_leaking_event_bus() -> None:
     assert "listener" not in parameters
     assert "listeners" not in parameters
     assert "event_bus" not in parameters
+
+
+def test_voice_agent_exposes_start_and_stop_lifecycle() -> None:
+    assert callable(VoiceAgent.start)
+    assert callable(VoiceAgent.stop)
+    assert not hasattr(VoiceAgent, "run")
+    assert not hasattr(VoiceAgent, "close")

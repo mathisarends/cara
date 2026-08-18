@@ -98,7 +98,7 @@ class VoiceAgent:
             agent_session,
             strip_wake_word=wake_word_settings.strip_from_command,
         )
-        self._closed = False
+        self._stopped = False
         self._setup_observers(
             observers,
             self._recording_path,
@@ -170,25 +170,25 @@ class VoiceAgent:
                 ),
             )
 
-    async def run(self) -> AgentResult:
-        if self._closed:
-            raise RuntimeError("Voice agent is closed.")
+    async def start(self) -> AgentResult:
+        if self._stopped:
+            raise RuntimeError("Voice agent is stopped.")
 
         try:
             await self._event_bus.dispatch(SessionStarted())
             logger.debug("Session started")
             await self._wake_word_handler.run()
         finally:
-            await self.close()
+            await self.stop()
         return AgentResult(
             recording_path=self._recording_path,
             conversation_history=self._conversation_history.turns,
         )
 
-    async def close(self) -> None:
-        if self._closed:
+    async def stop(self) -> None:
+        if self._stopped:
             return
-        self._closed = True
+        self._stopped = True
 
         logger.debug("Session ending, closing voice resources")
         await self._event_bus.dispatch(SessionEnded())
