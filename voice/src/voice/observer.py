@@ -5,12 +5,16 @@ from dataclasses import dataclass
 from voice.events import (
     AssistantPlaybackCompleted,
     AssistantSpeechStarted,
+    AssistantToolCompleted,
+    AssistantToolStarted,
+    AssistantTurnStarted,
     FollowUpCountdown,
     FollowUpTimedOut,
     SessionEnded,
     SessionStarted,
     UserSpeechEnded,
     UserSpeechStarted,
+    UserTurnStarted,
     VoiceTurnFailed,
     VoiceTurnInterrupted,
     VoiceTurnTimedOut,
@@ -44,6 +48,14 @@ class Observer:
     async def on_wake_word_detected(
         self, name: str, score: float, sequence: int
     ) -> None: ...
+
+    async def on_user_turn_started(self) -> None: ...
+
+    async def on_assistant_turn_started(self) -> None: ...
+
+    async def on_assistant_tool_started(self, name: str) -> None: ...
+
+    async def on_assistant_tool_completed(self, name: str) -> None: ...
 
     async def on_user_inactivity_countdown(self, remaining_seconds: int) -> None: ...
 
@@ -94,6 +106,26 @@ class _ObserverBridge:
                 WakeWordDetected,
                 lambda event, observer=observer: observer.on_wake_word_detected(
                     event.name, event.score, event.sequence
+                ),
+            )
+            bus.on(
+                UserTurnStarted,
+                lambda _, observer=observer: observer.on_user_turn_started(),
+            )
+            bus.on(
+                AssistantTurnStarted,
+                lambda _, observer=observer: observer.on_assistant_turn_started(),
+            )
+            bus.on(
+                AssistantToolStarted,
+                lambda event, observer=observer: observer.on_assistant_tool_started(
+                    event.name
+                ),
+            )
+            bus.on(
+                AssistantToolCompleted,
+                lambda event, observer=observer: observer.on_assistant_tool_completed(
+                    event.name
                 ),
             )
             bus.on(
