@@ -13,7 +13,6 @@ class RecordingOutput(AudioOutput):
         self.stopped = False
         self.cleared = False
         self.finished = False
-        self.volume = 1.0
 
     @property
     def is_playing(self) -> bool:
@@ -33,12 +32,6 @@ class RecordingOutput(AudioOutput):
 
     async def clear_buffer(self) -> None:
         self.cleared = True
-
-    async def get_volume(self) -> float:
-        return self.volume
-
-    async def set_volume(self, volume: float) -> None:
-        self.volume = volume
 
 
 def _wav(pcm: bytes, *, sample_rate: int = 16_000, channels: int = 1) -> bytes:
@@ -65,21 +58,6 @@ def test_audio_player_delegates_to_output() -> None:
     assert output.started_with == (16_000, 1)
     assert b"".join(output.chunks) == b"\x01\x00\x02\x00"
     assert output.finished is True
-
-
-def test_audio_player_delegates_volume_control_to_output() -> None:
-    async def run() -> tuple[float, float]:
-        output = RecordingOutput()
-        player = AudioPlayer(output)
-
-        await player.set_volume(0.3)
-
-        return output.volume, await player.get_volume()
-
-    output_volume, reported_volume = asyncio.run(run())
-
-    assert output_volume == 0.3
-    assert reported_volume == 0.3
 
 
 def test_audio_player_stops_output() -> None:

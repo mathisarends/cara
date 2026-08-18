@@ -1,16 +1,15 @@
 import asyncio
 import io
 import wave
-from typing import cast
 
-from voice.audio.output.playback import AudioPlayback, VolumeControl
+from voice.audio.output.playback import AudioPlayback
 from voice.audio.ports import AudioOutput
 
 _PLAYBACK_CHUNK_SECONDS = 0.01
 _PCM_SAMPLE_WIDTH = 2
 
 
-class AudioPlayer(AudioPlayback, VolumeControl):
+class AudioPlayer(AudioPlayback):
     """Decodes WAV responses and routes their PCM chunks to an audio output."""
 
     def __init__(self, output: AudioOutput) -> None:
@@ -40,14 +39,6 @@ class AudioPlayer(AudioPlayback, VolumeControl):
 
     async def stop(self) -> None:
         await self._output.stop()
-
-    async def get_volume(self) -> float:
-        output = cast(VolumeControl, self._output)
-        return await output.get_volume()
-
-    async def set_volume(self, volume: float) -> None:
-        output = cast(VolumeControl, self._output)
-        await output.set_volume(volume)
 
 
 async def _finish(output: AudioOutput, cancel: asyncio.Event | None) -> None:
