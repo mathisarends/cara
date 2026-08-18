@@ -3,7 +3,13 @@ import logging
 
 from dotenv import load_dotenv
 
-from voice import HueObserver, SoundObserver, SpeechBargeIn, VoiceAgent
+from voice import (
+    HueObserver,
+    SonosPlaybackObserver,
+    SoundObserver,
+    SpeechBargeIn,
+    VoiceAgent,
+)
 from voice.audio.output.sonos import SonosOutput
 from voice.llm import CodexAgentSession
 from voice.tts.cartesia import CartesiaTextToSpeech
@@ -22,7 +28,11 @@ async def main() -> None:
         audio_output=SonosOutput(),
         text_to_speech=tts,
         barge_in=SpeechBargeIn(),
-        observers=(SoundObserver(), HueObserver()),
+        observers=(
+            SoundObserver(),
+            HueObserver(),
+            SonosPlaybackObserver(),
+        ),
     )
     await agent.start()
 

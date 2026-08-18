@@ -6,7 +6,8 @@ from typing import cast
 from sonosify import ClipPriority, ClipType, SonosClient
 
 import voice.audio.output.sonos as sonos_module
-from voice.audio.output.sonos import SonosOutput, SonosSettings
+from voice.audio.output.sonos import SonosOutput
+from voice.sonos import SonosSettings
 
 
 class FakeHostedAudioClip:

@@ -20,6 +20,7 @@ from .conversation import (
 from .lights import HueObserver, LightingState
 from .models import AgentResult
 from .observer import Observer, ObserverContext
+from .playback import SonosPlaybackObserver
 from .sound import Earcon, SoundObserver
 from .wakeword import WakeWordSettings
 
@@ -44,6 +45,7 @@ __all__ = [
     "ObserverContext",
     "SpeechBargeIn",
     "SoundObserver",
+    "SonosPlaybackObserver",
     "VoiceAgent",
     "WakeWordBargeIn",
     "WakeWordSettings",

@@ -4,30 +4,17 @@ import logging
 import wave
 from contextlib import suppress
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from sonosify import ClipPriority, ClipType, HostedAudioClip, SonosClient
 from sonosify import SonosController as SonosifyController
 
 from voice.audio.ports import AudioOutput
+from voice.sonos import SonosSettings
 
 logger = logging.getLogger(__name__)
 
 _CLIP_APP_ID = "cara"
 _CLIP_NAME = "Cara"
 _BYTES_PER_SAMPLE = 2
-
-
-class SonosSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="SONOS_",
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-    speaker_name: str | None = None
-    ip_address: str | None = None
-    local_host: str | None = None
 
 
 class SonosOutput(AudioOutput):
