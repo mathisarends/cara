@@ -8,9 +8,11 @@ from voice.events import (
     AssistantTextCompleted,
     AssistantToolCompleted,
     AssistantToolStarted,
+    UserTurnStarted,
     VoiceTurnFailed,
 )
 from voice.events.bus import EventBus
+from voice.events.models import VoiceTurnEnded
 from voice.llm.events import TextDelta, ToolCompleted, ToolStarted, TurnCompleted
 from voice.llm.port import AgentSession
 
@@ -23,11 +25,30 @@ class AgentBridge:
     def __init__(self, *, event_bus: EventBus, session: AgentSession) -> None:
         self._event_bus = event_bus
         self._session = session
+        self._preparation: asyncio.Task[None] | None = None
 
+        event_bus.on(UserTurnStarted, self._on_user_turn_started)
+        event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on_request(AssistantResponseRequested, self._on_response_requested)
+
+    async def _on_user_turn_started(self, _: UserTurnStarted) -> None:
+        self._preparation = asyncio.create_task(
+            self._session.prepare_turn(),
+            name="voice-agent-prepare-turn",
+        )
+
+    async def _on_turn_ended(self, _: VoiceTurnEnded) -> None:
+        preparation, self._preparation = self._preparation, None
+        try:
+            if preparation is not None:
+                await preparation
+        finally:
+            await self._session.finish_turn()
 
     async def _on_response_requested(self, event: AssistantResponseRequested) -> None:
         logger.info("LLM input: %s", event.text)
+        if self._preparation is not None:
+            await self._preparation
         await self._event_bus.dispatch(AssistantResponseStarted(turn_id=event.turn_id))
         chunks: list[str] = []
         try:

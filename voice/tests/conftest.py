@@ -93,11 +93,17 @@ class _TextToSpeech(TextToSpeech):
 
 
 class _AgentSession:
+    async def prepare_turn(self) -> None:
+        pass
+
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         if False:
             yield TurnCompleted()
 
     async def steer(self, text: str) -> None:
+        pass
+
+    async def finish_turn(self) -> None:
         pass
 
     async def interrupt(self) -> None:

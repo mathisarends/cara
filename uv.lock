@@ -1352,7 +1352,6 @@ version = "0.1.0"
 source = { editable = "voice" }
 dependencies = [
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1366,7 +1365,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "hueify", specifier = ">=0.9.0" },
-    { name = "llm", editable = "llm" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "pyaudio", specifier = ">=0.2.14" },

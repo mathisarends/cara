@@ -4,7 +4,7 @@ import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
-from agenttoolkit import Skills, Tools
+from agenttoolkit import Skills
 from llmify import (
     ChatModel,
     LLMifyError,
@@ -17,6 +17,7 @@ from llmify import (
 
 from agent.messages import MessageManager
 from agent.prompt import SystemPrompt
+from agent.tools import AgentTools
 from voice.llm.events import (
     AgentEvent,
     TextDelta,
@@ -39,7 +40,7 @@ class Agent:
         self,
         *,
         llm: ChatModel,
-        tools: Tools,
+        tools: AgentTools,
         skills: Skills | None = None,
         system_prompt: str | None = None,
     ) -> None:
@@ -49,8 +50,30 @@ class Agent:
             SystemPrompt(system_prompt=system_prompt, skills=skills)
         )
         self._turn: asyncio.Task[None] | None = None
+        self._tool_preparation: asyncio.Task[None] | None = None
+        self._tool_lifecycle = asyncio.Lock()
+
+    async def prepare_turn(self) -> None:
+        async with self._tool_lifecycle:
+            if self._tool_preparation is None:
+                self._tool_preparation = asyncio.create_task(
+                    self._tools.prepare(),
+                    name="agent-tools-prepare",
+                )
+            await asyncio.shield(self._tool_preparation)
+
+    async def finish_turn(self) -> None:
+        async with self._tool_lifecycle:
+            preparation, self._tool_preparation = self._tool_preparation, None
+            if preparation is None:
+                return
+            try:
+                await asyncio.shield(preparation)
+            finally:
+                await self._tools.aclose()
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
+        await self.prepare_turn()
         self._context.add_user(text)
         return self._stream_turn()
 
@@ -59,6 +82,7 @@ class Agent:
 
     async def interrupt(self) -> None:
         await self._cancel_turn()
+        await self.finish_turn()
 
     async def _stream_turn(self) -> AsyncIterator[AgentEvent]:
         events: _EventQueue = asyncio.Queue()
@@ -73,6 +97,7 @@ class Agent:
                     return
         finally:
             await self._cancel_turn()
+            await self.finish_turn()
 
     async def _run_turn(self, events: _EventQueue) -> None:
         try:

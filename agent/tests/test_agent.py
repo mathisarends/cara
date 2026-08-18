@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from agenttoolkit import Skills
+from agenttoolkit import Skills, Tools
 from agenttoolkit.builtins import LocalWorkspace
 from llmify import (
     AssistantMessage,
@@ -223,7 +223,7 @@ def test_agent_continues_after_each_tool_round_until_final_answer(
 ) -> None:
     async def run() -> tuple[str, MultiRoundToolChatModel]:
         llm = MultiRoundToolChatModel()
-        tools = create_tools()
+        tools = Tools()
 
         @tools.action("Wetter abrufen.", name="weather_lookup", params=WeatherParams)
         async def weather_lookup(params: WeatherParams) -> str:
@@ -232,7 +232,7 @@ def test_agent_continues_after_each_tool_round_until_final_answer(
         skills = _skills(tmp_path)
         agent = Agent(
             llm=llm,
-            tools=build_tools(skills=skills, tools=tools),
+            tools=build_tools(skills=skills, additional_tools=tools),
             prompt_root=tmp_path,
             skills=skills,
         )
@@ -273,7 +273,7 @@ def test_tool_error_is_sent_to_the_model_as_a_tool_result(tmp_path: Path) -> Non
         llm = DeniedPathChatModel()
         agent = Agent(
             llm=llm,
-            tools=build_tools(tools=create_tools(), workspace=LocalWorkspace(tmp_path)),
+            tools=build_tools(workspace=LocalWorkspace(tmp_path)),
             prompt_root=tmp_path,
         )
 

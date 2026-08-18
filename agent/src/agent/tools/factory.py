@@ -1,7 +1,5 @@
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from types import TracebackType
-from typing import Self
 
 import agenttoolkit
 from agenttoolkit import (
@@ -18,9 +16,9 @@ from agent.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchC
 from agent.tools.sandbox import create_tool_context
 
 
-def create_tools(context: ToolContext | None = None) -> "_ManagedTools":
+def create_tools(context: ToolContext | None = None) -> "AgentTools":
     selected_context = context if context is not None else create_tool_context()
-    tools = _new_tools(selected_context)
+    tools = AgentTools(selected_context)
     register_tools(tools)
     return tools
 
@@ -34,18 +32,14 @@ def build_tools(
     sandbox_environment: Mapping[str, str] | None = None,
     sandbox_mounts: Sequence[BindMount] | None = None,
     sandbox_network_access: bool | None = None,
-    tools: agenttoolkit.Tools | None = None,
-) -> "_ManagedTools":
-    configured_dependencies = [
+    additional_tools: agenttoolkit.Tools | None = None,
+) -> "AgentTools":
+    tool_context = create_tool_context(
         *dependencies,
         IpLocationClient(),
         OpenMeteoClient(),
         TavilySearchClient(),
-    ]
-    if skills is not None:
-        configured_dependencies.append(skills)
-    tool_context = create_tool_context(
-        *configured_dependencies,
+        skills,
         configuration=configuration,
         workspace=workspace,
         workspace_root=workspace_root,
@@ -53,14 +47,15 @@ def build_tools(
         sandbox_mounts=sandbox_mounts,
         sandbox_network_access=sandbox_network_access,
     )
-    if tools is None:
-        return create_tools(tool_context)
-    configured_tools = _new_tools(tool_context)
-    configured_tools.merge(tools)
-    return configured_tools
+    tools = create_tools(tool_context)
+    if additional_tools is not None:
+        tools.merge(additional_tools)
+    return tools
 
 
-class _ManagedTools(agenttoolkit.Tools):
+class AgentTools(agenttoolkit.Tools):
+    """Agent tool catalog and the resources required to execute it."""
+
     def __init__(self, context: ToolContext) -> None:
         super().__init__(
             context=context,
@@ -68,20 +63,10 @@ class _ManagedTools(agenttoolkit.Tools):
         )
         self._sandbox = context.resolve(DockerSandbox)
 
-    async def __aenter__(self) -> Self:
+    async def prepare(self) -> None:
         if self._sandbox is not None:
             await self._sandbox.open()
-        return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
+    async def aclose(self) -> None:
         if self._sandbox is not None:
             await self._sandbox.close()
-
-
-def _new_tools(context: ToolContext) -> _ManagedTools:
-    return _ManagedTools(context)

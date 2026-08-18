@@ -12,7 +12,7 @@ from agenttoolkit.builtins import (
 )
 from config import CaraConfig, DockerBind
 
-from agent.tools import BindMount, create_tool_context, create_tools
+from agent.tools import BindMount, build_tools, create_tool_context, create_tools
 
 
 def test_custom_action_uses_agenttoolkit_execution() -> None:
@@ -25,6 +25,22 @@ def test_custom_action_uses_agenttoolkit_execution() -> None:
     result = asyncio.run(tools.execute("echo", {"message": "hi"}))
 
     assert result == "hi"
+
+
+def test_build_tools_registers_core_and_additional_tools(tmp_path: Path) -> None:
+    additional_tools = Tools()
+
+    @additional_tools.action(description="Echo a message.")
+    async def echo(message: str) -> str:
+        return message
+
+    tools = build_tools(
+        workspace=LocalWorkspace(tmp_path),
+        additional_tools=additional_tools,
+    )
+
+    assert tools.get("bash") is not None
+    assert tools.get("echo") is not None
 
 
 def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> None:
@@ -120,7 +136,7 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
     assert sandbox.command == "printf hello"
 
 
-def test_tools_context_manages_default_docker_sandbox(monkeypatch) -> None:
+def test_agent_tools_prepare_and_close_default_docker_sandbox(monkeypatch) -> None:
     opened: list[DockerSandbox] = []
     closed: list[DockerSandbox] = []
 
@@ -138,11 +154,10 @@ def test_tools_context_manages_default_docker_sandbox(monkeypatch) -> None:
         sandbox = context.resolve(DockerSandbox)
         tools = create_tools(context)
 
-        async with tools as active_tools:
-            assert active_tools is tools
-            assert opened == [sandbox]
-            assert closed == []
-
+        await tools.prepare()
+        assert opened == [sandbox]
+        assert closed == []
+        await tools.aclose()
         assert closed == [sandbox]
 
     asyncio.run(run())

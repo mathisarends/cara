@@ -9,8 +9,10 @@ from voice.events import (
     AssistantTextCompleted,
     AssistantToolCompleted,
     AssistantToolStarted,
+    UserTurnStarted,
 )
 from voice.events.bus import EventBus
+from voice.events.models import VoiceTurnEnded
 from voice.llm import (
     AgentBridge,
     AgentEvent,
@@ -24,6 +26,10 @@ from voice.llm import (
 class _AgentSession:
     def __init__(self) -> None:
         self.text: str | None = None
+        self.lifecycle: list[str] = []
+
+    async def prepare_turn(self) -> None:
+        self.lifecycle.append("prepared")
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         self.text = text
@@ -40,12 +46,15 @@ class _AgentSession:
     async def steer(self, text: str) -> None:
         pass
 
+    async def finish_turn(self) -> None:
+        self.lifecycle.append("finished")
+
     async def interrupt(self) -> None:
         pass
 
 
 def test_agent_bridge_translates_every_agent_event(caplog) -> None:
-    async def run() -> tuple[str | None, list[object]]:
+    async def run() -> tuple[str | None, list[object], list[str]]:
         event_bus = EventBus()
         session = _AgentSession()
         AgentBridge(event_bus=event_bus, session=session)
@@ -60,13 +69,15 @@ def test_agent_bridge_translates_every_agent_event(caplog) -> None:
         event_bus.on(AssistantToolCompleted, capture)
         event_bus.on(AssistantTextCompleted, capture)
 
+        await event_bus.dispatch(UserTurnStarted())
         await event_bus.request(
             AssistantResponseRequested(turn_id=7, text="What is the weather?")
         )
-        return session.text, received
+        await event_bus.dispatch(VoiceTurnEnded(turn_id=7))
+        return session.text, received, session.lifecycle
 
     with caplog.at_level(logging.INFO, logger="voice.llm.bridge"):
-        text, received = asyncio.run(run())
+        text, received, lifecycle = asyncio.run(run())
 
     assert text == "What is the weather?"
     assert received == [
@@ -81,3 +92,4 @@ def test_agent_bridge_translates_every_agent_event(caplog) -> None:
         "LLM input: What is the weather?",
         "LLM output: I will help",
     ]
+    assert lifecycle == ["prepared", "finished"]

@@ -9,6 +9,9 @@ class EchoAgentSession:
     def __init__(self, prefix: str = "You have said: ") -> None:
         self._prefix = prefix
 
+    async def prepare_turn(self) -> None:
+        pass
+
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         return self._stream_turn(text)
 
@@ -18,6 +21,9 @@ class EchoAgentSession:
         yield TurnCompleted()
 
     async def steer(self, text: str) -> None:
+        pass
+
+    async def finish_turn(self) -> None:
         pass
 
     async def interrupt(self) -> None:

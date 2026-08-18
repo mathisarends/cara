@@ -1,8 +1,14 @@
 import asyncio
 import logging
+from pathlib import Path
 
+from agenttoolkit import Skills
 from dotenv import load_dotenv
 
+from agent import Agent
+from agent.tools import build_tools
+from config import load_cara_config
+from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
     HueObserver,
     PrerenderedAcknowledgment,
@@ -12,7 +18,6 @@ from voice import (
     VoiceAgent,
 )
 from voice.audio.output.sonos import SonosOutput
-from voice.llm import CodexAgentSession
 from voice.tts.cartesia import CartesiaTextToSpeech
 
 logging.basicConfig(level=logging.INFO)
@@ -20,9 +25,21 @@ logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 
 load_dotenv(override=True)
 
+_SKILLS_ROOT = Path(__file__).parent / "skills"
+
 
 async def main() -> None:
-    agent_session = CodexAgentSession()
+    configuration = load_cara_config()
+    skills = Skills.from_dir(_SKILLS_ROOT)
+    tools = build_tools(configuration=configuration, skills=skills)
+    agent_session = Agent(
+        llm=create_codex_model(
+            CodexModel.SPARK,
+            reasoning_effort=CodexReasoningEffort.LOW,
+        ),
+        tools=tools,
+        skills=skills,
+    )
     tts = CartesiaTextToSpeech(language="en")
     agent = VoiceAgent(
         agent_session=agent_session,
