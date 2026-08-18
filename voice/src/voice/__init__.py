@@ -20,7 +20,12 @@ from .conversation import (
 from .lights import HueObserver, LightingState
 from .models import AgentResult
 from .observer import Observer, ObserverContext
-from .playback import SonosPlaybackObserver
+from .playback import (
+    DuckingStrategy,
+    PauseStrategy,
+    PlaybackStrategy,
+    SonosPlaybackObserver,
+)
 from .sound import Earcon, SoundObserver
 from .wakeword import WakeWordSettings
 
@@ -36,6 +41,7 @@ __all__ = [
     "ConversationMessage",
     "ConversationRole",
     "ConversationTurn",
+    "DuckingStrategy",
     "Earcon",
     "HumanMessage",
     "HueObserver",
@@ -43,6 +49,8 @@ __all__ = [
     "NoBargeIn",
     "Observer",
     "ObserverContext",
+    "PauseStrategy",
+    "PlaybackStrategy",
     "SpeechBargeIn",
     "SoundObserver",
     "SonosPlaybackObserver",

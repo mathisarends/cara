@@ -4,8 +4,9 @@ from typing import cast
 
 from sonosify import SonosClient, TransportInfo, TransportState
 
-import voice.playback.sonos as sonos_module
-from voice import SonosPlaybackObserver
+import voice.playback.ducking as ducking_module
+import voice.playback.strategy as strategy_module
+from voice import DuckingStrategy, PauseStrategy, SonosPlaybackObserver
 from voice.events import (
     FollowUpTimedOut,
     SessionEnded,
@@ -22,6 +23,8 @@ class _RecordingSonosClient:
         self.state = state
         self.duck_calls: list[int | None] = []
         self.unduck_calls = 0
+        self.pause_calls = 0
+        self.play_calls = 0
         self.duck_refreshed = asyncio.Event()
         self.closed = False
 
@@ -36,17 +39,27 @@ class _RecordingSonosClient:
     async def unduck(self) -> None:
         self.unduck_calls += 1
 
+    async def pause(self) -> None:
+        self.pause_calls += 1
+        self.state = TransportState.PAUSED_PLAYBACK
+
+    async def play(self) -> None:
+        self.play_calls += 1
+        self.state = TransportState.PLAYING
+
     async def close(self) -> None:
         self.closed = True
 
 
 def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> None:
-    caplog.set_level(logging.INFO, logger="voice.playback.sonos")
+    caplog.set_level(logging.INFO, logger="voice.playback.ducking")
 
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosPlaybackObserver(client=cast(SonosClient, client))
+        observer = SonosPlaybackObserver(
+            strategy=DuckingStrategy(client=cast(SonosClient, client))
+        )
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
         await bridge.prepare()
@@ -75,7 +88,9 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PAUSED_PLAYBACK)
-        observer = SonosPlaybackObserver(client=cast(SonosClient, client))
+        observer = SonosPlaybackObserver(
+            strategy=DuckingStrategy(client=cast(SonosClient, client))
+        )
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
         await bridge.prepare()
@@ -93,7 +108,9 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
 def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosPlaybackObserver(client=cast(SonosClient, client))
+        observer = SonosPlaybackObserver(
+            strategy=DuckingStrategy(client=cast(SonosClient, client))
+        )
         event_bus = EventBus()
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
@@ -104,7 +121,7 @@ def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
         await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=5))
         return client
 
-    monkeypatch.setattr(sonos_module, "_DUCK_REFRESH_SECONDS", 0.01)
+    monkeypatch.setattr(ducking_module, "_DUCK_REFRESH_SECONDS", 0.01)
 
     client = asyncio.run(run())
 
@@ -113,9 +130,31 @@ def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
     assert client.unduck_calls == 1
 
 
+def test_can_use_pause_strategy() -> None:
+    async def run() -> _RecordingSonosClient:
+        client = _RecordingSonosClient(TransportState.PLAYING)
+        observer = SonosPlaybackObserver(
+            strategy=PauseStrategy(client=cast(SonosClient, client)),
+        )
+        event_bus = EventBus()
+        bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge.setup()
+        await bridge.prepare()
+
+        await event_bus.dispatch(UserTurnStarted())
+        await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=5))
+        return client
+
+    client = asyncio.run(run())
+
+    assert client.pause_calls == 1
+    assert client.play_calls == 1
+    assert client.duck_calls == []
+
+
 def test_loads_sonos_target_from_settings(monkeypatch) -> None:
     async def run() -> tuple[tuple[str | None, str | None], _RecordingSonosClient]:
-        client = _RecordingSonosClient(TransportState.STOPPED)
+        client = _RecordingSonosClient(TransportState.PLAYING)
 
         class RecordingController:
             call: tuple[str | None, str | None]
@@ -130,13 +169,15 @@ def test_loads_sonos_target_from_settings(monkeypatch) -> None:
                 return client
 
         controller = RecordingController()
-        monkeypatch.setattr(sonos_module, "SonosController", lambda: controller)
+        monkeypatch.setattr(strategy_module, "SonosController", lambda: controller)
         observer = SonosPlaybackObserver()
         event_bus = EventBus()
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
 
         await bridge.prepare()
+        await event_bus.dispatch(UserTurnStarted())
+        await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=5))
         await event_bus.dispatch(SessionEnded())
         return controller.call, client
 
@@ -146,4 +187,6 @@ def test_loads_sonos_target_from_settings(monkeypatch) -> None:
     call, client = asyncio.run(run())
 
     assert call == ("Arbeitszimmer", "192.0.2.10")
+    assert client.duck_calls == [60_000]
+    assert client.unduck_calls == 1
     assert client.closed is True
