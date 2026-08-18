@@ -1,4 +1,4 @@
-from voice.pipeline.speech import _prepare_command
+from voice.handler.command import _prepare_command
 from voice.wakeword import WakeWordSettings
 
 

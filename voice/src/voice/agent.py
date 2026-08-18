@@ -1,7 +1,13 @@
 import logging
 from pathlib import Path
 
-from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
+from voice.audio import (
+    AudioBridge,
+    AudioHub,
+    AudioInput,
+    AudioOutput,
+    UserAudioProducer,
+)
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
@@ -19,6 +25,7 @@ from voice.events.bus import EventBus
 from voice.events.listener import SoundListener, TranscriptListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
+    CommandBridge,
     FollowUpHandler,
     SpeechResourceHandler,
     WakeWordHandler,
@@ -26,8 +33,8 @@ from voice.handler import (
 from voice.listener import AgentListener, AgentListenerBridge
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
-from voice.pipeline import SpeechPipeline, TurnManager
-from voice.stt import CartesiaSpeechToText, SpeechToText
+from voice.pipeline import TurnManager
+from voice.stt import CartesiaSpeechToText, SpeechToText, SpeechToTextBridge
 from voice.tts import CartesiaTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
@@ -69,11 +76,13 @@ class VoiceAgent:
         )
 
         self._audio_hub = AudioHub(echo_cancelled_input)
-        self._audio_bridge = AudioBridge(
+        self._user_audio_producer = UserAudioProducer(
             event_bus=self._event_bus,
             audio_hub=self._audio_hub,
+        )
+        self._audio_bridge = AudioBridge(
+            event_bus=self._event_bus,
             output_device=echo_referenced_output,
-            audio_session=self._audio_session,
         )
         self._speech_to_text = speech_to_text or CartesiaSpeechToText(
             sample_rate=self._audio_hub.format.sample_rate
@@ -102,15 +111,17 @@ class VoiceAgent:
             event_bus=self._event_bus,
             text_to_speech=self._text_to_speech,
         )
-        self._pipeline = SpeechPipeline(
+        self._speech_to_text_bridge = SpeechToTextBridge(
+            event_bus=self._event_bus,
+            audio_hub=self._audio_hub,
+            speech_to_text=self._speech_to_text,
+        )
+        self._command_bridge = CommandBridge(
+            event_bus=self._event_bus,
             wake_word_phrase=self._wake_word.phrase,
             strip_wake_word=strip_wake_word,
-            speech_to_text=self._speech_to_text,
-            event_bus=self._event_bus,
         )
         self._turns = TurnManager(
-            audio_hub=self._audio_hub,
-            pipeline=self._pipeline,
             event_bus=self._event_bus,
         )
         self._wake_word_handler = WakeWordHandler(
@@ -172,3 +183,5 @@ class VoiceAgent:
         logger.debug("Session ending, closing voice resources")
         await self._event_bus.dispatch(SessionEnded())
         await self._event_bus.dispatch(VoiceResourcesClosing())
+        if self._audio_session is not None:
+            self._audio_session.close()

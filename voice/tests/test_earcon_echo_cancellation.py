@@ -4,7 +4,7 @@ import wave
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from voice.audio import AudioBridge, AudioHub
+from voice.audio import AudioBridge
 from voice.audio.ports import AudioInput, AudioOutput
 from voice.echo_cancellation import (
     EchoCancellationSettings,
@@ -109,7 +109,6 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
     event_bus = EventBus()
     AudioBridge(
         event_bus=event_bus,
-        audio_hub=AudioHub(input_device),
         output_device=output_device,
     )
     SoundListener(event_bus, sounds_dir=tmp_path)

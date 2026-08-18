@@ -1,7 +1,6 @@
 import asyncio
-from collections.abc import AsyncIterator
 
-from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
+from voice.audio import AudioBridge, AudioOutput
 from voice.events import (
     AssistantAudioChunk,
     AssistantAudioCompleted,
@@ -13,38 +12,6 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
-
-
-class _Input(AudioInput):
-    def __init__(self) -> None:
-        self._active = False
-
-    @property
-    def sample_rate(self) -> int:
-        return 16_000
-
-    @property
-    def channels(self) -> int:
-        return 1
-
-    @property
-    def frames_per_chunk(self) -> int:
-        return 1280
-
-    @property
-    def is_active(self) -> bool:
-        return self._active
-
-    async def start(self) -> None:
-        self._active = True
-
-    async def stop(self) -> None:
-        self._active = False
-
-    async def stream_chunks(self) -> AsyncIterator[bytes]:
-        while self._active:
-            yield bytes(2_560)
-            await asyncio.sleep(0)
 
 
 class _Output(AudioOutput):
@@ -88,7 +55,6 @@ def test_bridge_publishes_playback_completion_after_the_output_finishes() -> Non
         output = _Output()
         AudioBridge(
             event_bus=event_bus,
-            audio_hub=AudioHub(_Input()),
             output_device=output,
         )
         lifecycle: list[str] = []
@@ -129,7 +95,6 @@ def test_bridge_reports_output_failure_without_blocking_the_pipeline() -> None:
         event_bus = EventBus()
         AudioBridge(
             event_bus=event_bus,
-            audio_hub=AudioHub(_Input()),
             output_device=_FailingOutput(),
             playback_queue_size=1,
         )

@@ -1,45 +1,28 @@
 import asyncio
 import logging
-from typing import Protocol
 
-from voice.audio.hub import AudioCursor, AudioHub
-from voice.events import SessionEnded, UserTurnStarted
+from voice.events import SessionEnded, UserTranscriptionRequested, UserTurnStarted
 from voice.events.bus import EventBus
 from voice.events.models import (
     VoiceTurnEnded,
-    VoiceTurnFailed,
     VoiceTurnRequested,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class _TurnPipeline(Protocol):
-    async def run(
-        self,
-        *,
-        turn_id: int,
-        audio: AudioCursor,
-        speech_start_timeout: float,
-    ) -> None: ...
-
-
 class TurnManager:
-    """Owns voice-turn identity, cancellation, and capture cursor lifetime."""
+    """Owns voice-turn identity, cancellation, and lifecycle events."""
 
     def __init__(
         self,
         *,
-        audio_hub: AudioHub,
-        pipeline: _TurnPipeline,
         event_bus: EventBus,
         command_pre_roll_seconds: float = 0.16,
         speech_start_timeout: float = 8.0,
     ) -> None:
         if speech_start_timeout <= 0:
             raise ValueError("speech_start_timeout must be positive")
-        self._audio_hub = audio_hub
-        self._pipeline = pipeline
         self._event_bus = event_bus
         self._pre_roll = command_pre_roll_seconds
         self._speech_start_timeout = speech_start_timeout
@@ -75,9 +58,6 @@ class TurnManager:
             return
         if self.has_active_turn:
             raise RuntimeError("Cannot start a voice turn while another is active.")
-        cursor = await self._audio_hub.cursor(
-            from_sequence=event.sequence, pre_roll_seconds=self._pre_roll
-        )
         self._next_turn_id += 1
         turn_id = self._next_turn_id
         self._active_turn_id = turn_id
@@ -85,38 +65,27 @@ class TurnManager:
         await self._event_bus.dispatch(UserTurnStarted())
         if self._closed:
             self._active_turn_id = None
-            await cursor.aclose()
             await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
             return
         self._active_task = asyncio.create_task(
             self._run_turn(
-                turn_id,
-                cursor,
-                event.speech_start_timeout or self._speech_start_timeout,
+                UserTranscriptionRequested(
+                    turn_id=turn_id,
+                    sequence=event.sequence,
+                    pre_roll_seconds=self._pre_roll,
+                    speech_start_timeout=(
+                        event.speech_start_timeout or self._speech_start_timeout
+                    ),
+                )
             ),
             name=f"voice-turn-{turn_id}",
         )
 
-    async def _run_turn(
-        self, turn_id: int, cursor: AudioCursor, speech_start_timeout: float
-    ) -> None:
+    async def _run_turn(self, request: UserTranscriptionRequested) -> None:
+        turn_id = request.turn_id
         try:
-            await self._pipeline.run(
-                turn_id=turn_id,
-                audio=cursor,
-                speech_start_timeout=speech_start_timeout,
-            )
-        except asyncio.CancelledError:
-            raise
-        except StopAsyncIteration:
-            pass
-        except Exception as error:
-            logger.exception("Voice turn %d failed", turn_id)
-            await self._event_bus.dispatch(
-                VoiceTurnFailed(turn_id=turn_id, message=str(error))
-            )
+            await self._event_bus.dispatch(request)
         finally:
-            await cursor.aclose()
             if self._active_turn_id == turn_id:
                 self._active_turn_id = None
                 self._active_task = None

@@ -1,11 +1,9 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from voice.audio.hub import AudioHub
 from voice.audio.playback_coordinator import PlaybackCoordinator
 from voice.audio.ports import AudioOutput
-from voice.audio.session import PortAudioSession
-from voice.events import AssistantSpeechStarted, SessionStarted
+from voice.events import AssistantSpeechStarted
 from voice.events.bus import EventBus
 from voice.events.models import (
     AssistantAudioChunk,
@@ -22,28 +20,19 @@ _END = object()
 
 
 class AudioBridge:
-    """Bridges voice events to the long-lived input and physical output.
-
-    Capture remains cursor based because wake-word detection and STT consume the
-    same live input independently. Assistant PCM crosses the event boundary and
-    is serialized with earcons before it reaches the output device.
-    """
+    """Bridges assistant audio events to the physical output device."""
 
     def __init__(
         self,
         *,
         event_bus: EventBus,
-        audio_hub: AudioHub,
         output_device: AudioOutput,
-        audio_session: PortAudioSession | None = None,
         playback_queue_size: int = 8,
     ) -> None:
         if playback_queue_size <= 0:
             raise ValueError("playback_queue_size must be positive")
         self._event_bus = event_bus
-        self._audio_hub = audio_hub
         self._playback = PlaybackCoordinator(output_device)
-        self._audio_session = audio_session
         self._playback_queue_size = playback_queue_size
         self._state_lock = asyncio.Lock()
         self._playback_task: asyncio.Task[None] | None = None
@@ -52,18 +41,12 @@ class AudioBridge:
         self._speech_started = False
         self._closed = False
 
-        event_bus.on(SessionStarted, self._on_session_started)
         event_bus.on(AssistantAudioStarted, self._on_audio_started)
         event_bus.on(AssistantAudioChunk, self._on_audio_chunk)
         event_bus.on(AssistantAudioCompleted, self._on_audio_completed)
         event_bus.on(AudioPlaybackRequested, self._on_playback_requested)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on(VoiceResourcesClosing, self._on_resources_closing)
-
-    async def _on_session_started(self, _: SessionStarted) -> None:
-        if self._closed:
-            return
-        await self._audio_hub.start()
 
     async def _on_playback_requested(self, event: AudioPlaybackRequested) -> None:
         await self._playback.play(event.audio)
@@ -166,10 +149,7 @@ class AudioBridge:
         self._closed = True
         await self._stop_active_playback()
         await self._playback.interrupt()
-        await self._audio_hub.stop()
         await self._playback.stop()
-        if self._audio_session is not None:
-            self._audio_session.close()
 
     async def _stop_active_playback(self, turn_id: int | None = None) -> None:
         async with self._state_lock:

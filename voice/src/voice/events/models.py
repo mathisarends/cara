@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from voice.stt import TranscriptionKind
+from voice.transcription import TranscriptionKind
 
 
 class Event(BaseModel):
@@ -88,8 +88,24 @@ class UserTranscriptionUpdated(Event):
     kind: TranscriptionKind
 
 
-class UserAudioChunk(Event):
+class UserTranscriptionCompleted(Event):
     turn_id: int
+    text: str
+
+
+class UserTranscriptionRequested(Event):
+    """Requests turn-scoped STT from the continuously captured audio history."""
+
+    turn_id: int
+    sequence: int | None = None
+    pre_roll_seconds: float = 0.0
+    speech_start_timeout: float
+
+
+class UserAudioChunk(Event):
+    """A continuously captured microphone frame, independent of voice turns."""
+
+    sequence: int
     chunk: bytes
 
 

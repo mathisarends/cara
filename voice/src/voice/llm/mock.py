@@ -6,7 +6,7 @@ from voice.llm.events import AgentEvent, TextDelta, TurnCompleted
 class EchoAgentSession:
     """A deterministic agent session useful for examples and tests."""
 
-    def __init__(self, prefix: str = "Du hast gesagt: ") -> None:
+    def __init__(self, prefix: str = "Your have said: ") -> None:
         self._prefix = prefix
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:

@@ -9,7 +9,8 @@ from vocalbin.cartesia.events import (
 )
 from vocalbin.cartesia.stt import SpeechToText as _VocalbinSpeechToText
 
-from voice.stt.port import SpeechToText, Transcription, TranscriptionKind
+from voice.stt.port import SpeechToText
+from voice.transcription import Transcription, TranscriptionKind
 
 
 class CartesiaSpeechToText(_VocalbinSpeechToText, SpeechToText):

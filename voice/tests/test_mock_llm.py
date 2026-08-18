@@ -12,6 +12,6 @@ def test_echo_agent_session_streams_prefixed_input() -> None:
 
     assert (
         "".join(event.text for event in events if isinstance(event, TextDelta))
-        == "Du hast gesagt: Hallo Cara"
+        == "You have said: Hallo Cara"
     )
     assert isinstance(events[-1], TurnCompleted)
