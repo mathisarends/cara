@@ -1,8 +1,9 @@
 import asyncio
 import io
 import wave
+from typing import cast
 
-from sonosify import ClipPriority, ClipType
+from sonosify import ClipPriority, ClipType, SonosClient
 
 import voice.audio.output.sonos as sonos_module
 from voice.audio.output.sonos import SonosOutput, SonosSettings
@@ -43,7 +44,10 @@ class FakeSonosClient:
 
 
 def _output(client: FakeSonosClient) -> SonosOutput:
-    return SonosOutput(client=client, settings=SonosSettings(speaker_name="Zimmer"))
+    return SonosOutput(
+        client=cast(SonosClient, client),
+        settings=SonosSettings(speaker_name="Zimmer"),
+    )
 
 
 def test_finish_response_uses_sonosifys_hosted_clip_api() -> None:

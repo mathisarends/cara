@@ -1,5 +1,6 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
+from typing import cast
 
 import numpy as np
 
@@ -29,8 +30,6 @@ _FORMAT = AudioFormat(sample_rate=16_000)
 
 
 class _Signals(BargeInStrategy):
-    """Feeds pre-recorded signals into a handler and reports when it drained."""
-
     def __init__(self, *sequences: int) -> None:
         self._sequences = sequences
         self.drained = asyncio.Event()
@@ -179,13 +178,13 @@ def test_barge_in_restarts_the_turn_at_the_signalled_audio_position() -> None:
         UserTranscriptionRequested,
     ]
     assert events[1] == VoiceTurnInterrupted(turn_id=1)
-    assert events[2].turn_id == 2
-    assert events[2].sequence == 42
+    restarted = events[2]
+    assert isinstance(restarted, UserTranscriptionRequested)
+    assert restarted.turn_id == 2
+    assert restarted.sequence == 42
 
 
 class _AlwaysSpeech(VoiceActivityDetector):
-    """Scores every window it is handed as speech."""
-
     def __init__(self) -> None:
         self.scored_windows = 0
 
@@ -206,8 +205,6 @@ class _AlwaysSpeech(VoiceActivityDetector):
 
 
 class _NeverSpeech(_AlwaysSpeech):
-    """Scores every window it is handed as noise."""
-
     def speech_probability(self, window: bytes) -> float:
         super().speech_probability(window)
         return 0.0
@@ -234,7 +231,7 @@ async def _publish(event_bus: EventBus, sequence: int, chunk: bytes) -> None:
 
 
 async def _drain(strategy: BargeInStrategy) -> list[BargeInSignal]:
-    signals = strategy.signals()
+    signals = cast(AsyncGenerator[BargeInSignal], strategy.signals())
     collected: list[BargeInSignal] = []
     try:
         while True:

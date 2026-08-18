@@ -1,10 +1,10 @@
 import asyncio
 
-from voice.llm import EchoAgentSession, TextDelta, TurnCompleted
+from voice.llm import AgentEvent, EchoAgentSession, TextDelta, TurnCompleted
 
 
 def test_echo_agent_session_streams_prefixed_input() -> None:
-    async def run() -> list[TextDelta | TurnCompleted]:
+    async def run() -> list[AgentEvent]:
         events = await EchoAgentSession().start_turn("Hallo Cara")
         return [event async for event in events]
 

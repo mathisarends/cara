@@ -1,6 +1,8 @@
 import asyncio
 from collections.abc import AsyncIterator
+from typing import cast
 
+from cartesia import AsyncCartesia
 from vocalbin.cartesia.events import Connected, TurnEagerEnd, TurnEnd, TurnUpdate
 from vocalbin.cartesia.stt import SpeechToText as VocalbinSpeechToText
 
@@ -20,7 +22,7 @@ def test_transcribe_maps_cartesia_transcript_events(monkeypatch) -> None:
         yield TurnEnd(request_id="request", transcript="Hallo Cara")
 
     monkeypatch.setattr(VocalbinSpeechToText, "stream", stream)
-    stt = CartesiaSpeechToText(client=object())
+    stt = CartesiaSpeechToText(client=cast(AsyncCartesia, object()))
 
     async def run() -> list[Transcription]:
         return [update async for update in stt.transcribe(_audio())]

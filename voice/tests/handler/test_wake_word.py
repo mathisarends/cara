@@ -1,11 +1,12 @@
 import asyncio
 from collections.abc import AsyncIterator
+from typing import cast
 
 from voice.events import SessionStarted, UserTurnStarted, WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.models import VoiceTurnRequested
 from voice.handler import WakeWordHandler
-from voice.wakeword import WakeWordDetection
+from voice.wakeword import WakeWordDetection, WakeWordListener
 
 
 class _WakeWords:
@@ -29,7 +30,10 @@ def test_starts_no_second_turn_while_one_is_active() -> None:
 
         event_bus.on_request(VoiceTurnRequested, start_turn)
         event_bus.on(WakeWordDetected, record_detection)
-        handler = WakeWordHandler(event_bus=event_bus, source=_WakeWords())
+        handler = WakeWordHandler(
+            event_bus=event_bus,
+            source=cast(WakeWordListener, _WakeWords()),
+        )
 
         await event_bus.dispatch(SessionStarted())
         await handler.run()
