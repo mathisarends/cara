@@ -104,6 +104,7 @@ class AssistantTextChunk(Event):
 
 class AssistantTextCompleted(Event):
     turn_id: int
+    text: str
 
 
 class AssistantAudioStarted(Event):

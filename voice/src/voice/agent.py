@@ -16,7 +16,7 @@ from voice.echo_cancellation import (
 )
 from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
-from voice.events.listener import SoundListener
+from voice.events.listener import SoundListener, TranscriptListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
     FollowUpHandler,
@@ -52,7 +52,7 @@ class VoiceAgent:
         recording_path: str | Path | None = None,
     ) -> None:
         self._event_bus = event_bus or EventBus()
-        self._conversation_history = ConversationHistory(self._event_bus)
+        self._conversation_history = ConversationHistory()
         self._recording_path = Path(recording_path) if recording_path else None
         self._audio_session = (
             PortAudioSession() if audio_input is None or audio_output is None else None
@@ -117,6 +117,9 @@ class VoiceAgent:
         recording_path: str | Path | None,
     ) -> None:
         self._sound_listener = SoundListener(self._event_bus)
+        self._transcript_listener = TranscriptListener(
+            self._event_bus, self._conversation_history
+        )
         if listener is not None:
             self._listener_bridge = AgentListenerBridge(
                 event_bus=self._event_bus,

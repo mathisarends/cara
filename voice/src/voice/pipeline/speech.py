@@ -108,7 +108,7 @@ class SpeechPipeline:
         queue: asyncio.Queue[str | object | _ProducerFailure] = asyncio.Queue(
             self._text_queue_size
         )
-        producer: asyncio.Task[None] | None = None
+        producer: asyncio.Task[str] | None = None
         pcm: AsyncIterator[bytes] | None = None
         try:
             events = await self._agent_session.start_turn(text)
@@ -133,7 +133,10 @@ class SpeechPipeline:
                     await self._event_bus.dispatch(
                         AssistantAudioChunk(turn_id=turn_id, chunk=chunk)
                     )
-            await self._event_bus.dispatch(AssistantTextCompleted(turn_id=turn_id))
+            transcript = await producer
+            await self._event_bus.dispatch(
+                AssistantTextCompleted(turn_id=turn_id, text=transcript)
+            )
             await self._event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id))
         except asyncio.CancelledError:
             await self._agent_session.interrupt()
@@ -171,10 +174,12 @@ async def _produce_text(
     *,
     event_bus: EventBus,
     turn_id: int,
-) -> None:
+) -> str:
+    chunks: list[str] = []
     try:
         async for event in events:
             if isinstance(event, TextDelta) and event.text:
+                chunks.append(event.text)
                 await event_bus.dispatch(
                     AssistantTextChunk(turn_id=turn_id, chunk=event.text)
                 )
@@ -188,6 +193,7 @@ async def _produce_text(
         await queue.put(_END)
     else:
         await queue.put(_END)
+    return "".join(chunks)
 
 
 async def _consume_text(
