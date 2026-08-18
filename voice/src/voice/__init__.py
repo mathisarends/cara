@@ -1,5 +1,13 @@
 from .agent import VoiceAgent
-from .barge_in import BargeInSignal, BargeInStrategy, NoBargeIn, WakeWordBargeIn
+from .barge_in import (
+    BargeInContext,
+    BargeInFactory,
+    BargeInSignal,
+    BargeInStrategy,
+    NoBargeIn,
+    SpeechBargeIn,
+    WakeWordBargeIn,
+)
 from .conversation import (
     AssistantMessage,
     ConversationAudioMixer,
@@ -17,6 +25,8 @@ from .wakeword import WakeWordSettings
 __all__ = [
     "AgentResult",
     "AssistantMessage",
+    "BargeInContext",
+    "BargeInFactory",
     "BargeInSignal",
     "BargeInStrategy",
     "ConversationAudioMixer",
@@ -27,6 +37,7 @@ __all__ = [
     "ConversationTurn",
     "HumanMessage",
     "NoBargeIn",
+    "SpeechBargeIn",
     "VoiceAgent",
     "VoiceAgentObserver",
     "WakeWordBargeIn",

@@ -1,20 +1,34 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from voice.barge_in import BargeInSignal, NoBargeIn, WakeWordBargeIn
+import numpy as np
+
+from voice.audio.models import AudioFormat
+from voice.barge_in import (
+    BargeInContext,
+    BargeInSignal,
+    BargeInStrategy,
+    NoBargeIn,
+    SpeechBargeIn,
+    WakeWordBargeIn,
+)
 from voice.events import (
     AssistantTurnStarted,
     SessionEnded,
     SessionStarted,
+    UserAudioChunk,
     UserTranscriptionRequested,
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
 from voice.events.models import VoiceTurnInterrupted, VoiceTurnRequested
 from voice.handler import BargeInHandler, TurnCoordinator, TurnListener
+from voice.vad import VoiceActivityDetector
+
+_FORMAT = AudioFormat(sample_rate=16_000)
 
 
-class _Signals:
+class _Signals(BargeInStrategy):
     """Feeds pre-recorded signals into a handler and reports when it drained."""
 
     def __init__(self, *sequences: int) -> None:
@@ -30,23 +44,75 @@ class _Signals:
 def test_wake_word_strategy_signals_detected_wake_words() -> None:
     async def run() -> list[BargeInSignal]:
         event_bus = EventBus()
-        strategy = WakeWordBargeIn(event_bus=event_bus)
+        strategy = WakeWordBargeIn(_context(event_bus))
 
         await event_bus.dispatch(
             WakeWordDetected(score=0.9, sequence=7, name="hey_mycroft")
         )
-        signals = strategy.signals()
-        try:
-            return [await anext(signals)]
-        finally:
-            await signals.aclose()
+        return await _drain(strategy)
 
     assert asyncio.run(run()) == [BargeInSignal(sequence=7)]
 
 
+def test_speech_strategy_signals_where_sustained_speech_started() -> None:
+    async def run() -> list[BargeInSignal]:
+        event_bus = EventBus()
+        strategy = _speech_strategy(event_bus, _AlwaysSpeech())
+
+        await _publish(event_bus, 1, _pcm(dbfs=-60.0, samples=1_024))
+        await _publish(event_bus, 2, _pcm(dbfs=-20.0, samples=1_024))
+        await _publish(event_bus, 3, _pcm(dbfs=-20.0, samples=1_024))
+        return await _drain(strategy)
+
+    assert asyncio.run(run()) == [BargeInSignal(sequence=2)]
+
+
+def test_speech_strategy_ignores_speech_below_the_minimum_duration() -> None:
+    async def run() -> list[BargeInSignal]:
+        event_bus = EventBus()
+        strategy = _speech_strategy(event_bus, _AlwaysSpeech())
+
+        await _publish(event_bus, 1, _pcm(dbfs=-20.0, samples=1_024))
+        await _publish(event_bus, 2, _pcm(dbfs=-60.0, samples=1_024))
+        await _publish(event_bus, 3, _pcm(dbfs=-20.0, samples=1_024))
+        return await _drain(strategy)
+
+    assert asyncio.run(run()) == []
+
+
+def test_speech_strategy_keeps_loud_non_speech_from_interrupting() -> None:
+    async def run() -> tuple[list[BargeInSignal], int]:
+        event_bus = EventBus()
+        detector = _NeverSpeech()
+        strategy = _speech_strategy(event_bus, detector)
+
+        for sequence in (1, 2, 3):
+            await _publish(event_bus, sequence, _pcm(dbfs=-20.0, samples=1_024))
+        return await _drain(strategy), detector.scored_windows
+
+    signals, scored_windows = asyncio.run(run())
+
+    assert signals == []
+    assert scored_windows == 6
+
+
+def test_speech_strategy_keeps_silence_away_from_the_detector() -> None:
+    async def run() -> int:
+        event_bus = EventBus()
+        detector = _AlwaysSpeech()
+        strategy = _speech_strategy(event_bus, detector)
+
+        await _publish(event_bus, 1, _pcm(dbfs=-80.0, samples=1_024))
+        await _drain(strategy)
+        return detector.scored_windows
+
+    assert asyncio.run(run()) == 0
+
+
 def test_disabled_strategy_never_signals() -> None:
     async def run() -> list[BargeInSignal]:
-        return [signal async for signal in NoBargeIn().signals()]
+        strategy = NoBargeIn(_context(EventBus()))
+        return [signal async for signal in strategy.signals()]
 
     assert asyncio.run(run()) == []
 
@@ -111,6 +177,72 @@ def test_barge_in_restarts_the_turn_at_the_signalled_audio_position() -> None:
     assert events[1] == VoiceTurnInterrupted(turn_id=1)
     assert events[2].turn_id == 2
     assert events[2].sequence == 42
+
+
+class _AlwaysSpeech(VoiceActivityDetector):
+    """Scores every window it is handed as speech."""
+
+    def __init__(self) -> None:
+        self.scored_windows = 0
+
+    @property
+    def sample_rate(self) -> int:
+        return _FORMAT.sample_rate
+
+    @property
+    def window_samples(self) -> int:
+        return 512
+
+    def speech_probability(self, window: bytes) -> float:
+        self.scored_windows += 1
+        return 1.0
+
+    def reset(self) -> None:
+        pass
+
+
+class _NeverSpeech(_AlwaysSpeech):
+    """Scores every window it is handed as noise."""
+
+    def speech_probability(self, window: bytes) -> float:
+        super().speech_probability(window)
+        return 0.0
+
+
+def _context(event_bus: EventBus) -> BargeInContext:
+    return BargeInContext(event_bus=event_bus, audio_format=_FORMAT)
+
+
+def _speech_strategy(
+    event_bus: EventBus, detector: VoiceActivityDetector
+) -> SpeechBargeIn:
+    return SpeechBargeIn(
+        _context(event_bus),
+        detector=detector,
+        min_level_dbfs=-40.0,
+        min_speech_seconds=0.096,
+    )
+
+
+async def _publish(event_bus: EventBus, sequence: int, chunk: bytes) -> None:
+    await event_bus.dispatch(UserAudioChunk(sequence=sequence, chunk=chunk))
+
+
+async def _drain(strategy: BargeInStrategy) -> list[BargeInSignal]:
+    signals = strategy.signals()
+    collected: list[BargeInSignal] = []
+    try:
+        while True:
+            collected.append(await asyncio.wait_for(anext(signals), timeout=0.01))
+    except TimeoutError:
+        return collected
+    finally:
+        await signals.aclose()
+
+
+def _pcm(*, dbfs: float, samples: int) -> bytes:
+    amplitude = round(32_768.0 * 10 ** (dbfs / 20.0))
+    return np.full(samples, amplitude, dtype=np.int16).tobytes()
 
 
 async def _record(sink: list[object], event: object) -> None:

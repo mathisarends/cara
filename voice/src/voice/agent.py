@@ -12,7 +12,7 @@ from voice.audio import (
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
-from voice.barge_in import BargeInStrategy, WakeWordBargeIn
+from voice.barge_in import BargeInContext, BargeInFactory, WakeWordBargeIn
 from voice.conversation import (
     ConversationAudioMixer,
     ConversationAudioRecorder,
@@ -55,7 +55,7 @@ class VoiceAgent:
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
         wake_word_settings: WakeWordSettings | None = None,
-        barge_in: BargeInStrategy | None = None,
+        barge_in: BargeInFactory = WakeWordBargeIn,
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
@@ -112,7 +112,7 @@ class VoiceAgent:
     def _setup_handlers(
         self,
         agent_session: AgentSession,
-        barge_in: BargeInStrategy | None,
+        barge_in: BargeInFactory,
         *,
         strip_wake_word: bool,
     ) -> None:
@@ -143,9 +143,13 @@ class VoiceAgent:
             event_bus=self._event_bus,
             source=self._wake_word,
         )
+        barge_in_context = BargeInContext(
+            event_bus=self._event_bus,
+            audio_format=self._buffered_audio_input.format,
+        )
         self._barge_in_handler = BargeInHandler(
             event_bus=self._event_bus,
-            strategy=barge_in or WakeWordBargeIn(event_bus=self._event_bus),
+            strategy=barge_in(barge_in_context),
             coordinator=self._turn_coordinator,
         )
         self._follow_up_handler = FollowUpHandler(event_bus=self._event_bus)
