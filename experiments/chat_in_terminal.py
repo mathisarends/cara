@@ -25,7 +25,7 @@ async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
     llm = create_codex_model(CodexModel.TERRA)
 
-    async with build_tools(
+    tools = build_tools(
         skills=skills,
         workspace=_create_workspace(),
         sandbox_environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
@@ -37,16 +37,15 @@ async def main() -> None:
             ),
         ),
         sandbox_network_access=True,
-    ) as tools:
-        agent = Agent(
-            llm=llm,
-            tools=tools,
-            prompt_root=_WORKSPACE_ROOT,
-            skills=skills,
-        )
+    )
+    agent = Agent(
+        llm=llm,
+        tools=tools,
+        skills=skills,
+    )
 
-        session = TerminalSession(AgentTurnRunner(agent))
-        await session.run()
+    session = TerminalSession(AgentTurnRunner(agent))
+    await session.run()
 
 
 def _create_workspace() -> LocalWorkspace:

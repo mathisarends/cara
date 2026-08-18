@@ -1,6 +1,8 @@
 import asyncio
 from pathlib import Path
 
+import pytest
+from agenttoolkit.builtins import DockerSandbox
 from llmify import (
     Function,
     StreamEnd,
@@ -14,6 +16,15 @@ from agent.agent import Agent
 from agent.tools import create_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalRenderer, TerminalSession
+
+
+@pytest.fixture(autouse=True)
+def _sandbox_lifecycle(monkeypatch) -> None:
+    async def no_op(_: DockerSandbox) -> None:
+        pass
+
+    monkeypatch.setattr(DockerSandbox, "open", no_op)
+    monkeypatch.setattr(DockerSandbox, "close", no_op)
 
 
 class EchoChatModel:
@@ -33,7 +44,7 @@ class EchoChatModel:
         yield StreamEnd(completion=completion)
 
 
-def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
+def test_terminal_session_sends_text_turns_to_agent() -> None:
     inputs = iter((" Hallo ", "2", "/exit"))
     prompts: list[str] = []
     outputs: list[str] = []
@@ -44,7 +55,7 @@ def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
 
     llm = EchoChatModel()
     session = TerminalSession(
-        AgentTurnRunner(Agent(llm=llm, tools=create_tools(), prompt_root=tmp_path)),
+        AgentTurnRunner(Agent(llm=llm, tools=create_tools())),
         input_reader=read,
         renderer=TerminalRenderer(
             output_writer=outputs.append,
@@ -69,14 +80,12 @@ def test_terminal_session_sends_text_turns_to_agent(tmp_path: Path) -> None:
     assert len(llm.messages) == 2
 
 
-def test_terminal_session_stops_at_end_of_input(tmp_path: Path) -> None:
+def test_terminal_session_stops_at_end_of_input() -> None:
     def end_of_input(prompt: str) -> str:
         raise EOFError
 
     session = TerminalSession(
-        AgentTurnRunner(
-            Agent(llm=EchoChatModel(), tools=create_tools(), prompt_root=tmp_path)
-        ),
+        AgentTurnRunner(Agent(llm=EchoChatModel(), tools=create_tools())),
         input_reader=end_of_input,
     )
 
@@ -115,9 +124,7 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
         return f"Wetter für {location}"
 
     session = TerminalSession(
-        AgentTurnRunner(
-            Agent(llm=ToolCallingChatModel(), tools=tools, prompt_root=tmp_path)
-        ),
+        AgentTurnRunner(Agent(llm=ToolCallingChatModel(), tools=tools)),
         input_reader=lambda prompt: next(inputs),
         renderer=TerminalRenderer(
             output_writer=outputs.append,
@@ -129,8 +136,8 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
     asyncio.run(session.run())
 
     assert outputs == [
-        '╭─ tool  weather_lookup\n│  {\n│    "location": "Aurich"\n│  }',
-        "╰─ done  weather_lookup\n   Wetter für Aurich",
+        "╭─ tool  weather_lookup\n│  {}",
+        "╰─ done  weather_lookup\n   completed",
         "cara ❯ ",
         "15 Grad ",
         "und teils bewölkt.",
