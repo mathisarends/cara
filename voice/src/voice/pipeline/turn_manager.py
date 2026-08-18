@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Protocol
 
 from voice.audio.hub import AudioCursor, AudioHub
 from voice.events import SessionEnded, UserTurnStarted
@@ -9,9 +10,18 @@ from voice.events.models import (
     VoiceTurnFailed,
     VoiceTurnRequested,
 )
-from voice.pipeline.speech import SpeechPipeline
 
 logger = logging.getLogger(__name__)
+
+
+class _TurnPipeline(Protocol):
+    async def run(
+        self,
+        *,
+        turn_id: int,
+        audio: AudioCursor,
+        speech_start_timeout: float,
+    ) -> None: ...
 
 
 class TurnManager:
@@ -21,7 +31,7 @@ class TurnManager:
         self,
         *,
         audio_hub: AudioHub,
-        pipeline: SpeechPipeline,
+        pipeline: _TurnPipeline,
         event_bus: EventBus,
         command_pre_roll_seconds: float = 0.16,
         speech_start_timeout: float = 8.0,

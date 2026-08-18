@@ -97,6 +97,11 @@ class AssistantResponseStarted(Event):
     turn_id: int
 
 
+class AssistantResponseRequested(Event):
+    turn_id: int
+    text: str
+
+
 class AssistantTextChunk(Event):
     turn_id: int
     chunk: str
@@ -105,6 +110,16 @@ class AssistantTextChunk(Event):
 class AssistantTextCompleted(Event):
     turn_id: int
     text: str
+
+
+class AssistantToolStarted(Event):
+    turn_id: int
+    name: str
+
+
+class AssistantToolCompleted(Event):
+    turn_id: int
+    name: str
 
 
 class AssistantAudioStarted(Event):

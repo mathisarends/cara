@@ -24,11 +24,11 @@ from voice.handler import (
     WakeWordHandler,
 )
 from voice.listener import AgentListener, AgentListenerBridge
-from voice.llm import AgentSession
+from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
 from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import CartesiaSpeechToText, SpeechToText
-from voice.tts import CartesiaTextToSpeech, TextToSpeech
+from voice.tts import CartesiaTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
 logger = logging.getLogger(__name__)
@@ -88,11 +88,17 @@ class VoiceAgent:
         self._setup_listeners(listener, self._recording_path)
 
     def _setup_handlers(self, agent_session: AgentSession) -> None:
+        self._agent_bridge = AgentBridge(
+            event_bus=self._event_bus,
+            session=agent_session,
+        )
+        self._text_to_speech_bridge = TextToSpeechBridge(
+            event_bus=self._event_bus,
+            text_to_speech=self._text_to_speech,
+        )
         self._pipeline = SpeechPipeline(
             wake_word_phrase=self._wake_word.phrase,
             speech_to_text=self._speech_to_text,
-            agent_session=agent_session,
-            text_to_speech=self._text_to_speech,
             event_bus=self._event_bus,
         )
         self._turns = TurnManager(
