@@ -1,14 +1,13 @@
+import asyncio
+import contextlib
 import json
-from collections.abc import Awaitable, Callable
-from pathlib import Path
+from collections.abc import AsyncIterator
+from dataclasses import dataclass
 
 from agenttoolkit import Skills, Tools
 from llmify import (
-    ChatInvokeCompletion,
     ChatModel,
-    ChatOpenAIResponses,
     LLMifyError,
-    OpenAIResponsesState,
     OpenAIResponsesStreamEnd,
     StreamEnd,
     StreamTextDelta,
@@ -16,258 +15,125 @@ from llmify import (
     ToolResultMessage,
 )
 
-from agent.prompt import Conversation, SystemPromptComposer
+from agent.messages import MessageManager
+from agent.prompt import SystemPrompt
+from voice.llm.events import (
+    AgentEvent,
+    TextDelta,
+    ToolCompleted,
+    ToolStarted,
+    TurnCompleted,
+)
 
-_MAX_TOOL_ROUNDS = 8
+type _EventQueue = asyncio.Queue[AgentEvent | _Failure]
 
 
 class Agent:
+    """Runs the tool-calling agent loop as a voice ``AgentSession`` implementation.
+
+    ``voice.llm.port.AgentSession`` is a structural protocol, so it is
+    deliberately not imported or subclassed here.
+    """
+
     def __init__(
         self,
         *,
         llm: ChatModel,
         tools: Tools,
-        prompt_root: Path,
         skills: Skills | None = None,
         system_prompt: str | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
-        self._conversation = Conversation(
-            system_prompt=SystemPromptComposer(
-                root=prompt_root,
-                system_prompt=system_prompt,
-                skills=skills,
-            ),
+        self._context = MessageManager(
+            SystemPrompt(system_prompt=system_prompt, skills=skills)
         )
-        self._responses_state: OpenAIResponsesState | None = None
+        self._turn: asyncio.Task[None] | None = None
 
-    async def respond(
-        self,
-        text: str,
-        *,
-        on_text_delta: Callable[[str], None] | None = None,
-        on_tool_call: Callable[[str, dict[str, object]], None] | None = None,
-        on_tool_result: Callable[[str, str], None] | None = None,
-        on_interim_response: Callable[[str], Awaitable[None]] | None = None,
-    ) -> str:
-        """Add a user turn, run the model and tools, and return the final answer.
+    async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
+        self._context.add_user(text)
+        return self._stream_turn()
 
-        When ``on_text_delta`` is provided, model text is streamed to it as it arrives.
-        """
-        text = text.strip()
-        if not text:
-            return ""
+    async def steer(self, text: str) -> None:
+        self._context.add_user(text)
 
-        self._conversation.add_user(text)
-        if on_text_delta is None:
-            answer = await self._generate_answer(
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-                on_interim_response=on_interim_response,
-            )
-        else:
-            answer = await self._generate_streaming_answer(
-                on_text_delta=on_text_delta,
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-                on_interim_response=on_interim_response,
-            )
-        self._conversation.add_assistant(answer)
-        return answer
+    async def interrupt(self) -> None:
+        await self._cancel_turn()
 
-    async def _generate_streaming_answer(
-        self,
-        *,
-        on_text_delta: Callable[[str], None],
-        on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str], None] | None,
-        on_interim_response: Callable[[str], Awaitable[None]] | None,
-    ) -> str:
-        if isinstance(self._llm, ChatOpenAIResponses):
-            return await self._generate_streaming_responses_answer(
-                on_text_delta=on_text_delta,
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-                on_interim_response=on_interim_response,
-            )
+    async def _stream_turn(self) -> AsyncIterator[AgentEvent]:
+        events: _EventQueue = asyncio.Queue()
+        self._turn = asyncio.create_task(self._run_turn(events))
+        try:
+            while True:
+                event = await events.get()
+                if isinstance(event, _Failure):
+                    raise event.error
+                yield event
+                if isinstance(event, TurnCompleted):
+                    return
+        finally:
+            await self._cancel_turn()
 
+    async def _run_turn(self, events: _EventQueue) -> None:
+        try:
+            await self._run_loop(events)
+        except Exception as error:
+            await events.put(_Failure(error))
+
+    async def _cancel_turn(self) -> None:
+        turn, self._turn = self._turn, None
+        if turn is None:
+            return
+        turn.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await turn
+
+    async def _run_loop(self, events: _EventQueue) -> None:
         while True:
-            end: StreamEnd | None = None
-            async for event in self._llm.stream(
-                self._conversation.to_llm_messages(),
-                tools=self._tools.get_schema("openai"),
-            ):
-                if isinstance(event, StreamTextDelta):
-                    on_text_delta(event.delta)
-                elif isinstance(event, StreamEnd):
-                    end = event
+            end = await self._stream_completion(events)
+            completion = end.completion or ""
 
-            if end is None:
-                raise RuntimeError("The model stream ended without a terminal event.")
-
-            if end.tool_calls and end.completion.strip() and on_interim_response:
-                await on_interim_response(end.completion.strip())
-            for tool_call in end.tool_calls:
-                await self._execute_tool(
-                    tool_call,
-                    on_tool_call=on_tool_call,
-                    on_tool_result=on_tool_result,
-                )
             if not end.tool_calls:
-                return end.completion.strip()
+                self._context.add_assistant(completion)
+                await events.put(TurnCompleted())
+                return
 
-    async def _generate_streaming_responses_answer(
-        self,
-        *,
-        on_text_delta: Callable[[str], None],
-        on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str], None] | None,
-        on_interim_response: Callable[[str], Awaitable[None]] | None,
-    ) -> str:
-        messages = (
-            self._conversation.to_llm_messages()
-            if self._responses_state is None
-            else self._conversation.to_current_turn_messages()
-        )
-        state = self._responses_state
+            tool_results = await self._execute_tools(end.tool_calls, events)
+            self._context.add_tool_round(completion, end.tool_calls, tool_results)
 
-        for round_index in range(_MAX_TOOL_ROUNDS + 1):
-            end: OpenAIResponsesStreamEnd | None = None
-            async for event in self._llm.stream(
-                messages,
-                tools=self._tools.get_schema("openai"),
-                provider_state=state,
-            ):
-                if isinstance(event, StreamTextDelta):
-                    on_text_delta(event.delta)
-                elif isinstance(event, OpenAIResponsesStreamEnd):
-                    end = event
+    async def _stream_completion(
+        self, events: _EventQueue
+    ) -> StreamEnd | OpenAIResponsesStreamEnd:
+        end: StreamEnd | OpenAIResponsesStreamEnd | None = None
+        async for event in self._llm.stream(
+            self._context.to_llm_messages(), tools=self._tools.get_schema("openai")
+        ):
+            if isinstance(event, StreamTextDelta) and event.delta:
+                await events.put(TextDelta(event.delta))
+            elif isinstance(event, (StreamEnd, OpenAIResponsesStreamEnd)):
+                end = event
 
-            if end is None:
-                raise RuntimeError(
-                    "The Responses stream ended without a terminal event."
-                )
+        if end is None:
+            raise LLMifyError("The model stream ended without a terminal event.")
+        return end
 
-            state = end.provider_state
-            if end.tool_calls and end.completion.strip() and on_interim_response:
-                await on_interim_response(end.completion.strip())
-            if not end.tool_calls:
-                self._responses_state = state
-                return end.completion.strip()
-
-            if round_index == _MAX_TOOL_ROUNDS:
-                raise LLMifyError(
-                    f"Tool loop exceeded max_tool_rounds={_MAX_TOOL_ROUNDS}."
-                )
-
-            tool_results: list[ToolResultMessage] = []
-            for tool_call in end.tool_calls:
-                content = await self._execute_tool(
-                    tool_call,
-                    on_tool_call=on_tool_call,
-                    on_tool_result=on_tool_result,
-                )
-                tool_results.append(
-                    ToolResultMessage(tool_call_id=tool_call.id, content=content)
-                )
-            messages = tool_results
-
-        raise AssertionError("unreachable")
-
-    async def _execute_tool(
-        self,
-        tool_call: ToolCall,
-        *,
-        on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str], None] | None,
-    ) -> str:
-        self._conversation.add_tool_call(tool_call)
-        name = tool_call.function.name
-        arguments = json.loads(tool_call.function.arguments or "{}")
-        if on_tool_call is not None:
-            on_tool_call(name, arguments)
-
-        result = await self._tools.execute(name, arguments)
-        content = "Tool completed successfully." if result is None else str(result)
-        if on_tool_result is not None:
-            on_tool_result(name, content)
-        self._conversation.add_tool_result(tool_call.id, content)
-        return content
-
-    async def _generate_answer(
-        self,
-        *,
-        on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str], None] | None,
-        on_interim_response: Callable[[str], Awaitable[None]] | None,
-    ) -> str:
-        if isinstance(self._llm, ChatOpenAIResponses):
-            return await self._generate_responses_answer(
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-                on_interim_response=on_interim_response,
+    async def _execute_tools(
+        self, tool_calls: list[ToolCall], events: _EventQueue
+    ) -> list[ToolResultMessage]:
+        results: list[ToolResultMessage] = []
+        for tool_call in tool_calls:
+            name = tool_call.function.name
+            arguments = json.loads(tool_call.function.arguments or "{}")
+            await events.put(ToolStarted(name))
+            result = await self._tools.execute(name, arguments)
+            await events.put(ToolCompleted(name))
+            content = "Tool completed successfully." if result is None else str(result)
+            results.append(
+                ToolResultMessage(tool_call_id=tool_call.id, content=content)
             )
+        return results
 
-        while True:
-            completion = await self._llm.invoke(
-                self._conversation.to_llm_messages(),
-                tools=self._tools.get_schema("openai"),
-            )
-            answer, called_tools = await self._resolve_completion(
-                completion,
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-                on_interim_response=on_interim_response,
-            )
-            if not called_tools:
-                return answer
 
-    async def _generate_responses_answer(
-        self,
-        *,
-        on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str], None] | None,
-        on_interim_response: Callable[[str], Awaitable[None]] | None,
-    ) -> str:
-        messages = (
-            self._conversation.to_llm_messages()
-            if self._responses_state is None
-            else self._conversation.to_current_turn_messages()
-        )
-
-        async def execute_tool(tool_call: ToolCall) -> str:
-            return await self._execute_tool(
-                tool_call,
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-            )
-
-        completion = await self._llm.invoke_with_tools(
-            messages,
-            tools=self._tools.get_schema("openai"),
-            tool_executor=execute_tool,
-            provider_state=self._responses_state,
-        )
-        self._responses_state = completion.provider_state
-        return completion.completion.strip()
-
-    async def _resolve_completion(
-        self,
-        completion: ChatInvokeCompletion[str],
-        *,
-        on_tool_call: Callable[[str, dict[str, object]], None] | None,
-        on_tool_result: Callable[[str, str], None] | None,
-        on_interim_response: Callable[[str], Awaitable[None]] | None,
-    ) -> tuple[str, bool]:
-        answer = completion.completion.strip()
-        if completion.tool_calls and answer and on_interim_response:
-            await on_interim_response(answer)
-        for tool_call in completion.tool_calls:
-            await self._execute_tool(
-                tool_call,
-                on_tool_call=on_tool_call,
-                on_tool_result=on_tool_result,
-            )
-
-        return answer, bool(completion.tool_calls)
+@dataclass(frozen=True, slots=True)
+class _Failure:
+    error: Exception

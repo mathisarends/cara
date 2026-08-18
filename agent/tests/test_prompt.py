@@ -3,23 +3,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from agenttoolkit import Skills
-from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
-from agent.prompt import Conversation, LocalTimePrompt, SystemPromptComposer
+from agent.prompt import LocalTimePrompt, SystemPrompt
 
-WORKSPACE_ROOT = Path(__file__).parents[2] / "workspace"
-
-
-def _tool_call() -> ToolCall:
-    return ToolCall(id="call-1", function=Function(name="load_skill", arguments="{}"))
+CONTEXT_ROOT = Path(__file__).parents[1] / "src" / "agent" / "prompt" / "context"
 
 
-def _composer(root: Path, **kwargs: object) -> SystemPromptComposer:
-    return SystemPromptComposer(root=root, system_prompt="System", **kwargs)
-
-
-def _conversation(root: Path) -> Conversation:
-    return Conversation(system_prompt=_composer(root))
+def _composer(root: Path, **kwargs: object) -> SystemPrompt:
+    return SystemPrompt(root=root, system_prompt="System", **kwargs)
 
 
 def _fixed_local_time() -> LocalTimePrompt:
@@ -37,77 +28,6 @@ def _skills(root: Path, name: str = "pdf", description: str = "Read PDFs.") -> S
         encoding="utf-8",
     )
     return Skills.from_dir(root)
-
-
-def test_conversation_builds_llm_messages_with_system_prompt(tmp_path: Path) -> None:
-    conversation = _conversation(tmp_path)
-
-    conversation.add_user("Hi")
-    conversation.add_assistant("Hallo")
-
-    llm_messages = conversation.to_llm_messages()
-
-    assert llm_messages[0].content == "System"
-    assert llm_messages[1].content == "Hi"
-    assert llm_messages[2].content == "Hallo"
-
-
-def test_conversation_retains_complete_history(tmp_path: Path) -> None:
-    conversation = _conversation(tmp_path)
-
-    conversation.add_user("one")
-    conversation.add_assistant("two")
-    conversation.add_user("three")
-
-    llm_messages = conversation.to_llm_messages()
-
-    assert [message.content for message in llm_messages] == [
-        "System",
-        "one",
-        "two",
-        "three",
-    ]
-
-
-def test_tool_result_lands_in_context_paired_with_its_call(tmp_path: Path) -> None:
-    conversation = _conversation(tmp_path)
-
-    conversation.add_user("Read this PDF")
-    conversation.add_tool_call(_tool_call())
-    conversation.add_tool_result("call-1", "Use the bundled parser.")
-    conversation.add_assistant("Mache ich.")
-
-    llm_messages = conversation.to_llm_messages()
-
-    assistant_call, tool_result = llm_messages[2], llm_messages[3]
-    assert isinstance(assistant_call, AssistantMessage)
-    assert assistant_call.tool_calls[0].id == "call-1"
-    assert isinstance(tool_result, ToolResultMessage)
-    assert tool_result.tool_call_id == "call-1"
-    assert tool_result.content == "Use the bundled parser."
-
-
-def test_multiple_tools_are_stored_as_individual_call_result_pairs(
-    tmp_path: Path,
-) -> None:
-    conversation = _conversation(tmp_path)
-    first = _tool_call()
-    second = ToolCall(id="call-2", function=Function(name="read_file", arguments="{}"))
-
-    conversation.add_tool_call(first)
-    conversation.add_tool_result(first.id, "skill instructions")
-    conversation.add_tool_call(second)
-    conversation.add_tool_result(second.id, "file contents")
-
-    llm_messages = conversation.to_llm_messages()
-    assert isinstance(llm_messages[1], AssistantMessage)
-    assert llm_messages[1].tool_calls[0].id == "call-1"
-    assert isinstance(llm_messages[2], ToolResultMessage)
-    assert llm_messages[2].tool_call_id == "call-1"
-    assert isinstance(llm_messages[3], AssistantMessage)
-    assert llm_messages[3].tool_calls[0].id == "call-2"
-    assert isinstance(llm_messages[4], ToolResultMessage)
-    assert llm_messages[4].tool_call_id == "call-2"
 
 
 def test_available_skills_are_appended_to_the_system_prompt(tmp_path: Path) -> None:
@@ -153,8 +73,8 @@ def test_local_time_precedes_available_skills_in_the_system_prompt(
     assert rendered.index("<local_time>") < rendered.index("<available_skills>")
 
 
-def test_system_prompt_is_assembled_from_the_workspace_markdown_files() -> None:
-    prompt = SystemPromptComposer(root=WORKSPACE_ROOT).render()
+def test_system_prompt_is_assembled_from_the_context_markdown_files() -> None:
+    prompt = SystemPrompt(root=CONTEXT_ROOT).render()
 
     assert (
         prompt.index("<agents>")
@@ -164,11 +84,15 @@ def test_system_prompt_is_assembled_from_the_workspace_markdown_files() -> None:
     )
 
 
+def test_system_prompt_defaults_to_the_bundled_context_files() -> None:
+    assert SystemPrompt().render() == SystemPrompt(root=CONTEXT_ROOT).render()
+
+
 def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
     (tmp_path / "USER.md").write_text("Mathis lebt in Berlin.", encoding="utf-8")
 
     assert (
-        SystemPromptComposer(root=tmp_path).render()
+        SystemPrompt(root=tmp_path).render()
         == "<user>\nMathis lebt in Berlin.\n</user>"
     )
 
@@ -179,7 +103,7 @@ def test_system_prompt_can_override_default_prompt_while_retaining_memory(
     (tmp_path / "SOUL.md").write_text("Sei direkt.", encoding="utf-8")
     (tmp_path / "MEMORY.md").write_text("Halbmarathon im Oktober.", encoding="utf-8")
 
-    prompt = SystemPromptComposer(root=tmp_path, system_prompt="Nur JSON.").render()
+    prompt = SystemPrompt(root=tmp_path, system_prompt="Nur JSON.").render()
 
     assert prompt == "Nur JSON.\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
 
@@ -209,5 +133,5 @@ def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
     assert _composer(tmp_path).render() == "System"
 
 
-def test_workspace_memory_is_loaded() -> None:
-    assert "<memory>" in SystemPromptComposer(root=WORKSPACE_ROOT).render()
+def test_context_memory_is_loaded() -> None:
+    assert "<memory>" in SystemPrompt(root=CONTEXT_ROOT).render()

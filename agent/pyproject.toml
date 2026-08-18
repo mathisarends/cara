@@ -16,6 +16,7 @@ dependencies = [
     "pyyaml>=6.0",
     "tavily-python>=0.7.26",
     "tzdata>=2024.1",
+    "voice",
 ]
 
 [build-system]

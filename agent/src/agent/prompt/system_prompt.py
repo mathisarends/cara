@@ -4,28 +4,28 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 
-from agent.markdown import render_tagged_section
 from agent.prompt.local_time import LocalTimePrompt
 
+_CONTEXT_ROOT = Path(__file__).parent / "context"
 _BASE_FILES = ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md")
 _TOOLS_FILES = ("TOOLS.md",)
 _MEMORY_FILES = ("MEMORY.md",)
 _DAILY_DIR = "daily"
 
 
-class SystemPromptComposer:
+class SystemPrompt:
     """Compose the agent's system prompt from all static and runtime context sources."""
 
     def __init__(
         self,
         *,
-        root: Path,
+        root: Path | None = None,
         system_prompt: str | None = None,
         skills: Skills | None = None,
         local_time: LocalTimePrompt | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
-        self._root = root
+        self._root = root or _CONTEXT_ROOT
         self._system_prompt = system_prompt
         self._skills = skills
         self._local_time = local_time
@@ -54,7 +54,7 @@ class SystemPromptComposer:
     def _render_memory(self) -> str:
         sections = [_render_files(self._root, _MEMORY_FILES)]
         daily_path = self._root / _DAILY_DIR / f"{self._today():%Y-%m-%d}.md"
-        if daily := render_tagged_section(daily_path, tag=_DAILY_DIR):
+        if daily := _render_tagged_section(daily_path, tag=_DAILY_DIR):
             sections.append(daily)
         return "\n\n".join(section for section in sections if section)
 
@@ -64,9 +64,20 @@ def _render_files(root: Path, file_names: tuple[str, ...]) -> str:
         section
         for file_name in file_names
         if (
-            section := render_tagged_section(
+            section := _render_tagged_section(
                 root / file_name, tag=Path(file_name).stem.lower()
             )
         )
     ]
     return "\n\n".join(sections)
+
+
+def _render_tagged_section(path: Path, *, tag: str) -> str:
+    """Wrap a markdown file in a tag, or return an empty string when it is
+    missing or blank."""
+    if not path.is_file():
+        return ""
+    content = path.read_text(encoding="utf-8").strip()
+    if not content:
+        return ""
+    return f"<{tag}>\n{content}\n</{tag}>"

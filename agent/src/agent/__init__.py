@@ -1,8 +1,7 @@
 from .agent import Agent
-from .prompt import Conversation, SystemPromptComposer
+from .prompt import SystemPrompt
 
 __all__ = [
     "Agent",
-    "Conversation",
-    "SystemPromptComposer",
+    "SystemPrompt",
 ]
