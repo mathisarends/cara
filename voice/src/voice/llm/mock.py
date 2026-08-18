@@ -1,12 +1,24 @@
 from collections.abc import AsyncIterator
 
+from voice.llm.events import AgentEvent, TextDelta, TurnCompleted
 
-class EchoLanguageModel:
-    """A deterministic streaming model useful for examples and tests."""
+
+class EchoAgentSession:
+    """A deterministic agent session useful for examples and tests."""
 
     def __init__(self, prefix: str = "Du hast gesagt: ") -> None:
         self._prefix = prefix
 
-    async def respond(self, text: str) -> AsyncIterator[str]:
+    async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
+        return self._stream_turn(text)
+
+    async def _stream_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         for character in f"{self._prefix}{text}":
-            yield character
+            yield TextDelta(character)
+        yield TurnCompleted()
+
+    async def steer(self, text: str) -> None:
+        pass
+
+    async def interrupt(self) -> None:
+        pass

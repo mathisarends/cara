@@ -24,7 +24,7 @@ from voice.handler import (
     WakeWordHandler,
 )
 from voice.listener import AgentListener, AgentListenerBridge
-from voice.llm import ChatModel
+from voice.llm import AgentSession
 from voice.models import AgentResult
 from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import CartesiaSpeechToText, SpeechToText
@@ -40,7 +40,7 @@ class VoiceAgent:
     def __init__(
         self,
         *,
-        llm: ChatModel,
+        agent_session: AgentSession,
         event_bus: EventBus | None = None,
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
@@ -83,19 +83,15 @@ class VoiceAgent:
             self._audio_hub,
             settings=wake_word_settings or WakeWordSettings(),
         )
-        self._setup_handlers(llm)
+        self._setup_handlers(agent_session)
         self._closed = False
         self._setup_listeners(listener, self._recording_path)
 
-    @property
-    def conversation_history(self) -> ConversationHistory:
-        return self._conversation_history
-
-    def _setup_handlers(self, llm: ChatModel) -> None:
+    def _setup_handlers(self, agent_session: AgentSession) -> None:
         self._pipeline = SpeechPipeline(
             wake_word_phrase=self._wake_word.phrase,
             speech_to_text=self._speech_to_text,
-            llm=llm,
+            agent_session=agent_session,
             text_to_speech=self._text_to_speech,
             event_bus=self._event_bus,
         )

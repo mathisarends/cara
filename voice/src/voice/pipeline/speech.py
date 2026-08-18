@@ -20,7 +20,7 @@ from voice.events import (
     VoiceTurnTimedOut,
 )
 from voice.events.bus import EventBus
-from voice.llm import ChatModel
+from voice.llm import AgentEvent, AgentSession, TextDelta, TurnCompleted
 from voice.stt import SpeechToText, Transcription
 from voice.tts import TextToSpeech
 
@@ -42,7 +42,7 @@ class SpeechPipeline:
         *,
         wake_word_phrase: str,
         speech_to_text: SpeechToText,
-        llm: ChatModel,
+        agent_session: AgentSession,
         text_to_speech: TextToSpeech,
         event_bus: EventBus,
         tts_sample_rate: int = 24_000,
@@ -54,7 +54,7 @@ class SpeechPipeline:
             raise ValueError("text_queue_size must be positive")
         self._wake_word_phrase = wake_word_phrase
         self._stt = speech_to_text
-        self._llm = llm
+        self._agent_session = agent_session
         self._tts = text_to_speech
         self._event_bus = event_bus
         self._tts_sample_rate = tts_sample_rate
@@ -108,17 +108,20 @@ class SpeechPipeline:
         queue: asyncio.Queue[str | object | _ProducerFailure] = asyncio.Queue(
             self._text_queue_size
         )
-        producer = asyncio.create_task(
-            _produce_text(
-                self._llm.respond(text),
-                queue,
-                event_bus=self._event_bus,
-                turn_id=turn_id,
-            ),
-            name=f"voice-llm-{turn_id}",
-        )
-        pcm = self._tts.synthesize(_consume_text(queue))
+        producer: asyncio.Task[None] | None = None
+        pcm: AsyncIterator[bytes] | None = None
         try:
+            events = await self._agent_session.start_turn(text)
+            producer = asyncio.create_task(
+                _produce_text(
+                    events,
+                    queue,
+                    event_bus=self._event_bus,
+                    turn_id=turn_id,
+                ),
+                name=f"voice-agent-{turn_id}",
+            )
+            pcm = self._tts.synthesize(_consume_text(queue))
             await self._event_bus.dispatch(
                 AssistantAudioStarted(
                     turn_id=turn_id,
@@ -132,11 +135,16 @@ class SpeechPipeline:
                     )
             await self._event_bus.dispatch(AssistantTextCompleted(turn_id=turn_id))
             await self._event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id))
+        except asyncio.CancelledError:
+            await self._agent_session.interrupt()
+            raise
         finally:
-            producer.cancel()
-            await asyncio.gather(producer, return_exceptions=True)
-            with contextlib.suppress(Exception):
-                await pcm.aclose()
+            if producer is not None:
+                producer.cancel()
+                await asyncio.gather(producer, return_exceptions=True)
+            if pcm is not None:
+                with contextlib.suppress(Exception):
+                    await pcm.aclose()
 
     async def _publish_transcription(self, turn_id: int, update: Transcription) -> None:
         await self._event_bus.dispatch(
@@ -158,19 +166,21 @@ async def _publish_user_audio(
 
 
 async def _produce_text(
-    chunks: AsyncIterator[str],
+    events: AsyncIterator[AgentEvent],
     queue: asyncio.Queue[str | object | _ProducerFailure],
     *,
     event_bus: EventBus,
     turn_id: int,
 ) -> None:
     try:
-        async for chunk in chunks:
-            if chunk:
+        async for event in events:
+            if isinstance(event, TextDelta) and event.text:
                 await event_bus.dispatch(
-                    AssistantTextChunk(turn_id=turn_id, chunk=chunk)
+                    AssistantTextChunk(turn_id=turn_id, chunk=event.text)
                 )
-                await queue.put(chunk)
+                await queue.put(event.text)
+            elif isinstance(event, TurnCompleted):
+                break
     except asyncio.CancelledError:
         raise
     except BaseException as error:
@@ -178,8 +188,6 @@ async def _produce_text(
         await queue.put(_END)
     else:
         await queue.put(_END)
-    finally:
-        await chunks.aclose()
 
 
 async def _consume_text(

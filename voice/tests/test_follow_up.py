@@ -11,6 +11,7 @@ from voice.events import (
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
 from voice.handler import FollowUpHandler
+from voice.llm import AgentEvent, TextDelta, TurnCompleted
 from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import SpeechToText, Transcription, TranscriptionKind
 from voice.tts import TextToSpeech
@@ -64,9 +65,19 @@ class _SpeechToText(SpeechToText):
         yield Transcription("Hey Mycroft command", True, TranscriptionKind.END)
 
 
-class _LanguageModel:
-    async def respond(self, text: str) -> AsyncIterator[str]:
-        yield "ok"
+class _AgentSession:
+    async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
+        return self._stream_turn()
+
+    async def _stream_turn(self) -> AsyncIterator[AgentEvent]:
+        yield TextDelta("ok")
+        yield TurnCompleted()
+
+    async def steer(self, text: str) -> None:
+        pass
+
+    async def interrupt(self) -> None:
+        pass
 
 
 class _TextToSpeech(TextToSpeech):
@@ -113,7 +124,7 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         pipeline = SpeechPipeline(
             wake_word_phrase="hey mycroft",
             speech_to_text=stt,
-            llm=_LanguageModel(),
+            agent_session=_AgentSession(),
             text_to_speech=_TextToSpeech(),
             event_bus=event_bus,
         )
