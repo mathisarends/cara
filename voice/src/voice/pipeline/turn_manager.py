@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
-from agent.events import SessionEnded, UserTurnStarted
 from voice.audio.hub import AudioCursor, AudioHub
+from voice.events import SessionEnded, UserTurnStarted
 from voice.events.bus import EventBus
 from voice.events.models import (
     VoiceTurnEnded,

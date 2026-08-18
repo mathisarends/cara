@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from agent.events import AssistantInterrupted, AssistantTurnStarted
+from voice.events import AssistantInterrupted, AssistantTurnStarted
 from voice.events.bus import EventBus
 
 

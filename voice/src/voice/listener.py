@@ -1,15 +1,13 @@
-from agent.events import (
+from voice.events import (
     AssistantInterrupted,
+    AssistantPlaybackCompleted,
     AssistantSpeechStarted,
+    FollowUpCountdown,
+    FollowUpTimedOut,
     SessionEnded,
     SessionStarted,
     UserSpeechEnded,
     UserSpeechStarted,
-)
-from voice.events import (
-    AssistantPlaybackCompleted,
-    FollowUpCountdown,
-    FollowUpTimedOut,
     VoiceTurnFailed,
     VoiceTurnTimedOut,
     WakeWordDetected,

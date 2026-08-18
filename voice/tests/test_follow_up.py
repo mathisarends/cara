@@ -1,9 +1,13 @@
 import asyncio
 from collections.abc import AsyncIterable, AsyncIterator
 
-from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
-from voice.events import FollowUpCountdown, FollowUpTimedOut
+from voice.events import (
+    FollowUpCountdown,
+    FollowUpTimedOut,
+    SessionEnded,
+    SessionStarted,
+)
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
 from voice.handler import FollowUpHandler

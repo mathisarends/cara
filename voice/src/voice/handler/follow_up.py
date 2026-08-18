@@ -2,11 +2,12 @@ import asyncio
 import logging
 import time
 
-from agent.events import SessionEnded, UserSpeechStarted
 from voice.events import (
     AssistantPlaybackCompleted,
     FollowUpCountdown,
     FollowUpTimedOut,
+    SessionEnded,
+    UserSpeechStarted,
     VoiceTurnTimedOut,
 )
 from voice.events.bus import EventBus

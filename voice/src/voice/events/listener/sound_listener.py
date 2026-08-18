@@ -1,8 +1,12 @@
 from enum import StrEnum
 from pathlib import Path
 
-from agent.events import SessionEnded
-from voice.events import AudioPlaybackRequested, FollowUpTimedOut, WakeWordDetected
+from voice.events import (
+    AudioPlaybackRequested,
+    FollowUpTimedOut,
+    SessionEnded,
+    WakeWordDetected,
+)
 from voice.events.bus import EventBus
 
 # parents[5]: sound_listener.py -> listener/events/voice/src/voice(project) -> cara

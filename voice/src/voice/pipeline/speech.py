@@ -4,11 +4,6 @@ import logging
 import re
 from collections.abc import AsyncIterator
 
-from agent.events import (
-    AssistantTurnStarted,
-    UserSpeechEnded,
-    UserSpeechStarted,
-)
 from voice.audio.hub import AudioCursor
 from voice.events import (
     AssistantAudioChunk,
@@ -17,7 +12,10 @@ from voice.events import (
     AssistantResponseStarted,
     AssistantTextChunk,
     AssistantTextCompleted,
+    AssistantTurnStarted,
     UserAudioChunk,
+    UserSpeechEnded,
+    UserSpeechStarted,
     UserTranscriptionUpdated,
     VoiceTurnTimedOut,
 )

@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-from agent.events import SessionEnded, SessionStarted
 from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
@@ -15,6 +14,7 @@ from voice.echo_cancellation import (
     EchoCancellationSettings,
     wrap_with_echo_cancellation,
 )
+from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
 from voice.events.listener import SoundListener
 from voice.events.models import VoiceResourcesClosing

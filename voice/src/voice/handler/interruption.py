@@ -1,6 +1,6 @@
 import logging
 
-from agent.events import AssistantInterrupted
+from voice.events import AssistantInterrupted
 from voice.events.bus import EventBus
 from voice.events.models import VoiceInterruptionRequested
 from voice.pipeline import TurnManager

@@ -1,7 +1,6 @@
 import asyncio
 
-from agent.events import SessionEnded
-from voice.events import AudioPlaybackRequested, WakeWordDetected
+from voice.events import AudioPlaybackRequested, SessionEnded, WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.listener import Earcon, SoundListener
 from voice.events.listener.sound_listener import _DEFAULT_SOUNDS_DIR

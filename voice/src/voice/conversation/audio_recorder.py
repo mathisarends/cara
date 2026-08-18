@@ -1,7 +1,12 @@
 import logging
 
-from agent.events import AssistantInterrupted, AssistantSpeechStarted
-from voice.events import AssistantAudioChunk, AssistantPlaybackCompleted, UserAudioChunk
+from voice.events import (
+    AssistantAudioChunk,
+    AssistantInterrupted,
+    AssistantPlaybackCompleted,
+    AssistantSpeechStarted,
+    UserAudioChunk,
+)
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
 

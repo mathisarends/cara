@@ -1,7 +1,12 @@
 import logging
 
-from agent.events import SessionEnded, SessionStarted, UserSpeechEnded, UserTurnStarted
-from voice.events import WakeWordDetected
+from voice.events import (
+    SessionEnded,
+    SessionStarted,
+    UserSpeechEnded,
+    UserTurnStarted,
+    WakeWordDetected,
+)
 from voice.events.bus import EventBus
 from voice.events.models import (
     VoiceInterruptionRequested,

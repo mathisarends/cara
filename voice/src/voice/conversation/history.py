@@ -1,5 +1,5 @@
-from agent.events import AssistantInterrupted
 from voice.events import (
+    AssistantInterrupted,
     AssistantResponseStarted,
     AssistantTextChunk,
     AssistantTextCompleted,

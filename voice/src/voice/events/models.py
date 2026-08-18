@@ -7,6 +7,38 @@ class Event(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class SessionStarted(Event):
+    """Emitted when a voice session begins."""
+
+
+class UserTurnStarted(Event):
+    """Emitted when the voice channel starts waiting for the user."""
+
+
+class AssistantTurnStarted(Event):
+    """Emitted when the model starts working on a user turn."""
+
+
+class UserSpeechStarted(Event):
+    """Emitted when voice activity is first detected for a user utterance."""
+
+
+class UserSpeechEnded(Event):
+    """Emitted when the recorder accepts the end of a user utterance."""
+
+
+class AssistantSpeechStarted(Event):
+    """Emitted immediately before the first assistant audio chunk is played."""
+
+
+class AssistantInterrupted(Event):
+    """Emitted when a repeated wake word interrupts an in-flight response."""
+
+
+class SessionEnded(Event):
+    """Emitted when a voice session ends."""
+
+
 class WakeWordDetected(Event):
     """Emitted when the configured wake word is detected."""
 

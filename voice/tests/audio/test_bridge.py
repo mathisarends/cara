@@ -1,13 +1,14 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from agent.events import AssistantSpeechStarted, SessionStarted
 from voice.audio import AudioBridge, AudioHub, AudioInput, AudioOutput
 from voice.events import (
     AssistantAudioChunk,
     AssistantAudioCompleted,
     AssistantAudioStarted,
     AssistantPlaybackCompleted,
+    AssistantSpeechStarted,
+    SessionStarted,
     VoiceTurnFailed,
 )
 from voice.events.bus import EventBus
