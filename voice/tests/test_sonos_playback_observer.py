@@ -20,26 +20,27 @@ class _RecordingSonosClient:
     def __init__(self, state: TransportState) -> None:
         self.ip = "192.0.2.1"
         self.state = state
-        self.pause_calls = 0
-        self.play_calls = 0
+        self.duck_calls: list[int | None] = []
+        self.unduck_calls = 0
+        self.duck_refreshed = asyncio.Event()
         self.closed = False
 
     async def get_transport_info(self) -> TransportInfo:
         return TransportInfo(CurrentTransportState=self.state)
 
-    async def pause(self) -> None:
-        self.pause_calls += 1
-        self.state = TransportState.PAUSED_PLAYBACK
+    async def duck(self, duration_millis: int | None = None) -> None:
+        self.duck_calls.append(duration_millis)
+        if len(self.duck_calls) > 1:
+            self.duck_refreshed.set()
 
-    async def play(self) -> None:
-        self.play_calls += 1
-        self.state = TransportState.PLAYING
+    async def unduck(self) -> None:
+        self.unduck_calls += 1
 
     async def close(self) -> None:
         self.closed = True
 
 
-def test_pauses_playback_for_interaction_and_resumes_after_timeout(caplog) -> None:
+def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> None:
     caplog.set_level(logging.INFO, logger="voice.playback.sonos")
 
     async def run() -> _RecordingSonosClient:
@@ -60,20 +61,17 @@ def test_pauses_playback_for_interaction_and_resumes_after_timeout(caplog) -> No
 
     client = asyncio.run(run())
 
-    assert client.pause_calls == 1
-    assert client.play_calls == 1
+    assert client.duck_calls == [60_000]
+    assert client.unduck_calls == 1
     assert client.closed is False
     assert (
-        "Sonos playback PLAYING -> PAUSED_PLAYBACK: user turn started"
+        "Sonos playback ducked for up to 60 seconds: user turn started"
         in caplog.messages
     )
-    assert (
-        "Sonos playback PAUSED_PLAYBACK -> PLAYING: user inactivity timeout"
-        in caplog.messages
-    )
+    assert "Sonos playback unducked: user inactivity timeout" in caplog.messages
 
 
-def test_does_not_resume_playback_it_did_not_pause() -> None:
+def test_does_not_unduck_playback_it_did_not_duck() -> None:
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PAUSED_PLAYBACK)
@@ -88,8 +86,31 @@ def test_does_not_resume_playback_it_did_not_pause() -> None:
 
     client = asyncio.run(run())
 
-    assert client.pause_calls == 0
-    assert client.play_calls == 0
+    assert client.duck_calls == []
+    assert client.unduck_calls == 0
+
+
+def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
+    async def run() -> _RecordingSonosClient:
+        client = _RecordingSonosClient(TransportState.PLAYING)
+        observer = SonosPlaybackObserver(client=cast(SonosClient, client))
+        event_bus = EventBus()
+        bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge.setup()
+        await bridge.prepare()
+
+        await event_bus.dispatch(UserTurnStarted())
+        await asyncio.wait_for(client.duck_refreshed.wait(), timeout=1)
+        await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=5))
+        return client
+
+    monkeypatch.setattr(sonos_module, "_DUCK_REFRESH_SECONDS", 0.01)
+
+    client = asyncio.run(run())
+
+    assert len(client.duck_calls) >= 2
+    assert set(client.duck_calls) == {60_000}
+    assert client.unduck_calls == 1
 
 
 def test_loads_sonos_target_from_settings(monkeypatch) -> None:
