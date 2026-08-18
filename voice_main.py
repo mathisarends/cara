@@ -12,10 +12,10 @@ load_dotenv(override=True)
 
 
 async def main() -> None:
-    echo_agent = EchoAgentSession(prefix="You said: ")
+    agent_session = EchoAgentSession()
     tts = CartesiaTextToSpeech(language="en")
 
-    agent = VoiceAgent(agent_session=echo_agent, text_to_speech=tts)
+    agent = VoiceAgent(agent_session=agent_session, text_to_speech=tts)
     await agent.run()
 
 
