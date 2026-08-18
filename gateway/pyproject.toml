@@ -12,7 +12,6 @@ dependencies = [
     "fastapi>=0.115.0",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
-    "scheduler",
     "sqlmodel>=0.0.31",
     "uvicorn>=0.30.0",
     # Uvicorn only serves the WebSocket API when a WS implementation is present.

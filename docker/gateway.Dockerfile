@@ -14,7 +14,6 @@ COPY agent/pyproject.toml agent/
 COPY gateway/pyproject.toml gateway/
 COPY gateway_client/pyproject.toml gateway_client/
 COPY llm/pyproject.toml llm/
-COPY scheduler/pyproject.toml scheduler/
 COPY voice/pyproject.toml voice/
 RUN uv sync --frozen --package gateway --no-install-workspace
 
