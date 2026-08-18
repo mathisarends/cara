@@ -1,16 +1,6 @@
 from collections.abc import AsyncIterator
 
-from llmify import (
-    AssistantMessage,
-    ChatCodex,
-    ContinuationMode,
-    HTTPResponsesTransport,
-    Message,
-    StreamTextDelta,
-    SystemMessage,
-    UserMessage,
-)
-
+from llm import CodexModel, CodexReasoningEffort, CodexSession, StreamTextDelta
 from voice.llm.events import AgentEvent, TextDelta, TurnCompleted
 
 _INSTRUCTIONS = (
@@ -20,33 +10,22 @@ _INSTRUCTIONS = (
     "Always respond in English."
 )
 
-_PROMPT_CACHE_KEY = "cara-voice"
-
 
 class CodexAgentSession:
-    def __init__(self, model: str = "gpt-5.3-codex-spark") -> None:
-        self._llm = ChatCodex.from_cli(
-            model=model,
-            reasoning_effort="low",
-            reasoning_summary="auto",
-            continuation_mode=ContinuationMode.PREVIOUS_RESPONSE_ID,
-            preserve_reasoning=True,
-            prompt_cache_key=_PROMPT_CACHE_KEY,
-            transport=HTTPResponsesTransport(),
+    def __init__(self, model: CodexModel = CodexModel.SPARK) -> None:
+        self._session = CodexSession(
+            model,
+            reasoning_effort=CodexReasoningEffort.LOW,
+            instructions=_INSTRUCTIONS,
         )
-        self._messages: list[Message] = [SystemMessage(content=_INSTRUCTIONS)]
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         return self._stream_turn(text)
 
     async def _stream_turn(self, text: str) -> AsyncIterator[AgentEvent]:
-        self._messages.append(UserMessage(content=text))
-        reply = ""
-        async for event in self._llm.stream(messages=self._messages):
+        async for event in self._session.stream(text):
             if isinstance(event, StreamTextDelta) and event.delta:
-                reply += event.delta
                 yield TextDelta(event.delta)
-        self._messages.append(AssistantMessage(content=reply))
         yield TurnCompleted()
 
     async def steer(self, text: str) -> None:

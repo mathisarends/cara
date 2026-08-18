@@ -2,28 +2,31 @@ from collections.abc import AsyncIterator
 
 import pytest
 
+from llm import OpenAIResponsesStreamEvent
 from voice.llm import codex as codex_module
 
 
-class _CodexBackend:
+class _CodexSession:
     def __init__(self) -> None:
-        self.events: list[object] = []
-        self.config: dict[str, object] = {}
-        self.messages: list[list[object]] = []
+        self.events: list[OpenAIResponsesStreamEvent] = []
+        self.turns: list[str] = []
+        self.args: tuple[object, ...] = ()
+        self.kwargs: dict[str, object] = {}
 
-    async def stream(self, *, messages: list[object]) -> AsyncIterator[object]:
-        self.messages.append(list(messages))
+    async def stream(self, text: str) -> AsyncIterator[OpenAIResponsesStreamEvent]:
+        self.turns.append(text)
         for event in self.events:
             yield event
 
 
 @pytest.fixture
-def codex_backend(monkeypatch) -> _CodexBackend:
-    backend = _CodexBackend()
+def codex_session(monkeypatch) -> _CodexSession:
+    session = _CodexSession()
 
-    def create(**kwargs: object) -> _CodexBackend:
-        backend.config = kwargs
-        return backend
+    def create(*args: object, **kwargs: object) -> _CodexSession:
+        session.args = args
+        session.kwargs = kwargs
+        return session
 
-    monkeypatch.setattr(codex_module.ChatCodex, "from_cli", staticmethod(create))
-    return backend
+    monkeypatch.setattr(codex_module, "CodexSession", create)
+    return session

@@ -599,11 +599,15 @@ name = "llm"
 version = "0.1.0"
 source = { editable = "llm" }
 dependencies = [
+    { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" }]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
+]
 
 [[package]]
 name = "mako"
@@ -1366,9 +1370,9 @@ version = "0.1.0"
 source = { editable = "voice" }
 dependencies = [
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pysilero-vad", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1380,9 +1384,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "hueify", specifier = ">=0.9.0" },
+    { name = "llm", editable = "llm" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
-    { name = "py-llmify", extras = ["openai"] },
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pysilero-vad", specifier = ">=3.4.0" },
