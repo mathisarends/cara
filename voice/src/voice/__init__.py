@@ -9,13 +9,11 @@ from .conversation import (
     ConversationTurn,
     HumanMessage,
 )
-from .listener import AgentListener, AgentListenerBridge
 from .models import AgentResult
+from .observer import VoiceAgentObserver
 from .wakeword import WakeWordSettings
 
 __all__ = [
-    "AgentListener",
-    "AgentListenerBridge",
     "AgentResult",
     "AssistantMessage",
     "ConversationAudioMixer",
@@ -26,5 +24,6 @@ __all__ = [
     "ConversationTurn",
     "HumanMessage",
     "VoiceAgent",
+    "VoiceAgentObserver",
     "WakeWordSettings",
 ]

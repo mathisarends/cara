@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterable
 from pathlib import Path
 
 from voice.audio import (
@@ -31,9 +32,9 @@ from voice.handler import (
     TurnCoordinator,
     WakeWordHandler,
 )
-from voice.listener import AgentListener, AgentListenerBridge
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
+from voice.observer import VoiceAgentObserver, VoiceAgentObserverBridge
 from voice.stt import CartesiaSpeechToText, SpeechToText, SpeechToTextBridge
 from voice.tts import CartesiaTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
@@ -48,17 +49,16 @@ class VoiceAgent:
         self,
         *,
         agent_session: AgentSession,
-        event_bus: EventBus | None = None,
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
         wake_word_settings: WakeWordSettings | None = None,
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
-        listener: AgentListener | None = None,
+        observers: Iterable[VoiceAgentObserver] = (),
         recording_path: str | Path | None = None,
     ) -> None:
-        self._event_bus = event_bus or EventBus()
+        self._event_bus = EventBus()
         self._conversation_history = ConversationHistory()
         self._recording_path = Path(recording_path) if recording_path else None
         self._audio_session = (
@@ -98,8 +98,8 @@ class VoiceAgent:
             strip_wake_word=wake_word_settings.strip_from_command,
         )
         self._closed = False
-        self._setup_listeners(
-            listener,
+        self._setup_observers(
+            observers,
             self._recording_path,
             wake_word_phrase=self._wake_word.phrase,
         )
@@ -139,9 +139,9 @@ class VoiceAgent:
             text_to_speech=self._text_to_speech,
         )
 
-    def _setup_listeners(
+    def _setup_observers(
         self,
-        listener: AgentListener | None,
+        observers: Iterable[VoiceAgentObserver],
         recording_path: str | Path | None,
         *,
         wake_word_phrase: str,
@@ -153,12 +153,11 @@ class VoiceAgent:
         self._transcript_listener = TranscriptListener(
             self._event_bus, self._conversation_history
         )
-        if listener is not None:
-            self._listener_bridge = AgentListenerBridge(
-                event_bus=self._event_bus,
-                listener=listener,
-            )
-            self._listener_bridge.setup()
+        self._observer_bridge = VoiceAgentObserverBridge(
+            event_bus=self._event_bus,
+            observers=observers,
+        )
+        self._observer_bridge.setup()
         if recording_path is not None:
             self._audio_recorder = ConversationAudioRecorder(
                 self._event_bus,
