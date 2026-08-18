@@ -10,6 +10,7 @@ from voice.events import (
     UserSpeechEnded,
     UserSpeechStarted,
     VoiceTurnFailed,
+    VoiceTurnInterrupted,
     VoiceTurnTimedOut,
     WakeWordDetected,
 )
@@ -47,6 +48,8 @@ class VoiceAgentObserver:
     async def on_assistant_started_responding(self) -> None: ...
 
     async def on_assistant_stopped_responding(self) -> None: ...
+
+    async def on_assistant_interrupted(self, turn_id: int) -> None: ...
 
 
 class VoiceAgentObserverBridge:
@@ -111,4 +114,10 @@ class VoiceAgentObserverBridge:
             bus.on(
                 AssistantPlaybackCompleted,
                 lambda _, observer=observer: observer.on_assistant_stopped_responding(),
+            )
+            bus.on(
+                VoiceTurnInterrupted,
+                lambda event, observer=observer: observer.on_assistant_interrupted(
+                    event.turn_id
+                ),
             )

@@ -24,6 +24,7 @@ from .models import (
     UserTranscriptionUpdated,
     UserTurnStarted,
     VoiceTurnFailed,
+    VoiceTurnInterrupted,
     VoiceTurnTimedOut,
     WakeWordDetected,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "UserTranscriptionUpdated",
     "UserTurnStarted",
     "VoiceTurnFailed",
+    "VoiceTurnInterrupted",
     "VoiceTurnTimedOut",
     "WakeWordDetected",
 ]

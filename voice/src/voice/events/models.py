@@ -60,6 +60,12 @@ class VoiceTurnEnded(Event):
     turn_id: int
 
 
+class VoiceTurnInterrupted(Event):
+    """Emitted when the user takes the floor before the turn finished."""
+
+    turn_id: int
+
+
 class VoiceTurnTimedOut(Event):
     turn_id: int
 

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class WakeWordHandler:
-    """Publishes wake words while the session has no active voice turn."""
+    """Publishes wake words and starts a voice turn while the session is idle."""
 
     def __init__(self, *, event_bus: EventBus, source: WakeWordListener) -> None:
         self._event_bus = event_bus
@@ -29,18 +29,16 @@ class WakeWordHandler:
 
     async def run(self) -> None:
         async for detection in self._source.detections():
-            if not self._is_enabled:
-                continue
-
             logger.info(
                 "Wake word %r detected (score=%.2f, sequence=%d)",
                 detection.name,
                 detection.score,
                 detection.sequence,
             )
-            await self._event_bus.dispatch(
-                VoiceTurnRequested(sequence=detection.sequence)
-            )
+            if self._can_start_turn:
+                await self._event_bus.dispatch(
+                    VoiceTurnRequested(sequence=detection.sequence)
+                )
             await self._event_bus.dispatch(
                 WakeWordDetected(
                     score=detection.score,
@@ -53,7 +51,7 @@ class WakeWordHandler:
         self._session_active = False
 
     @property
-    def _is_enabled(self) -> bool:
+    def _can_start_turn(self) -> bool:
         return self._session_active and not self._turn_active
 
     async def _on_session_started(self, _: SessionStarted) -> None:

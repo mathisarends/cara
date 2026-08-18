@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import Iterable
 from pathlib import Path
@@ -12,6 +13,7 @@ from voice.audio import (
 from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
+from voice.barge_in import BargeInStrategy, WakeWordBargeIn
 from voice.conversation import (
     ConversationAudioMixer,
     ConversationAudioRecorder,
@@ -26,6 +28,7 @@ from voice.events.bus import EventBus
 from voice.events.listener import LoggingListener, SoundListener, TranscriptListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
+    BargeInHandler,
     CommandBridge,
     FollowUpHandler,
     SpeechResourceHandler,
@@ -53,6 +56,7 @@ class VoiceAgent:
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
         wake_word_settings: WakeWordSettings | None = None,
+        barge_in: BargeInStrategy | None = None,
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
@@ -96,6 +100,7 @@ class VoiceAgent:
         )
         self._setup_handlers(
             agent_session,
+            barge_in,
             strip_wake_word=wake_word_settings.strip_from_command,
         )
         self._stopped = False
@@ -106,7 +111,11 @@ class VoiceAgent:
         )
 
     def _setup_handlers(
-        self, agent_session: AgentSession, *, strip_wake_word: bool
+        self,
+        agent_session: AgentSession,
+        barge_in: BargeInStrategy | None,
+        *,
+        strip_wake_word: bool,
     ) -> None:
         self._agent_bridge = AgentBridge(
             event_bus=self._event_bus,
@@ -134,6 +143,11 @@ class VoiceAgent:
         self._wake_word_handler = WakeWordHandler(
             event_bus=self._event_bus,
             source=self._wake_word,
+        )
+        self._barge_in_handler = BargeInHandler(
+            event_bus=self._event_bus,
+            strategy=barge_in or WakeWordBargeIn(event_bus=self._event_bus),
+            coordinator=self._turn_coordinator,
         )
         self._follow_up_handler = FollowUpHandler(event_bus=self._event_bus)
         self._speech_resource_handler = SpeechResourceHandler(
@@ -177,13 +191,23 @@ class VoiceAgent:
         try:
             await self._event_bus.dispatch(SessionStarted())
             logger.debug("Session started")
-            await self._wake_word_handler.run()
+            await self._run_handlers()
         finally:
             await self.stop()
         return AgentResult(
             recording_path=self._recording_path,
             conversation_history=self._conversation_history.turns,
         )
+
+    async def _run_handlers(self) -> None:
+        barge_in = asyncio.create_task(
+            self._barge_in_handler.run(), name="voice-barge-in"
+        )
+        try:
+            await self._wake_word_handler.run()
+        finally:
+            barge_in.cancel()
+            await asyncio.gather(barge_in, return_exceptions=True)
 
     async def stop(self) -> None:
         if self._stopped:

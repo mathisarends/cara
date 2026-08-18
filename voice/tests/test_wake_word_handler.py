@@ -14,12 +14,14 @@ class _WakeWords:
         yield WakeWordDetection(sequence=2, score=0.9, name="hey_mycroft")
 
 
-def test_ignores_wake_words_during_an_active_turn() -> None:
-    async def run() -> list[WakeWordDetected]:
+def test_starts_no_second_turn_while_one_is_active() -> None:
+    async def run() -> tuple[list[VoiceTurnRequested], list[WakeWordDetected]]:
         event_bus = EventBus()
+        requests: list[VoiceTurnRequested] = []
         detections: list[WakeWordDetected] = []
 
-        async def start_turn(_: VoiceTurnRequested) -> None:
+        async def start_turn(event: VoiceTurnRequested) -> None:
+            requests.append(event)
             await event_bus.dispatch(UserTurnStarted())
 
         async def record_detection(event: WakeWordDetected) -> None:
@@ -31,8 +33,9 @@ def test_ignores_wake_words_during_an_active_turn() -> None:
 
         await event_bus.dispatch(SessionStarted())
         await handler.run()
-        return detections
+        return requests, detections
 
-    detections = asyncio.run(run())
+    requests, detections = asyncio.run(run())
 
-    assert [event.sequence for event in detections] == [1]
+    assert [event.sequence for event in requests] == [1]
+    assert [event.sequence for event in detections] == [1, 2]

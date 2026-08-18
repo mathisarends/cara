@@ -40,6 +40,15 @@ class TurnCoordinator:
             raise RuntimeError(f"Voice turn {turn_id} is not active.")
         self._active_task = task
 
+    async def cancel_active_turn(self) -> int | None:
+        """Cancel the running turn and wait for its teardown to finish."""
+        turn_id, task = self._active_turn_id, self._active_task
+        if turn_id is None or task is None or task.done():
+            return None
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        return turn_id
+
     def end_turn(self, turn_id: int) -> bool:
         if self._active_turn_id != turn_id:
             return False
@@ -82,6 +91,9 @@ class TurnListener:
 
     async def _on_turn_requested(self, event: VoiceTurnRequested) -> None:
         if self._coordinator.is_closed:
+            return
+        if self._coordinator.has_active_turn:
+            logger.debug("Ignoring voice turn request while another turn is active")
             return
 
         turn_id = self._coordinator.start_turn()
