@@ -1,9 +1,12 @@
+import logging
 import random
 from collections.abc import Sequence
 
 from voice.acknowledgment import GENERIC_ACKNOWLEDGMENTS, AcknowledgmentStrategy
 from voice.events import UserSpeechEnded
 from voice.events.bus import EventBus
+
+logger = logging.getLogger(__name__)
 
 
 class AcknowledgmentHandler:
@@ -26,7 +29,9 @@ class AcknowledgmentHandler:
         event_bus.on(UserSpeechEnded, self._on_user_speech_ended)
 
     async def _on_user_speech_ended(self, _: UserSpeechEnded) -> None:
-        await self._strategy.acknowledge(self._next_phrase())
+        phrase = self._next_phrase()
+        logger.info("Acknowledgment: %s", phrase)
+        await self._strategy.acknowledge(phrase)
 
     def _next_phrase(self) -> str:
         # Two distinct phrases are guaranteed, so excluding the last one always
