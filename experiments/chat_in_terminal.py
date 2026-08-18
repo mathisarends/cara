@@ -5,9 +5,8 @@ from pathlib import Path
 from agenttoolkit import Skills
 from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
-from transitbus import EventBus
 
-from agent import Agent, HueListener
+from agent import Agent
 from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalSession
@@ -25,8 +24,6 @@ load_dotenv()
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
     llm = create_codex_model(CodexModel.TERRA)
-    event_bus = EventBus()
-    hue_listener = HueListener(event_bus)
 
     async with build_tools(
         skills=skills,
@@ -51,14 +48,10 @@ async def main() -> None:
                 "Lies bestehende Dateien vor Änderungen und speichere neue "
                 "oder geänderte Skills dort."
             ),
-            event_bus=event_bus,
         )
 
-        session = TerminalSession(AgentTurnRunner(agent, event_bus=event_bus))
-        try:
-            await session.run()
-        finally:
-            await hue_listener.close()
+        session = TerminalSession(AgentTurnRunner(agent))
+        await session.run()
 
 
 def _create_workspace() -> LocalWorkspace:

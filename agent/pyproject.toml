@@ -7,7 +7,6 @@ dependencies = [
     "config",
     "llm",
     "httpx>=0.28.0",
-    "hueify>=0.8.1",
     "mm-agenttoolkit>=0.2.0",
     "openai>=1.100.0",
     "py-llmify[openai]>=0.10.0",
@@ -16,7 +15,6 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
     "tavily-python>=0.7.26",
-    "transitbus>=0.1.0",
     "tzdata>=2024.1",
 ]
 

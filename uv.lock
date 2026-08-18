@@ -37,7 +37,6 @@ source = { editable = "agent" }
 dependencies = [
     { name = "config", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -47,7 +46,6 @@ dependencies = [
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "transitbus", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -55,7 +53,6 @@ dependencies = [
 requires-dist = [
     { name = "config", editable = "config" },
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "hueify", specifier = ">=0.8.1" },
     { name = "llm", editable = "llm" },
     { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
     { name = "openai", specifier = ">=1.100.0" },
@@ -65,7 +62,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "tavily-python", specifier = ">=0.7.26" },
-    { name = "transitbus", specifier = ">=0.1.0" },
     { name = "tzdata", specifier = ">=2024.1" },
 ]
 
@@ -1255,18 +1251,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/87/d7/0535a28b1f5f24f6612fb3ff1e89fb1a8d160fee0f976e0aa6803862134b/tqdm-4.68.3.tar.gz", hash = "sha256:00dfa48452b6b6cfae3dd9885636c23d3422d1ec97c66d96818cbd5e0821d482", size = 170596, upload-time = "2026-06-17T07:36:52.105Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/8e/bb97bb0c71802080bfc8952937d174e49cfc50de5c951dd47b2496f0dcdb/tqdm-4.68.3-py3-none-any.whl", hash = "sha256:39832cc2def2789a6f29df83f172db7416cea70052c0907a57801c5f2fdccb03", size = 78337, upload-time = "2026-06-17T07:36:50.132Z" },
-]
-
-[[package]]
-name = "transitbus"
-version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/63/a1/9d5ac2a329ea20b29746a06c51897691675f000165b3707036c9d2dd8a8c/transitbus-0.1.0.tar.gz", hash = "sha256:2a9fbbc82c20ddc9134949294612f6afaccc21f9bc010ec765a6c6c0b46e3ff7", size = 13427, upload-time = "2026-07-24T05:35:27.222Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/76/8152513d16ee43a235a582392e1f1a1ec6b23d8b099628f8072aaf64cc89/transitbus-0.1.0-py3-none-any.whl", hash = "sha256:c78c277670d95080e055f6d7a86890d74c260ddf3b209683b28d038ff85f3613", size = 8692, upload-time = "2026-07-24T05:35:26.015Z" },
 ]
 
 [[package]]
