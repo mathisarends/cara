@@ -17,7 +17,7 @@ from .conversation import (
     ConversationTurn,
     HumanMessage,
 )
-from .hue import HueObserver
+from .hue import HueObserver, LightingState
 from .models import AgentResult
 from .observer import Observer, ObserverContext
 from .sound import Earcon, SoundObserver
@@ -38,6 +38,7 @@ __all__ = [
     "Earcon",
     "HumanMessage",
     "HueObserver",
+    "LightingState",
     "NoBargeIn",
     "Observer",
     "ObserverContext",
