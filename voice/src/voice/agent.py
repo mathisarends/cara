@@ -22,7 +22,7 @@ from voice.echo_cancellation import (
 )
 from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
-from voice.events.listener import SoundListener, TranscriptListener
+from voice.events.listener import LoggingListener, SoundListener, TranscriptListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
     CommandBridge,
@@ -98,7 +98,11 @@ class VoiceAgent:
             strip_wake_word=wake_word_settings.strip_from_command,
         )
         self._closed = False
-        self._setup_listeners(listener, self._recording_path)
+        self._setup_listeners(
+            listener,
+            self._recording_path,
+            wake_word_phrase=self._wake_word.phrase,
+        )
 
     def _setup_handlers(
         self, agent_session: AgentSession, *, strip_wake_word: bool
@@ -139,7 +143,12 @@ class VoiceAgent:
         self,
         listener: AgentListener | None,
         recording_path: str | Path | None,
+        *,
+        wake_word_phrase: str,
     ) -> None:
+        self._logging_listener = LoggingListener(
+            self._event_bus, wake_word_phrase=wake_word_phrase
+        )
         self._sound_listener = SoundListener(self._event_bus)
         self._transcript_listener = TranscriptListener(
             self._event_bus, self._conversation_history
@@ -163,7 +172,6 @@ class VoiceAgent:
         if self._closed:
             raise RuntimeError("Voice agent is closed.")
 
-        logger.info('Listening for "Hey Mycroft". Press Ctrl+C to quit.')
         try:
             await self._event_bus.dispatch(SessionStarted())
             logger.debug("Session started")
