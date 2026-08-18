@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 from agent import Agent
 from agent.tools import build_tools
-from config import load_cara_config
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
     HueObserver,
@@ -29,9 +28,8 @@ _SKILLS_ROOT = Path(__file__).parent / "skills"
 
 
 async def main() -> None:
-    configuration = load_cara_config()
     skills = Skills.from_dir(_SKILLS_ROOT)
-    tools = build_tools(configuration=configuration, skills=skills)
+    tools = build_tools(skills=skills)
     agent_session = Agent(
         llm=create_codex_model(
             CodexModel.SPARK,

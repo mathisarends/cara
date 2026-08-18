@@ -1,5 +1,4 @@
 from collections.abc import Mapping, Sequence
-from pathlib import Path
 
 import agenttoolkit
 from agenttoolkit import (
@@ -9,7 +8,6 @@ from agenttoolkit import (
     ToolContext,
 )
 from agenttoolkit.builtins import BindMount, DockerSandbox, Workspace
-from config import CaraConfig
 
 from agent.tools.actions import register_tools
 from agent.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
@@ -25,10 +23,8 @@ def create_tools(context: ToolContext | None = None) -> "AgentTools":
 
 def build_tools(
     *dependencies: object,
-    configuration: CaraConfig | None = None,
     skills: Skills | None = None,
     workspace: Workspace | None = None,
-    workspace_root: Path | None = None,
     sandbox_environment: Mapping[str, str] | None = None,
     sandbox_mounts: Sequence[BindMount] | None = None,
     sandbox_network_access: bool | None = None,
@@ -40,9 +36,7 @@ def build_tools(
         OpenMeteoClient(),
         TavilySearchClient(),
         skills,
-        configuration=configuration,
         workspace=workspace,
-        workspace_root=workspace_root,
         sandbox_environment=sandbox_environment,
         sandbox_mounts=sandbox_mounts,
         sandbox_network_access=sandbox_network_access,

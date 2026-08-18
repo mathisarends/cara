@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Agentic core: agent loop, tools, memory, and prompt assembly."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "config",
     "llm",
     "httpx>=0.28.0",
     "mm-agenttoolkit>=0.2.0",

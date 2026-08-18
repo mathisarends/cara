@@ -10,7 +10,6 @@ from agenttoolkit.builtins import (
     SandboxPolicy,
     Workspace,
 )
-from config import CaraConfig, DockerBind
 
 from agent.tools import BindMount, build_tools, create_tool_context, create_tools
 
@@ -169,7 +168,7 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     sandbox = context.resolve(DockerSandbox)
 
     assert workspace is not None
-    assert workspace.root == (Path.home() / ".cara" / "workspace").resolve()
+    assert workspace.root == Path(Path.cwd().anchor)
     assert sandbox is not None
     assert sandbox.defaults.working_directory == workspace.root
     assert sandbox.policy.allows_write(workspace.root)
@@ -179,33 +178,6 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
         if "dst=/workspace" in argument
     )
     assert not workspace_mount.endswith(",readonly")
-
-
-def test_workspace_root_configures_default_workspace(tmp_path: Path) -> None:
-    context = create_tool_context(workspace_root=tmp_path)
-
-    workspace = context.resolve(Workspace)
-
-    assert workspace is not None
-    assert workspace.root == tmp_path.resolve()
-
-
-def test_default_workspace_has_no_artificial_file_size_limit(tmp_path: Path) -> None:
-    context = create_tool_context(workspace_root=tmp_path)
-    workspace = context.resolve(Workspace)
-    assert workspace is not None
-    content = "x" * (10 * 1024 * 1024 + 1)
-
-    asyncio.run(workspace.write_file("large.txt", content))
-
-    assert (tmp_path / "large.txt").stat().st_size == len(content)
-
-
-def test_workspace_and_workspace_root_are_mutually_exclusive(tmp_path: Path) -> None:
-    workspace = LocalWorkspace(tmp_path)
-
-    with pytest.raises(ValueError, match="either workspace or workspace_root"):
-        create_tool_context(workspace=workspace, workspace_root=tmp_path)
 
 
 def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> None:
@@ -250,48 +222,6 @@ def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:
     )
     assert music_mount.endswith(",readonly")
     assert not projects_mount.endswith(",readonly")
-
-
-def test_configuration_builds_workspace_and_sandbox_mounts(tmp_path: Path) -> None:
-    workspace_root = tmp_path / "workspace"
-    music = tmp_path / "music"
-    configuration = CaraConfig(
-        workspace_root=workspace_root,
-        sandbox_network_access=True,
-        docker_binds=(
-            DockerBind(source=music, target="/music"),
-            DockerBind(source=tmp_path / "projects", target="/projects", writable=True),
-        ),
-    )
-
-    context = create_tool_context(configuration=configuration)
-    workspace = context.resolve(Workspace)
-    sandbox = context.resolve(DockerSandbox)
-
-    assert workspace is not None
-    assert workspace.root == workspace_root.resolve()
-    assert sandbox is not None
-    assert sandbox.policy.enable_network_access
-    assert sandbox.mounts == (
-        BindMount.read_only(music, "/music"),
-        BindMount.read_write(tmp_path / "projects", "/projects"),
-    )
-
-
-def test_explicit_network_setting_overrides_configuration(tmp_path: Path) -> None:
-    configuration = CaraConfig(
-        workspace_root=tmp_path,
-        sandbox_network_access=True,
-    )
-
-    context = create_tool_context(
-        configuration=configuration,
-        sandbox_network_access=False,
-    )
-    sandbox = context.resolve(DockerSandbox)
-
-    assert sandbox is not None
-    assert not sandbox.policy.enable_network_access
 
 
 def test_workspace_container_accepts_nested_mounts(tmp_path: Path) -> None:
