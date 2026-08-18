@@ -27,6 +27,7 @@ class AgentBridge:
         event_bus.on_request(AssistantResponseRequested, self._on_response_requested)
 
     async def _on_response_requested(self, event: AssistantResponseRequested) -> None:
+        logger.info("LLM input: %s", event.text)
         await self._event_bus.dispatch(AssistantResponseStarted(turn_id=event.turn_id))
         chunks: list[str] = []
         try:
@@ -69,9 +70,11 @@ class AgentBridge:
             )
             return
 
+        text = "".join(chunks)
+        logger.info("LLM output: %s", text)
         await self._event_bus.dispatch(
             AssistantTextCompleted(
                 turn_id=event.turn_id,
-                text="".join(chunks),
+                text=text,
             )
         )

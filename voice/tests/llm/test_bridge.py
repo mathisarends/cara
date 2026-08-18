@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 
 from voice.events import (
@@ -43,7 +44,7 @@ class _AgentSession:
         pass
 
 
-def test_agent_bridge_translates_every_agent_event() -> None:
+def test_agent_bridge_translates_every_agent_event(caplog) -> None:
     async def run() -> tuple[str | None, list[object]]:
         event_bus = EventBus()
         session = _AgentSession()
@@ -64,7 +65,8 @@ def test_agent_bridge_translates_every_agent_event() -> None:
         )
         return session.text, received
 
-    text, received = asyncio.run(run())
+    with caplog.at_level(logging.INFO, logger="voice.llm.bridge"):
+        text, received = asyncio.run(run())
 
     assert text == "What is the weather?"
     assert received == [
@@ -74,4 +76,8 @@ def test_agent_bridge_translates_every_agent_event() -> None:
         AssistantToolCompleted(turn_id=7, name="weather"),
         AssistantTextChunk(turn_id=7, chunk="help"),
         AssistantTextCompleted(turn_id=7, text="I will help"),
+    ]
+    assert caplog.messages == [
+        "LLM input: What is the weather?",
+        "LLM output: I will help",
     ]
