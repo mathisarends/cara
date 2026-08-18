@@ -43,11 +43,6 @@ async def main() -> None:
             tools=tools,
             prompt_root=_WORKSPACE_ROOT,
             skills=skills,
-            extend_system_prompt=(
-                "Die lokalen Skills sind unter `/skills` schreibbar eingebunden. "
-                "Lies bestehende Dateien vor Änderungen und speichere neue "
-                "oder geänderte Skills dort."
-            ),
         )
 
         session = TerminalSession(AgentTurnRunner(agent))

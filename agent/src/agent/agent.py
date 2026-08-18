@@ -30,8 +30,6 @@ class Agent:
         prompt_root: Path,
         skills: Skills | None = None,
         system_prompt: str | None = None,
-        override_system_prompt: str | None = None,
-        extend_system_prompt: str | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
@@ -39,8 +37,6 @@ class Agent:
             system_prompt=SystemPromptComposer(
                 root=prompt_root,
                 system_prompt=system_prompt,
-                override_system_prompt=override_system_prompt,
-                extend_system_prompt=extend_system_prompt,
                 skills=skills,
             ),
         )

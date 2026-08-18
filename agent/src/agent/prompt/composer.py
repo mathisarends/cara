@@ -21,27 +21,12 @@ class SystemPromptComposer:
         *,
         root: Path,
         system_prompt: str | None = None,
-        override_system_prompt: str | None = None,
-        extend_system_prompt: str | None = None,
         skills: Skills | None = None,
         local_time: LocalTimePrompt | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
-        if system_prompt is not None and (
-            override_system_prompt is not None or extend_system_prompt is not None
-        ):
-            raise ValueError(
-                "Use system_prompt or "
-                "override_system_prompt/extend_system_prompt, not both."
-            )
-        if override_system_prompt is not None and extend_system_prompt is not None:
-            raise ValueError(
-                "Use either override_system_prompt or extend_system_prompt, not both."
-            )
         self._root = root
         self._system_prompt = system_prompt
-        self._override_system_prompt = override_system_prompt
-        self._extend_system_prompt = extend_system_prompt
         self._skills = skills
         self._local_time = local_time
         self._today = today or date.today
@@ -64,17 +49,7 @@ class SystemPromptComposer:
     def _render_base_prompt(self) -> str:
         if self._system_prompt is not None:
             return self._system_prompt.strip()
-        if self._override_system_prompt is not None:
-            return self._override_system_prompt.strip()
-
-        prompt = _render_files(self._root, _BASE_FILES)
-        if self._extend_system_prompt is None:
-            return prompt
-
-        extension = self._extend_system_prompt.strip()
-        if not extension:
-            return prompt
-        return "\n\n".join(section for section in (prompt, extension) if section)
+        return _render_files(self._root, _BASE_FILES)
 
     def _render_memory(self) -> str:
         sections = [_render_files(self._root, _MEMORY_FILES)]

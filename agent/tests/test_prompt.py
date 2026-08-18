@@ -2,7 +2,6 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import pytest
 from agenttoolkit import Skills
 from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
 
@@ -174,43 +173,15 @@ def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
     )
 
 
-def test_system_prompt_can_extend_default_prompt(tmp_path: Path) -> None:
-    (tmp_path / "SOUL.md").write_text("Sei direkt.", encoding="utf-8")
-
-    prompt = SystemPromptComposer(
-        root=tmp_path, extend_system_prompt="Nutze Tools sparsam."
-    ).render()
-
-    assert prompt == "<soul>\nSei direkt.\n</soul>\n\nNutze Tools sparsam."
-
-
 def test_system_prompt_can_override_default_prompt_while_retaining_memory(
     tmp_path: Path,
 ) -> None:
     (tmp_path / "SOUL.md").write_text("Sei direkt.", encoding="utf-8")
     (tmp_path / "MEMORY.md").write_text("Halbmarathon im Oktober.", encoding="utf-8")
 
-    prompt = SystemPromptComposer(
-        root=tmp_path, override_system_prompt="Nur JSON."
-    ).render()
+    prompt = SystemPromptComposer(root=tmp_path, system_prompt="Nur JSON.").render()
 
     assert prompt == "Nur JSON.\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
-
-
-def test_system_prompt_rejects_extend_and_override_together(tmp_path: Path) -> None:
-    with pytest.raises(ValueError):
-        SystemPromptComposer(
-            root=tmp_path,
-            override_system_prompt="Override",
-            extend_system_prompt="Extend",
-        )
-
-
-def test_system_prompt_rejects_custom_prompt_with_override(tmp_path: Path) -> None:
-    with pytest.raises(ValueError):
-        SystemPromptComposer(
-            root=tmp_path, system_prompt="Custom", override_system_prompt="Override"
-        )
 
 
 def test_memory_renders_files_in_order(tmp_path: Path) -> None:
