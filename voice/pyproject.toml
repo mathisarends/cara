@@ -23,5 +23,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/voice"]
 
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+
 [tool.ruff]
 extend = "../pyproject.toml"
