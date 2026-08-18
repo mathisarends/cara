@@ -65,7 +65,7 @@ def create_tool_context(
 
 def _default_workspace(root: Path | None = None) -> LocalWorkspace:
     selected_root = root if root is not None else load_cara_config().workspace_root
-    return LocalWorkspace(selected_root, max_file_bytes=1_000_000)
+    return LocalWorkspace(selected_root, max_file_bytes=None)
 
 
 def _bind_mounts(binds: Sequence[DockerBind]) -> tuple[BindMount, ...]:
@@ -81,12 +81,8 @@ def _default_sandbox(
     mounts: Sequence[BindMount] = (),
     network_access: bool = False,
 ) -> DockerSandbox:
-    workspace_target = PurePosixPath("/workspace")
-    if any(
-        mount.target == workspace_target or workspace_target in mount.target.parents
-        for mount in mounts
-    ):
-        raise ValueError("'/workspace' and its children are reserved for Cara.")
+    if any(mount.target == PurePosixPath("/workspace") for mount in mounts):
+        raise ValueError("'/workspace' is reserved for Cara's primary workspace.")
     return DockerSandbox(
         _BASH_IMAGE,
         defaults=CommandDefaults(

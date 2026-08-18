@@ -190,6 +190,17 @@ def test_workspace_root_configures_default_workspace(tmp_path: Path) -> None:
     assert workspace.root == tmp_path.resolve()
 
 
+def test_default_workspace_has_no_artificial_file_size_limit(tmp_path: Path) -> None:
+    context = create_tool_context(workspace_root=tmp_path)
+    workspace = context.resolve(Workspace)
+    assert workspace is not None
+    content = "x" * (10 * 1024 * 1024 + 1)
+
+    asyncio.run(workspace.write_file("large.txt", content))
+
+    assert (tmp_path / "large.txt").stat().st_size == len(content)
+
+
 def test_workspace_and_workspace_root_are_mutually_exclusive(tmp_path: Path) -> None:
     workspace = LocalWorkspace(tmp_path)
 
@@ -283,12 +294,21 @@ def test_explicit_network_setting_overrides_configuration(tmp_path: Path) -> Non
     assert not sandbox.policy.enable_network_access
 
 
-def test_workspace_container_target_is_reserved(tmp_path: Path) -> None:
-    for target in ("/workspace", "/workspace/projects"):
-        with pytest.raises(ValueError, match="reserved"):
-            create_tool_context(
-                sandbox_mounts=(BindMount.read_write(tmp_path, target),)
-            )
+def test_workspace_container_accepts_nested_mounts(tmp_path: Path) -> None:
+    mount = BindMount.read_write(tmp_path, "/workspace/projects")
+
+    context = create_tool_context(sandbox_mounts=(mount,))
+
+    sandbox = context.resolve(DockerSandbox)
+    assert sandbox is not None
+    assert sandbox.mounts == (mount,)
+
+
+def test_primary_workspace_container_target_is_reserved(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="primary workspace"):
+        create_tool_context(
+            sandbox_mounts=(BindMount.read_write(tmp_path, "/workspace"),)
+        )
 
 
 def test_to_schema_returns_openai_function_schema() -> None:
