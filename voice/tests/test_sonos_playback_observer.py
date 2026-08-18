@@ -2,7 +2,13 @@ import asyncio
 import logging
 from typing import cast
 
-from sonosify import SonosClient, TransportInfo, TransportState
+from sonosify import (
+    AVTransportEvent,
+    EventService,
+    SonosClient,
+    TransportInfo,
+    TransportState,
+)
 
 import voice.playback.ducking as ducking_module
 import voice.playback.strategy as strategy_module
@@ -26,6 +32,8 @@ class _RecordingSonosClient:
         self.pause_calls = 0
         self.play_calls = 0
         self.duck_refreshed = asyncio.Event()
+        self.subscription = _RecordingEventSubscription()
+        self.watched_services: tuple[EventService, ...] | None = None
         self.closed = False
 
     async def get_transport_info(self) -> TransportInfo:
@@ -47,8 +55,36 @@ class _RecordingSonosClient:
         self.play_calls += 1
         self.state = TransportState.PLAYING
 
+    def watch(
+        self, *, services: tuple[EventService, ...]
+    ) -> "_RecordingEventSubscription":
+        self.watched_services = services
+        return self.subscription
+
     async def close(self) -> None:
         self.closed = True
+
+
+class _RecordingEventSubscription:
+    def __init__(self) -> None:
+        self._events: asyncio.Queue[AVTransportEvent] = asyncio.Queue()
+        self.started = False
+        self.closed = False
+
+    def __aiter__(self) -> "_RecordingEventSubscription":
+        return self
+
+    async def __anext__(self) -> AVTransportEvent:
+        return await self._events.get()
+
+    async def start(self) -> None:
+        self.started = True
+
+    async def close(self) -> None:
+        self.closed = True
+
+    async def emit(self, state: TransportState) -> None:
+        await self._events.put(AVTransportEvent(TransportState=state))
 
 
 def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> None:
@@ -150,6 +186,35 @@ def test_can_use_pause_strategy() -> None:
     assert client.pause_calls == 1
     assert client.play_calls == 1
     assert client.duck_calls == []
+    assert client.watched_services == (EventService.AV_TRANSPORT,)
+    assert client.subscription.started is True
+    assert client.subscription.closed is True
+
+
+def test_pause_strategy_does_not_resume_after_external_pause() -> None:
+    async def run() -> _RecordingSonosClient:
+        client = _RecordingSonosClient(TransportState.PLAYING)
+        observer = SonosPlaybackObserver(
+            strategy=PauseStrategy(client=cast(SonosClient, client)),
+        )
+        event_bus = EventBus()
+        bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge.setup()
+        await bridge.prepare()
+
+        await event_bus.dispatch(UserTurnStarted())
+        await client.subscription.emit(TransportState.PAUSED_PLAYBACK)
+        await asyncio.sleep(0)
+        await client.subscription.emit(TransportState.PAUSED_PLAYBACK)
+        await asyncio.sleep(0)
+        await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=5))
+        return client
+
+    client = asyncio.run(run())
+
+    assert client.pause_calls == 1
+    assert client.play_calls == 0
+    assert client.subscription.closed is True
 
 
 def test_loads_sonos_target_from_settings(monkeypatch) -> None:
