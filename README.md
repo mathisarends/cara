@@ -74,33 +74,6 @@ The terminal composition is also available as an explicit example:
 uv run python experiments/chat_in_terminal.py
 ```
 
-## Hybrid memory experiment
-
-The `search_memory` tool searches Markdown memory chunks in `temp/cara-memory.db`
-and returns concise original excerpts grouped by source and date. Hybrid relevance
-scores are used internally for ranking and an adaptive cutoff, but are not added
-to the conversation. Longer lexical query terms use prefix matching so German
-compounds can be found. A separate mock corpus contains one durable `MEMORY.md`
-and fourteen daily notes. Seed it with an `OPENAI_API_KEY` configured in `.env`:
-
-```bash
-bash scripts/seed_database_mock_data.sh
-```
-
-The command is idempotent and caches embeddings. To target another SQLite file,
-pass `--database path/to/memory.db`. Remove only the dataset-prefixed mock
-documents and their cached embeddings with:
-
-```bash
-bash scripts/delete_database_mock_data.sh
-```
-
-The readable Python entry points behind the wrappers are
-`scripts/seed_database_mock_data.py` and `scripts/delete_database_mock_data.py`.
-
-The default wake word is `hey_mycroft`. Runtime recordings and TTS files are written below the system temp directory in `cara`.
-While Cara is responding, say the wake word again to interrupt the response and start a new turn.
-
 ## Device discovery
 
 Helper scripts under `scripts/` find the local devices Cara talks to and print the environment variables to add to your `.env`:

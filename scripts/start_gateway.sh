@@ -16,7 +16,6 @@ if [[ "${CARA_RELOAD:-0}" == "1" ]]; then
         --reload-dir gateway/src \
         --reload-dir cara/src \
         --reload-dir llm/src \
-        --reload-dir retrieval/src \
         --reload-dir scheduler/src \
         "$@"
 fi

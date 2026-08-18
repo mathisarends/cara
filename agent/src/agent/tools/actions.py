@@ -1,10 +1,9 @@
 from collections.abc import Sequence
 
-from agenttoolkit import Inject, Skills, Tools, provided, requires
+from agenttoolkit import Inject, Skills, Tools, requires
 from agenttoolkit.builtins import CommandRunner, Workspace
 from agenttoolkit.builtins.fs import Entry
 
-from agent.memory import HybridMemorySearch, render_memory_results
 from agent.tools.handler import (
     IpLocationClient,
     OpenMeteoClient,
@@ -20,7 +19,6 @@ from agent.tools.params import (
     ListFilesParams,
     LoadSkillParams,
     ReadFileParams,
-    SearchMemoryParams,
     WeatherParams,
     WebSearchParams,
     WriteFileParams,
@@ -72,26 +70,6 @@ def register_tools(tools: Tools) -> None:
     ) -> str:
         response = await client.search(params.query, max_results=params.max_results)
         return _render_search_response(response)
-
-    @tools.action(
-        description=(
-            "Search older daily notes and durable memory. Returns concise "
-            "original excerpts with their source and date, ordered by relevance."
-        ),
-        params=SearchMemoryParams,
-        available_when=provided(HybridMemorySearch),
-    )
-    async def search_memory(
-        params: SearchMemoryParams,
-        memory: Inject[HybridMemorySearch],
-    ) -> str:
-        results = await memory.search(
-            params.query,
-            limit=params.limit,
-            vector_weight=params.vector_weight,
-            text_weight=params.text_weight,
-        )
-        return render_memory_results(results)
 
     @tools.action(
         description="Execute a Bash command in the isolated workspace sandbox.",
