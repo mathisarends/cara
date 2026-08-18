@@ -37,7 +37,7 @@ class CommandBridge:
         )
         logger.debug("Turn %d: user said %r", event.turn_id, text)
         await self._event_bus.dispatch(AssistantTurnStarted())
-        await self._event_bus.dispatch(
+        await self._event_bus.request(
             AssistantResponseRequested(turn_id=event.turn_id, text=text)
         )
 

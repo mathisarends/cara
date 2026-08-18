@@ -3,7 +3,7 @@ import logging
 
 from voice.events import SessionEnded, UserTranscriptionRequested, UserTurnStarted
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
+from voice.events.models import VoiceTurnEnded, VoiceTurnFailed, VoiceTurnRequested
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +83,9 @@ class TurnListener:
         self._pre_roll = command_pre_roll_seconds
         self._speech_start_timeout = speech_start_timeout
 
-        event_bus.on(VoiceTurnRequested, self._on_turn_requested)
         event_bus.on(SessionEnded, self._on_session_ended)
+
+        event_bus.on_request(VoiceTurnRequested, self._on_turn_requested)
 
     async def _on_session_ended(self, _: SessionEnded) -> None:
         await self._coordinator.close()
@@ -122,7 +123,14 @@ class TurnListener:
     async def _run_turn(self, request: UserTranscriptionRequested) -> None:
         turn_id = request.turn_id
         try:
-            await self._event_bus.dispatch(request)
+            await self._event_bus.request(request)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            logger.exception("Voice turn %d failed", turn_id)
+            await self._event_bus.dispatch(
+                VoiceTurnFailed(turn_id=turn_id, message=str(error))
+            )
         finally:
             if self._coordinator.end_turn(turn_id):
                 logger.info("Voice turn %d ended", turn_id)

@@ -4,6 +4,14 @@ from voice.transcription import TranscriptionKind
 
 
 class Event(BaseModel):
+    """A lifecycle fact, broadcast to every interested listener."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class Request(BaseModel):
+    """A unit of work for exactly one handler, whose failures reach the caller."""
+
     model_config = ConfigDict(extra="forbid")
 
 
@@ -43,7 +51,7 @@ class WakeWordDetected(Event):
     name: str
 
 
-class VoiceTurnRequested(Event):
+class VoiceTurnRequested(Request):
     """Requests a voice turn; without a sequence it starts at live audio."""
 
     sequence: int | None = None
@@ -99,7 +107,7 @@ class UserTranscriptionCompleted(Event):
     text: str
 
 
-class UserTranscriptionRequested(Event):
+class UserTranscriptionRequested(Request):
     """Requests turn-scoped STT from the continuously captured audio history."""
 
     turn_id: int
@@ -119,7 +127,7 @@ class AssistantResponseStarted(Event):
     turn_id: int
 
 
-class AssistantResponseRequested(Event):
+class AssistantResponseRequested(Request):
     turn_id: int
     text: str
 
@@ -169,7 +177,7 @@ class AssistantPlaybackCompleted(Event):
     turn_id: int
 
 
-class AudioPlaybackRequested(Event):
+class AudioPlaybackRequested(Request):
     """Requests playback of a complete WAV clip on the shared audio output."""
 
     audio: bytes

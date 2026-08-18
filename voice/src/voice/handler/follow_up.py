@@ -76,7 +76,7 @@ class FollowUpHandler:
     async def _open_window(self) -> None:
         self._window_open = True
         logger.debug("Opening follow-up window for %.1fs", self._window_seconds)
-        await self._event_bus.dispatch(
+        await self._event_bus.request(
             VoiceTurnRequested(speech_start_timeout=self._window_seconds)
         )
         self._countdown = asyncio.create_task(

@@ -36,7 +36,7 @@ class WakeWordHandler:
                 detection.sequence,
             )
             if self._can_start_turn:
-                await self._event_bus.dispatch(
+                await self._event_bus.request(
                     VoiceTurnRequested(sequence=detection.sequence)
                 )
             await self._event_bus.dispatch(

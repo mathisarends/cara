@@ -14,7 +14,7 @@ def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> Non
         async def capture(event: AudioPlaybackRequested) -> None:
             requested.append(event.audio)
 
-        event_bus.on(AudioPlaybackRequested, capture)
+        event_bus.on_request(AudioPlaybackRequested, capture)
         SoundListener(event_bus)
         await event_bus.dispatch(
             WakeWordDetected(score=0.8, sequence=4, name="hey_mycroft")
@@ -34,7 +34,7 @@ def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
         async def capture(event: AudioPlaybackRequested) -> None:
             requested.append(event.audio)
 
-        event_bus.on(AudioPlaybackRequested, capture)
+        event_bus.on_request(AudioPlaybackRequested, capture)
         SoundListener(event_bus)
         await event_bus.dispatch(SessionEnded())
         return requested

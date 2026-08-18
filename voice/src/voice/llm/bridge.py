@@ -24,7 +24,7 @@ class AgentBridge:
         self._event_bus = event_bus
         self._session = session
 
-        event_bus.on(AssistantResponseRequested, self._on_response_requested)
+        event_bus.on_request(AssistantResponseRequested, self._on_response_requested)
 
     async def _on_response_requested(self, event: AssistantResponseRequested) -> None:
         await self._event_bus.dispatch(AssistantResponseStarted(turn_id=event.turn_id))

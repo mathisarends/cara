@@ -44,9 +44,10 @@ class AudioBridge:
         event_bus.on(AssistantAudioStarted, self._on_audio_started)
         event_bus.on(AssistantAudioChunk, self._on_audio_chunk)
         event_bus.on(AssistantAudioCompleted, self._on_audio_completed)
-        event_bus.on(AudioPlaybackRequested, self._on_playback_requested)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on(VoiceResourcesClosing, self._on_resources_closing)
+
+        event_bus.on_request(AudioPlaybackRequested, self._on_playback_requested)
 
     async def _on_playback_requested(self, event: AudioPlaybackRequested) -> None:
         await self._playback.play(event.audio)

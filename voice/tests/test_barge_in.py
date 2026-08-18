@@ -56,7 +56,7 @@ def test_barge_in_ignores_signals_outside_an_assistant_turn() -> None:
         event_bus = EventBus()
         requests: list[object] = []
         strategy = _Signals(3)
-        event_bus.on(VoiceTurnRequested, lambda event: _record(requests, event))
+        event_bus.on_request(VoiceTurnRequested, lambda event: _record(requests, event))
         BargeInHandler(
             event_bus=event_bus,
             strategy=strategy,
@@ -84,7 +84,7 @@ def test_barge_in_restarts_the_turn_at_the_signalled_audio_position() -> None:
             transcribing.set()
             await asyncio.Event().wait()
 
-        event_bus.on(UserTranscriptionRequested, transcribe)
+        event_bus.on_request(UserTranscriptionRequested, transcribe)
         event_bus.on(VoiceTurnInterrupted, lambda event: _record(events, event))
         strategy = _Signals(42)
         BargeInHandler(
@@ -93,7 +93,7 @@ def test_barge_in_restarts_the_turn_at_the_signalled_audio_position() -> None:
             coordinator=coordinator,
         )
 
-        await event_bus.dispatch(VoiceTurnRequested(sequence=1))
+        await event_bus.request(VoiceTurnRequested(sequence=1))
         await transcribing.wait()
         await event_bus.dispatch(AssistantTurnStarted())
         await event_bus.dispatch(SessionStarted())

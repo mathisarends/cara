@@ -43,7 +43,7 @@ def test_player_warms_cache_and_play_uses_cached_wav_bytes(
         async def capture(event: AudioPlaybackRequested) -> None:
             requested.append(event.audio)
 
-        event_bus.on(AudioPlaybackRequested, capture)
+        event_bus.on_request(AudioPlaybackRequested, capture)
         SoundListener(event_bus, sounds_dir=tmp_path)
         assert reads == len(Earcon)
         wake_word = WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft")

@@ -54,7 +54,7 @@ class BargeInHandler:
 
         logger.info("Barge-in interrupted voice turn %d", turn_id)
         await self._event_bus.dispatch(VoiceTurnInterrupted(turn_id=turn_id))
-        await self._event_bus.dispatch(VoiceTurnRequested(sequence=signal.sequence))
+        await self._event_bus.request(VoiceTurnRequested(sequence=signal.sequence))
 
     async def _on_assistant_turn_started(self, _: AssistantTurnStarted) -> None:
         self._armed = True

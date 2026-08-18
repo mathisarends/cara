@@ -166,7 +166,7 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
 
         await event_bus.dispatch(SessionStarted())
         try:
-            await event_bus.dispatch(VoiceTurnRequested(sequence=0))
+            await event_bus.request(VoiceTurnRequested(sequence=0))
             timed_out = await asyncio.wait_for(timed_out_event, timeout=5.0)
         finally:
             follow_up.close()

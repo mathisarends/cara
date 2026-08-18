@@ -59,7 +59,7 @@ def test_agent_bridge_translates_every_agent_event() -> None:
         event_bus.on(AssistantToolCompleted, capture)
         event_bus.on(AssistantTextCompleted, capture)
 
-        await event_bus.dispatch(
+        await event_bus.request(
             AssistantResponseRequested(turn_id=7, text="What is the weather?")
         )
         return session.text, received

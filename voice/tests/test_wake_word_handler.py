@@ -27,7 +27,7 @@ def test_starts_no_second_turn_while_one_is_active() -> None:
         async def record_detection(event: WakeWordDetected) -> None:
             detections.append(event)
 
-        event_bus.on(VoiceTurnRequested, start_turn)
+        event_bus.on_request(VoiceTurnRequested, start_turn)
         event_bus.on(WakeWordDetected, record_detection)
         handler = WakeWordHandler(event_bus=event_bus, source=_WakeWords())
 

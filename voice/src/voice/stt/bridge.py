@@ -9,7 +9,6 @@ from voice.events import (
     UserTranscriptionCompleted,
     UserTranscriptionRequested,
     UserTranscriptionUpdated,
-    VoiceTurnFailed,
     VoiceTurnTimedOut,
 )
 from voice.events.bus import EventBus
@@ -33,7 +32,9 @@ class SpeechToTextBridge:
         self._buffered_audio_input = buffered_audio_input
         self._speech_to_text = speech_to_text
 
-        event_bus.on(UserTranscriptionRequested, self._on_transcription_requested)
+        event_bus.on_request(
+            UserTranscriptionRequested, self._on_transcription_requested
+        )
 
     async def _on_transcription_requested(
         self, event: UserTranscriptionRequested
@@ -76,15 +77,8 @@ class SpeechToTextBridge:
                     text=final_text,
                 )
             )
-        except asyncio.CancelledError:
-            raise
         except StopAsyncIteration:
             return
-        except Exception as error:
-            logger.exception("Transcription failed for voice turn %d", event.turn_id)
-            await self._event_bus.dispatch(
-                VoiceTurnFailed(turn_id=event.turn_id, message=str(error))
-            )
         finally:
             await transcriptions.aclose()
             await reader.aclose()

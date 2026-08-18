@@ -45,10 +45,10 @@ def test_turn_listener_maps_events_to_coordinator() -> None:
             events.append(event)
 
         event_bus.on(UserTurnStarted, capture_started)
-        event_bus.on(UserTranscriptionRequested, transcribe)
+        event_bus.on_request(UserTranscriptionRequested, transcribe)
         event_bus.on(VoiceTurnEnded, capture_ended)
 
-        await event_bus.dispatch(VoiceTurnRequested(sequence=12))
+        await event_bus.request(VoiceTurnRequested(sequence=12))
         while coordinator.has_active_turn:
             await asyncio.sleep(0)
         await event_bus.dispatch(SessionEnded())

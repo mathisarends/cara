@@ -46,6 +46,6 @@ class SoundListener:
         await self._request_playback(Earcon.SLEEP)
 
     async def _request_playback(self, earcon: Earcon) -> None:
-        await self._event_bus.dispatch(
+        await self._event_bus.request(
             AudioPlaybackRequested(audio=self._earcons[earcon])
         )
