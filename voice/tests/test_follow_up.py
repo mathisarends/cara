@@ -16,7 +16,7 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
-from voice.handler import CommandBridge, FollowUpHandler, TurnCoordinator
+from voice.handler import CommandBridge, FollowUpHandler, TurnCoordinator, TurnListener
 from voice.llm import AgentBridge, AgentEvent, TextDelta, TurnCompleted
 from voice.stt import (
     SpeechToText,
@@ -145,7 +145,7 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
             event_bus=event_bus,
             wake_word_phrase="hey mycroft",
         )
-        TurnCoordinator(event_bus=event_bus)
+        TurnListener(event_bus=event_bus, coordinator=TurnCoordinator())
         follow_up = FollowUpHandler(
             event_bus=event_bus, window_seconds=1.0, countdown_seconds=1
         )

@@ -30,6 +30,7 @@ from voice.handler import (
     FollowUpHandler,
     SpeechResourceHandler,
     TurnCoordinator,
+    TurnListener,
     WakeWordHandler,
 )
 from voice.llm import AgentBridge, AgentSession
@@ -125,8 +126,10 @@ class VoiceAgent:
             wake_word_phrase=self._wake_word.phrase,
             strip_wake_word=strip_wake_word,
         )
-        self._turn_coordinator = TurnCoordinator(
+        self._turn_coordinator = TurnCoordinator()
+        self._turn_listener = TurnListener(
             event_bus=self._event_bus,
+            coordinator=self._turn_coordinator,
         )
         self._wake_word_handler = WakeWordHandler(
             event_bus=self._event_bus,
