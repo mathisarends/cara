@@ -1,3 +1,4 @@
+import time
 from collections.abc import AsyncIterator
 
 from wakewordkit import AudioFormat as DetectorAudioFormat
@@ -23,11 +24,13 @@ class WakeWordListener:
     ) -> None:
         self._buffered_audio_input = buffered_audio_input
         self._phrase = _WAKE_WORD_PHRASES[settings.wake_word]
+        self._cooldown = settings.cooldown
         self._detector = WakeWordDetector(
             settings.wake_word,
             threshold=settings.sensitivity,
             cooldown=settings.cooldown,
         )
+        self._last_detection_at: float | None = None
 
     @property
     def phrase(self) -> str:
@@ -46,13 +49,26 @@ class WakeWordListener:
                             sample_format="pcm_s16le",
                         ),
                     )
-                    if detection is not None:
+                    if detection is not None and self._is_past_cooldown():
                         yield WakeWordDetection(
                             sequence=frame.sequence,
                             score=detection.score,
                             name=detection.name,
                         )
             except AudioOverrunError:
+                # Resetting the detector also clears its own cooldown clock,
+                # so an overrun right after a detection would otherwise let
+                # the same utterance's tail re-trigger. Ours survives resets.
                 self._detector.reset()
             finally:
                 await reader.aclose()
+
+    def _is_past_cooldown(self) -> bool:
+        now = time.monotonic()
+        if (
+            self._last_detection_at is not None
+            and now - self._last_detection_at < self._cooldown
+        ):
+            return False
+        self._last_detection_at = now
+        return True
