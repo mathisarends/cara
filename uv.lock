@@ -1137,7 +1137,7 @@ wheels = [
 
 [[package]]
 name = "sonosify"
-version = "0.4.3"
+version = "0.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1145,9 +1145,9 @@ dependencies = [
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/33/6b004223dd51f195e6482b0649cdf8e81710c765fee098a850b1ff240025/sonosify-0.4.3.tar.gz", hash = "sha256:5cd54090d34a5e1b47131956a57bebebc04e8bbb9954b304d3307a14d8268805", size = 9842584, upload-time = "2026-08-16T09:46:50.954Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/bc/f0e1cc8d943fe98935809b52add548958eb9573476854ced383b6889fc58/sonosify-0.4.4.tar.gz", hash = "sha256:99c351b96fa5692073a2f5a6310be7565d3f73d9b4f1febe6130698ac4f488f7", size = 9842487, upload-time = "2026-08-18T14:24:37.949Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/79/a370350541c47afc0629af4e82969177ff547c48286a523a23aa417421d2/sonosify-0.4.3-py3-none-any.whl", hash = "sha256:d128687b27d50322fbcc99ed838ed86684553376ec5b0b961022e9d48a366b80", size = 43700, upload-time = "2026-08-16T09:46:40.933Z" },
+    { url = "https://files.pythonhosted.org/packages/64/8f/a6980f79b7886ee5ed0b339cc3871e7f1e8bde9115f0c0e671ba3c998e10/sonosify-0.4.4-py3-none-any.whl", hash = "sha256:8a477c110b28cd3b39cec41f0bcdbbd9bdf99290e520038e9c0ef473fde5cd63", size = 44176, upload-time = "2026-08-18T14:24:35.069Z" },
 ]
 
 [[package]]
@@ -1390,7 +1390,7 @@ requires-dist = [
     { name = "pyaudio", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pysilero-vad", specifier = ">=3.4.0" },
-    { name = "sonosify", specifier = ">=0.4.3" },
+    { name = "sonosify", specifier = ">=0.4.4" },
     { name = "vocalbin", extras = ["cartesia", "openai"], specifier = ">=0.6.0" },
     { name = "wakewordkit", specifier = ">=0.4.0" },
 ]
