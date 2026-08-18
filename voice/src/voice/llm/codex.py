@@ -14,10 +14,13 @@ from llmify import (
 from voice.llm.events import AgentEvent, TextDelta, TurnCompleted
 
 _INSTRUCTIONS = (
-    "Du bist Gesprächspartner in einem Sprachdialog. "
-    "Antworte sehr knapp: ein bis zwei kurze Sätze, "
-    "keine Aufzählungen, kein Markdown, keine Floskeln."
+    "You are a conversational partner in a voice dialog. "
+    "Reply very concisely: one to two short sentences, "
+    "no lists, no markdown, no filler phrases. "
+    "Always respond in English."
 )
+
+_PROMPT_CACHE_KEY = "cara-voice"
 
 
 class CodexAgentSession:
@@ -25,7 +28,10 @@ class CodexAgentSession:
         self._llm = ChatCodex.from_cli(
             model=model,
             reasoning_effort="low",
+            reasoning_summary="auto",
             continuation_mode=ContinuationMode.PREVIOUS_RESPONSE_ID,
+            preserve_reasoning=True,
+            prompt_cache_key=_PROMPT_CACHE_KEY,
             transport=HTTPResponsesTransport(),
         )
         self._messages: list[Message] = [SystemMessage(content=_INSTRUCTIONS)]
