@@ -79,15 +79,21 @@ class VoiceAgent:
             sample_rate=self._audio_hub.format.sample_rate
         )
         self._text_to_speech = text_to_speech or CartesiaTextToSpeech()
+        wake_word_settings = wake_word_settings or WakeWordSettings()
         self._wake_word = WakeWordListener(
             self._audio_hub,
-            settings=wake_word_settings or WakeWordSettings(),
+            settings=wake_word_settings,
         )
-        self._setup_handlers(agent_session)
+        self._setup_handlers(
+            agent_session,
+            strip_wake_word=wake_word_settings.strip_from_command,
+        )
         self._closed = False
         self._setup_listeners(listener, self._recording_path)
 
-    def _setup_handlers(self, agent_session: AgentSession) -> None:
+    def _setup_handlers(
+        self, agent_session: AgentSession, *, strip_wake_word: bool
+    ) -> None:
         self._agent_bridge = AgentBridge(
             event_bus=self._event_bus,
             session=agent_session,
@@ -98,6 +104,7 @@ class VoiceAgent:
         )
         self._pipeline = SpeechPipeline(
             wake_word_phrase=self._wake_word.phrase,
+            strip_wake_word=strip_wake_word,
             speech_to_text=self._speech_to_text,
             event_bus=self._event_bus,
         )

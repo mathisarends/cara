@@ -26,10 +26,12 @@ class SpeechPipeline:
         self,
         *,
         wake_word_phrase: str,
+        strip_wake_word: bool = True,
         speech_to_text: SpeechToText,
         event_bus: EventBus,
     ) -> None:
         self._wake_word_phrase = wake_word_phrase
+        self._strip_wake_word = strip_wake_word
         self._stt = speech_to_text
         self._event_bus = event_bus
 
@@ -69,7 +71,11 @@ class SpeechPipeline:
                     final_text = update.text
 
             await self._event_bus.dispatch(UserSpeechEnded())
-            text = _strip_known_wake_word(final_text, self._wake_word_phrase)
+            text = _prepare_command(
+                final_text,
+                self._wake_word_phrase,
+                strip_wake_word=self._strip_wake_word,
+            )
             logger.debug("Turn %d: user said %r", turn_id, text)
             await self._event_bus.dispatch(AssistantTurnStarted())
             await self._event_bus.dispatch(
@@ -102,3 +108,10 @@ def _strip_known_wake_word(text: str, phrase: str) -> str:
         return text.strip()
     pattern = rf"^\s*{re.escape(phrase)}(?=\s|[,.:;!?-]|$)[\s,.:;!?-]*"
     return re.sub(pattern, "", text, count=1, flags=re.IGNORECASE).strip()
+
+
+def _prepare_command(text: str, wake_word_phrase: str, *, strip_wake_word: bool) -> str:
+    text = text.strip()
+    if not strip_wake_word:
+        return text
+    return _strip_known_wake_word(text, wake_word_phrase)

@@ -10,6 +10,7 @@ class WakeWordSettings(BaseModel):
     wake_word: WakeWord = WakeWord.HEY_MYCROFT
     sensitivity: float = Field(default=0.5, ge=0.0, le=1.0)
     cooldown: float = Field(default=1.5, ge=0.0)
+    strip_from_command: bool = True
 
 
 @dataclass(frozen=True, slots=True)
