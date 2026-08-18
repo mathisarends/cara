@@ -17,7 +17,7 @@ from .conversation import (
     ConversationTurn,
     HumanMessage,
 )
-from .hue import HueObserver, LightingState
+from .lights import HueObserver, LightingState
 from .models import AgentResult
 from .observer import Observer, ObserverContext
 from .sound import Earcon, SoundObserver

@@ -1,8 +1,20 @@
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from tavily import AsyncTavilyClient
 
-from agent.settings import TavilyCredentials
+
+class TavilyCredentials(BaseSettings):
+    """Tavily credentials loaded from the environment and a local .env file."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="TAVILY_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    api_key: SecretStr
 
 
 class SearchResult(BaseModel):

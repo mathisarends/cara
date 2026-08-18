@@ -1,14 +1,11 @@
-import asyncio
 import logging
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
-from enum import StrEnum
 from uuid import UUID
 
 from hueify import GroupedLight, Hueify, Room
 from hueify.models import HueEvent
 
-from voice.observer import Observer, ObserverContext
+from voice.lights.state import LightingState
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +21,6 @@ class _Baseline:
     on: bool
     brightness: float
     temperature: float | None
-
-
-class LightingState(StrEnum):
-    IDLE = "idle"
-    LISTENING = "listening"
-    PROCESSING = "processing"
-    SPEAKING = "speaking"
 
 
 _EFFECTS = {
@@ -62,28 +52,24 @@ _MIREK_MIN = 153
 _MIREK_MAX = 500
 
 
-class HueObserver(Observer):
-    """Reflects the voice-agent lifecycle in a Hue room's existing lighting."""
+class HueRoomLighting:
+    """Owns a Hue room's baseline and applies semantic lighting states."""
 
-    def __init__(
-        self,
-        room_name: str = "Mein Zimmer",
-        *,
-        hue: Hueify | None = None,
-    ) -> None:
+    def __init__(self, *, room_name: str, hue: Hueify) -> None:
         self._room_name = room_name
-        self._hue = hue or Hueify()
+        self._hue = hue
         self._room: Room | None = None
         self._grouped_light_id: UUID | None = None
         self._baseline: _Baseline | None = None
         self._state = LightingState.IDLE
         self._active_effect = _EFFECTS[LightingState.IDLE]
-        self._jobs: asyncio.Queue[Callable[[], Awaitable[None]]] = asyncio.Queue()
-        self._worker: asyncio.Task[None] | None = None
         self._stream_started = False
-        self._prepared = False
 
-    async def prepare(self, context: ObserverContext) -> None:
+    @property
+    def is_prepared(self) -> bool:
+        return self._stream_started
+
+    async def prepare(self) -> None:
         self._hue.on("grouped_light", self._on_bridge_event)
         try:
             self._room = await self._hue.rooms.find_by_name(self._room_name)
@@ -96,92 +82,9 @@ class HueObserver(Observer):
             self._baseline = None
             raise
         self._stream_started = True
-        self._prepared = True
         logger.info("Hue observer bound to room %r", self._room_name)
 
-    async def on_wake_word_detected(
-        self, name: str, score: float, sequence: int
-    ) -> None:
-        self._submit_state(LightingState.LISTENING)
-
-    async def on_user_turn_started(self) -> None:
-        self._submit_state(LightingState.LISTENING)
-
-    async def on_assistant_turn_started(self) -> None:
-        self._submit_state(LightingState.PROCESSING)
-
-    async def on_assistant_tool_started(self, name: str) -> None:
-        self._submit_state(LightingState.PROCESSING)
-
-    async def on_assistant_tool_completed(self, name: str) -> None:
-        self._submit_state(LightingState.PROCESSING)
-
-    async def on_assistant_started_responding(self) -> None:
-        self._submit_state(LightingState.SPEAKING)
-
-    async def on_assistant_interrupted(self, turn_id: int) -> None:
-        self._submit_state(LightingState.LISTENING)
-
-    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
-        self._submit_state(LightingState.IDLE)
-
-    async def on_agent_error(self, turn_id: int, message: str) -> None:
-        self._submit_state(LightingState.IDLE)
-
-    async def on_voice_turn_timed_out(self, turn_id: int) -> None:
-        self._submit_state(LightingState.IDLE)
-
-    async def on_agent_stopped(self) -> None:
-        if not self._prepared:
-            return
-        self._submit_state(LightingState.IDLE)
-        await self._jobs.join()
-        await self._stop_worker()
-        self._hue.off("grouped_light", self._on_bridge_event)
-        if self._stream_started:
-            await self._hue.close()
-        self._stream_started = False
-        self._prepared = False
-        self._room = None
-        self._grouped_light_id = None
-        self._baseline = None
-
-    def _submit(self, job: Callable[[], Awaitable[None]]) -> None:
-        if self._worker is None or self._worker.done():
-            self._worker = asyncio.create_task(self._run(), name="voice-hue-observer")
-        self._jobs.put_nowait(job)
-
-    def _submit_state(self, state: LightingState) -> None:
-        self._submit(lambda: self._set_state(state))
-
-    async def _run(self) -> None:
-        while True:
-            job = await self._jobs.get()
-            try:
-                await job()
-            except Exception:
-                logger.exception("Hue operation failed")
-            finally:
-                self._jobs.task_done()
-
-    async def _stop_worker(self) -> None:
-        if self._worker is None:
-            return
-        self._worker.cancel()
-        await asyncio.gather(self._worker, return_exceptions=True)
-        self._worker = None
-
-    def _capture_baseline(self, grouped_light: GroupedLight) -> None:
-        self._grouped_light_id = grouped_light.id
-        self._state = LightingState.IDLE
-        self._active_effect = _EFFECTS[LightingState.IDLE]
-        self._baseline = _Baseline(
-            on=grouped_light.is_on is True,
-            brightness=grouped_light.brightness or 0,
-            temperature=_read_temperature(grouped_light),
-        )
-
-    async def _set_state(self, state: LightingState) -> None:
+    async def set_state(self, state: LightingState) -> None:
         baseline = self._baseline
         effect = _EFFECTS[state]
         if effect == self._active_effect:
@@ -221,6 +124,25 @@ class HueObserver(Observer):
             self._active_effect = previous_effect
             raise
 
+    async def close(self) -> None:
+        self._hue.off("grouped_light", self._on_bridge_event)
+        if self._stream_started:
+            await self._hue.close()
+        self._stream_started = False
+        self._room = None
+        self._grouped_light_id = None
+        self._baseline = None
+
+    def _capture_baseline(self, grouped_light: GroupedLight) -> None:
+        self._grouped_light_id = grouped_light.id
+        self._state = LightingState.IDLE
+        self._active_effect = _EFFECTS[LightingState.IDLE]
+        self._baseline = _Baseline(
+            on=grouped_light.is_on is True,
+            brightness=grouped_light.brightness or 0,
+            temperature=_read_temperature(grouped_light),
+        )
+
     async def _on_bridge_event(self, event: HueEvent) -> None:
         baseline = self._baseline
         if baseline is None or event.id != self._grouped_light_id:
@@ -251,7 +173,7 @@ class HueObserver(Observer):
 
     def _room_id(self) -> UUID:
         if self._room is None:
-            raise RuntimeError("HueObserver must be prepared before use.")
+            raise RuntimeError("Hue lighting must be prepared before use.")
         return self._room.id
 
 

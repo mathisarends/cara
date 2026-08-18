@@ -88,6 +88,9 @@ class _RecordingHue:
     async def close(self) -> None:
         self.closed = True
 
+    async def emit(self, event: HueEvent) -> None:
+        await self._handlers["grouped_light"](event)
+
 
 async def _dispatch_and_drain(
     event_bus: EventBus, observer: HueObserver, event: Event
@@ -168,7 +171,7 @@ def test_hue_observer_preserves_external_changes_in_its_baseline() -> None:
         await bridge.prepare()
 
         await _dispatch_and_drain(event_bus, observer, UserTurnStarted())
-        await observer._on_bridge_event(
+        await hue.emit(
             HueEvent.model_validate(
                 {
                     "id": _GROUPED_LIGHT_ID,
