@@ -12,8 +12,6 @@ from voice.audio.ports import AudioOutput
 
 logger = logging.getLogger(__name__)
 
-_MIN_VOLUME = 0.0
-_MAX_VOLUME = 1.0
 _CLIP_APP_ID = "cara"
 _CLIP_NAME = "Cara"
 _BYTES_PER_SAMPLE = 2
@@ -103,6 +101,11 @@ class SonosOutput(AudioOutput):
         self._playback_task = asyncio.current_task()
         try:
             await clip.wait_until_finished()
+        except asyncio.CancelledError:
+            # This task is itself being cancelled, so cancelling the clip
+            # must be shielded or the send would be cancelled before it goes out.
+            await asyncio.shield(self._cancel_clip(clip))
+            raise
         finally:
             if self._clip is clip:
                 self._clip = None
@@ -113,10 +116,7 @@ class SonosOutput(AudioOutput):
         self._pcm.clear()
         clip, self._clip = self._clip, None
         if clip is not None:
-            try:
-                await clip.cancel()
-            except Exception:
-                logger.exception("Could not cancel Sonos audio clip.")
+            await self._cancel_clip(clip)
 
         task, self._playback_task = self._playback_task, None
         current = asyncio.current_task()
@@ -125,14 +125,11 @@ class SonosOutput(AudioOutput):
             with suppress(asyncio.CancelledError):
                 await task
 
-    async def get_volume(self) -> float:
-        client = await self._resolve_client()
-        return await client.get_volume() / 100
-
-    async def set_volume(self, volume: float) -> None:
-        client = await self._resolve_client()
-        level = round(max(_MIN_VOLUME, min(_MAX_VOLUME, volume)) * 100)
-        await client.set_volume(level)
+    async def _cancel_clip(self, clip: HostedAudioClip) -> None:
+        try:
+            await clip.cancel()
+        except Exception:
+            logger.exception("Could not cancel Sonos audio clip.")
 
     async def _resolve_client(self) -> SonosClient:
         if self._client is not None:

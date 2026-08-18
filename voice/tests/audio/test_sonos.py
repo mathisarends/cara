@@ -27,8 +27,7 @@ class FakeHostedAudioClip:
 class FakeSonosClient:
     ip = "192.168.1.42"
 
-    def __init__(self, volume: int = 50) -> None:
-        self._volume = volume
+    def __init__(self) -> None:
         self.clip = FakeHostedAudioClip()
         self.played: list[tuple[bytes, dict[str, object]]] = []
         self.closed = False
@@ -39,44 +38,12 @@ class FakeSonosClient:
         self.played.append((audio, kwargs))
         return self.clip
 
-    async def get_volume(self) -> int:
-        return self._volume
-
-    async def set_volume(self, volume: int) -> None:
-        self._volume = max(0, min(100, volume))
-
     async def close(self) -> None:
         self.closed = True
 
 
 def _output(client: FakeSonosClient) -> SonosOutput:
     return SonosOutput(client=client, settings=SonosSettings(speaker_name="Zimmer"))
-
-
-def test_get_volume_converts_from_the_sonos_0_100_scale() -> None:
-    output = _output(FakeSonosClient(volume=40))
-
-    assert asyncio.run(output.get_volume()) == 0.4
-
-
-def test_set_volume_converts_to_the_sonos_0_100_scale() -> None:
-    client = FakeSonosClient()
-    output = _output(client)
-
-    asyncio.run(output.set_volume(0.75))
-
-    assert asyncio.run(output.get_volume()) == 0.75
-
-
-def test_set_volume_clamps_out_of_range_values() -> None:
-    client = FakeSonosClient()
-    output = _output(client)
-
-    asyncio.run(output.set_volume(1.5))
-    assert asyncio.run(output.get_volume()) == 1.0
-
-    asyncio.run(output.set_volume(-0.5))
-    assert asyncio.run(output.get_volume()) == 0.0
 
 
 def test_finish_response_uses_sonosifys_hosted_clip_api() -> None:
@@ -135,7 +102,7 @@ def test_stop_leaves_an_injected_client_open() -> None:
 
 
 def test_output_resolves_and_owns_a_local_client(monkeypatch) -> None:
-    client = FakeSonosClient(volume=40)
+    client = FakeSonosClient()
 
     class FakeController:
         async def client(self, room: str | None, *, ip: str | None) -> FakeSonosClient:
@@ -151,7 +118,10 @@ def test_output_resolves_and_owns_a_local_client(monkeypatch) -> None:
         )
     )
 
-    assert asyncio.run(output.get_volume()) == 0.4
-    asyncio.run(output.stop())
+    async def run() -> None:
+        await output.start(sample_rate=16_000, channels=1)
+        await output.stop()
+
+    asyncio.run(run())
 
     assert client.closed

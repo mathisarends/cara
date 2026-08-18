@@ -8,7 +8,7 @@ from sonosify import SonosController
 
 from voice import SpeechBargeIn, VoiceAgent
 from voice.audio.output.sonos import SonosOutput, SonosSettings
-from voice.llm import EchoAgentSession
+from voice.llm import CodexAgentSession
 from voice.tts.cartesia import CartesiaTextToSpeech
 
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +29,7 @@ async def _create_sonos_output() -> AsyncGenerator[SonosOutput]:
 
 
 async def main() -> None:
-    agent_session = EchoAgentSession()
+    agent_session = CodexAgentSession()
     tts = CartesiaTextToSpeech(language="en")
     async with _create_sonos_output() as audio_output:
         agent = VoiceAgent(
