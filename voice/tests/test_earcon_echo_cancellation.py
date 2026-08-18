@@ -6,7 +6,11 @@ from pathlib import Path
 
 from voice.audio import AudioBridge, AudioHub
 from voice.audio.ports import AudioInput, AudioOutput
-from voice.echo_cancellation import EchoCanceller, wrap_with_echo_cancellation
+from voice.echo_cancellation import (
+    EchoCancellationSettings,
+    EchoCanceller,
+    wrap_with_echo_cancellation,
+)
 from voice.events import WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.listener import Earcon, SoundListener
@@ -92,9 +96,11 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
         OneChunkInput(),
         RecordingOutput(),
         canceller,
-        sample_rate=_SAMPLE_RATE,
-        alignment_margin_s=0,
-        clock=lambda: now,
+        settings=EchoCancellationSettings(
+            sample_rate=_SAMPLE_RATE,
+            alignment_margin_s=0,
+            clock=lambda: now,
+        ),
     )
     event_bus = EventBus()
     AudioBridge(

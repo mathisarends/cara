@@ -11,7 +11,10 @@ from voice.conversation import (
     ConversationAudioRecorder,
     ConversationHistory,
 )
-from voice.echo_cancellation import wrap_with_echo_cancellation
+from voice.echo_cancellation import (
+    EchoCancellationSettings,
+    wrap_with_echo_cancellation,
+)
 from voice.events.bus import EventBus
 from voice.events.listener import SoundListener
 from voice.events.models import VoiceResourcesClosing
@@ -45,6 +48,7 @@ class VoiceAgent:
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
         wake_word_settings: WakeWordSettings | None = None,
+        echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
         listener: AgentListener | None = None,
@@ -64,6 +68,7 @@ class VoiceAgent:
         echo_cancelled_input, echo_referenced_output = wrap_with_echo_cancellation(
             physical_input,
             physical_output,
+            settings=echo_cancellation_settings or EchoCancellationSettings(),
         )
 
         self._audio_hub = AudioHub(echo_cancelled_input)
