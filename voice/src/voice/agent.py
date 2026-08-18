@@ -28,12 +28,12 @@ from voice.handler import (
     CommandBridge,
     FollowUpHandler,
     SpeechResourceHandler,
+    TurnCoordinator,
     WakeWordHandler,
 )
 from voice.listener import AgentListener, AgentListenerBridge
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
-from voice.pipeline import TurnManager
 from voice.stt import CartesiaSpeechToText, SpeechToText, SpeechToTextBridge
 from voice.tts import CartesiaTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
@@ -121,7 +121,7 @@ class VoiceAgent:
             wake_word_phrase=self._wake_word.phrase,
             strip_wake_word=strip_wake_word,
         )
-        self._turns = TurnManager(
+        self._turn_coordinator = TurnCoordinator(
             event_bus=self._event_bus,
         )
         self._wake_word_handler = WakeWordHandler(

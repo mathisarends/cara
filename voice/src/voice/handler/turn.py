@@ -11,7 +11,7 @@ from voice.events.models import (
 logger = logging.getLogger(__name__)
 
 
-class TurnManager:
+class TurnCoordinator:
     """Owns voice-turn identity, cancellation, and lifecycle events."""
 
     def __init__(
