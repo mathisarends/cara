@@ -5,7 +5,7 @@ from pathlib import Path
 from voice.acknowledgment import (
     AcknowledgmentContext,
     AcknowledgmentStrategy,
-    LoggingAcknowledgment,
+    PrerenderedAcknowledgment,
 )
 from voice.audio import (
     AudioBridge,
@@ -168,7 +168,7 @@ class VoiceAgent:
             strategy=strategy,
             coordinator=self._turn_coordinator,
         )
-        acknowledgment_strategy = acknowledgment or LoggingAcknowledgment()
+        acknowledgment_strategy = acknowledgment or PrerenderedAcknowledgment()
         acknowledgment_strategy.set_context(
             AcknowledgmentContext(event_bus=self._event_bus)
         )

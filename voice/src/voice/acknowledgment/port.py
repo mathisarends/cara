@@ -1,28 +1,7 @@
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from voice.events.bus import EventBus
-
-logger = logging.getLogger(__name__)
-
-GENERIC_ACKNOWLEDGMENTS: tuple[str, ...] = (
-    "Got it.",
-    "Sure.",
-    "Alright.",
-    "Okay.",
-    "Absolutely.",
-    "Of course.",
-    "Sounds good.",
-    "Understood.",
-    "Right.",
-    "Yep.",
-    "Certainly.",
-    "No problem.",
-    "All right.",
-    "Gotcha.",
-    "Sure thing.",
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,17 +33,3 @@ class AcknowledgmentStrategy(ABC):
         if self._context is None:
             raise RuntimeError("AcknowledgmentStrategy must be bound to a context.")
         return self._context
-
-
-class LoggingAcknowledgment(AcknowledgmentStrategy):
-    """Logs the acknowledgment instead of playing it."""
-
-    async def acknowledge(self, phrase: str) -> None:
-        logger.info("Acknowledgment: %s", phrase)
-
-
-class NoAcknowledgment(AcknowledgmentStrategy):
-    """Leaves the gap between user speech and the assistant's answer silent."""
-
-    async def acknowledge(self, phrase: str) -> None:
-        return

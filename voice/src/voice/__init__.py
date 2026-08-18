@@ -3,6 +3,7 @@ from .acknowledgment import (
     AcknowledgmentStrategy,
     LoggingAcknowledgment,
     NoAcknowledgment,
+    PrerenderedAcknowledgment,
 )
 from .agent import VoiceAgent
 from .barge_in import (
@@ -63,6 +64,7 @@ __all__ = [
     "ObserverContext",
     "PauseStrategy",
     "PlaybackStrategy",
+    "PrerenderedAcknowledgment",
     "SpeechBargeIn",
     "SoundObserver",
     "SonosPlaybackObserver",
