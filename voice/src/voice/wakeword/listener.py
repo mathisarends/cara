@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 from collections.abc import AsyncIterator
 
@@ -32,6 +33,14 @@ class WakeWordListener:
             threshold=settings.sensitivity,
             cooldown=settings.cooldown,
         )
+        # Chunks, not seconds: wall-clock time can balloon relative to audio
+        # content when something else stalls the event loop (e.g. a blocking
+        # HTTP call), which would let a cooldown measured in wall-clock time
+        # expire early and let the same utterance's tail re-trigger.
+        self._cooldown_chunks = max(
+            1, math.ceil(settings.cooldown / buffered_audio_input.chunk_seconds)
+        )
+        self._last_detection_sequence: int | None = None
         self._last_yield_at: float | None = None
 
     @property
@@ -53,7 +62,7 @@ class WakeWordListener:
                         ),
                     )
                     after = time.monotonic()
-                    if detection is not None:
+                    if detection is not None and self._is_past_cooldown(frame.sequence):
                         now = time.monotonic()
                         gap = (
                             None
@@ -81,3 +90,12 @@ class WakeWordListener:
                 self._detector.reset()
             finally:
                 await reader.aclose()
+
+    def _is_past_cooldown(self, sequence: int) -> bool:
+        if (
+            self._last_detection_sequence is not None
+            and sequence - self._last_detection_sequence < self._cooldown_chunks
+        ):
+            return False
+        self._last_detection_sequence = sequence
+        return True

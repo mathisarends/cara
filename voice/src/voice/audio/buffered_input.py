@@ -73,6 +73,11 @@ class BufferedAudioInput:
         return self._format.channels
 
     @property
+    def chunk_seconds(self) -> float:
+        """Audio duration one chunk represents, unaffected by processing delays."""
+        return self._input.frames_per_chunk / self._format.sample_rate
+
+    @property
     def is_running(self) -> bool:
         return self._running
 
@@ -148,8 +153,7 @@ class BufferedAudioInput:
                 await self._condition.wait()
 
     def _chunks_for(self, seconds: float) -> int:
-        chunk_seconds = self._input.frames_per_chunk / self._format.sample_rate
-        return math.ceil(seconds / chunk_seconds)
+        return math.ceil(seconds / self.chunk_seconds)
 
     @property
     def _oldest_sequence(self) -> int:

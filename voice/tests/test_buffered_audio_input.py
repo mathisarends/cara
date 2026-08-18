@@ -53,6 +53,7 @@ def test_exposes_input_audio_format() -> None:
 
     assert buffered_input.sample_rate == 16_000
     assert buffered_input.channels == 1
+    assert buffered_input.chunk_seconds == 1280 / 16_000
 
 
 def test_reader_includes_pre_roll_without_reopening_input() -> None:
