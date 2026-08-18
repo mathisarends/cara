@@ -22,40 +22,29 @@ class AgentListener:
     override the events they are interested in.
     """
 
-    async def on_agent_starting(self) -> None:
-        """The voice session is starting."""
+    async def on_agent_starting(self) -> None: ...
 
-    async def on_agent_stopped(self) -> None:
-        """The voice session has ended."""
+    async def on_agent_stopped(self) -> None: ...
 
     async def on_wake_word_detected(
         self, name: str, score: float, sequence: int
-    ) -> None:
-        """The configured wake word was detected."""
+    ) -> None: ...
 
-    async def on_user_inactivity_countdown(self, remaining_seconds: int) -> None:
-        """A follow-up window is about to expire."""
+    async def on_user_inactivity_countdown(self, remaining_seconds: int) -> None: ...
 
-    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
-        """The follow-up window expired without speech."""
+    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None: ...
 
-    async def on_agent_error(self, turn_id: int, message: str) -> None:
-        """A voice turn failed."""
+    async def on_agent_error(self, turn_id: int, message: str) -> None: ...
 
-    async def on_voice_turn_timed_out(self, turn_id: int) -> None:
-        """No speech was detected before the voice-turn timeout."""
+    async def on_voice_turn_timed_out(self, turn_id: int) -> None: ...
 
-    async def on_user_started_speaking(self) -> None:
-        """Voice activity detection found the start of user speech."""
+    async def on_user_started_speaking(self) -> None: ...
 
-    async def on_user_stopped_speaking(self) -> None:
-        """The recorder accepted the end of the user's utterance."""
+    async def on_user_stopped_speaking(self) -> None: ...
 
-    async def on_assistant_started_responding(self) -> None:
-        """The first assistant audio chunk is about to be played."""
+    async def on_assistant_started_responding(self) -> None: ...
 
-    async def on_assistant_stopped_responding(self) -> None:
-        """The assistant audio response completed."""
+    async def on_assistant_stopped_responding(self) -> None: ...
 
 
 class AgentListenerBridge:
