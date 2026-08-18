@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from dotenv import load_dotenv
 from sonosify import SonosController
 
-from voice import VoiceAgent
+from voice import SpeechBargeIn, VoiceAgent
 from voice.audio.output.sonos import SonosOutput, SonosSettings
 from voice.llm import EchoAgentSession
 from voice.tts.cartesia import CartesiaTextToSpeech
@@ -36,6 +36,7 @@ async def main() -> None:
             agent_session=agent_session,
             audio_output=audio_output,
             text_to_speech=tts,
+            barge_in=SpeechBargeIn,
         )
         await agent.start()
 

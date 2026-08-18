@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 
 from voice.events.models import Event, Request
 
@@ -8,6 +8,22 @@ logger = logging.getLogger(__name__)
 
 type EventHandler[E: Event] = Callable[[E], Awaitable[object]]
 type RequestHandler[R: Request] = Callable[[R], Awaitable[object]]
+
+
+class Dispatch:
+    """The outcome of one fan-out, carrying every listener that failed."""
+
+    def __init__(self, event: Event, failures: Sequence[Exception]) -> None:
+        self._event = event
+        self._failures = tuple(failures)
+
+    def raise_if_failed(self) -> None:
+        if not self._failures:
+            return
+        raise ExceptionGroup(
+            f"Listeners failed for {type(self._event).__name__}",
+            list(self._failures),
+        )
 
 
 class EventBus:
@@ -36,10 +52,17 @@ class EventBus:
         self._request_handlers[request_type] = handler
         return handler
 
-    async def dispatch(self, event: Event) -> None:
-        """Notify every listener; a failing listener is logged, never raised."""
+    async def dispatch(self, event: Event) -> Dispatch:
+        """Notify every listener; failures are logged and returned, never raised.
+
+        Callers that cannot continue without their listeners succeeding call
+        `raise_if_failed` on the result.
+        """
         handlers = tuple(self._event_handlers.get(type(event), ()))
-        await asyncio.gather(*(_notify(handler, event) for handler in handlers))
+        failures = await asyncio.gather(
+            *(_notify(handler, event) for handler in handlers)
+        )
+        return Dispatch(event, [failure for failure in failures if failure is not None])
 
     async def request(self, request: Request) -> None:
         """Run the registered handler; its failures propagate to the caller."""
@@ -49,8 +72,10 @@ class EventBus:
         await handler(request)
 
 
-async def _notify(handler: EventHandler, event: Event) -> None:
+async def _notify(handler: EventHandler, event: Event) -> Exception | None:
     try:
         await handler(event)
-    except Exception:
+    except Exception as error:
         logger.exception("Event handler failed for %s", type(event).__name__)
+        return error
+    return None

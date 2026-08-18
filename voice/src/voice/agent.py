@@ -192,7 +192,8 @@ class VoiceAgent:
             raise RuntimeError("Voice agent is stopped.")
 
         try:
-            await self._event_bus.dispatch(SessionStarted())
+            started = await self._event_bus.dispatch(SessionStarted())
+            started.raise_if_failed()
             logger.debug("Session started")
             await self._wake_word_handler.run()
         finally:
