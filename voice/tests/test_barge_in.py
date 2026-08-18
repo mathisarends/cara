@@ -4,6 +4,8 @@ from collections.abc import AsyncIterator
 from voice.barge_in import BargeInSignal, NoBargeIn, WakeWordBargeIn
 from voice.events import (
     AssistantTurnStarted,
+    SessionEnded,
+    SessionStarted,
     UserTranscriptionRequested,
     WakeWordDetected,
 )
@@ -13,14 +15,16 @@ from voice.handler import BargeInHandler, TurnCoordinator, TurnListener
 
 
 class _Signals:
-    """Feeds pre-recorded signals into a handler and stops it afterwards."""
+    """Feeds pre-recorded signals into a handler and reports when it drained."""
 
     def __init__(self, *sequences: int) -> None:
         self._sequences = sequences
+        self.drained = asyncio.Event()
 
     async def signals(self) -> AsyncIterator[BargeInSignal]:
         for sequence in self._sequences:
             yield BargeInSignal(sequence=sequence)
+        self.drained.set()
 
 
 def test_wake_word_strategy_signals_detected_wake_words() -> None:
@@ -51,14 +55,17 @@ def test_barge_in_ignores_signals_outside_an_assistant_turn() -> None:
     async def run() -> list[object]:
         event_bus = EventBus()
         requests: list[object] = []
+        strategy = _Signals(3)
         event_bus.on(VoiceTurnRequested, lambda event: _record(requests, event))
-        handler = BargeInHandler(
+        BargeInHandler(
             event_bus=event_bus,
-            strategy=_Signals(3),
+            strategy=strategy,
             coordinator=TurnCoordinator(),
         )
 
-        await handler.run()
+        await event_bus.dispatch(SessionStarted())
+        await strategy.drained.wait()
+        await event_bus.dispatch(SessionEnded())
         return requests
 
     assert asyncio.run(run()) == []
@@ -79,16 +86,18 @@ def test_barge_in_restarts_the_turn_at_the_signalled_audio_position() -> None:
 
         event_bus.on(UserTranscriptionRequested, transcribe)
         event_bus.on(VoiceTurnInterrupted, lambda event: _record(events, event))
-        handler = BargeInHandler(
+        strategy = _Signals(42)
+        BargeInHandler(
             event_bus=event_bus,
-            strategy=_Signals(42),
+            strategy=strategy,
             coordinator=coordinator,
         )
 
         await event_bus.dispatch(VoiceTurnRequested(sequence=1))
         await transcribing.wait()
         await event_bus.dispatch(AssistantTurnStarted())
-        await handler.run()
+        await event_bus.dispatch(SessionStarted())
+        await strategy.drained.wait()
         await coordinator.close()
         return events
 

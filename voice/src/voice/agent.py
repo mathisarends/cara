@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from collections.abc import Iterable
 from pathlib import Path
@@ -191,23 +190,13 @@ class VoiceAgent:
         try:
             await self._event_bus.dispatch(SessionStarted())
             logger.debug("Session started")
-            await self._run_handlers()
+            await self._wake_word_handler.run()
         finally:
             await self.stop()
         return AgentResult(
             recording_path=self._recording_path,
             conversation_history=self._conversation_history.turns,
         )
-
-    async def _run_handlers(self) -> None:
-        barge_in = asyncio.create_task(
-            self._barge_in_handler.run(), name="voice-barge-in"
-        )
-        try:
-            await self._wake_word_handler.run()
-        finally:
-            barge_in.cancel()
-            await asyncio.gather(barge_in, return_exceptions=True)
 
     async def stop(self) -> None:
         if self._stopped:
