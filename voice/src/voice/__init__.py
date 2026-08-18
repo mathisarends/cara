@@ -18,7 +18,8 @@ from .conversation import (
     HumanMessage,
 )
 from .models import AgentResult
-from .observer import VoiceAgentObserver
+from .observer import Observer, ObserverContext
+from .sound import Earcon, SoundObserver
 from .wakeword import WakeWordSettings
 
 __all__ = [
@@ -33,11 +34,14 @@ __all__ = [
     "ConversationMessage",
     "ConversationRole",
     "ConversationTurn",
+    "Earcon",
     "HumanMessage",
     "NoBargeIn",
+    "Observer",
+    "ObserverContext",
     "SpeechBargeIn",
+    "SoundObserver",
     "VoiceAgent",
-    "VoiceAgentObserver",
     "WakeWordBargeIn",
     "WakeWordSettings",
 ]

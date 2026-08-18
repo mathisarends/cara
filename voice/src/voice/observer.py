@@ -1,4 +1,6 @@
+import asyncio
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from voice.events import (
     AssistantPlaybackCompleted,
@@ -17,13 +19,23 @@ from voice.events import (
 from voice.events.bus import EventBus
 
 
-class VoiceAgentObserver:
+@dataclass(frozen=True, slots=True)
+class ObserverContext:
+    """Dependencies made available to voice-agent observers."""
+
+    event_bus: EventBus
+
+
+class Observer:
     """Callback interface for :class:`VoiceAgent` events.
 
     Subclass this class and pass instances to ``VoiceAgent(observers=...)``.
     Every callback is an async no-op by default, so subclasses only need to
     override the events they are interested in.
     """
+
+    async def prepare(self, context: ObserverContext) -> None:
+        """Prepare resources before the agent starts its wake-word cycle."""
 
     async def on_agent_starting(self) -> None: ...
 
@@ -52,12 +64,21 @@ class VoiceAgentObserver:
     async def on_assistant_interrupted(self, turn_id: int) -> None: ...
 
 
-class VoiceAgentObserverBridge:
+class _ObserverBridge:
     def __init__(
-        self, *, event_bus: EventBus, observers: Iterable[VoiceAgentObserver]
+        self,
+        *,
+        event_bus: EventBus,
+        observers: Iterable[Observer],
     ) -> None:
         self._event_bus = event_bus
         self._observers = tuple(observers)
+        self._context = ObserverContext(event_bus=event_bus)
+
+    async def prepare(self) -> None:
+        await asyncio.gather(
+            *(observer.prepare(self._context) for observer in self._observers)
+        )
 
     def setup(self) -> None:
         bus = self._event_bus

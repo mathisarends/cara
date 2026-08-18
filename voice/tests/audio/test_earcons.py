@@ -4,10 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from voice.events import AudioPlaybackRequested, WakeWordDetected
+from voice import Earcon, SoundObserver
+from voice.events import AudioPlaybackRequested
 from voice.events.bus import EventBus
-from voice.events.listener import Earcon, SoundListener
-from voice.events.listener.sound_listener import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
+from voice.observer import ObserverContext
+from voice.sound import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
 
 
 @pytest.mark.parametrize("earcon", list(Earcon))
@@ -40,15 +41,16 @@ def test_player_warms_cache_and_play_uses_cached_wav_bytes(
         event_bus = EventBus()
         requested: list[bytes] = []
 
-        async def capture(event: AudioPlaybackRequested) -> None:
-            requested.append(event.audio)
+        async def capture(request: AudioPlaybackRequested) -> None:
+            requested.append(request.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        SoundListener(event_bus, sounds_dir=tmp_path)
+        observer = SoundObserver(sounds_dir=tmp_path)
+        assert reads == 0
+        await observer.prepare(ObserverContext(event_bus=event_bus))
         assert reads == len(Earcon)
-        wake_word = WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft")
-        await event_bus.dispatch(wake_word)
-        await event_bus.dispatch(wake_word)
+        await observer.on_wake_word_detected("hey_mycroft", 0.9, 1)
+        await observer.on_wake_word_detected("hey_mycroft", 0.9, 1)
         return requested
 
     requested = asyncio.run(run())

@@ -24,7 +24,7 @@ from voice.echo_cancellation import (
 )
 from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
-from voice.events.listener import LoggingListener, SoundListener, TranscriptListener
+from voice.events.listener import LoggingListener, TranscriptListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
     BargeInHandler,
@@ -37,7 +37,7 @@ from voice.handler import (
 )
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
-from voice.observer import VoiceAgentObserver, VoiceAgentObserverBridge
+from voice.observer import Observer, _ObserverBridge
 from voice.stt import CartesiaSpeechToText, SpeechToText, SpeechToTextBridge
 from voice.tts import CartesiaTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
@@ -59,7 +59,7 @@ class VoiceAgent:
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
-        observers: Iterable[VoiceAgentObserver] = (),
+        observers: Iterable[Observer] = (),
         recording_path: str | Path | None = None,
     ) -> None:
         self._event_bus = EventBus()
@@ -164,7 +164,7 @@ class VoiceAgent:
 
     def _setup_observers(
         self,
-        observers: Iterable[VoiceAgentObserver],
+        observers: Iterable[Observer],
         recording_path: str | Path | None,
         *,
         wake_word_phrase: str,
@@ -172,11 +172,10 @@ class VoiceAgent:
         self._logging_listener = LoggingListener(
             self._event_bus, wake_word_phrase=wake_word_phrase
         )
-        self._sound_listener = SoundListener(self._event_bus)
         self._transcript_listener = TranscriptListener(
             self._event_bus, self._conversation_history
         )
-        self._observer_bridge = VoiceAgentObserverBridge(
+        self._observer_bridge = _ObserverBridge(
             event_bus=self._event_bus,
             observers=observers,
         )
@@ -195,6 +194,7 @@ class VoiceAgent:
             raise RuntimeError("Voice agent is stopped.")
 
         try:
+            await self._observer_bridge.prepare()
             started = await self._event_bus.dispatch(SessionStarted())
             started.raise_if_failed()
             logger.debug("Session started")

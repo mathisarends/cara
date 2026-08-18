@@ -6,7 +6,7 @@ from typing import Protocol, cast
 import pytest
 
 import voice.agent as agent_module
-from voice import VoiceAgent
+from voice import Observer, ObserverContext, VoiceAgent
 from voice.audio import AudioInput, AudioOutput
 from voice.llm import AgentSession
 from voice.stt import SpeechToText
@@ -33,6 +33,20 @@ class _WakeWordListener:
             yield WakeWordDetection(sequence=0, score=0, name="")
 
 
+class _LifecycleObserver(Observer):
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+    async def prepare(self, context: ObserverContext) -> None:
+        self.events.append("prepared")
+
+    async def on_agent_starting(self) -> None:
+        self.events.append("started")
+
+    async def on_agent_stopped(self) -> None:
+        self.events.append("stopped")
+
+
 def test_runs_and_closes_an_injected_voice_stack(
     tmp_path: Path,
     monkeypatch,
@@ -43,6 +57,7 @@ def test_runs_and_closes_an_injected_voice_stack(
     text_to_speech: TextToSpeech,
 ) -> None:
     recording_path = tmp_path / "conversation.wav"
+    observer = _LifecycleObserver()
     monkeypatch.setattr(agent_module, "WakeWordListener", _WakeWordListener)
     agent = VoiceAgent(
         agent_session=agent_session,
@@ -50,6 +65,7 @@ def test_runs_and_closes_an_injected_voice_stack(
         audio_output=audio_output,
         speech_to_text=speech_to_text,
         text_to_speech=text_to_speech,
+        observers=(observer,),
         recording_path=recording_path,
     )
 
@@ -63,6 +79,7 @@ def test_runs_and_closes_an_injected_voice_stack(
     assert _stoppable(audio_output).stopped
     assert _closable(speech_to_text).closed
     assert _closable(text_to_speech).closed
+    assert observer.events == ["prepared", "started", "stopped"]
 
     with pytest.raises(RuntimeError, match="Voice agent is stopped"):
         asyncio.run(agent.start())
