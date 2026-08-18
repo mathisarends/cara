@@ -1,3 +1,5 @@
+import logging
+import time
 from collections.abc import AsyncIterator
 
 from wakewordkit import AudioFormat as DetectorAudioFormat
@@ -5,6 +7,8 @@ from wakewordkit import WakeWord, WakeWordDetector
 
 from voice.audio.buffered_input import AudioOverrunError, BufferedAudioInput
 from voice.wakeword.models import WakeWordDetection, WakeWordSettings
+
+logger = logging.getLogger(__name__)
 
 _WAKE_WORD_PHRASES = {
     WakeWord.ALEXA: "alexa",
@@ -28,6 +32,7 @@ class WakeWordListener:
             threshold=settings.sensitivity,
             cooldown=settings.cooldown,
         )
+        self._last_yield_at: float | None = None
 
     @property
     def phrase(self) -> str:
@@ -38,6 +43,7 @@ class WakeWordListener:
             reader = await self._buffered_audio_input.open_reader()
             try:
                 async for frame in reader:
+                    before = time.monotonic()
                     detection = await self._detector.process(
                         frame.pcm,
                         format=DetectorAudioFormat(
@@ -46,13 +52,32 @@ class WakeWordListener:
                             sample_format="pcm_s16le",
                         ),
                     )
+                    after = time.monotonic()
                     if detection is not None:
+                        now = time.monotonic()
+                        gap = (
+                            None
+                            if self._last_yield_at is None
+                            else now - self._last_yield_at
+                        )
+                        logger.debug(
+                            "Wake-word candidate sequence=%d score=%.2f "
+                            "gap_since_last=%s process_latency=%.3fs",
+                            frame.sequence,
+                            detection.score,
+                            f"{gap:.3f}s" if gap is not None else "n/a",
+                            after - before,
+                        )
+                        self._last_yield_at = now
                         yield WakeWordDetection(
                             sequence=frame.sequence,
                             score=detection.score,
                             name=detection.name,
                         )
             except AudioOverrunError:
+                logger.warning(
+                    "Wake-word reader overran the audio buffer; resetting detector"
+                )
                 self._detector.reset()
             finally:
                 await reader.aclose()

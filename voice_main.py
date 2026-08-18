@@ -12,6 +12,7 @@ from voice.llm import CodexAgentSession
 from voice.tts.cartesia import CartesiaTextToSpeech
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 
 load_dotenv(override=True)
 
