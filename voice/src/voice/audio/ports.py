@@ -17,6 +17,11 @@ class AudioInput(ABC):
 
     @property
     @abstractmethod
+    def frames_per_chunk(self) -> int:
+        """Return the number of frames each streamed chunk carries."""
+
+    @property
+    @abstractmethod
     def is_active(self) -> bool:
         """Return whether the device is currently capturing."""
 

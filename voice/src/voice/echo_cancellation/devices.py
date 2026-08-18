@@ -106,6 +106,10 @@ class EchoCancellingInput(AudioInput):
         return self._input.channels
 
     @property
+    def frames_per_chunk(self) -> int:
+        return self._input.frames_per_chunk
+
+    @property
     def is_active(self) -> bool:
         return self._input.is_active
 

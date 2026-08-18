@@ -65,7 +65,9 @@ class TurnManager:
             return
         if self.has_active_turn:
             raise RuntimeError("Cannot start a voice turn while another is active.")
-        cursor = await self._cursor_for(event)
+        cursor = await self._audio_hub.cursor(
+            from_sequence=event.sequence, pre_roll_seconds=self._pre_roll
+        )
         self._next_turn_id += 1
         turn_id = self._next_turn_id
         self._active_turn_id = turn_id
@@ -110,10 +112,3 @@ class TurnManager:
                 self._active_task = None
                 logger.info("Voice turn %d ended", turn_id)
                 await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
-
-    async def _cursor_for(self, event: VoiceTurnRequested) -> AudioCursor:
-        if event.sequence is None:
-            return await self._audio_hub.cursor()
-        return await self._audio_hub.cursor_for_detection(
-            event.sequence, pre_roll_seconds=self._pre_roll
-        )

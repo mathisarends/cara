@@ -21,6 +21,10 @@ class _ControlledInput(AudioInput):
         return 1
 
     @property
+    def frames_per_chunk(self) -> int:
+        return 1280
+
+    @property
     def is_active(self) -> bool:
         return self._active
 
@@ -53,7 +57,7 @@ def test_detection_cursor_includes_pre_roll_without_reopening_input() -> None:
             await input_device.send(value)
         await _wait_until_captured()
 
-        cursor = await hub.cursor_for_detection(3, pre_roll_seconds=0.16)
+        cursor = await hub.cursor(from_sequence=3, pre_roll_seconds=0.16)
         frames = [await anext(cursor), await anext(cursor)]
         second_cursor = await hub.cursor()
         await hub.stop()
@@ -71,7 +75,7 @@ def test_slow_cursor_fails_explicitly_after_ring_buffer_overrun() -> None:
         input_device = _ControlledInput()
         hub = AudioHub(input_device, history_seconds=0.16)
         await hub.start()
-        cursor = await hub.cursor(start_sequence=0)
+        cursor = await hub.cursor(from_sequence=0)
         for value in range(4):
             await input_device.send(value)
         await _wait_until_captured()

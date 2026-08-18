@@ -47,6 +47,10 @@ class MicrophoneAudioInput(AudioInput):
         return self._channels
 
     @property
+    def frames_per_chunk(self) -> int:
+        return self._frames_per_chunk
+
+    @property
     def is_active(self) -> bool:
         return self._active
 

@@ -30,6 +30,10 @@ class OneChunkInput(AudioInput):
         return 1
 
     @property
+    def frames_per_chunk(self) -> int:
+        return _FRAMES
+
+    @property
     def is_active(self) -> bool:
         return True
 

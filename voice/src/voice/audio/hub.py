@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import asyncio
 import math
-import time
 from collections import deque
 from collections.abc import AsyncIterator
 
@@ -15,7 +12,7 @@ class AudioOverrunError(RuntimeError):
 
 
 class AudioCursor:
-    def __init__(self, hub: AudioHub, next_sequence: int) -> None:
+    def __init__(self, hub: "AudioHub", next_sequence: int) -> None:
         self._hub = hub
         self._next_sequence = next_sequence
         self._closed = False
@@ -44,12 +41,8 @@ class AudioHub:
         self,
         input_device: AudioInput,
         *,
-        frames_per_chunk: int = 1_280,
         history_seconds: float = 2.0,
-        clock=time.monotonic,
     ) -> None:
-        if frames_per_chunk <= 0:
-            raise ValueError("frames_per_chunk must be positive")
         if history_seconds <= 0:
             raise ValueError("history_seconds must be positive")
         self._input = input_device
@@ -57,12 +50,9 @@ class AudioHub:
             sample_rate=input_device.sample_rate,
             channels=input_device.channels,
         )
-        self._chunk_frames = frames_per_chunk
-        chunks_per_second = input_device.sample_rate / frames_per_chunk
-        self._capacity = max(1, math.ceil(history_seconds * chunks_per_second))
+        self._capacity = max(1, self._chunks_for(history_seconds))
         self._frames: deque[AudioFrame] = deque(maxlen=self._capacity)
         self._condition = asyncio.Condition()
-        self._clock = clock
         self._next_sequence = 0
         self._capture_task: asyncio.Task[None] | None = None
         self._failure: BaseException | None = None
@@ -98,32 +88,26 @@ class AudioHub:
         async with self._condition:
             self._condition.notify_all()
 
-    async def cursor(self, *, start_sequence: int | None = None) -> AudioCursor:
-        async with self._condition:
-            if start_sequence is None:
-                start_sequence = self._next_sequence
-            oldest = self._oldest_sequence
-            if start_sequence < oldest:
-                raise AudioOverrunError(
-                    f"sequence {start_sequence} is older than retained "
-                    f"sequence {oldest}"
-                )
-            return AudioCursor(self, start_sequence)
-
-    async def cursor_for_detection(
-        self, sequence: int, *, pre_roll_seconds: float = 0.16
+    async def cursor(
+        self,
+        *,
+        from_sequence: int | None = None,
+        pre_roll_seconds: float = 0.0,
     ) -> AudioCursor:
-        chunks = math.ceil(
-            pre_roll_seconds * self._format.sample_rate / self._chunk_frames
-        )
-        start = sequence - max(chunks - 1, 0)
+        """Open a cursor on the live tail, or on ``from_sequence`` minus pre-roll.
+
+        A start older than the retained history is clamped to the oldest frame.
+        """
         async with self._condition:
+            if from_sequence is None:
+                return AudioCursor(self, self._next_sequence)
+            start = from_sequence - max(self._chunks_for(pre_roll_seconds) - 1, 0)
             return AudioCursor(self, max(start, self._oldest_sequence))
 
     async def _capture(self) -> None:
         try:
             async for pcm in self._input.stream_chunks():
-                frame = AudioFrame(self._next_sequence, self._clock(), pcm)
+                frame = AudioFrame(self._next_sequence, pcm)
                 async with self._condition:
                     self._frames.append(frame)
                     self._next_sequence += 1
@@ -152,6 +136,10 @@ class AudioHub:
                 if not self._running:
                     return None
                 await self._condition.wait()
+
+    def _chunks_for(self, seconds: float) -> int:
+        chunk_seconds = self._input.frames_per_chunk / self._format.sample_rate
+        return math.ceil(seconds / chunk_seconds)
 
     @property
     def _oldest_sequence(self) -> int:

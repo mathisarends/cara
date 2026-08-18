@@ -11,5 +11,4 @@ class AudioFormat:
 @dataclass(frozen=True, slots=True)
 class AudioFrame:
     sequence: int
-    captured_at: float
     pcm: bytes

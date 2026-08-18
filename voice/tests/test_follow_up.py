@@ -29,6 +29,10 @@ class _Input(AudioInput):
         return 1
 
     @property
+    def frames_per_chunk(self) -> int:
+        return 1280
+
+    @property
     def is_active(self) -> bool:
         return self._active
 
