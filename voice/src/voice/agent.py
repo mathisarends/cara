@@ -30,6 +30,7 @@ from voice.handler import (
     BargeInHandler,
     CommandBridge,
     FollowUpHandler,
+    FollowUpSettings,
     SpeechResourceHandler,
     TurnCoordinator,
     TurnListener,
@@ -59,6 +60,7 @@ class VoiceAgent:
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
+        follow_up_settings: FollowUpSettings | None = None,
         observers: Iterable[Observer] = (),
         recording_path: str | Path | None = None,
     ) -> None:
@@ -101,6 +103,7 @@ class VoiceAgent:
             agent_session,
             barge_in,
             strip_wake_word=wake_word_settings.strip_from_command,
+            follow_up_settings=follow_up_settings,
         )
         self._stopped = False
         self._setup_observers(
@@ -115,6 +118,7 @@ class VoiceAgent:
         barge_in: BargeInStrategy | None,
         *,
         strip_wake_word: bool,
+        follow_up_settings: FollowUpSettings | None,
     ) -> None:
         self._agent_bridge = AgentBridge(
             event_bus=self._event_bus,
@@ -155,7 +159,10 @@ class VoiceAgent:
             strategy=strategy,
             coordinator=self._turn_coordinator,
         )
-        self._follow_up_handler = FollowUpHandler(event_bus=self._event_bus)
+        self._follow_up_handler = FollowUpHandler(
+            event_bus=self._event_bus,
+            settings=follow_up_settings,
+        )
         self._speech_resource_handler = SpeechResourceHandler(
             event_bus=self._event_bus,
             speech_to_text=self._speech_to_text,

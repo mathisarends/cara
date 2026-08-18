@@ -17,6 +17,7 @@ from .conversation import (
     ConversationTurn,
     HumanMessage,
 )
+from .handler import FollowUpSettings
 from .lights import HueObserver, LightingState
 from .models import AgentResult
 from .observer import Observer, ObserverContext
@@ -43,6 +44,7 @@ __all__ = [
     "ConversationTurn",
     "DuckingStrategy",
     "Earcon",
+    "FollowUpSettings",
     "HumanMessage",
     "HueObserver",
     "LightingState",

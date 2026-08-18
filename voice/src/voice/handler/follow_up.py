@@ -2,6 +2,8 @@ import asyncio
 import logging
 import time
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from voice.events import (
     AssistantPlaybackCompleted,
     FollowUpCountdown,
@@ -16,6 +18,15 @@ from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
 logger = logging.getLogger(__name__)
 
 
+class FollowUpSettings(BaseModel):
+    """Timing for the wake-word-free follow-up window and its countdown."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    window_seconds: float = Field(default=5.0, gt=0.0)
+    countdown_seconds: int = Field(default=3, ge=0)
+
+
 class FollowUpHandler:
     """Keeps the conversation open for one further turn without a wake word."""
 
@@ -23,16 +34,12 @@ class FollowUpHandler:
         self,
         *,
         event_bus: EventBus,
-        window_seconds: float = 10.0,
-        countdown_seconds: int = 5,
+        settings: FollowUpSettings | None = None,
     ) -> None:
-        if window_seconds <= 0:
-            raise ValueError("window_seconds must be positive")
-        if countdown_seconds < 0:
-            raise ValueError("countdown_seconds must not be negative")
+        settings = settings or FollowUpSettings()
         self._event_bus = event_bus
-        self._window_seconds = window_seconds
-        self._countdown_seconds = countdown_seconds
+        self._window_seconds = settings.window_seconds
+        self._countdown_seconds = settings.countdown_seconds
         self._armed = False
         self._window_open = False
         self._countdown: asyncio.Task[None] | None = None

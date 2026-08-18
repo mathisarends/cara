@@ -16,7 +16,13 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
-from voice.handler import CommandBridge, FollowUpHandler, TurnCoordinator, TurnListener
+from voice.handler import (
+    CommandBridge,
+    FollowUpHandler,
+    FollowUpSettings,
+    TurnCoordinator,
+    TurnListener,
+)
 from voice.llm import AgentBridge, AgentEvent, TextDelta, TurnCompleted
 from voice.stt import (
     SpeechToText,
@@ -120,6 +126,13 @@ class _Output(AudioOutput):
         pass
 
 
+def test_follow_up_settings_use_expected_defaults() -> None:
+    settings = FollowUpSettings()
+
+    assert settings.window_seconds == 5.0
+    assert settings.countdown_seconds == 3
+
+
 def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> None:
     async def run() -> tuple[_SpeechToText, list[int], FollowUpTimedOut]:
         input_device = _Input()
@@ -150,7 +163,8 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         )
         TurnListener(event_bus=event_bus, coordinator=TurnCoordinator())
         follow_up = FollowUpHandler(
-            event_bus=event_bus, window_seconds=1.0, countdown_seconds=1
+            event_bus=event_bus,
+            settings=FollowUpSettings(window_seconds=1.0, countdown_seconds=1),
         )
         countdowns: list[int] = []
         timed_out_event = asyncio.get_running_loop().create_future()

@@ -6,7 +6,7 @@ from typing import Protocol, cast
 import pytest
 
 import voice.agent as agent_module
-from voice import Observer, ObserverContext, VoiceAgent
+from voice import FollowUpSettings, Observer, ObserverContext, VoiceAgent
 from voice.audio import AudioInput, AudioOutput
 from voice.llm import AgentSession
 from voice.stt import SpeechToText
@@ -83,6 +83,51 @@ def test_runs_and_closes_an_injected_voice_stack(
 
     with pytest.raises(RuntimeError, match="Voice agent is stopped"):
         asyncio.run(agent.start())
+
+
+def test_configures_follow_up_timeout(
+    monkeypatch,
+    agent_session: AgentSession,
+    audio_input: AudioInput,
+    audio_output: AudioOutput,
+    speech_to_text: SpeechToText,
+    text_to_speech: TextToSpeech,
+) -> None:
+    configured_settings: FollowUpSettings | None = None
+    follow_up_handler = agent_module.FollowUpHandler
+
+    def create_follow_up_handler(*, event_bus, settings):
+        nonlocal configured_settings
+        configured_settings = settings
+        return follow_up_handler(
+            event_bus=event_bus,
+            settings=settings,
+        )
+
+    monkeypatch.setattr(agent_module, "WakeWordListener", _WakeWordListener)
+    monkeypatch.setattr(
+        agent_module,
+        "FollowUpHandler",
+        create_follow_up_handler,
+    )
+
+    agent = VoiceAgent(
+        agent_session=agent_session,
+        audio_input=audio_input,
+        audio_output=audio_output,
+        speech_to_text=speech_to_text,
+        text_to_speech=text_to_speech,
+        follow_up_settings=FollowUpSettings(
+            window_seconds=7.5,
+            countdown_seconds=2,
+        ),
+    )
+    asyncio.run(agent.stop())
+
+    assert configured_settings == FollowUpSettings(
+        window_seconds=7.5,
+        countdown_seconds=2,
+    )
 
 
 def _closable(value: object) -> _Closable:
