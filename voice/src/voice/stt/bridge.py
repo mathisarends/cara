@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 
-from voice.audio.buffered_input import AudioCursor, BufferedAudioInput
+from voice.audio.buffered_input import AudioReader, BufferedAudioInput
 from voice.events import (
     UserSpeechEnded,
     UserSpeechStarted,
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class SpeechToTextBridge:
-    """Consumes turn-scoped audio cursors and publishes transcription events."""
+    """Consumes turn-scoped audio readers and publishes transcription events."""
 
     def __init__(
         self,
@@ -38,11 +38,11 @@ class SpeechToTextBridge:
     async def _on_transcription_requested(
         self, event: UserTranscriptionRequested
     ) -> None:
-        cursor = await self._buffered_audio_input.cursor(
+        reader = await self._buffered_audio_input.open_reader(
             from_sequence=event.sequence,
             pre_roll_seconds=event.pre_roll_seconds,
         )
-        transcriptions = self._speech_to_text.transcribe(_audio_chunks(cursor))
+        transcriptions = self._speech_to_text.transcribe(_audio_chunks(reader))
         try:
             try:
                 first = await asyncio.wait_for(
@@ -87,7 +87,7 @@ class SpeechToTextBridge:
             )
         finally:
             await transcriptions.aclose()
-            await cursor.aclose()
+            await reader.aclose()
 
     async def _publish_transcription(self, turn_id: int, update: Transcription) -> None:
         await self._event_bus.dispatch(
@@ -100,6 +100,6 @@ class SpeechToTextBridge:
         )
 
 
-async def _audio_chunks(cursor: AudioCursor) -> AsyncIterator[bytes]:
-    async for frame in cursor:
+async def _audio_chunks(reader: AudioReader) -> AsyncIterator[bytes]:
+    async for frame in reader:
         yield frame.pcm

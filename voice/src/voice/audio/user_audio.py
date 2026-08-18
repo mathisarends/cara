@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from voice.audio.buffered_input import AudioCursor, BufferedAudioInput
+from voice.audio.buffered_input import AudioReader, BufferedAudioInput
 from voice.events import SessionStarted, UserAudioChunk
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
@@ -17,7 +17,7 @@ class UserAudioProducer:
     ) -> None:
         self._event_bus = event_bus
         self._buffered_audio_input = buffered_audio_input
-        self._cursor: AudioCursor | None = None
+        self._reader: AudioReader | None = None
         self._task: asyncio.Task[None] | None = None
         self._closed = False
 
@@ -28,15 +28,15 @@ class UserAudioProducer:
         if self._closed or self._task is not None:
             return
         await self._buffered_audio_input.start()
-        self._cursor = await self._buffered_audio_input.cursor()
+        self._reader = await self._buffered_audio_input.open_reader()
         self._task = asyncio.create_task(
-            self._publish(self._cursor),
+            self._publish(self._reader),
             name="voice-user-audio",
         )
 
-    async def _publish(self, cursor: AudioCursor) -> None:
+    async def _publish(self, reader: AudioReader) -> None:
         try:
-            async for frame in cursor:
+            async for frame in reader:
                 await self._event_bus.dispatch(
                     UserAudioChunk(sequence=frame.sequence, chunk=frame.pcm)
                 )
@@ -50,11 +50,11 @@ class UserAudioProducer:
             return
         self._closed = True
         task, self._task = self._task, None
-        cursor, self._cursor = self._cursor, None
+        reader, self._reader = self._reader, None
         if task is not None and not task.done():
             task.cancel()
         if task is not None:
             await asyncio.gather(task, return_exceptions=True)
-        if cursor is not None:
-            await cursor.aclose()
+        if reader is not None:
+            await reader.aclose()
         await self._buffered_audio_input.stop()

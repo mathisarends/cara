@@ -15,8 +15,6 @@ _WAKE_WORD_PHRASES = {
 
 
 class WakeWordListener:
-    """Runs wake-word inference from buffered input without owning a device."""
-
     def __init__(
         self,
         buffered_audio_input: BufferedAudioInput,
@@ -37,9 +35,9 @@ class WakeWordListener:
 
     async def detections(self) -> AsyncIterator[WakeWordDetection]:
         while self._buffered_audio_input.is_running:
-            cursor = await self._buffered_audio_input.cursor()
+            reader = await self._buffered_audio_input.open_reader()
             try:
-                async for frame in cursor:
+                async for frame in reader:
                     detection = await self._detector.process(
                         frame.pcm,
                         format=DetectorAudioFormat(
@@ -57,4 +55,4 @@ class WakeWordListener:
             except AudioOverrunError:
                 self._detector.reset()
             finally:
-                await cursor.aclose()
+                await reader.aclose()

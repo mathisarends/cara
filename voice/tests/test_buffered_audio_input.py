@@ -55,7 +55,7 @@ def test_exposes_input_audio_format() -> None:
     assert buffered_input.channels == 1
 
 
-def test_detection_cursor_includes_pre_roll_without_reopening_input() -> None:
+def test_reader_includes_pre_roll_without_reopening_input() -> None:
     async def run() -> tuple[list[int], int]:
         input_device = _ControlledInput()
         buffered_input = BufferedAudioInput(input_device)
@@ -64,11 +64,13 @@ def test_detection_cursor_includes_pre_roll_without_reopening_input() -> None:
             await input_device.send(value)
         await _wait_until_captured()
 
-        cursor = await buffered_input.cursor(from_sequence=3, pre_roll_seconds=0.16)
-        frames = [await anext(cursor), await anext(cursor)]
-        second_cursor = await buffered_input.cursor()
+        reader = await buffered_input.open_reader(
+            from_sequence=3, pre_roll_seconds=0.16
+        )
+        frames = [await anext(reader), await anext(reader)]
+        second_reader = await buffered_input.open_reader()
         await buffered_input.stop()
-        await second_cursor.aclose()
+        await second_reader.aclose()
         return [frame.sequence for frame in frames], input_device.opens
 
     sequences, opens = asyncio.run(run())
@@ -77,18 +79,18 @@ def test_detection_cursor_includes_pre_roll_without_reopening_input() -> None:
     assert opens == 1
 
 
-def test_slow_cursor_fails_explicitly_after_ring_buffer_overrun() -> None:
+def test_slow_reader_fails_explicitly_after_ring_buffer_overrun() -> None:
     async def run() -> None:
         input_device = _ControlledInput()
         buffered_input = BufferedAudioInput(input_device, history_seconds=0.16)
         await buffered_input.start()
-        cursor = await buffered_input.cursor(from_sequence=0)
+        reader = await buffered_input.open_reader(from_sequence=0)
         for value in range(4):
             await input_device.send(value)
         await _wait_until_captured()
 
         with pytest.raises(AudioOverrunError):
-            await anext(cursor)
+            await anext(reader)
         await buffered_input.stop()
 
     asyncio.run(run())

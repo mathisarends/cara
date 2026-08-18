@@ -13,7 +13,7 @@ class AudioOverrunError(RuntimeError):
     """Raised when a consumer falls behind the bounded capture history."""
 
 
-class AudioCursor:
+class AudioReader:
     def __init__(self, buffered_input: BufferedAudioInput, next_sequence: int) -> None:
         self._buffered_input = buffered_input
         self._next_sequence = next_sequence
@@ -37,7 +37,7 @@ class AudioCursor:
 
 
 class BufferedAudioInput:
-    """Buffers one audio input and exposes independent cursors over its frames."""
+    """Buffers one audio input and exposes independent readers over its frames."""
 
     def __init__(
         self,
@@ -98,21 +98,21 @@ class BufferedAudioInput:
         async with self._condition:
             self._condition.notify_all()
 
-    async def cursor(
+    async def open_reader(
         self,
         *,
         from_sequence: int | None = None,
         pre_roll_seconds: float = 0.0,
-    ) -> AudioCursor:
-        """Open a cursor on the live tail, or on ``from_sequence`` minus pre-roll.
+    ) -> AudioReader:
+        """Open a reader on the live tail, or on ``from_sequence`` minus pre-roll.
 
         A start older than the retained history is clamped to the oldest frame.
         """
         async with self._condition:
             if from_sequence is None:
-                return AudioCursor(self, self._next_sequence)
+                return AudioReader(self, self._next_sequence)
             start = from_sequence - max(self._chunks_for(pre_roll_seconds) - 1, 0)
-            return AudioCursor(self, max(start, self._oldest_sequence))
+            return AudioReader(self, max(start, self._oldest_sequence))
 
     async def _capture(self) -> None:
         try:
@@ -137,7 +137,7 @@ class BufferedAudioInput:
                 oldest = self._oldest_sequence
                 if sequence < oldest:
                     raise AudioOverrunError(
-                        f"cursor fell behind: {sequence} < retained {oldest}"
+                        f"reader fell behind: {sequence} < retained {oldest}"
                     )
                 if sequence < self._next_sequence:
                     return self._frames[sequence - oldest]
