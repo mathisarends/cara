@@ -1,28 +1,27 @@
-Stabile Fakten über Mathis. Ändert sich selten.
+Stable facts about Mathis. Changes rarely.
 
 ## Person
 
-- Mathis Arends, Softwareentwickler, lebt in Münster.
-- Seine Eltern leben in Aurich; er ist dort manchmal zu Besuch.
-- Spricht Deutsch mit mir. Technische Begriffe auf Englisch sind normal und müssen nicht übersetzt werden.
-- Arbeitet remote, meistens von zu Hause.
+- Mathis Arends, software developer, lives in Münster.
+- His parents live in Aurich; he visits them occasionally.
+- Works remote, mostly from home.
 
-## Rhythmus
+## Rhythm
 
-- Steht gegen 6:30 auf, produktivste Phase ist der Vormittag bis etwa 12 Uhr.
-- Nachmittags eher Meetings und Kleinkram, abends selten noch fokussierte Arbeit.
-- Läuft drei Mal pro Woche, meistens früh vor der Arbeit.
-- Abendroutine: Nach der Arbeit mit Rucksack nach Hause laufen und anschließend trainieren.
+- Wakes up around 6:30, most productive phase is morning until about noon.
+- Afternoons are mostly meetings and small tasks, rarely focused work in the evening.
+- Runs three times a week, usually early before work.
+- Evening routine: walk home with a backpack after work, then train.
 
-## Arbeit
+## Work
 
-- Hauptprojekt ist Cara: ein deutschsprachiger Voice Assistant in Python.
-- Stack: Python 3.14, uv, pytest, ruff. Strenge Typisierung, wenig Magie im Code.
-- Mag kleine, saubere Abstraktionen und klare Modulgrenzen. Mag keine Kompatibilitäts-Shims und keine überflüssigen Kommentare.
+- Main project is Cara: a German-speaking voice assistant written in Python.
+- Stack: Python 3.14, uv, pytest, ruff. Strict typing, little magic in the code.
+- Likes small, clean abstractions and clear module boundaries. Dislikes compatibility shims and unnecessary comments.
 
-## Präferenzen
+## Preferences
 
-- Kurze Antworten. Bei technischen Fragen zuerst die Entscheidung, dann die Begründung.
-- Keine Emojis in gesprochenen Antworten.
-- Bei Terminvorschlägen: Vormittage freihalten, wenn es geht.
-- Musik: Mag elektronisch-atmosphärische, leicht melancholische Tracks (z. B. it's murph, Fred again.., Four Tet, Avoure, 16BL, George FitzGerald, Jan Blomqvist und Łaszewo), außerdem cineastische Scores (Hans Zimmer, Michael Giacchino) und prägnanten Trip-Hop/Electronic-Klassiker (Massive Attack, Daft Punk). Bei deutschem Rap/Indie eher introspektive oder eigenwillige Sachen von Carlo5, katlix, YUNG SAINT PAUL, Strob, OG Keemo, makko, Shindy und Pashanim. Brown Noise ist ein funktionaler Sleep-Track, kein Musikgeschmack; Andreas Bourani eher nicht.
+- Short answers. For technical questions, decision first, then reasoning.
+- No emojis in spoken responses.
+- For meeting suggestions: keep mornings free when possible.
+- Music: likes electronic-atmospheric, slightly melancholic tracks (e.g. it's murph, Fred again.., Four Tet, Avoure, 16BL, George FitzGerald, Jan Blomqvist and Łaszewo), also cinematic scores (Hans Zimmer, Michael Giacchino) and standout trip-hop/electronic classics (Massive Attack, Daft Punk). For German rap/indie, prefers introspective or idiosyncratic stuff from Carlo5, katlix, YUNG SAINT PAUL, Strob, OG Keemo, makko, Shindy and Pashanim. Brown noise is a functional sleep track, not a musical taste; not really into Andreas Bourani.

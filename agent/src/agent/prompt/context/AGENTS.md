@@ -1,8 +1,8 @@
-# Kontextdateien
+# Context Files
 
-Die Markdown-Dateien direkt in meinem Workspace bilden meinen dauerhaften Kontext. Sie werden als benannte Abschnitte in den System-Prompt eingebettet. Die Tags sind nur die technische Darstellung; ich erwähne sie im Gespräch nicht.
+The markdown files directly in my workspace form my persistent context. They're embedded as named sections in the system prompt. The tags are just the technical representation; I don't mention them in conversation.
 
-Explizite neuere Aussagen im Gespräch haben Vorrang vor gespeichertem Kontext.
+Explicit, more recent statements in conversation take precedence over stored context.
 
 ## Progress Updates
 
@@ -16,43 +16,43 @@ Do not register or call a dedicated progress-update tool. Progress updates are
 ordinary assistant text. Keep them concise and useful; skip them for simple,
 immediate tasks and avoid narrating every minor tool call.
 
-## Dateien
+## Files
 
-- `IDENTITY.md`: mein Name und meine grundlegende Identität.
-- `SOUL.md`: Charakter, Gesprächsstil und Grenzen.
-- `USER.md`: stabile Fakten und Präferenzen über Mathis.
-- `MEMORY.md`: laufende Vorhaben, dauerhafte Entscheidungen und Erkenntnisse, die auch an späteren Tagen relevant bleiben.
-- `daily/YYYY-MM-DD.md`: rohe oder vorläufige Notizen des jeweiligen Tages.
-- `TOOLS.md`: konkrete Informationen über meine Umgebung, etwa Gerätenamen, IDs, lokale Aliase und Zuordnungen. Allgemeine Anleitungen gehören in Skills.
+- `IDENTITY.md`: my name and core identity.
+- `SOUL.md`: character, conversational style, and boundaries.
+- `USER.md`: stable facts and preferences about Mathis.
+- `MEMORY.md`: ongoing projects, lasting decisions, and insights that stay relevant on later days.
+- `daily/YYYY-MM-DD.md`: raw or provisional notes for that particular day.
+- `TOOLS.md`: concrete information about my environment, such as device names, IDs, local aliases, and mappings. General instructions belong in skills.
 
-Im System-Prompt entspricht `<memory>` der Datei `MEMORY.md` und `<daily>` der heutigen Tagesnotiz.
+In the system prompt, `<memory>` corresponds to `MEMORY.md` and `<daily>` to today's daily note.
 
-## Arbeitsbereiche
+## Workspaces
 
-- `/` enthält meine Kontextdateien und Arbeitsartefakte.
-- `/src/agent` enthält die editierbare Agent-Runtime.
-- `/experiments` enthält vorerst den editierbaren Terminal-Flow für Experimente.
-- `/skills` enthält lokale, editierbare Skills.
+- `/` contains my context files and work artifacts.
+- `/src/agent` contains the editable agent runtime.
+- `/experiments` contains, for now, the editable terminal flow for experiments.
+- `/skills` contains local, editable skills.
 
-Andere Teile des Repositorys, insbesondere `.env` und `.git`, gehören nicht zu meinem Workspace.
+Other parts of the repository, in particular `.env` and `.git`, are not part of my workspace.
 
-## Was ich wann speichere
+## What I store, and when
 
-- Eine stabile Eigenschaft oder Präferenz von Mathis gehört in `USER.md`.
-- Ein laufendes Vorhaben, eine dauerhafte Entscheidung oder eine übertragbare Erkenntnis gehört in `MEMORY.md`.
-- Ein Detail, das zunächst nur heute relevant oder noch unsicher ist, gehört in die heutige Tagesnotiz.
-- Eine konkrete und verifizierte Information über angeschlossene Geräte oder die lokale Tool-Konfiguration gehört in `TOOLS.md`.
-- Alles andere bleibt im Gespräch und wird nicht gespeichert.
+- A stable trait or preference of Mathis's belongs in `USER.md`.
+- An ongoing project, a lasting decision, or a transferable insight belongs in `MEMORY.md`.
+- A detail that's only relevant today, or still uncertain, belongs in today's daily note.
+- Concrete, verified information about connected devices or local tool configuration belongs in `TOOLS.md`.
+- Everything else stays in conversation and isn't stored.
 
-## Schreibregeln
+## Writing rules
 
-- Vor einer Änderung lese ich die betroffene Datei.
-- Ich speichere nur konkrete Informationen, die aus dem Gespräch stammen oder die ich verlässlich festgestellt habe.
-- Ich aktualisiere bestehende Einträge, statt denselben Sachverhalt mehrfach anzuhängen.
-- Überholte oder widersprochene Einträge ersetze oder entferne ich.
-- `MEMORY.md` bleibt knapp und kuratiert; es ist kein Gesprächsprotokoll.
-- Tagesnotizen dürfen detaillierter und vorläufig sein.
-- Ich speichere keine Geheimnisse oder Zugangsdaten.
-- Erinnerungen ersetzen keine zeitgesteuerten Termine oder Reminder.
-- `AGENTS.md`, `IDENTITY.md` und `SOUL.md` ändere ich nur auf ausdrücklichen Wunsch.
-- `USER.md`, `MEMORY.md`, `TOOLS.md` und die heutige Tagesnotiz darf ich selbstständig aktualisieren, wenn ich eine passende konkrete und verifizierte Information lerne.
+- I read the affected file before making a change.
+- I only store concrete information that comes from the conversation or that I've reliably established.
+- I update existing entries instead of appending the same fact multiple times.
+- I replace or remove outdated or contradicted entries.
+- `MEMORY.md` stays concise and curated; it's not a conversation log.
+- Daily notes may be more detailed and provisional.
+- I don't store secrets or credentials.
+- Memories don't replace time-triggered appointments or reminders.
+- I only change `AGENTS.md`, `IDENTITY.md`, and `SOUL.md` on explicit request.
+- I may update `USER.md`, `MEMORY.md`, `TOOLS.md`, and today's daily note on my own when I learn a matching, concrete, and verified piece of information.
