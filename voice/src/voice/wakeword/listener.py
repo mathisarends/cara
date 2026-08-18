@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from wakewordkit import AudioFormat as DetectorAudioFormat
 from wakewordkit import WakeWord, WakeWordDetector
 
-from voice.audio.hub import AudioHub, AudioOverrunError
+from voice.audio.buffered_input import AudioOverrunError, BufferedAudioInput
 from voice.wakeword.models import WakeWordDetection, WakeWordSettings
 
 _WAKE_WORD_PHRASES = {
@@ -15,15 +15,15 @@ _WAKE_WORD_PHRASES = {
 
 
 class WakeWordListener:
-    """Runs wake-word inference from an AudioHub cursor without owning a device."""
+    """Runs wake-word inference from buffered input without owning a device."""
 
     def __init__(
         self,
-        hub: AudioHub,
+        buffered_audio_input: BufferedAudioInput,
         *,
         settings: WakeWordSettings,
     ) -> None:
-        self._hub = hub
+        self._buffered_audio_input = buffered_audio_input
         self._phrase = _WAKE_WORD_PHRASES[settings.wake_word]
         self._detector = WakeWordDetector(
             settings.wake_word,
@@ -36,15 +36,15 @@ class WakeWordListener:
         return self._phrase
 
     async def detections(self) -> AsyncIterator[WakeWordDetection]:
-        while self._hub.is_running:
-            cursor = await self._hub.cursor()
+        while self._buffered_audio_input.is_running:
+            cursor = await self._buffered_audio_input.cursor()
             try:
                 async for frame in cursor:
                     detection = await self._detector.process(
                         frame.pcm,
                         format=DetectorAudioFormat(
-                            sample_rate=self._hub.format.sample_rate,
-                            channels=self._hub.format.channels,
+                            sample_rate=self._buffered_audio_input.sample_rate,
+                            channels=self._buffered_audio_input.channels,
                             sample_format="pcm_s16le",
                         ),
                     )

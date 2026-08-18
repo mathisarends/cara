@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from voice.audio import AudioHub, AudioInput, UserAudioProducer
+from voice.audio import AudioInput, BufferedAudioInput, UserAudioProducer
 from voice.events import SessionStarted, UserAudioChunk
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
@@ -48,7 +48,7 @@ def test_user_audio_is_published_without_an_active_turn() -> None:
         event_bus = EventBus()
         UserAudioProducer(
             event_bus=event_bus,
-            audio_hub=AudioHub(input_device),
+            buffered_audio_input=BufferedAudioInput(input_device),
         )
         received: list[UserAudioChunk] = []
         all_received = asyncio.Event()

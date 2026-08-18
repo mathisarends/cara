@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import math
 from collections import deque
@@ -12,8 +14,8 @@ class AudioOverrunError(RuntimeError):
 
 
 class AudioCursor:
-    def __init__(self, hub: "AudioHub", next_sequence: int) -> None:
-        self._hub = hub
+    def __init__(self, buffered_input: BufferedAudioInput, next_sequence: int) -> None:
+        self._buffered_input = buffered_input
         self._next_sequence = next_sequence
         self._closed = False
 
@@ -23,7 +25,7 @@ class AudioCursor:
     async def __anext__(self) -> AudioFrame:
         if self._closed:
             raise StopAsyncIteration
-        frame = await self._hub._read(self._next_sequence)
+        frame = await self._buffered_input._read(self._next_sequence)
         if frame is None:
             self._closed = True
             raise StopAsyncIteration
@@ -34,8 +36,8 @@ class AudioCursor:
         self._closed = True
 
 
-class AudioHub:
-    """Owns one capture loop and fans frames out through independent cursors."""
+class BufferedAudioInput:
+    """Buffers one audio input and exposes independent cursors over its frames."""
 
     def __init__(
         self,
@@ -61,6 +63,14 @@ class AudioHub:
     @property
     def format(self) -> AudioFormat:
         return self._format
+
+    @property
+    def sample_rate(self) -> int:
+        return self._format.sample_rate
+
+    @property
+    def channels(self) -> int:
+        return self._format.channels
 
     @property
     def is_running(self) -> bool:

@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 
-from voice.audio.hub import AudioCursor, AudioHub
+from voice.audio.buffered_input import AudioCursor, BufferedAudioInput
 from voice.events import (
     UserSpeechEnded,
     UserSpeechStarted,
@@ -26,11 +26,11 @@ class SpeechToTextBridge:
         self,
         *,
         event_bus: EventBus,
-        audio_hub: AudioHub,
+        buffered_audio_input: BufferedAudioInput,
         speech_to_text: SpeechToText,
     ) -> None:
         self._event_bus = event_bus
-        self._audio_hub = audio_hub
+        self._buffered_audio_input = buffered_audio_input
         self._speech_to_text = speech_to_text
 
         event_bus.on(UserTranscriptionRequested, self._on_transcription_requested)
@@ -38,7 +38,7 @@ class SpeechToTextBridge:
     async def _on_transcription_requested(
         self, event: UserTranscriptionRequested
     ) -> None:
-        cursor = await self._audio_hub.cursor(
+        cursor = await self._buffered_audio_input.cursor(
             from_sequence=event.sequence,
             pre_roll_seconds=event.pre_roll_seconds,
         )

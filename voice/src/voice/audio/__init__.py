@@ -1,5 +1,5 @@
 from .bridge import AudioBridge
-from .hub import AudioCursor, AudioHub, AudioOverrunError
+from .buffered_input import AudioCursor, AudioOverrunError, BufferedAudioInput
 from .models import AudioFormat, AudioFrame
 from .ports import AudioInput, AudioOutput
 from .session import PortAudioSession
@@ -11,10 +11,10 @@ __all__ = [
     "AudioCursor",
     "AudioFormat",
     "AudioFrame",
-    "AudioHub",
     "AudioInput",
     "AudioOutput",
     "AudioOverrunError",
+    "BufferedAudioInput",
     "PortAudioSession",
     "StreamingAudioPlayer",
     "UserAudioProducer",

@@ -4,9 +4,9 @@ from pathlib import Path
 
 from voice.audio import (
     AudioBridge,
-    AudioHub,
     AudioInput,
     AudioOutput,
+    BufferedAudioInput,
     UserAudioProducer,
 )
 from voice.audio.input import MicrophoneAudioInput
@@ -76,22 +76,22 @@ class VoiceAgent:
             settings=echo_cancellation_settings or EchoCancellationSettings(),
         )
 
-        self._audio_hub = AudioHub(echo_cancelled_input)
+        self._buffered_audio_input = BufferedAudioInput(echo_cancelled_input)
         self._user_audio_producer = UserAudioProducer(
             event_bus=self._event_bus,
-            audio_hub=self._audio_hub,
+            buffered_audio_input=self._buffered_audio_input,
         )
         self._audio_bridge = AudioBridge(
             event_bus=self._event_bus,
             output_device=echo_referenced_output,
         )
         self._speech_to_text = speech_to_text or CartesiaSpeechToText(
-            sample_rate=self._audio_hub.format.sample_rate
+            sample_rate=self._buffered_audio_input.sample_rate
         )
         self._text_to_speech = text_to_speech or CartesiaTextToSpeech()
         wake_word_settings = wake_word_settings or WakeWordSettings()
         self._wake_word = WakeWordListener(
-            self._audio_hub,
+            buffered_audio_input=self._buffered_audio_input,
             settings=wake_word_settings,
         )
         self._setup_handlers(
@@ -118,7 +118,7 @@ class VoiceAgent:
         )
         self._speech_to_text_bridge = SpeechToTextBridge(
             event_bus=self._event_bus,
-            audio_hub=self._audio_hub,
+            buffered_audio_input=self._buffered_audio_input,
             speech_to_text=self._speech_to_text,
         )
         self._command_bridge = CommandBridge(
@@ -166,7 +166,7 @@ class VoiceAgent:
                 self._event_bus,
                 ConversationAudioMixer(
                     recording_path,
-                    user_sample_rate=self._audio_hub.format.sample_rate,
+                    user_sample_rate=self._buffered_audio_input.sample_rate,
                 ),
             )
 

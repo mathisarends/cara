@@ -3,9 +3,9 @@ from collections.abc import AsyncIterable, AsyncIterator
 
 from voice.audio import (
     AudioBridge,
-    AudioHub,
     AudioInput,
     AudioOutput,
+    BufferedAudioInput,
     UserAudioProducer,
 )
 from voice.events import (
@@ -125,12 +125,15 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         input_device = _Input()
         stt = _SpeechToText()
         event_bus = EventBus()
-        audio_hub = AudioHub(input_device)
+        buffered_audio_input = BufferedAudioInput(input_device)
         AudioBridge(
             event_bus=event_bus,
             output_device=_Output(),
         )
-        UserAudioProducer(event_bus=event_bus, audio_hub=audio_hub)
+        UserAudioProducer(
+            event_bus=event_bus,
+            buffered_audio_input=buffered_audio_input,
+        )
         AgentBridge(event_bus=event_bus, session=_AgentSession())
         TextToSpeechBridge(
             event_bus=event_bus,
@@ -138,7 +141,7 @@ def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> Non
         )
         SpeechToTextBridge(
             event_bus=event_bus,
-            audio_hub=audio_hub,
+            buffered_audio_input=buffered_audio_input,
             speech_to_text=stt,
         )
         CommandBridge(

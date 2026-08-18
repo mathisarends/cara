@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from voice.audio.hub import AudioCursor, AudioHub
+from voice.audio.buffered_input import AudioCursor, BufferedAudioInput
 from voice.events import SessionStarted, UserAudioChunk
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
@@ -12,9 +12,11 @@ logger = logging.getLogger(__name__)
 class UserAudioProducer:
     """Publishes every captured microphone frame for the lifetime of a session."""
 
-    def __init__(self, *, event_bus: EventBus, audio_hub: AudioHub) -> None:
+    def __init__(
+        self, *, event_bus: EventBus, buffered_audio_input: BufferedAudioInput
+    ) -> None:
         self._event_bus = event_bus
-        self._audio_hub = audio_hub
+        self._buffered_audio_input = buffered_audio_input
         self._cursor: AudioCursor | None = None
         self._task: asyncio.Task[None] | None = None
         self._closed = False
@@ -25,8 +27,8 @@ class UserAudioProducer:
     async def _on_session_started(self, _: SessionStarted) -> None:
         if self._closed or self._task is not None:
             return
-        await self._audio_hub.start()
-        self._cursor = await self._audio_hub.cursor()
+        await self._buffered_audio_input.start()
+        self._cursor = await self._buffered_audio_input.cursor()
         self._task = asyncio.create_task(
             self._publish(self._cursor),
             name="voice-user-audio",
@@ -55,4 +57,4 @@ class UserAudioProducer:
             await asyncio.gather(task, return_exceptions=True)
         if cursor is not None:
             await cursor.aclose()
-        await self._audio_hub.stop()
+        await self._buffered_audio_input.stop()
