@@ -26,7 +26,6 @@ class SpeechBargeIn(BargeInStrategy):
 
     def __init__(
         self,
-        context: BargeInContext,
         *,
         detector: VoiceActivityDetector | None = None,
         min_level_dbfs: float = -45.0,
@@ -41,6 +40,16 @@ class SpeechBargeIn(BargeInStrategy):
             raise ValueError("min_speech_seconds must be positive")
 
         self._detector = detector or SileroVoiceActivityDetector()
+        self._min_level_dbfs = min_level_dbfs
+        self._min_speech_probability = min_speech_probability
+        self._min_speech_seconds = min_speech_seconds
+        self._samples_required = 0
+        self._pending = PendingSignal()
+        self._buffer = np.zeros(0, dtype=np.int16)
+        self._speech_start: int | None = None
+        self._voiced_samples = 0
+
+    def set_context(self, context: BargeInContext) -> None:
         audio_format = context.audio_format
         if audio_format.sample_rate != self._detector.sample_rate:
             raise ValueError(
@@ -49,16 +58,9 @@ class SpeechBargeIn(BargeInStrategy):
         if audio_format.channels != 1:
             raise ValueError("Speech barge-in requires mono audio.")
 
-        self._min_level_dbfs = min_level_dbfs
-        self._min_speech_probability = min_speech_probability
         self._samples_required = math.ceil(
-            min_speech_seconds * audio_format.sample_rate
+            self._min_speech_seconds * audio_format.sample_rate
         )
-        self._pending = PendingSignal()
-        self._buffer = np.zeros(0, dtype=np.int16)
-        self._speech_start: int | None = None
-        self._voiced_samples = 0
-
         context.event_bus.on(UserAudioChunk, self._on_audio_chunk)
 
     def signals(self) -> AsyncIterator[BargeInSignal]:

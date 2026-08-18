@@ -6,7 +6,7 @@ from voice.barge_in.port import BargeInContext, BargeInSignal, BargeInStrategy
 class NoBargeIn(BargeInStrategy):
     """Lets the assistant always finish its turn."""
 
-    def __init__(self, context: BargeInContext) -> None:
+    def set_context(self, context: BargeInContext) -> None:
         pass
 
     async def signals(self) -> AsyncIterator[BargeInSignal]:

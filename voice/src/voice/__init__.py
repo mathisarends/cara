@@ -1,7 +1,6 @@
 from .agent import VoiceAgent
 from .barge_in import (
     BargeInContext,
-    BargeInFactory,
     BargeInSignal,
     BargeInStrategy,
     NoBargeIn,
@@ -26,7 +25,6 @@ __all__ = [
     "AgentResult",
     "AssistantMessage",
     "BargeInContext",
-    "BargeInFactory",
     "BargeInSignal",
     "BargeInStrategy",
     "ConversationAudioMixer",

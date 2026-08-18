@@ -36,7 +36,7 @@ async def main() -> None:
             agent_session=agent_session,
             audio_output=audio_output,
             text_to_speech=tts,
-            barge_in=SpeechBargeIn,
+            barge_in=SpeechBargeIn(),
         )
         await agent.start()
 

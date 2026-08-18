@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from voice.audio.models import AudioFormat
@@ -27,11 +27,17 @@ class BargeInStrategy(ABC):
     """Detects that the user takes the floor while the assistant holds it."""
 
     @abstractmethod
+    def set_context(self, context: BargeInContext) -> None:
+        """Bind to the session.
+
+        The voice agent calls this while wiring itself up, so a strategy is
+        constructed like any other collaborator and learns about the session
+        afterwards.
+        """
+
+    @abstractmethod
     def signals(self) -> AsyncIterator[BargeInSignal]:
         """Yield one signal per interruption for as long as the session runs."""
-
-
-type BargeInFactory = Callable[[BargeInContext], BargeInStrategy]
 
 
 class PendingSignal:

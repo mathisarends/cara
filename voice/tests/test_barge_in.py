@@ -35,6 +35,9 @@ class _Signals(BargeInStrategy):
         self._sequences = sequences
         self.drained = asyncio.Event()
 
+    def set_context(self, context: BargeInContext) -> None:
+        pass
+
     async def signals(self) -> AsyncIterator[BargeInSignal]:
         for sequence in self._sequences:
             yield BargeInSignal(sequence=sequence)
@@ -44,7 +47,8 @@ class _Signals(BargeInStrategy):
 def test_wake_word_strategy_signals_detected_wake_words() -> None:
     async def run() -> list[BargeInSignal]:
         event_bus = EventBus()
-        strategy = WakeWordBargeIn(_context(event_bus))
+        strategy = WakeWordBargeIn()
+        strategy.set_context(_context(event_bus))
 
         await event_bus.dispatch(
             WakeWordDetected(score=0.9, sequence=7, name="hey_mycroft")
@@ -111,7 +115,7 @@ def test_speech_strategy_keeps_silence_away_from_the_detector() -> None:
 
 def test_disabled_strategy_never_signals() -> None:
     async def run() -> list[BargeInSignal]:
-        strategy = NoBargeIn(_context(EventBus()))
+        strategy = NoBargeIn()
         return [signal async for signal in strategy.signals()]
 
     assert asyncio.run(run()) == []
@@ -216,12 +220,13 @@ def _context(event_bus: EventBus) -> BargeInContext:
 def _speech_strategy(
     event_bus: EventBus, detector: VoiceActivityDetector
 ) -> SpeechBargeIn:
-    return SpeechBargeIn(
-        _context(event_bus),
+    strategy = SpeechBargeIn(
         detector=detector,
         min_level_dbfs=-40.0,
         min_speech_seconds=0.096,
     )
+    strategy.set_context(_context(event_bus))
+    return strategy
 
 
 async def _publish(event_bus: EventBus, sequence: int, chunk: bytes) -> None:
