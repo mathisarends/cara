@@ -23,16 +23,21 @@ class _Session(Protocol):
 
 
 @pytest.mark.parametrize(
-    ("argument", "value", "message"),
+    ("create", "message"),
     [
-        ("sample_rate", 0, "sample_rate must be positive"),
-        ("channels", 0, "channels must be positive"),
-        ("frames_per_chunk", 0, "frames_per_chunk must be positive"),
+        (lambda: MicrophoneAudioInput(sample_rate=0), "sample_rate must be positive"),
+        (lambda: MicrophoneAudioInput(channels=0), "channels must be positive"),
+        (
+            lambda: MicrophoneAudioInput(frames_per_chunk=0),
+            "frames_per_chunk must be positive",
+        ),
     ],
 )
-def test_rejects_invalid_audio_format(argument: str, value: int, message: str) -> None:
+def test_rejects_invalid_audio_format(
+    create: Callable[[], MicrophoneAudioInput], message: str
+) -> None:
     with pytest.raises(ValueError, match=message):
-        MicrophoneAudioInput(**{argument: value})
+        create()
 
 
 def test_starts_streams_and_stops_an_injected_session(
@@ -78,8 +83,11 @@ def test_starts_streams_and_stops_an_injected_session(
 def test_streaming_requires_an_active_input() -> None:
     microphone = MicrophoneAudioInput()
 
+    async def read_one() -> bytes:
+        return await anext(microphone.stream_chunks())
+
     with pytest.raises(RuntimeError, match="not active"):
-        asyncio.run(anext(microphone.stream_chunks()))
+        asyncio.run(read_one())
 
 
 def test_closes_an_owned_session(
