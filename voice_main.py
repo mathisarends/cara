@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from voice import (
     HueObserver,
+    PrerenderedAcknowledgment,
     SonosPlaybackObserver,
     SoundObserver,
     SpeechBargeIn,
@@ -28,6 +29,7 @@ async def main() -> None:
         audio_output=SonosOutput(),
         text_to_speech=tts,
         barge_in=SpeechBargeIn(),
+        acknowledgment=PrerenderedAcknowledgment(),
         observers=(
             SoundObserver(),
             HueObserver(),

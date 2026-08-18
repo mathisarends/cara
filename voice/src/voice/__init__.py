@@ -1,7 +1,6 @@
 from .acknowledgment import (
     AcknowledgmentContext,
     AcknowledgmentStrategy,
-    LoggingAcknowledgment,
     NoAcknowledgment,
     PrerenderedAcknowledgment,
 )
@@ -57,7 +56,6 @@ __all__ = [
     "HumanMessage",
     "HueObserver",
     "LightingState",
-    "LoggingAcknowledgment",
     "NoAcknowledgment",
     "NoBargeIn",
     "Observer",
