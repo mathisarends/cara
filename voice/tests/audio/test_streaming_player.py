@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from voice.audio import AudioOutput, StreamingAudioPlayer
+from voice.audio import AudioOutput, AudioPlayer
 
 
 class _RecordingOutput(AudioOutput):
@@ -40,7 +40,7 @@ def test_first_pcm_chunk_is_played_before_synthesis_finishes() -> None:
             yield b"second"
 
         task = asyncio.create_task(
-            StreamingAudioPlayer(output).play(chunks(), sample_rate=24_000)
+            AudioPlayer(output).stream(chunks(), sample_rate=24_000)
         )
         while not output.chunks:
             await asyncio.sleep(0)

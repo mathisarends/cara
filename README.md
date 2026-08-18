@@ -121,7 +121,7 @@ Set `SONOS_SPEAKER_NAME`, or `SONOS_IP_ADDRESS` to skip discovery. Import Sonos 
 
 ## Audio outputs
 
-`AudioPlayer` delegates playback to one audio output. Pass the player to `SpeechOutput`
+`AudioPlayer` serializes WAV and streaming PCM playback on one audio output. Pass it to `SpeechOutput`
 and the tool context:
 
 ```python

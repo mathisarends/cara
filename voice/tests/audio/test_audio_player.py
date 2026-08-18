@@ -2,7 +2,7 @@ import asyncio
 import io
 import wave
 
-from voice.audio.output import AudioPlayer
+from voice.audio import AudioPlayer
 from voice.audio.ports import AudioOutput
 
 
@@ -34,6 +34,16 @@ class RecordingOutput(AudioOutput):
         self.cleared = True
 
 
+class BlockingOutput(RecordingOutput):
+    def __init__(self) -> None:
+        super().__init__()
+        self.finish_started = asyncio.Event()
+
+    async def finish_response(self) -> None:
+        self.finish_started.set()
+        await asyncio.Event().wait()
+
+
 def _wav(pcm: bytes, *, sample_rate: int = 16_000, channels: int = 1) -> bytes:
     buffer = io.BytesIO()
     with wave.open(buffer, "wb") as wav_file:
@@ -44,7 +54,7 @@ def _wav(pcm: bytes, *, sample_rate: int = 16_000, channels: int = 1) -> bytes:
     return buffer.getvalue()
 
 
-def test_audio_player_delegates_to_output() -> None:
+def test_audio_player_decodes_wav_and_delegates_to_output() -> None:
     async def run() -> RecordingOutput:
         output = RecordingOutput()
         player = AudioPlayer(output)
@@ -70,3 +80,20 @@ def test_audio_player_stops_output() -> None:
         return output.stopped
 
     assert asyncio.run(run()) is True
+
+
+def test_cancel_interrupts_wav_output_while_finishing() -> None:
+    async def run() -> BlockingOutput:
+        output = BlockingOutput()
+        cancel = asyncio.Event()
+        playback = asyncio.create_task(
+            AudioPlayer(output).play(_wav(b"\x01\x00"), cancel=cancel)
+        )
+        await output.finish_started.wait()
+        cancel.set()
+        await playback
+        return output
+
+    output = asyncio.run(run())
+
+    assert output.cleared

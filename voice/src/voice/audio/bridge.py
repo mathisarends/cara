@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from voice.audio.playback_coordinator import PlaybackCoordinator
+from voice.audio.player import AudioPlayer
 from voice.audio.ports import AudioOutput
 from voice.events import AssistantSpeechStarted
 from voice.events.bus import EventBus
@@ -32,7 +32,7 @@ class AudioBridge:
         if playback_queue_size <= 0:
             raise ValueError("playback_queue_size must be positive")
         self._event_bus = event_bus
-        self._playback = PlaybackCoordinator(output_device)
+        self._playback = AudioPlayer(output_device)
         self._playback_queue_size = playback_queue_size
         self._state_lock = asyncio.Lock()
         self._playback_task: asyncio.Task[None] | None = None
