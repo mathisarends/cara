@@ -29,12 +29,10 @@ from voice.llm import ChatModel
 from voice.models import AgentResult
 from voice.pipeline import SpeechPipeline, TurnManager
 from voice.stt import CartesiaSpeechToText, SpeechToText
-from voice.tts import CartesiaTextToSpeech, RawOutputFormat, TextToSpeech
+from voice.tts import CartesiaTextToSpeech, TextToSpeech
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
 logger = logging.getLogger(__name__)
-
-_DEFAULT_CARTESIA_VOICE_ID = "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4"
 
 
 class VoiceAgent:
@@ -81,11 +79,7 @@ class VoiceAgent:
         self._speech_to_text = speech_to_text or CartesiaSpeechToText(
             sample_rate=self._audio_hub.format.sample_rate
         )
-        self._text_to_speech = text_to_speech or CartesiaTextToSpeech(
-            voice_id=_DEFAULT_CARTESIA_VOICE_ID,
-            language="de",
-            output_format=RawOutputFormat(sample_rate=24_000),
-        )
+        self._text_to_speech = text_to_speech or CartesiaTextToSpeech()
         self._wake_word = WakeWordListener(
             self._audio_hub,
             settings=wake_word_settings or WakeWordSettings(),
