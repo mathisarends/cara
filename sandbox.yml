@@ -27,6 +27,8 @@ mounts:
       target: /tmp/.config/withings-client
     - name: sonoscli
       target: /tmp/.config/sonoscli
+    - name: fitbitctl
+      target: /tmp/.config/fitbitctl
 
 reserved_targets:
   - /workspace
