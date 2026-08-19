@@ -47,3 +47,9 @@ def test_transcribe_maps_deepgram_turn_events(monkeypatch) -> None:
         Transcription("Hallo", False, TranscriptionKind.EAGER_END),
         Transcription("Hallo Cara", True, TranscriptionKind.END),
     ]
+
+
+def test_turns_end_sooner_than_deepgrams_phone_system_default() -> None:
+    stt = DeepgramSpeechToText(client=cast(AsyncDeepgramClient, object()))
+
+    assert stt.default_config.eot_timeout_ms == 2_000
