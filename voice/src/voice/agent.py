@@ -127,6 +127,7 @@ class VoiceAgent:
         self._text_to_speech_bridge = TextToSpeechBridge(
             event_bus=self._event_bus,
             text_to_speech=self._text_to_speech,
+            sample_rate=self._text_to_speech.sample_rate,
         )
         self._speech_to_text_bridge = SpeechToTextBridge(
             event_bus=self._event_bus,
@@ -193,6 +194,7 @@ class VoiceAgent:
                 ConversationAudioMixer(
                     recording_path,
                     user_sample_rate=self._buffered_audio_input.sample_rate,
+                    assistant_sample_rate=self._text_to_speech.sample_rate,
                 ),
             )
 

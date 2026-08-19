@@ -2,6 +2,10 @@ from collections.abc import AsyncIterable, AsyncIterator
 from typing import Any
 
 from vocalbin.cartesia.tts import (
+    OutputFormat,
+    RawOutputFormat,
+)
+from vocalbin.cartesia.tts import (
     TextToSpeech as _VocalbinTextToSpeech,
 )
 
@@ -18,9 +22,21 @@ class CartesiaTextToSpeech(_VocalbinTextToSpeech, TextToSpeech):
         *,
         voice_id: str = _DEFAULT_VOICE_ID,
         language: str = "de",
+        output_format: OutputFormat | None = None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(voice_id=voice_id, language=language, **kwargs)
+        resolved_output_format = output_format or RawOutputFormat()
+        super().__init__(
+            voice_id=voice_id,
+            language=language,
+            output_format=resolved_output_format,
+            **kwargs,
+        )
+        self._sample_rate = resolved_output_format.sample_rate
+
+    @property
+    def sample_rate(self) -> int:
+        return self._sample_rate
 
     async def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]:
         async for chunk in self.stream_incremental(text):

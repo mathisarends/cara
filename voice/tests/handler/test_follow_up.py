@@ -103,6 +103,10 @@ class _AgentSession:
 
 
 class _TextToSpeech(TextToSpeech):
+    @property
+    def sample_rate(self) -> int:
+        return 24_000
+
     async def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]:
         async for chunk in text:
             yield chunk.encode()

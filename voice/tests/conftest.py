@@ -84,6 +84,10 @@ class _TextToSpeech(TextToSpeech):
     def __init__(self) -> None:
         self.closed = False
 
+    @property
+    def sample_rate(self) -> int:
+        return 24_000
+
     async def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]:
         if False:
             yield b""
