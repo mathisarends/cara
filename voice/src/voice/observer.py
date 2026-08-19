@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from voice.audio import AudioPlayback, EventAudioPlayer
 from voice.events import (
     AssistantPlaybackCompleted,
     AssistantSpeechStarted,
@@ -27,7 +28,7 @@ from voice.events.bus import EventBus
 class ObserverContext:
     """Dependencies made available to voice-agent observers."""
 
-    event_bus: EventBus
+    audio_player: AudioPlayback
 
 
 class Observer:
@@ -85,7 +86,7 @@ class _ObserverBridge:
     ) -> None:
         self._event_bus = event_bus
         self._observers = tuple(observers)
-        self._context = ObserverContext(event_bus=event_bus)
+        self._context = ObserverContext(audio_player=EventAudioPlayer(event_bus))
 
     async def prepare(self) -> None:
         await asyncio.gather(

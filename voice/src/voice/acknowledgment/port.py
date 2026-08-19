@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from voice.events.bus import EventBus
+from voice.audio.ports import AudioPlayback
 
 
 @dataclass(frozen=True, slots=True)
 class AcknowledgmentContext:
     """The session an acknowledgment is delivered into."""
 
-    event_bus: EventBus
+    audio_player: AudioPlayback
 
 
 class AcknowledgmentStrategy(ABC):

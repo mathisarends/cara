@@ -2,7 +2,6 @@ import re
 from pathlib import Path
 
 from voice.acknowledgment.port import AcknowledgmentContext, AcknowledgmentStrategy
-from voice.events import AudioPlaybackRequested
 
 # parents[4]: prerendered.py -> acknowledgment/voice/src/voice(project) -> cara
 ACKNOWLEDGMENT_CLIPS_DIR = Path(__file__).parents[4] / "static" / "acknowledgments"
@@ -31,7 +30,7 @@ class PrerenderedAcknowledgment(AcknowledgmentStrategy):
                 "Run scripts/generate_acknowledgment_clips.py to render it."
             )
         context = self._prepared_context()
-        await context.event_bus.request(AudioPlaybackRequested(audio=clip))
+        await context.audio_player.play(clip)
 
 
 def acknowledgment_clip_name(phrase: str) -> str:

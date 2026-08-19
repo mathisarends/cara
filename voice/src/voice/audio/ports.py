@@ -2,65 +2,54 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
 
+class AudioPlayback(ABC):
+    @abstractmethod
+    async def play(self, audio: bytes) -> None: ...
+
+
 class AudioInput(ABC):
-    """Captures raw signed 16-bit PCM chunks from an audio device."""
+    @property
+    @abstractmethod
+    def sample_rate(self) -> int: ...
 
     @property
     @abstractmethod
-    def sample_rate(self) -> int:
-        """Return the number of captured samples per second."""
+    def channels(self) -> int: ...
 
     @property
     @abstractmethod
-    def channels(self) -> int:
-        """Return the number of captured audio channels."""
+    def frames_per_chunk(self) -> int: ...
 
     @property
     @abstractmethod
-    def frames_per_chunk(self) -> int:
-        """Return the number of frames each streamed chunk carries."""
-
-    @property
-    @abstractmethod
-    def is_active(self) -> bool:
-        """Return whether the device is currently capturing."""
+    def is_active(self) -> bool: ...
 
     @abstractmethod
-    async def start(self) -> None:
-        """Open the device and begin capture."""
+    async def start(self) -> None: ...
 
     @abstractmethod
-    async def stop(self) -> None:
-        """Stop capture and release resources."""
+    async def stop(self) -> None: ...
 
     @abstractmethod
-    def stream_chunks(self) -> AsyncIterator[bytes]:
-        """Yield raw signed 16-bit PCM chunks while the input is active."""
+    def stream_chunks(self) -> AsyncIterator[bytes]: ...
 
 
 class AudioOutput(ABC):
-    """Plays raw signed 16-bit PCM chunks through an audio device."""
-
     @property
     @abstractmethod
-    def is_playing(self) -> bool:
-        """Return whether audio is currently buffered or playing."""
+    def is_playing(self) -> bool: ...
 
     @abstractmethod
-    async def start(self, *, sample_rate: int, channels: int) -> None:
-        """Open the device for PCM with the given format."""
+    async def start(self, *, sample_rate: int, channels: int) -> None: ...
 
     @abstractmethod
-    async def stop(self) -> None:
-        """Stop playback and release resources."""
+    async def stop(self) -> None: ...
 
     @abstractmethod
-    async def play_chunk(self, chunk: bytes) -> None:
-        """Enqueue a raw signed 16-bit PCM chunk."""
+    async def play_chunk(self, chunk: bytes) -> None: ...
 
-    async def finish_response(self) -> None:  # noqa: B027 - optional output hook
-        """Flush the current response after its final chunk."""
+    async def finish_response(self) -> None:
+        return None
 
     @abstractmethod
-    async def clear_buffer(self) -> None:
-        """Discard all queued audio immediately."""
+    async def clear_buffer(self) -> None: ...

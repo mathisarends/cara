@@ -5,10 +5,17 @@ from pathlib import Path
 import pytest
 
 from voice import Earcon, SoundObserver
-from voice.events import AudioPlaybackRequested
-from voice.events.bus import EventBus
+from voice.audio import AudioPlayback
 from voice.observer import ObserverContext
 from voice.sound import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
+
+
+class _RecordingAudioPlayer(AudioPlayback):
+    def __init__(self) -> None:
+        self.audio: list[bytes] = []
+
+    async def play(self, audio: bytes) -> None:
+        self.audio.append(audio)
 
 
 @pytest.mark.parametrize("earcon", list(Earcon))
@@ -38,20 +45,14 @@ def test_player_warms_cache_and_play_uses_cached_wav_bytes(
     monkeypatch.setattr(Path, "read_bytes", count_read_bytes)
 
     async def run() -> list[bytes]:
-        event_bus = EventBus()
-        requested: list[bytes] = []
-
-        async def capture(request: AudioPlaybackRequested) -> None:
-            requested.append(request.audio)
-
-        event_bus.on_request(AudioPlaybackRequested, capture)
+        audio_player = _RecordingAudioPlayer()
         observer = SoundObserver(sounds_dir=tmp_path)
         assert reads == 0
-        await observer.prepare(ObserverContext(event_bus=event_bus))
+        await observer.prepare(ObserverContext(audio_player=audio_player))
         assert reads == len(Earcon)
         await observer.on_wake_word_detected("hey_mycroft", 0.9, 1)
         await observer.on_wake_word_detected("hey_mycroft", 0.9, 1)
-        return requested
+        return audio_player.audio
 
     requested = asyncio.run(run())
 

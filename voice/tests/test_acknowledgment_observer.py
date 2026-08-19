@@ -1,13 +1,18 @@
 import asyncio
+from pathlib import Path
 
 import pytest
 
 from voice.acknowledgment import (
     GENERIC_ACKNOWLEDGMENTS,
+    AcknowledgmentContext,
     AcknowledgmentObserver,
     AcknowledgmentStrategy,
     NoAcknowledgment,
+    PrerenderedAcknowledgment,
+    acknowledgment_clip_name,
 )
+from voice.audio import AudioPlayback
 from voice.events import UserSpeechEnded
 from voice.events.bus import EventBus
 from voice.observer import _ObserverBridge
@@ -20,6 +25,14 @@ class _RecordingAcknowledgment(AcknowledgmentStrategy):
 
     async def acknowledge(self, phrase: str) -> None:
         self.phrases.append(phrase)
+
+
+class _RecordingAudioPlayer(AudioPlayback):
+    def __init__(self) -> None:
+        self.audio: list[bytes] = []
+
+    async def play(self, audio: bytes) -> None:
+        self.audio.append(audio)
 
 
 def _acknowledge(utterances: int, **kwargs: object) -> list[str]:
@@ -56,6 +69,21 @@ def test_never_repeats_a_phrase_back_to_back() -> None:
     assert all(
         earlier != later for earlier, later in zip(phrases, phrases[1:], strict=False)
     )
+
+
+def test_prerendered_acknowledgment_plays_clip_through_context_audio_player(
+    tmp_path: Path,
+) -> None:
+    phrase = "Got it"
+    clip = b"encoded audio"
+    (tmp_path / acknowledgment_clip_name(phrase)).write_bytes(clip)
+    audio_player = _RecordingAudioPlayer()
+    strategy = PrerenderedAcknowledgment(clips_dir=tmp_path)
+    strategy.set_context(AcknowledgmentContext(audio_player=audio_player))
+
+    asyncio.run(strategy.acknowledge(phrase))
+
+    assert audio_player.audio == [clip]
 
 
 @pytest.mark.parametrize("phrases", [(), ("only",), ("same", "same")])

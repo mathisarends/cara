@@ -1,7 +1,6 @@
 from enum import StrEnum
 from pathlib import Path
 
-from voice.events import AudioPlaybackRequested
 from voice.observer import Observer, ObserverContext
 
 # parents[3]: sound.py -> voice/src/voice(project) -> cara
@@ -45,6 +44,4 @@ class SoundObserver(Observer):
     async def _play(self, earcon: Earcon) -> None:
         if self._context is None:
             raise RuntimeError("SoundObserver must be prepared before use.")
-        await self._context.event_bus.request(
-            AudioPlaybackRequested(audio=self._earcons[earcon])
-        )
+        await self._context.audio_player.play(self._earcons[earcon])

@@ -26,7 +26,9 @@ class AcknowledgmentObserver(Observer):
         self._last_phrase: str | None = None
 
     async def prepare(self, context: ObserverContext) -> None:
-        self._strategy.set_context(AcknowledgmentContext(event_bus=context.event_bus))
+        self._strategy.set_context(
+            AcknowledgmentContext(audio_player=context.audio_player)
+        )
 
     async def on_user_stopped_speaking(self) -> None:
         phrase = self._next_phrase()
