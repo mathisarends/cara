@@ -39,8 +39,8 @@ from voice.handler import (
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
 from voice.observer import Observer, _ObserverBridge
-from voice.stt import CartesiaSpeechToText, SpeechToText, SpeechToTextBridge
-from voice.tts import CartesiaTextToSpeech, TextToSpeech, TextToSpeechBridge
+from voice.stt import DeepgramSpeechToText, SpeechToText, SpeechToTextBridge
+from voice.tts import DeepgramTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
 logger = logging.getLogger(__name__)
@@ -90,10 +90,10 @@ class VoiceAgent:
             event_bus=self._event_bus,
             output_device=echo_referenced_output,
         )
-        self._speech_to_text = speech_to_text or CartesiaSpeechToText(
+        self._speech_to_text = speech_to_text or DeepgramSpeechToText(
             sample_rate=self._buffered_audio_input.sample_rate
         )
-        self._text_to_speech = text_to_speech or CartesiaTextToSpeech()
+        self._text_to_speech = text_to_speech or DeepgramTextToSpeech()
         wake_word_settings = wake_word_settings or WakeWordSettings()
         self._wake_word = WakeWordListener(
             buffered_audio_input=self._buffered_audio_input,

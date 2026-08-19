@@ -229,6 +229,22 @@ wheels = [
 ]
 
 [[package]]
+name = "deepgram-sdk"
+version = "5.3.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic-core", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/50/8c/e7a8f8294aaa38935b95c6e08f5d372cf537c37ff9c628e657b823726645/deepgram_sdk-5.3.4.tar.gz", hash = "sha256:04eedc66f69d2387f6ec4c40d9dc96bbb7eade17ecfeff6a98dfc3a090c12cdf", size = 151917, upload-time = "2026-06-26T16:13:34.822Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0d/fc/39c4d50a9a062ec5776cb00bca25e3a6e547194433f250c317ca59c8096e/deepgram_sdk-5.3.4-py3-none-any.whl", hash = "sha256:4d10356b52ad1232ea28cbf7be76c9cff31d7949d27320625f54c51e50d035b3", size = 395161, upload-time = "2026-06-26T16:13:33.185Z" },
+]
+
+[[package]]
 name = "dishka"
 version = "1.10.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1329,21 +1345,24 @@ wheels = [
 
 [[package]]
 name = "vocalbin"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ff/8c/0342375b5be7f490298043f5b3905a2b5c91c0ecd28f11e27eb56210f53f/vocalbin-0.6.0.tar.gz", hash = "sha256:3588f71fc03c9740c31ab679b11b4aa4ce579036e00a9a426fdf85303d54c779", size = 5987000, upload-time = "2026-08-16T18:18:23.033Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/70/d763d2c0bfc5591d38191820867aa118d362cfd6cbee4b6dbcd32cdf0fc5/vocalbin-0.7.0.tar.gz", hash = "sha256:8e60bb4c077cd9232084aba73a5e9b8da53a57cbeda3d452be1667ad7ffccf67", size = 6130579, upload-time = "2026-08-19T19:13:15.904Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/64/184687d3962d49143ad5b65510cc8771d1e75c375af4a998715c259921b5/vocalbin-0.6.0-py3-none-any.whl", hash = "sha256:417ad9703f8ed92fa40940b2e6db46c52878c82e2e864154a9faaf33eed6c70f", size = 68835, upload-time = "2026-08-16T18:18:20.778Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/66/c0af9434b8e956a3cefa70be1c16bcd8f8798381269013873e792300d2bc/vocalbin-0.7.0-py3-none-any.whl", hash = "sha256:c22ae991eced8217686dc419d924fbcdbdb4997aa8948d18eb7189c591305ebd", size = 82308, upload-time = "2026-08-19T19:13:13.75Z" },
 ]
 
 [package.optional-dependencies]
 cartesia = [
     { name = "cartesia", extra = ["websockets"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+deepgram = [
+    { name = "deepgram-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 piper = [
     { name = "piper-tts", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1361,7 +1380,7 @@ dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pysilero-vad", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "vocalbin", extra = ["cartesia", "piper"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "vocalbin", extra = ["cartesia", "deepgram", "piper"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -1374,7 +1393,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pysilero-vad", specifier = ">=3.4.0" },
     { name = "sonosify", specifier = ">=0.4.4" },
-    { name = "vocalbin", extras = ["cartesia", "openai", "piper"], specifier = ">=0.6.0" },
+    { name = "vocalbin", extras = ["cartesia", "deepgram", "piper"], specifier = ">=0.7.0" },
     { name = "wakewordkit", specifier = ">=0.4.0" },
 ]
 

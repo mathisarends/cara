@@ -19,7 +19,6 @@ from voice import (
     VoiceAgent,
 )
 from voice.audio.output.sonos import SonosOutput
-from voice.tts.piper import PiperTextToSpeech
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
@@ -27,9 +26,6 @@ logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 load_dotenv(override=True)
 
 _SKILLS_ROOT = Path(__file__).parent / "skills"
-_PIPER_MODEL_PATH = (
-    Path(__file__).parent / "models" / "piper" / "en_US-lessac-medium.onnx"
-)
 
 
 async def main() -> None:
@@ -43,11 +39,9 @@ async def main() -> None:
         tools=tools,
         skills=skills,
     )
-    tts = PiperTextToSpeech(_PIPER_MODEL_PATH)
     agent = VoiceAgent(
         agent_session=agent_session,
         audio_output=SonosOutput(),
-        text_to_speech=tts,
         barge_in=SpeechBargeIn(),
         observers=(
             AcknowledgmentObserver(strategy=PrerenderedAcknowledgment()),
