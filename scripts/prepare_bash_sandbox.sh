@@ -18,12 +18,12 @@ docker build \
     --file "${PROJECT_DIR}/docker/bash-sandbox.Dockerfile" \
     "${PROJECT_DIR}/docker"
 
-echo "Verifying Bash, Python, and spogo without pulling at runtime"
+echo "Verifying Bash, Python, and CLI tooling without pulling at runtime"
 docker run \
     --rm \
     --pull=never \
     --network=none \
     "${SANDBOX_IMAGE}" \
-    bash -lc 'bash --version | head -n 1 && python3 --version && spogo --help >/dev/null'
+    bash -lc 'bash --version | head -n 1 && python3 --version && spogo --help >/dev/null && huego --help >/dev/null && spoti --help >/dev/null && withings --help >/dev/null'
 
 echo "Sandbox image is ready: ${SANDBOX_IMAGE}"
