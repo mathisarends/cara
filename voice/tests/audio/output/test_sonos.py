@@ -45,10 +45,14 @@ class FakeHostedAudioClip:
 class FakeSonosClient:
     ip = "192.168.1.42"
 
-    def __init__(self) -> None:
+    def __init__(self, volume: int = 30) -> None:
         self.clip = FakeHostedAudioClip()
         self.played: list[tuple[bytes, dict[str, object]]] = []
         self.closed = False
+        self.volume = volume
+
+    async def get_volume(self) -> int:
+        return self.volume
 
     async def play_audio_clip_data(
         self, audio: bytes, **kwargs: object
@@ -92,11 +96,38 @@ def test_finish_response_uses_sonosifys_hosted_clip_api() -> None:
         "local_host": None,
         "app_id": "cara",
         "name": "Cara",
+        "volume": 45,
         "priority": ClipPriority.HIGH,
         "clip_type": ClipType.CUSTOM,
         "led_behavior": ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
     }
     assert clip.closed
+
+
+@pytest.mark.parametrize(
+    ("speaker_volume", "boost", "expected"),
+    [(30, 15, 45), (95, 15, 100), (30, 0, None)],
+)
+def test_clips_play_above_the_speakers_own_volume(
+    speaker_volume: int, boost: int, expected: int | None
+) -> None:
+    async def run() -> FakeSonosClient:
+        client = FakeSonosClient(volume=speaker_volume)
+        output = SonosOutput(
+            client=cast(SonosClient, client),
+            settings=SonosSettings(speaker_name="Zimmer", clip_volume_boost=boost),
+        )
+        await output.start(sample_rate=16_000, channels=1)
+        await output.play_chunk(b"\x01\x00")
+        finish = asyncio.create_task(output.finish_response())
+        await asyncio.sleep(0)
+        client.clip.finished.set()
+        await finish
+        return client
+
+    client = asyncio.run(run())
+
+    assert client.played[0][1]["volume"] == expected
 
 
 def test_clear_buffer_cancels_a_running_hosted_clip() -> None:

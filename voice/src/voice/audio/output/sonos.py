@@ -24,6 +24,7 @@ _CLIP_APP_ID = "cara"
 _CLIP_NAME = "Cara"
 _BYTES_PER_SAMPLE = 2
 _MIN_CLIP_DURATION_SECONDS = 1.5
+_MAX_CLIP_VOLUME = 100
 
 
 class SonosOutput(AudioOutput):
@@ -91,6 +92,7 @@ class SonosOutput(AudioOutput):
             local_host=self._settings.local_host,
             app_id=_CLIP_APP_ID,
             name=_CLIP_NAME,
+            volume=await self._clip_volume(client),
             priority=ClipPriority.HIGH,
             clip_type=ClipType.CUSTOM,
             led_behavior=ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
@@ -103,6 +105,13 @@ class SonosOutput(AudioOutput):
             f"fetched={clip.fetched} "
             f"result={result.model_dump(exclude_none=True)!r}"
         )
+
+    async def _clip_volume(self, client: SonosClient) -> int | None:
+        """Raise the clip above whatever the speaker is currently set to."""
+        boost = self._settings.clip_volume_boost
+        if boost == 0:
+            return None
+        return min(await client.get_volume() + boost, _MAX_CLIP_VOLUME)
 
     async def _wait_for_clip(self, clip: HostedAudioClip) -> AudioClip:
         self._clip = clip
