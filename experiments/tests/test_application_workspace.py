@@ -17,9 +17,9 @@ def test_application_workspace_exposes_runtime_content_and_editable_code() -> No
     assert asyncio.run(
         workspace.read_file("/experiments/chat_in_terminal.py")
     ).startswith("import asyncio")
-    assert asyncio.run(workspace.read_file("/skills/spogo-cli/SKILL.md")).startswith(
-        "---"
-    )
+    assert asyncio.run(
+        workspace.read_file("/skills/cli-skill-creator/SKILL.md")
+    ).startswith("---")
 
 
 def test_application_workspace_does_not_expose_project_secrets() -> None:

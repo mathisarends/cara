@@ -11,9 +11,8 @@ from agenttoolkit.builtins import (
     Workspace,
 )
 
+from agent.sandbox import BindMount, SandboxConfig
 from agent.tools import (
-    BindMount,
-    SandboxConfig,
     build_tools,
     create_tool_context,
     create_tools,
@@ -189,13 +188,13 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
 
 
 def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> None:
-    config_root = tmp_path / "spogo"
+    config_root = tmp_path / "example-cli"
     config_root.mkdir()
-    mount = BindMount.read_write(config_root, "/tmp/.config/spogo")
+    mount = BindMount.read_write(config_root, "/tmp/.config/example-cli")
 
     context = create_tool_context(
         sandbox=SandboxConfig(
-            environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
+            environment={"EXAMPLE_CONFIG": "/etc/example.toml"},
             mounts=(mount,),
             network_access=True,
         )
@@ -203,8 +202,8 @@ def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> N
     sandbox = context.resolve(DockerSandbox)
 
     assert sandbox is not None
-    assert sandbox.defaults.environment["SPOGO_CONFIG"] == "/etc/spogo.toml"
-    assert sandbox.mounts == (mount,)
+    assert sandbox.defaults.environment["EXAMPLE_CONFIG"] == "/etc/example.toml"
+    assert sandbox.mounts[-1:] == (mount,)
     assert sandbox.policy.enable_network_access
 
 
@@ -222,9 +221,9 @@ def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:
     sandbox = context.resolve(DockerSandbox)
 
     assert sandbox is not None
-    assert sandbox.mounts == mounts
-    assert not sandbox.mounts[0].writable
-    assert sandbox.mounts[1].writable
+    assert sandbox.mounts[-len(mounts) :] == mounts
+    assert not mounts[0].writable
+    assert mounts[1].writable
     arguments = sandbox.build_open_argv(container_name="test")
     music_mount = next(argument for argument in arguments if "dst=/music" in argument)
     projects_mount = next(
@@ -241,11 +240,11 @@ def test_workspace_container_accepts_nested_mounts(tmp_path: Path) -> None:
 
     sandbox = context.resolve(DockerSandbox)
     assert sandbox is not None
-    assert sandbox.mounts == (mount,)
+    assert sandbox.mounts[-1:] == (mount,)
 
 
 def test_primary_workspace_container_target_is_reserved(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="primary workspace"):
+    with pytest.raises(ValueError, match="reserved"):
         create_tool_context(
             sandbox=SandboxConfig(
                 mounts=(BindMount.read_write(tmp_path, "/workspace"),)

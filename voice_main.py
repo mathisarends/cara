@@ -6,6 +6,7 @@ from agenttoolkit import Skills
 from dotenv import load_dotenv
 
 from agent import Agent
+from agent.sandbox import SandboxConfig
 from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
@@ -30,7 +31,7 @@ _SKILLS_ROOT = Path(__file__).parent / "skills"
 
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
-    tools = build_tools(skills=skills)
+    tools = build_tools(skills=skills, sandbox=SandboxConfig(network_access=True))
     agent_session = Agent(
         llm=create_codex_model(
             CodexModel.SPARK,

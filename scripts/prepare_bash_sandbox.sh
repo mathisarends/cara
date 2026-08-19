@@ -24,6 +24,6 @@ docker run \
     --pull=never \
     --network=none \
     "${SANDBOX_IMAGE}" \
-    bash -lc 'bash --version | head -n 1 && python3 --version && spogo --help >/dev/null && huego --help >/dev/null && spoti --help >/dev/null && withings --help >/dev/null'
+    bash -lc 'bash --version | head -n 1 && python3 --version && huego --help >/dev/null && spoti --help >/dev/null && withings --help >/dev/null'
 
 echo "Sandbox image is ready: ${SANDBOX_IMAGE}"

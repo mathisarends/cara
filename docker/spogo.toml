@@ -1,5 +1,0 @@
-default_profile = "default"
-
-[profile]
-[profile.default]
-cookie_path = "/spogo/cookies/default.json"

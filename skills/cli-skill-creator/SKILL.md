@@ -33,11 +33,11 @@ Do not invent a broader product or workflow name. For example:
 
 ```yaml
 ---
-name: spogo-cli
-description: Control Spotify playback with the spogo CLI, including status, play and pause, track navigation, volume, shuffle, repeat, seeking, search, queues, devices, and playlists. Use whenever the user asks to inspect or control Spotify from the terminal.
+name: example-cli
+description: Control Example resources with the example CLI. Use whenever the user asks to inspect or manage Example resources from the terminal.
 ---
 
-# Spogo CLI
+# Example CLI
 ```
 
 ## Write the Target Skill

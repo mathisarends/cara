@@ -1,5 +1,4 @@
 import asyncio
-import os
 from pathlib import Path
 
 from agenttoolkit import Skills
@@ -7,6 +6,7 @@ from agenttoolkit.builtins import BindMount, LocalWorkspace
 from dotenv import load_dotenv
 
 from agent import Agent
+from agent.sandbox import SandboxConfig
 from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalSession
@@ -28,15 +28,10 @@ async def main() -> None:
     tools = build_tools(
         skills=skills,
         workspace=_create_workspace(),
-        sandbox_environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
-        sandbox_mounts=(
-            *_editable_sandbox_mounts(),
-            BindMount.read_write(_spogo_config_root(), "/spogo"),
-            BindMount.read_only(
-                _PROJECT_ROOT / "docker" / "spogo.toml", "/etc/spogo.toml"
-            ),
+        sandbox=SandboxConfig(
+            mounts=_editable_sandbox_mounts(),
+            network_access=True,
         ),
-        sandbox_network_access=True,
     )
     agent = Agent(
         llm=llm,
@@ -65,20 +60,6 @@ def _editable_sandbox_mounts() -> tuple[BindMount, ...]:
         BindMount.read_write(_EXPERIMENTS_ROOT, "/experiments"),
         BindMount.read_write(_SKILLS_ROOT, "/skills"),
     )
-
-
-def _spogo_config_root() -> Path:
-    app_data = os.environ.get("APPDATA")
-    if app_data is None:
-        raise RuntimeError(
-            "APPDATA is required to locate the Spogo configuration on Windows."
-        )
-    config_root = Path(app_data) / "spogo"
-    if not config_root.is_dir():
-        raise FileNotFoundError(
-            f"Spogo configuration directory does not exist: {config_root}"
-        )
-    return config_root
 
 
 if __name__ == "__main__":
