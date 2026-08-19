@@ -1,3 +1,5 @@
+import os
+import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 
@@ -83,6 +85,28 @@ def _default_sandbox(
                 cpus=1,
             ),
         ),
-        mounts=mounts,
+        mounts=(*_cli_credential_mounts(), *mounts),
         shell="/bin/bash",
     )
+
+
+_CLI_CREDENTIAL_TOOLS = ("huego", "spoti", "withings-client")
+
+
+def _cli_credential_mounts() -> tuple[BindMount, ...]:
+    # Sandbox HOME is /tmp, so the tools' UserConfigDir resolves under /tmp/.config.
+    return tuple(
+        BindMount.read_write(host_dir, f"/tmp/.config/{name}")
+        for name in _CLI_CREDENTIAL_TOOLS
+        if (host_dir := _host_config_dir(name)) is not None and host_dir.is_dir()
+    )
+
+
+def _host_config_dir(name: str) -> Path | None:
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        return Path(appdata) / name if appdata else None
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / name
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / name
