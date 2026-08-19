@@ -34,7 +34,7 @@ class SystemPrompt:
     def render(self) -> str:
         sections = [self._render_base_prompt()]
         if self._local_time is not None:
-            sections.append(f"<local_time>\n{self._local_time.render()}\n</local_time>")
+            sections.append(f"### Local Time\n\n{self._local_time.render()}")
         if memory := self._render_memory():
             sections.append(memory)
         if tools := _render_files(self._root, _TOOLS_FILES):
@@ -52,10 +52,14 @@ class SystemPrompt:
         return _render_files(self._root, _BASE_FILES)
 
     def _render_memory(self) -> str:
-        sections = [_render_files(self._root, _MEMORY_FILES)]
-        daily_path = self._root / _DAILY_DIR / f"{self._today():%Y-%m-%d}.md"
-        if daily := _render_tagged_section(daily_path, tag=_DAILY_DIR):
-            sections.append(daily)
+        daily_name = f"{self._today():%Y-%m-%d}.md"
+        sections = [
+            _render_files(self._root, _MEMORY_FILES),
+            _render_section(
+                self._root / _DAILY_DIR / daily_name,
+                heading=f"{_DAILY_DIR}/{daily_name}",
+            ),
+        ]
         return "\n\n".join(section for section in sections if section)
 
 
@@ -63,21 +67,17 @@ def _render_files(root: Path, file_names: tuple[str, ...]) -> str:
     sections = [
         section
         for file_name in file_names
-        if (
-            section := _render_tagged_section(
-                root / file_name, tag=Path(file_name).stem.lower()
-            )
-        )
+        if (section := _render_section(root / file_name, heading=file_name))
     ]
     return "\n\n".join(sections)
 
 
-def _render_tagged_section(path: Path, *, tag: str) -> str:
-    """Wrap a markdown file in a tag, or return an empty string when it is
-    missing or blank."""
+def _render_section(path: Path, *, heading: str) -> str:
+    """Render a markdown file under a heading naming it, or return an empty
+    string when it is missing or blank."""
     if not path.is_file():
         return ""
     content = path.read_text(encoding="utf-8").strip()
     if not content:
         return ""
-    return f"<{tag}>\n{content}\n</{tag}>"
+    return f"### {heading}\n\n{content}"

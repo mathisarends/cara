@@ -50,13 +50,10 @@ def test_local_time_prompt_renders_weekday_date_and_time() -> None:
     assert _fixed_local_time().render() == "Dienstag, 21. Juli 2026, 14:30 Uhr"
 
 
-def test_local_time_is_wrapped_in_a_precise_block(tmp_path: Path) -> None:
+def test_local_time_is_rendered_as_its_own_section(tmp_path: Path) -> None:
     rendered = _composer(tmp_path, local_time=_fixed_local_time()).render()
 
-    assert (
-        rendered
-        == "System\n\n<local_time>\nDienstag, 21. Juli 2026, 14:30 Uhr\n</local_time>"
-    )
+    assert rendered == "System\n\n### Local Time\n\nDienstag, 21. Juli 2026, 14:30 Uhr"
 
 
 def test_local_time_precedes_available_skills_in_the_system_prompt(
@@ -70,17 +67,17 @@ def test_local_time_precedes_available_skills_in_the_system_prompt(
 
     rendered = composer.render()
 
-    assert rendered.index("<local_time>") < rendered.index("<available_skills>")
+    assert rendered.index("### Local Time") < rendered.index("<available_skills>")
 
 
 def test_system_prompt_is_assembled_from_the_context_markdown_files() -> None:
     prompt = SystemPrompt(root=CONTEXT_ROOT).render()
 
     assert (
-        prompt.index("<agents>")
-        < prompt.index("<soul>")
-        < prompt.index("<user>")
-        < prompt.rindex("<memory>")
+        prompt.index("### AGENTS.md")
+        < prompt.index("### SOUL.md")
+        < prompt.index("### USER.md")
+        < prompt.rindex("### MEMORY.md")
     )
 
 
@@ -92,8 +89,7 @@ def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
     (tmp_path / "USER.md").write_text("Mathis lebt in Berlin.", encoding="utf-8")
 
     assert (
-        SystemPrompt(root=tmp_path).render()
-        == "<user>\nMathis lebt in Berlin.\n</user>"
+        SystemPrompt(root=tmp_path).render() == "### USER.md\n\nMathis lebt in Berlin."
     )
 
 
@@ -105,7 +101,7 @@ def test_system_prompt_can_override_default_prompt_while_retaining_memory(
 
     prompt = SystemPrompt(root=tmp_path, system_prompt="Nur JSON.").render()
 
-    assert prompt == "Nur JSON.\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
+    assert prompt == "Nur JSON.\n\n### MEMORY.md\n\nHalbmarathon im Oktober."
 
 
 def test_memory_renders_files_in_order(tmp_path: Path) -> None:
@@ -113,7 +109,7 @@ def test_memory_renders_files_in_order(tmp_path: Path) -> None:
 
     rendered = _composer(tmp_path).render()
 
-    assert rendered == "System\n\n<memory>\nHalbmarathon im Oktober.\n</memory>"
+    assert rendered == "System\n\n### MEMORY.md\n\nHalbmarathon im Oktober."
 
 
 def test_memory_includes_only_todays_daily_note(tmp_path: Path) -> None:
@@ -124,7 +120,7 @@ def test_memory_includes_only_todays_daily_note(tmp_path: Path) -> None:
 
     rendered = _composer(tmp_path, today=lambda: date(2026, 8, 2)).render()
 
-    assert rendered == "System\n\n<daily>\nHeute.\n</daily>"
+    assert rendered == "System\n\n### daily/2026-08-02.md\n\nHeute."
 
 
 def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
@@ -134,4 +130,4 @@ def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
 
 
 def test_context_memory_is_loaded() -> None:
-    assert "<memory>" in SystemPrompt(root=CONTEXT_ROOT).render()
+    assert "### MEMORY.md" in SystemPrompt(root=CONTEXT_ROOT).render()

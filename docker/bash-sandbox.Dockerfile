@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS tooling-builder
+FROM golang:1.26-alpine AS tooling-builder
 
 ENV CGO_ENABLED=0 GOBIN=/out
 COPY install-tools.sh tools.txt /tmp/

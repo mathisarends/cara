@@ -1,4 +1,5 @@
 # name    module                                            version
 huego     github.com/mathisarends/huego                     v0.1.0
-spoti     github.com/mathisarends/spoti                     v0.1.0
+spoti     github.com/mathisarends/spoti                      v0.1.0
 withings  github.com/mathisarends/go-withings/cmd/withings   v0.1.0
+sonos     github.com/steipete/sonoscli/cmd/sonos             v0.3.4

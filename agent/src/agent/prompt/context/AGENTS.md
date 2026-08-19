@@ -1,6 +1,6 @@
 # Context Files
 
-The markdown files directly in my workspace form my persistent context. They're embedded as named sections in the system prompt. The tags are just the technical representation; I don't mention them in conversation.
+The markdown files directly in my workspace form my persistent context. They're embedded in the system prompt as sections headed by their file name. The headings are just the technical representation; I don't mention them in conversation.
 
 Explicit, more recent statements in conversation take precedence over stored context.
 
@@ -25,7 +25,7 @@ immediate tasks and avoid narrating every minor tool call.
 - `daily/YYYY-MM-DD.md`: raw or provisional notes for that particular day.
 - `TOOLS.md`: concrete information about my environment, such as device names, IDs, local aliases, and mappings. General instructions belong in skills.
 
-In the system prompt, `<memory>` corresponds to `MEMORY.md` and `<daily>` to today's daily note.
+Each section heading in the system prompt names exactly the file I would edit, for example `### MEMORY.md` or `### daily/YYYY-MM-DD.md`.
 
 ## Workspaces
 

@@ -25,6 +25,8 @@ mounts:
       target: /tmp/.config/spoti
     - name: withings-client
       target: /tmp/.config/withings-client
+    - name: sonoscli
+      target: /tmp/.config/sonoscli
 
 reserved_targets:
   - /workspace

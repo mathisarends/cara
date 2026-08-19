@@ -20,3 +20,13 @@
 
 ### Note
 Use names or IDs in commands; quote names with spaces.
+
+## Speakers (sonos / Sonos)
+
+- `Sonos Era 100` — `192.168.178.68` — `RINCON_804AF293A7EA01400`
+
+### Note
+`sonos discover` and `--name` never work from the sandbox. The container hangs
+off Docker Desktop's NAT network (`192.168.65.0/24`), so an SSDP multicast has
+no route to the LAN the speaker sits on. Unicast to the speaker's IP does get
+routed, so always target it directly with `--ip 192.168.178.68`.
