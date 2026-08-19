@@ -1,4 +1,3 @@
-from .acknowledgment import AcknowledgmentHandler
 from .barge_in import BargeInHandler
 from .command import CommandBridge
 from .follow_up import FollowUpHandler, FollowUpSettings
@@ -7,7 +6,6 @@ from .turn import TurnCoordinator, TurnListener
 from .wake_word import WakeWordHandler
 
 __all__ = [
-    "AcknowledgmentHandler",
     "BargeInHandler",
     "CommandBridge",
     "FollowUpHandler",

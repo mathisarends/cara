@@ -2,11 +2,6 @@ import logging
 from collections.abc import Iterable
 from pathlib import Path
 
-from voice.acknowledgment import (
-    AcknowledgmentContext,
-    AcknowledgmentStrategy,
-    PrerenderedAcknowledgment,
-)
 from voice.audio import (
     AudioBridge,
     AudioInput,
@@ -32,7 +27,6 @@ from voice.events.bus import EventBus
 from voice.events.listener import LoggingListener, TranscriptListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
-    AcknowledgmentHandler,
     BargeInHandler,
     CommandBridge,
     FollowUpHandler,
@@ -63,7 +57,6 @@ class VoiceAgent:
         audio_output: AudioOutput | None = None,
         wake_word_settings: WakeWordSettings | None = None,
         barge_in: BargeInStrategy | None = None,
-        acknowledgment: AcknowledgmentStrategy | None = None,
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
@@ -109,7 +102,6 @@ class VoiceAgent:
         self._setup_handlers(
             agent_session,
             barge_in,
-            acknowledgment,
             strip_wake_word=wake_word_settings.strip_from_command,
             follow_up_settings=follow_up_settings,
         )
@@ -124,7 +116,6 @@ class VoiceAgent:
         self,
         agent_session: AgentSession,
         barge_in: BargeInStrategy | None,
-        acknowledgment: AcknowledgmentStrategy | None,
         *,
         strip_wake_word: bool,
         follow_up_settings: FollowUpSettings | None,
@@ -167,14 +158,6 @@ class VoiceAgent:
             event_bus=self._event_bus,
             strategy=strategy,
             coordinator=self._turn_coordinator,
-        )
-        acknowledgment_strategy = acknowledgment or PrerenderedAcknowledgment()
-        acknowledgment_strategy.set_context(
-            AcknowledgmentContext(event_bus=self._event_bus)
-        )
-        self._acknowledgment_handler = AcknowledgmentHandler(
-            event_bus=self._event_bus,
-            strategy=acknowledgment_strategy,
         )
         self._follow_up_handler = FollowUpHandler(
             event_bus=self._event_bus,

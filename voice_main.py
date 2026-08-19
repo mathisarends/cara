@@ -9,6 +9,7 @@ from agent import Agent
 from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
+    AcknowledgmentObserver,
     HueObserver,
     PrerenderedAcknowledgment,
     SonosPlaybackObserver,
@@ -44,8 +45,8 @@ async def main() -> None:
         audio_output=SonosOutput(),
         text_to_speech=tts,
         barge_in=SpeechBargeIn(),
-        acknowledgment=PrerenderedAcknowledgment(),
         observers=(
+            AcknowledgmentObserver(strategy=PrerenderedAcknowledgment()),
             SoundObserver(),
             HueObserver(),
             SonosPlaybackObserver(),

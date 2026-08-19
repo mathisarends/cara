@@ -2,20 +2,19 @@ import logging
 import random
 from collections.abc import Sequence
 
-from voice.acknowledgment import GENERIC_ACKNOWLEDGMENTS, AcknowledgmentStrategy
-from voice.events import UserSpeechEnded
-from voice.events.bus import EventBus
+from voice.acknowledgment.phrases import GENERIC_ACKNOWLEDGMENTS
+from voice.acknowledgment.port import AcknowledgmentContext, AcknowledgmentStrategy
+from voice.observer import Observer, ObserverContext
 
 logger = logging.getLogger(__name__)
 
 
-class AcknowledgmentHandler:
+class AcknowledgmentObserver(Observer):
     """Fills the gap between the end of user speech and the assistant's answer."""
 
     def __init__(
         self,
         *,
-        event_bus: EventBus,
         strategy: AcknowledgmentStrategy,
         phrases: Sequence[str] = GENERIC_ACKNOWLEDGMENTS,
     ) -> None:
@@ -26,9 +25,10 @@ class AcknowledgmentHandler:
         self._phrases = tuple(unique_phrases)
         self._last_phrase: str | None = None
 
-        event_bus.on(UserSpeechEnded, self._on_user_speech_ended)
+    async def prepare(self, context: ObserverContext) -> None:
+        self._strategy.set_context(AcknowledgmentContext(event_bus=context.event_bus))
 
-    async def _on_user_speech_ended(self, _: UserSpeechEnded) -> None:
+    async def on_user_stopped_speaking(self) -> None:
         phrase = self._next_phrase()
         logger.info("Acknowledgment: %s", phrase)
         await self._strategy.acknowledge(phrase)

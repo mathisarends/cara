@@ -4,12 +4,13 @@ import pytest
 
 from voice.acknowledgment import (
     GENERIC_ACKNOWLEDGMENTS,
+    AcknowledgmentObserver,
     AcknowledgmentStrategy,
     NoAcknowledgment,
 )
 from voice.events import UserSpeechEnded
 from voice.events.bus import EventBus
-from voice.handler import AcknowledgmentHandler
+from voice.observer import _ObserverBridge
 
 
 class _RecordingAcknowledgment(AcknowledgmentStrategy):
@@ -25,7 +26,10 @@ def _acknowledge(utterances: int, **kwargs: object) -> list[str]:
     async def run() -> list[str]:
         bus = EventBus()
         strategy = _RecordingAcknowledgment()
-        AcknowledgmentHandler(event_bus=bus, strategy=strategy, **kwargs)
+        observer = AcknowledgmentObserver(strategy=strategy, **kwargs)
+        bridge = _ObserverBridge(event_bus=bus, observers=(observer,))
+        await bridge.prepare()
+        bridge.setup()
         for _ in range(utterances):
             await bus.dispatch(UserSpeechEnded())
         return strategy.phrases
@@ -57,6 +61,4 @@ def test_never_repeats_a_phrase_back_to_back() -> None:
 @pytest.mark.parametrize("phrases", [(), ("only",), ("same", "same")])
 def test_rejects_a_pool_that_cannot_avoid_repeating(phrases: tuple[str, ...]) -> None:
     with pytest.raises(ValueError):
-        AcknowledgmentHandler(
-            event_bus=EventBus(), strategy=NoAcknowledgment(), phrases=phrases
-        )
+        AcknowledgmentObserver(strategy=NoAcknowledgment(), phrases=phrases)

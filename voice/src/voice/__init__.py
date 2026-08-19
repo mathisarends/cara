@@ -1,5 +1,6 @@
 from .acknowledgment import (
     AcknowledgmentContext,
+    AcknowledgmentObserver,
     AcknowledgmentStrategy,
     NoAcknowledgment,
     PrerenderedAcknowledgment,
@@ -38,6 +39,7 @@ from .wakeword import WakeWordSettings
 
 __all__ = [
     "AcknowledgmentContext",
+    "AcknowledgmentObserver",
     "AcknowledgmentStrategy",
     "AgentResult",
     "AssistantMessage",
