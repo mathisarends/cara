@@ -63,7 +63,7 @@ docker build \
     "${PROJECT_DIR}/docker"
 
 echo "Verifying Bash, Python, and CLI tooling without pulling at runtime"
-verification="bash --version | head -n 1 && python3 --version"
+verification="bash --version | head -n 1 && python3 --version && python3 -c 'import yaml'"
 for tool in $(tool_names); do
     verification+=" && ${tool} --help >/dev/null"
 done
