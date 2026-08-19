@@ -31,6 +31,16 @@ class SearchResponse(BaseModel):
     results: list[SearchResult] = Field(default_factory=list)
     answer: str | None = None
 
+    def summary(self) -> str:
+        if self.answer is None and not self.results:
+            return "Keine Ergebnisse gefunden."
+        parts = [self.answer] if self.answer else []
+        parts.extend(
+            f"{result.title} ({result.url}): {result.content}"
+            for result in self.results
+        )
+        return "\n\n".join(parts)
+
 
 class TavilySearchClient:
     """Web search via the Tavily API."""

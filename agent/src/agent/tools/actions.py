@@ -7,7 +7,6 @@ from agenttoolkit.builtins.fs import Entry
 from agent.tools.handler import (
     IpLocationClient,
     OpenMeteoClient,
-    SearchResponse,
     TavilySearchClient,
     WeatherReport,
 )
@@ -69,7 +68,7 @@ def register_tools(tools: Tools) -> None:
         params: WebSearchParams, client: Inject[TavilySearchClient]
     ) -> str:
         response = await client.search(params.query, max_results=params.max_results)
-        return _render_search_response(response)
+        return response.summary()
 
     @tools.action(
         description="Execute a shell command in the isolated workspace sandbox.",
@@ -180,17 +179,6 @@ def _render_weather_report(report: WeatherReport) -> str:
         ["| Uhrzeit | Wetter | Temp | Regen |", "| --- | --- | --- | --- |", *rows]
     )
     return f"{summary}\n\n{table}"
-
-
-def _render_search_response(response: SearchResponse) -> str:
-    if response.answer is None and not response.results:
-        return "Keine Ergebnisse gefunden."
-    parts = [response.answer] if response.answer else []
-    parts.extend(
-        f"{result.title} ({result.url}): {result.content}"
-        for result in response.results
-    )
-    return "\n\n".join(parts)
 
 
 def _render_entries(entries: Sequence[Entry], *, empty: str) -> str:

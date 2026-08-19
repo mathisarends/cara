@@ -2,8 +2,11 @@ import asyncio
 
 import httpx
 
-from agent.settings import TavilyCredentials
-from agent.tools.handler.web_search import SearchResponse, TavilySearchClient
+from agent.tools.handler.web_search import (
+    SearchResponse,
+    TavilyCredentials,
+    TavilySearchClient,
+)
 
 _RESULTS = {
     "query": "aktuelles wetter berlin",
