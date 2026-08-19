@@ -1,118 +1,88 @@
 ---
 name: cli-skill-creator
-description: Create or update a compact Codex skill for any CLI by documenting its namespaces, exact command syntax, common operations, required parameters, output and error behavior, and CLI-specific pitfalls. Use when an agent should be able to perform frequent CLI tasks directly from the generated skill without repeatedly invoking --help.
+description: Create or update a skill for a command-line tool, documenting its namespaces, exact command syntax, required parameters, and failure behavior. Use whenever the user wants to turn a CLI into a skill, document a CLI for agent use, or make an agent able to run frequent CLI tasks without repeatedly calling --help.
 ---
 
 # Create a CLI Skill
 
-Build a skill that lets an agent perform common operations without consulting `--help`. Use help and local documentation while creating the skill, but record the resulting exact commands in the generated `SKILL.md`.
+The generated skill must let an agent perform frequent operations without consulting `--help`. Use help output and local docs while building it; record the resulting exact commands in the generated `SKILL.md`.
 
-## Explore the CLI
+## Rules
 
-1. Identify the executable, version, global options, authentication, and available local documentation.
-2. Use `--help` to map top-level namespaces or command groups and summarize their purpose in a small table.
-3. For each relevant namespace, determine:
-   - exact command shape and argument order
-   - required parameters, defaults, and global options
-   - which flags are required, which materially change behavior, and which are merely optional conveniences
-   - resource types that always require additional arguments
-   - accepted ranges, formats, and quoting rules
-   - output modes, exit codes, and error behavior
-   - safe read operations to run before mutations
-4. Do not run destructive or externally consequential test commands without explicit authorization.
+- **Naming**: folder and frontmatter `name` = `<cli>-cli` (lowercase, hyphenated); title = `<CLI> CLI`, preserving the CLI's capitalization. Never invent a broader product or workflow name.
+- **Copyable commands**: every command includes all required positional arguments. Placeholders as `<name>`, `<id>`, `<0-100>`, with their format stated.
+- **Shortest correct command**: include a flag only when it is required, prevents ambiguity, improves safety, or produces output the workflow consumes. Never add `--json`, `--no-color`, verbosity, or field filters by default.
+- **No intent maps**: assume the agent maps "pause" or "set volume to 35" to a clearly named operation. Use examples only for non-obvious syntax, mandatory flag combinations, or surprising behavior.
+- **Layering**: frequent operations stay in `SKILL.md`. Rare or large namespaces go to `references/<namespace>.md`, linked from `SKILL.md`.
+- **Portability**: the skill stays reusable across setups. It documents syntax and placeholders only. Concrete values that shortcut discovery in one specific setup — resource IDs, device or room names, account handles, default targets — belong in the workspace's `tools.md`, never in the skill. Where such a value is expected, name the placeholder and point at `tools.md`.
+- **Safety**: never run destructive or externally consequential commands without explicit authorization.
 
-## Name the Target Skill
+## Explore
 
-Derive the name directly from the CLI executable so generated skills remain consistent:
+Run `--help` at top level and per namespace. Record:
 
-- folder and frontmatter `name`: `<cli>-cli` in lowercase hyphen-case
-- document title: `<CLI> CLI`, preserving the CLI's normal capitalization
-- frontmatter `description`: state what the CLI controls or manages and list the concrete task categories that should trigger the skill
+| Finding                                                       | Feeds into        |
+| ------------------------------------------------------------- | ----------------- |
+| version, global options, auth/preconditions                   | intro line        |
+| namespaces and their purpose                                  | Namespaces table  |
+| commands that list real resource names                        | Discovery         |
+| command shape and argument order                              | Common operations |
+| required vs. behavior-changing vs. optional flags             | flag filtering    |
+| resource types needing extra arguments, quoting, value ranges | Exceptions        |
+| read command confirming each mutation                         | Verification      |
+| output modes, exit codes, clamping, rate limits, errors       | Failure behavior  |
 
-Do not invent a broader product or workflow name. For example:
+## Output template
 
-```yaml
----
-name: example-cli
-description: Control Example resources with the example CLI. Use whenever the user asks to inspect or manage Example resources from the terminal.
----
-
-# Example CLI
-```
-
-## Write the Target Skill
-
-Keep `SKILL.md` concise and operational. Include:
-
-- precise frontmatter describing the CLI tasks that trigger the skill
-- a namespace overview
-- any discovery required before the first action
-- exact commands for the most frequent read and write operations
-- placeholders such as `<name>` or `<id>` with their required formats
-- mandatory parameter combinations and resource-specific exceptions
-- verification commands for mutations
-- important output, clamping, rate-limit, and failure behavior
-
-An agent reading the target skill should not need `--help` for frequent operations. Do not merely name commands: include copyable command forms with all required positional arguments and options.
-
-Prefer the shortest command that correctly performs the operation. Include a flag only when it is required, prevents ambiguity, improves safety, or provides an output format the workflow actually consumes. Do not add flags such as `--json`, `--no-color`, verbosity controls, or field filters by default; document them only when their benefit is concrete.
-
-Do not add intent maps that translate obvious natural-language requests into commands. Assume the agent can map “pause,” “next,” or “set volume to 35” to clearly named operations. Use examples only to explain non-obvious syntax, ambiguous concepts, mandatory combinations, or surprising behavior.
-
-Keep uncommon or extensive namespaces in `references/<namespace>.md` and link each file directly from `SKILL.md`. Always retain the most frequent operations in the main skill.
-
-## Iterative Self-Improvement
-
-Test several representative paths using explicit assumptions about how the CLI works: discovery, reading state, mutation or creation, and error handling. Start with help and read operations. Use mutations only in a safe test environment or when explicitly authorized.
-
-Compare observed syntax, output, and errors with the assumptions. Remove redundant intent examples and optional flags that proved unnecessary. Update the generated skill whenever a required step, parameter, exception, or verification path is missing. Re-run the affected path until its common operation can be completed from the skill alone, then validate the skill with:
-
-```bash
-scripts/quick_validate.py <skill-directory>
-```
-
-## Short Example: Hueify
+Write `SKILL.md` in exactly this order. Omit a section only if it genuinely does not apply.
 
 ````markdown
-`hueify` controls Philips Hue resources through three command groups:
+---
+name: <cli>-cli
+description: <what the CLI controls>. Use whenever <concrete task categories>.
+---
 
-| Group | Controls | Has scenes |
-|---|---|---|
-| `hueify lights` | a single bulb | no |
-| `hueify rooms` | all bulbs in a room | yes |
-| `hueify zones` | all bulbs in a zone | yes |
+# <CLI> CLI
 
-Discover the real resource names before acting:
+<one line: what it controls, plus auth or preconditions>
 
-```bash
-hueify lights list
-hueify rooms list
-hueify zones list
-```
+## Namespaces
 
-Common commands exist for `lights`, `rooms`, and `zones`:
+| Group | Controls | Notes |
+| ----- | -------- | ----- |
 
-```bash
-hueify <group> info <name>
-hueify <group> on <name>
-hueify <group> off <name>
-hueify <group> brightness <name> <0-100>
-hueify <group> brightness-up <name> <0-100>
-hueify <group> brightness-down <name> <0-100>
-hueify <group> brightness-get <name>
-hueify <group> temperature <name> <0-100>
-```
+## Discovery
 
-Scenes exist only for rooms and zones:
+Known IDs and names for this workspace are in `tools.md`. Use them if present; otherwise discover:
 
 ```bash
-hueify rooms scenes <name>
-hueify rooms active-scene <name>
-hueify rooms activate-scene <name> <scene>
+<commands revealing real resource names, run before acting>
 ```
 
-Quote names containing spaces:
+## Common operations
 
 ```bash
-hueify rooms brightness "Living Room" 40
+<exact read and write commands, grouped by namespace>
 ```
+
+## Exceptions
+
+<mandatory parameter combinations, resource-specific extra arguments, quoting, value ranges>
+
+## Verification
+
+```bash
+<read command confirming each mutation>
+```
+
+## Failure behavior
+
+<exit codes, clamping, rate limits, common errors>
+````
+
+## Validate
+
+1. Walk one path per category: discovery → read → mutation → error handling. Mutations only in a safe test environment or with explicit authorization.
+2. Compare observed syntax, output, and errors against what the skill claims. Fix mismatches; delete flags and examples that proved unnecessary.
+3. Repeat until every frequent operation is executable from `SKILL.md` alone.
+4. Run `scripts/quick_validate.py <skill-directory>`.
