@@ -3,12 +3,13 @@ from agenttoolkit.builtins import BindMount
 
 from .factory import AgentTools, build_tools, create_tools
 from .params import ToolParams
-from .sandbox import create_tool_context
+from .sandbox import SandboxConfig, create_tool_context
 
 __all__ = [
     "BindMount",
     "AgentTools",
     "Inject",
+    "SandboxConfig",
     "Tool",
     "ToolContext",
     "ToolParams",

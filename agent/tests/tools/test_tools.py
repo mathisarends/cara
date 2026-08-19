@@ -11,7 +11,13 @@ from agenttoolkit.builtins import (
     Workspace,
 )
 
-from agent.tools import BindMount, build_tools, create_tool_context, create_tools
+from agent.tools import (
+    BindMount,
+    SandboxConfig,
+    build_tools,
+    create_tool_context,
+    create_tools,
+)
 
 
 def test_custom_action_uses_agenttoolkit_execution() -> None:
@@ -38,7 +44,7 @@ def test_build_tools_registers_core_and_additional_tools(tmp_path: Path) -> None
         additional_tools=additional_tools,
     )
 
-    assert tools.get("bash") is not None
+    assert tools.get("shell") is not None
     assert tools.get("echo") is not None
 
 
@@ -109,7 +115,7 @@ def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> No
     assert result.startswith("Tool failed:")
 
 
-def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
+def test_shell_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
     class RecordingSandbox:
         def __init__(self) -> None:
             self.policy = SandboxPolicy.for_workspace(tmp_path)
@@ -126,10 +132,12 @@ def test_bash_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
             )
 
     sandbox = RecordingSandbox()
-    context = create_tool_context(workspace=LocalWorkspace(tmp_path), sandbox=sandbox)
+    context = create_tool_context(
+        workspace=LocalWorkspace(tmp_path), sandbox=SandboxConfig(runner=sandbox)
+    )
     tools = create_tools(context)
 
-    result = asyncio.run(tools.execute("bash", {"command": "printf hello"}))
+    result = asyncio.run(tools.execute("shell", {"command": "printf hello"}))
 
     assert result == "hello from sandbox"
     assert sandbox.command == "printf hello"
@@ -168,7 +176,7 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     sandbox = context.resolve(DockerSandbox)
 
     assert workspace is not None
-    assert workspace.root == Path(Path.cwd().anchor)
+    assert workspace.root == Path.cwd()
     assert sandbox is not None
     assert sandbox.defaults.working_directory == workspace.root
     assert sandbox.policy.allows_write(workspace.root)
@@ -186,9 +194,11 @@ def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> N
     mount = BindMount.read_write(config_root, "/tmp/.config/spogo")
 
     context = create_tool_context(
-        sandbox_environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
-        sandbox_mounts=(mount,),
-        sandbox_network_access=True,
+        sandbox=SandboxConfig(
+            environment={"SPOGO_CONFIG": "/etc/spogo.toml"},
+            mounts=(mount,),
+            network_access=True,
+        )
     )
     sandbox = context.resolve(DockerSandbox)
 
@@ -208,7 +218,7 @@ def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:
         BindMount.read_write(projects, "/projects"),
     )
 
-    context = create_tool_context(sandbox_mounts=mounts)
+    context = create_tool_context(sandbox=SandboxConfig(mounts=mounts))
     sandbox = context.resolve(DockerSandbox)
 
     assert sandbox is not None
@@ -227,7 +237,7 @@ def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:
 def test_workspace_container_accepts_nested_mounts(tmp_path: Path) -> None:
     mount = BindMount.read_write(tmp_path, "/workspace/projects")
 
-    context = create_tool_context(sandbox_mounts=(mount,))
+    context = create_tool_context(sandbox=SandboxConfig(mounts=(mount,)))
 
     sandbox = context.resolve(DockerSandbox)
     assert sandbox is not None
@@ -237,7 +247,9 @@ def test_workspace_container_accepts_nested_mounts(tmp_path: Path) -> None:
 def test_primary_workspace_container_target_is_reserved(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="primary workspace"):
         create_tool_context(
-            sandbox_mounts=(BindMount.read_write(tmp_path, "/workspace"),)
+            sandbox=SandboxConfig(
+                mounts=(BindMount.read_write(tmp_path, "/workspace"),)
+            )
         )
 
 
@@ -245,7 +257,7 @@ def test_to_schema_returns_openai_function_schema() -> None:
     schema = next(
         item
         for item in create_tools().get_schema("openai")
-        if item["function"]["name"] == "bash"
+        if item["function"]["name"] == "shell"
     )
 
     assert schema["type"] == "function"

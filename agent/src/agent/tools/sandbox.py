@@ -13,31 +13,41 @@ from agenttoolkit.builtins import (
     SandboxPolicy,
     Workspace,
 )
+from pydantic import BaseModel, ConfigDict
 
 _BASH_IMAGE = "cara-bash-sandbox:latest"
+
+
+class SandboxConfig(BaseModel):
+    """Sandbox-scoped configuration for `create_tool_context`."""
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    runner: CommandRunner | None = None
+    environment: Mapping[str, str] | None = None
+    mounts: Sequence[BindMount] | None = None
+    network_access: bool | None = None
 
 
 def create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
-    sandbox: CommandRunner | None = None,
-    sandbox_environment: Mapping[str, str] | None = None,
-    sandbox_mounts: Sequence[BindMount] | None = None,
-    sandbox_network_access: bool | None = None,
+    sandbox: SandboxConfig | None = None,
 ) -> ToolContext:
-    if sandbox is not None and (
-        sandbox_environment or sandbox_mounts or sandbox_network_access is not None
+    sandbox = sandbox or SandboxConfig()
+    if sandbox.runner is not None and (
+        sandbox.environment or sandbox.mounts or sandbox.network_access is not None
     ):
         raise ValueError(
             "Configure environment, mounts, and network access on the "
-            "provided sandbox directly."
+            "provided sandbox runner directly."
         )
     selected_workspace = workspace or _default_workspace()
-    selected_mounts = tuple(sandbox_mounts or ())
-    selected_network_access = bool(sandbox_network_access)
-    selected_sandbox = sandbox or _default_sandbox(
+    selected_mounts = tuple(sandbox.mounts or ())
+    selected_network_access = bool(sandbox.network_access)
+    selected_sandbox = sandbox.runner or _default_sandbox(
         selected_workspace.root,
-        environment=sandbox_environment,
+        environment=sandbox.environment,
         mounts=selected_mounts,
         network_access=selected_network_access,
     )
@@ -45,7 +55,7 @@ def create_tool_context(
 
 
 def _default_workspace() -> LocalWorkspace:
-    return LocalWorkspace(Path(Path.cwd().anchor), max_file_bytes=None)
+    return LocalWorkspace(Path.cwd(), max_file_bytes=None)
 
 
 def _default_sandbox(

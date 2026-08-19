@@ -12,13 +12,13 @@ from agent.tools.handler import (
     WeatherReport,
 )
 from agent.tools.params import (
-    BashParams,
     EditFileParams,
     GlobParams,
     GrepParams,
     ListFilesParams,
     LoadSkillParams,
     ReadFileParams,
+    ShellParams,
     WeatherParams,
     WebSearchParams,
     WriteFileParams,
@@ -72,10 +72,10 @@ def register_tools(tools: Tools) -> None:
         return _render_search_response(response)
 
     @tools.action(
-        description="Execute a Bash command in the isolated workspace sandbox.",
-        params=BashParams,
+        description="Execute a shell command in the isolated workspace sandbox.",
+        params=ShellParams,
     )
-    async def bash(params: BashParams, sandbox: Inject[CommandRunner]) -> str:
+    async def shell(params: ShellParams, sandbox: Inject[CommandRunner]) -> str:
         result = await sandbox.execute(params.command)
         result.check_returncode()
         return result.output.rstrip() or "(no output)"

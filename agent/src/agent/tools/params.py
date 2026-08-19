@@ -11,9 +11,9 @@ class LoadSkillParams(ToolParams):
     name: str = Field(description="Name of the skill to load, exactly as listed.")
 
 
-class BashParams(ToolParams):
+class ShellParams(ToolParams):
     command: str = Field(
-        description="Bash command to execute inside the isolated workspace sandbox.",
+        description="Shell command to execute inside the isolated workspace sandbox.",
     )
 
 
