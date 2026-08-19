@@ -1,5 +1,5 @@
 ---
-name: huego-cli
+name: huego
 description: Inspect and control Philips Hue lights, rooms, zones, and scenes via the local bridge.
 metadata:
   status: ready
@@ -11,13 +11,13 @@ A Philips Hue controller backed by the local CLIP v2 API. You need bridge discov
 
 ## Namespaces
 
-| Group | Controls | Notes |
-| ----- | -------- | ----- |
+| Group   | Controls                        | Notes                                              |
+| ------- | ------------------------------- | -------------------------------------------------- |
 | `light` | Individual lights by ID or name | Also accepts room/zone targets for shared commands |
-| `room` | Rooms | Mirror operations from `light` for bulk control |
-| `zone` | Zones | Mirror operations from `light` for bulk control |
-| `scene` | Scenes | List and activate pre-defined scenes |
-| `setup` | Bridge pairing | Interactive discovery and registration |
+| `room`  | Rooms                           | Mirror operations from `light` for bulk control    |
+| `zone`  | Zones                           | Mirror operations from `light` for bulk control    |
+| `scene` | Scenes                          | List and activate pre-defined scenes               |
+| `setup` | Bridge pairing                  | Interactive discovery and registration             |
 
 ## Discovery
 
