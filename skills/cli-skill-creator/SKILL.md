@@ -85,6 +85,10 @@ Known IDs and names for this workspace are in `tools.md`. Use them if present; o
 1. Walk one path per category: discovery → read → mutation → error handling. Mutations only in a safe test environment or with explicit authorization.
 2. Compare observed syntax, output, and errors against what the skill claims. Fix mismatches; delete flags and examples that proved unnecessary.
 3. Repeat until every frequent operation is executable from `SKILL.md` alone.
-4. Run `scripts/quick_validate.py <skill-directory>`.
+4. From the repository root, run
+   `python skills/cli-skill-creator/scripts/quick_validate.py skills/<cli>-cli`.
+   Use workspace-relative paths for file tools (`.` is the workspace root, never
+   `/`) and locate files with the workspace glob tool instead of recursively
+   scanning unrelated or inaccessible directories with shell `find`.
 5. If validation or runtime skill discovery reports an in-scope skill error, diagnose and fix it immediately, then rerun the failing check. Do not stop after merely reporting a fixable error.
 6. In the final response, explicitly identify every error that this skill fixed automatically and report the final validation result.

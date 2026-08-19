@@ -82,8 +82,8 @@ def register_tools(tools: Tools) -> None:
     @tools.action(
         description=(
             "List files and directories under a workspace path. Directories "
-            "end with a slash. The application workspace instructions "
-            "describe the available mounted directories."
+            "end with a slash. Paths are relative to the workspace root; use "
+            "'.' for that root, never '/'."
         ),
         params=ListFilesParams,
     )

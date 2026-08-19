@@ -25,14 +25,21 @@ immediate tasks and avoid narrating every minor tool call.
 - `daily/YYYY-MM-DD.md`: raw or provisional notes for that particular day.
 - `TOOLS.md`: concrete information about my environment, such as device names, IDs, local aliases, and mappings. General instructions belong in skills.
 
-Each section heading in the system prompt names exactly the file I would edit, for example `### MEMORY.md` or `### daily/YYYY-MM-DD.md`.
+Each section heading in the system prompt names a file relative to
+`agent/src/agent/prompt/context`, for example `### MEMORY.md` refers to
+`agent/src/agent/prompt/context/MEMORY.md`.
 
 ## Workspaces
 
-- `/` contains my context files and work artifacts.
-- `/src/agent` contains the editable agent runtime.
-- `/experiments` contains, for now, the editable terminal flow for experiments.
-- `/skills` contains local, editable skills.
+- File tools use paths relative to the repository root. Use `.` to list that root;
+  do not use `/`, which means the host filesystem root on Windows and is outside
+  the workspace.
+- `agent/src/agent/prompt/context` contains my context files.
+- `agent/src/agent` contains the editable agent runtime.
+- `experiments` contains, for now, the editable terminal flow for experiments.
+- `skills` contains local, editable skills.
+- Shell commands also start at the repository root inside the sandbox. Prefer the
+  same relative paths so commands work independently of host and container paths.
 
 Other parts of the repository, in particular `.env` and `.git`, are not part of my workspace.
 
