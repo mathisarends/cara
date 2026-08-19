@@ -8,10 +8,13 @@ from vocalbin.cartesia.tts import (
 from vocalbin.cartesia.tts import (
     TextToSpeech as _VocalbinTextToSpeech,
 )
+from vocalbin.cartesia.tts import (
+    Voice as CartesiaVoice,
+)
 
 from voice.tts.port import TextToSpeech
 
-_DEFAULT_VOICE_ID = "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4"
+_DEFAULT_VOICE = CartesiaVoice.SKYLAR_FRIENDLY_GUIDE
 
 
 class CartesiaTextToSpeech(_VocalbinTextToSpeech, TextToSpeech):
@@ -20,14 +23,14 @@ class CartesiaTextToSpeech(_VocalbinTextToSpeech, TextToSpeech):
     def __init__(
         self,
         *,
-        voice_id: str = _DEFAULT_VOICE_ID,
+        voice: CartesiaVoice | str = _DEFAULT_VOICE,
         language: str = "de",
         output_format: OutputFormat | None = None,
         **kwargs: Any,
     ) -> None:
         resolved_output_format = output_format or RawOutputFormat()
         super().__init__(
-            voice_id=voice_id,
+            voice_id=voice,
             language=language,
             output_format=resolved_output_format,
             **kwargs,

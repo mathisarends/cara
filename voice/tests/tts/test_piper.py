@@ -9,7 +9,7 @@ from voice.tts import PiperTextToSpeech
 
 def _piper() -> PiperTextToSpeech:
     voice = SimpleNamespace(config=SimpleNamespace(sample_rate=22_050))
-    return PiperTextToSpeech(voice=voice)
+    return PiperTextToSpeech(voice)
 
 
 def test_sample_rate_comes_from_the_loaded_voice() -> None:

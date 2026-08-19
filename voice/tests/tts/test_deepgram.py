@@ -5,7 +5,7 @@ from typing import cast
 from deepgram import AsyncDeepgramClient
 from vocalbin.deepgram.tts import TextToSpeech as VocalbinTextToSpeech
 
-from voice.tts import DeepgramTextToSpeech
+from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
 
 async def _text() -> AsyncIterator[str]:
@@ -40,3 +40,11 @@ def test_synthesize_uses_the_incremental_deepgram_stream(monkeypatch) -> None:
         return [chunk async for chunk in tts.synthesize(_text())]
 
     assert asyncio.run(run()) == [b"first", b"second"]
+
+
+def test_voice_selects_the_deepgram_speech_model() -> None:
+    tts = DeepgramTextToSpeech(
+        client=cast(AsyncDeepgramClient, object()), voice=DeepgramVoice.AURA_2_ORION_EN
+    )
+
+    assert tts.default_config.model == "aura-2-orion-en"

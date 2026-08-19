@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 from vocalbin.cartesia.tts import TextToSpeech as VocalbinTextToSpeech
 
-from voice.tts import CartesiaTextToSpeech
+from voice.tts import CartesiaTextToSpeech, CartesiaVoice
 
 
 async def _text() -> AsyncIterator[str]:
@@ -24,3 +24,9 @@ def test_synthesize_uses_incremental_cartesia_stream(monkeypatch) -> None:
         return [chunk async for chunk in tts.synthesize(_text())]
 
     assert asyncio.run(run()) == [b"first", b"second"]
+
+
+def test_voice_selects_the_cartesia_voice_id() -> None:
+    tts = CartesiaTextToSpeech(client=object(), voice=CartesiaVoice.ALARIC_WIZARD)
+
+    assert tts.default_config.voice_id == "87748186-23bb-4158-a1eb-332911b0b708"

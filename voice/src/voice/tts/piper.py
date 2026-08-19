@@ -1,8 +1,13 @@
 from collections.abc import AsyncIterable, AsyncIterator
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from vocalbin.piper.tts import TextToSpeech as _VocalbinTextToSpeech
 
 from voice.tts.port import TextToSpeech
+
+if TYPE_CHECKING:
+    from piper import PiperVoice
 
 _BOUNDARY_CHARACTERS = ".!?…\n"
 _MIN_SEGMENT_CHARACTERS = 40
@@ -10,6 +15,12 @@ _MIN_SEGMENT_CHARACTERS = 40
 
 class PiperTextToSpeech(_VocalbinTextToSpeech, TextToSpeech):
     """Adapts Piper's local sentence-based synthesis to the streaming TTS port."""
+
+    def __init__(self, voice: "str | Path | PiperVoice", **kwargs: Any) -> None:
+        if isinstance(voice, str | Path):
+            super().__init__(voice, **kwargs)
+        else:
+            super().__init__(voice=voice, **kwargs)
 
     @property
     def sample_rate(self) -> int:
