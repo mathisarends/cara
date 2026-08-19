@@ -19,6 +19,7 @@ from voice import (
     VoiceAgent,
 )
 from voice.audio.output.sonos import SonosOutput
+from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
@@ -42,6 +43,7 @@ async def main() -> None:
     agent = VoiceAgent(
         agent_session=agent_session,
         audio_output=SonosOutput(),
+        text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_HARMONIA_EN),
         barge_in=SpeechBargeIn(),
         observers=(
             AcknowledgmentObserver(strategy=PrerenderedAcknowledgment()),
