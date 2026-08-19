@@ -81,6 +81,22 @@ class _SpeechToText(SpeechToText):
         yield Transcription("Hey Mycroft command", True, TranscriptionKind.END)
 
 
+class _WordlessSpeechToText(_SpeechToText):
+    """Reports wordless updates on a silent turn, the way Deepgram's Flux does."""
+
+    async def transcribe(
+        self, audio: AsyncIterable[bytes]
+    ) -> AsyncIterator[Transcription]:
+        await anext(aiter(audio))
+        self.calls += 1
+        if self.calls == 1:
+            yield Transcription("Hey Mycroft command", True, TranscriptionKind.END)
+            return
+        while True:
+            yield Transcription("", False, TranscriptionKind.UPDATE)
+            await asyncio.sleep(0.05)
+
+
 class _AgentSession:
     async def prepare_turn(self) -> None:
         pass
@@ -144,63 +160,65 @@ def test_follow_up_settings_use_expected_defaults() -> None:
 
 
 def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> None:
-    async def run() -> tuple[_SpeechToText, list[int], FollowUpTimedOut]:
-        input_device = _Input()
-        stt = _SpeechToText()
-        event_bus = EventBus()
-        buffered_audio_input = BufferedAudioInput(input_device)
-        AudioBridge(
-            event_bus=event_bus,
-            output_device=_Output(),
-        )
-        UserAudioProducer(
-            event_bus=event_bus,
-            buffered_audio_input=buffered_audio_input,
-        )
-        AgentBridge(event_bus=event_bus, session=_AgentSession())
-        TextToSpeechBridge(
-            event_bus=event_bus,
-            text_to_speech=_TextToSpeech(),
-        )
-        SpeechToTextBridge(
-            event_bus=event_bus,
-            buffered_audio_input=buffered_audio_input,
-            speech_to_text=stt,
-        )
-        CommandBridge(
-            event_bus=event_bus,
-            wake_word_phrase="hey mycroft",
-        )
-        TurnListener(event_bus=event_bus, coordinator=TurnCoordinator())
-        follow_up = FollowUpHandler(
-            event_bus=event_bus,
-            settings=FollowUpSettings(window_seconds=1.0, countdown_seconds=1),
-        )
-        countdowns: list[int] = []
-        timed_out_event = asyncio.get_running_loop().create_future()
+    stt = _SpeechToText()
 
-        async def capture_countdown(event: FollowUpCountdown) -> None:
-            countdowns.append(event.remaining_seconds)
-
-        async def capture_timeout(event: FollowUpTimedOut) -> None:
-            timed_out_event.set_result(event)
-
-        event_bus.on(FollowUpCountdown, capture_countdown)
-        event_bus.on(FollowUpTimedOut, capture_timeout)
-
-        await event_bus.dispatch(SessionStarted())
-        try:
-            await event_bus.request(VoiceTurnRequested(sequence=0))
-            timed_out = await asyncio.wait_for(timed_out_event, timeout=5.0)
-        finally:
-            follow_up.close()
-            await event_bus.dispatch(SessionEnded())
-            await event_bus.dispatch(VoiceResourcesClosing())
-
-        return stt, countdowns, timed_out
-
-    stt, countdowns, timed_out = asyncio.run(run())
+    countdowns, timed_out = asyncio.run(_run_session(stt))
 
     assert stt.calls == 2
     assert countdowns == [1]
     assert timed_out.timeout_seconds == 1.0
+
+
+def test_a_follow_up_turn_times_out_while_transcripts_stay_wordless() -> None:
+    stt = _WordlessSpeechToText()
+
+    countdowns, timed_out = asyncio.run(_run_session(stt))
+
+    assert stt.calls == 2
+    assert countdowns == [1]
+    assert timed_out.timeout_seconds == 1.0
+
+
+async def _run_session(stt: _SpeechToText) -> tuple[list[int], FollowUpTimedOut]:
+    event_bus = EventBus()
+    buffered_audio_input = BufferedAudioInput(_Input())
+    AudioBridge(event_bus=event_bus, output_device=_Output())
+    UserAudioProducer(
+        event_bus=event_bus,
+        buffered_audio_input=buffered_audio_input,
+    )
+    AgentBridge(event_bus=event_bus, session=_AgentSession())
+    TextToSpeechBridge(event_bus=event_bus, text_to_speech=_TextToSpeech())
+    SpeechToTextBridge(
+        event_bus=event_bus,
+        buffered_audio_input=buffered_audio_input,
+        speech_to_text=stt,
+    )
+    CommandBridge(event_bus=event_bus, wake_word_phrase="hey mycroft")
+    TurnListener(event_bus=event_bus, coordinator=TurnCoordinator())
+    follow_up = FollowUpHandler(
+        event_bus=event_bus,
+        settings=FollowUpSettings(window_seconds=1.0, countdown_seconds=1),
+    )
+    countdowns: list[int] = []
+    timed_out_event = asyncio.get_running_loop().create_future()
+
+    async def capture_countdown(event: FollowUpCountdown) -> None:
+        countdowns.append(event.remaining_seconds)
+
+    async def capture_timeout(event: FollowUpTimedOut) -> None:
+        timed_out_event.set_result(event)
+
+    event_bus.on(FollowUpCountdown, capture_countdown)
+    event_bus.on(FollowUpTimedOut, capture_timeout)
+
+    await event_bus.dispatch(SessionStarted())
+    try:
+        await event_bus.request(VoiceTurnRequested(sequence=0))
+        timed_out = await asyncio.wait_for(timed_out_event, timeout=5.0)
+    finally:
+        follow_up.close()
+        await event_bus.dispatch(SessionEnded())
+        await event_bus.dispatch(VoiceResourcesClosing())
+
+    return countdowns, timed_out

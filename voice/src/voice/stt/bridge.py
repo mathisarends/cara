@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from collections.abc import AsyncIterator
 
 from voice.audio.buffered_input import AudioReader, BufferedAudioInput
@@ -45,12 +46,10 @@ class SpeechToTextBridge:
         )
         transcriptions = self._speech_to_text.transcribe(_audio_chunks(reader))
         try:
-            try:
-                first = await asyncio.wait_for(
-                    anext(transcriptions),
-                    timeout=event.speech_start_timeout,
-                )
-            except TimeoutError:
+            first = await self._wait_for_speech(
+                event.turn_id, transcriptions, event.speech_start_timeout
+            )
+            if first is None:
                 logger.debug(
                     "Turn %d: no speech within %.1fs, timing out",
                     event.turn_id,
@@ -58,10 +57,7 @@ class SpeechToTextBridge:
                 )
                 await self._event_bus.dispatch(VoiceTurnTimedOut(turn_id=event.turn_id))
                 return
-            except StopAsyncIteration:
-                return
 
-            await self._publish_transcription(event.turn_id, first)
             await self._event_bus.dispatch(UserSpeechStarted())
             final_text = first.text if first.is_final else None
             while final_text is None:
@@ -82,6 +78,32 @@ class SpeechToTextBridge:
         finally:
             await transcriptions.aclose()
             await reader.aclose()
+
+    async def _wait_for_speech(
+        self,
+        turn_id: int,
+        transcriptions: AsyncIterator[Transcription],
+        timeout: float,
+    ) -> Transcription | None:
+        """Wait for the first transcript that carries words.
+
+        Providers also emit wordless turn events while nobody is speaking, so
+        treating any event as speech would keep a silent turn open forever.
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            try:
+                update = await asyncio.wait_for(
+                    anext(transcriptions), timeout=remaining
+                )
+            except (TimeoutError, StopAsyncIteration):
+                return None
+            await self._publish_transcription(turn_id, update)
+            if update.text.strip():
+                return update
 
     async def _publish_transcription(self, turn_id: int, update: Transcription) -> None:
         await self._event_bus.dispatch(
