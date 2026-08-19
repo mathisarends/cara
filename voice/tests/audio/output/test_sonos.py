@@ -3,7 +3,15 @@ import io
 import wave
 from typing import cast
 
-from sonosify import ClipPriority, ClipType, SonosClient
+import pytest
+from sonosify import (
+    AudioClip,
+    ClipLEDBehavior,
+    ClipPriority,
+    ClipStatus,
+    ClipType,
+    SonosClient,
+)
 
 import voice.audio.output.sonos as sonos_module
 from voice.audio.output.sonos import SonosOutput
@@ -11,13 +19,21 @@ from voice.sonos import SonosSettings
 
 
 class FakeHostedAudioClip:
-    def __init__(self) -> None:
+    def __init__(self, status: ClipStatus = ClipStatus.DONE) -> None:
         self.finished = asyncio.Event()
         self.cancelled = False
         self.closed = False
+        self.status = status
+        self.fetched = True
 
-    async def wait_until_finished(self) -> None:
+    async def wait_until_finished(self) -> AudioClip:
         await self.finished.wait()
+        return AudioClip(
+            id="clip-id",
+            name="Cara",
+            app_id="cara",
+            status=self.status,
+        )
 
     async def cancel(self) -> None:
         self.cancelled = True
@@ -68,13 +84,17 @@ def test_finish_response_uses_sonosifys_hosted_clip_api() -> None:
     with wave.open(io.BytesIO(audio), "rb") as wav_file:
         assert wav_file.getframerate() == 16_000
         assert wav_file.getnchannels() == 1
-        assert wav_file.readframes(wav_file.getnframes()) == b"\x01\x00\x02\x00"
+        assert wav_file.getnframes() == 24_000
+        pcm = wav_file.readframes(wav_file.getnframes())
+        assert pcm[:4] == b"\x01\x00\x02\x00"
+        assert pcm[4:] == bytes(47_996)
     assert options == {
         "local_host": None,
         "app_id": "cara",
         "name": "Cara",
         "priority": ClipPriority.HIGH,
         "clip_type": ClipType.CUSTOM,
+        "led_behavior": ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
     }
     assert clip.closed
 
@@ -95,6 +115,23 @@ def test_clear_buffer_cancels_a_running_hosted_clip() -> None:
 
     assert clip.cancelled
     assert clip.closed
+
+
+def test_finish_response_fails_when_sonos_rejects_clip() -> None:
+    client = FakeSonosClient()
+    client.clip = FakeHostedAudioClip(ClipStatus.ERROR)
+    client.clip.finished.set()
+    output = _output(client)
+
+    async def run() -> None:
+        await output.start(sample_rate=16_000, channels=1)
+        await output.play_chunk(b"\x00\x00")
+        await output.finish_response()
+
+    with pytest.raises(RuntimeError, match="audio clip was not played"):
+        asyncio.run(run())
+
+    assert len(client.played) == 1
 
 
 def test_stop_leaves_an_injected_client_open() -> None:

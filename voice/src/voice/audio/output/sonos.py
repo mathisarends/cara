@@ -4,7 +4,15 @@ import logging
 import wave
 from contextlib import suppress
 
-from sonosify import ClipPriority, ClipType, HostedAudioClip, SonosClient
+from sonosify import (
+    AudioClip,
+    ClipLEDBehavior,
+    ClipPriority,
+    ClipStatus,
+    ClipType,
+    HostedAudioClip,
+    SonosClient,
+)
 from sonosify import SonosController as SonosifyController
 
 from voice.audio.ports import AudioOutput
@@ -15,6 +23,7 @@ logger = logging.getLogger(__name__)
 _CLIP_APP_ID = "cara"
 _CLIP_NAME = "Cara"
 _BYTES_PER_SAMPLE = 2
+_MIN_CLIP_DURATION_SECONDS = 1.5
 
 
 class SonosOutput(AudioOutput):
@@ -76,18 +85,30 @@ class SonosOutput(AudioOutput):
         pcm = bytes(self._pcm)
         self._pcm.clear()
         client = await self._resolve_client()
+        audio = _wav(pcm, sample_rate=sample_rate, channels=channels)
         clip = await client.play_audio_clip_data(
-            _wav(pcm, sample_rate=sample_rate, channels=channels),
+            audio,
             local_host=self._settings.local_host,
             app_id=_CLIP_APP_ID,
             name=_CLIP_NAME,
             priority=ClipPriority.HIGH,
             clip_type=ClipType.CUSTOM,
+            led_behavior=ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
         )
+        result = await self._wait_for_clip(clip)
+        if result.status is ClipStatus.DONE:
+            return
+        raise RuntimeError(
+            "Sonos audio clip was not played: "
+            f"fetched={clip.fetched} "
+            f"result={result.model_dump(exclude_none=True)!r}"
+        )
+
+    async def _wait_for_clip(self, clip: HostedAudioClip) -> AudioClip:
         self._clip = clip
         self._playback_task = asyncio.current_task()
         try:
-            await clip.wait_until_finished()
+            return await clip.wait_until_finished()
         except asyncio.CancelledError:
             # This task is itself being cancelled, so cancelling the clip
             # must be shielded or the send would be cancelled before it goes out.
@@ -132,6 +153,12 @@ class SonosOutput(AudioOutput):
 
 
 def _wav(pcm: bytes, *, sample_rate: int, channels: int) -> bytes:
+    minimum_size = round(_MIN_CLIP_DURATION_SECONDS * sample_rate) * (
+        channels * _BYTES_PER_SAMPLE
+    )
+    if len(pcm) < minimum_size:
+        pcm += bytes(minimum_size - len(pcm))
+
     output = io.BytesIO()
     with wave.open(output, "wb") as wav_file:
         wav_file.setnchannels(channels)
