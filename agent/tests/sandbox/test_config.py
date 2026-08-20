@@ -28,8 +28,8 @@ def test_project_sandbox_definition(project_sandbox: SandboxDefinition) -> None:
     assert project_sandbox.defaults.home == PurePosixPath("/tmp")
     assert project_sandbox.defaults.timeout_seconds == 15
     assert project_sandbox.defaults.max_output_bytes == 1_000_000
-    assert project_sandbox.limits.memory_bytes == 256 * 1024 * 1024
-    assert project_sandbox.limits.pids == 64
+    assert project_sandbox.limits.memory_bytes == 512 * 1024 * 1024
+    assert project_sandbox.limits.pids == 512
     assert project_sandbox.limits.cpus == 1
     assert project_sandbox.mounts.paths == ()
     assert project_sandbox.reserved_targets == {PurePosixPath("/workspace")}
@@ -46,8 +46,8 @@ def test_create_sandbox_uses_definition(
     assert sandbox.defaults.environment["HOME"] == str(project_sandbox.defaults.home)
     assert sandbox.defaults.limits.timeout_seconds == 15
     assert sandbox.defaults.limits.max_output_bytes == 1_000_000
-    assert sandbox.policy.limits.memory_bytes == 256 * 1024 * 1024
-    assert sandbox.policy.limits.pids == 64
+    assert sandbox.policy.limits.memory_bytes == 512 * 1024 * 1024
+    assert sandbox.policy.limits.pids == 512
     assert sandbox.policy.limits.cpus == 1
     assert sandbox.policy.enable_network_access == project_sandbox.network_access
 
