@@ -11,7 +11,7 @@ from llm import CodexReasoningEffort
 type _ReasoningEffortSelection = CodexReasoningEffort | Literal["default"]
 
 
-class _SwitchModelParams(ToolParams):
+class SwitchModelParams(ToolParams):
     name: str = Field(description="Name of the model to switch to, exactly as listed.")
     reasoning_effort: _ReasoningEffortSelection | None = Field(
         default=None,
@@ -22,7 +22,7 @@ class _SwitchModelParams(ToolParams):
     )
 
 
-class _SetReasoningEffortParams(ToolParams):
+class SetReasoningEffortParams(ToolParams):
     reasoning_effort: _ReasoningEffortSelection = Field(
         description="Reasoning effort to activate, or 'default'."
     )
@@ -68,11 +68,11 @@ def register_model_control_tools(tools: Tools) -> None:
             "Smoke-test and then switch the model driving this conversation. "
             "The current model remains active if validation fails."
         ),
-        params=_SwitchModelParams,
+        params=SwitchModelParams,
         available_when=alternatives_available,
     )
     async def switch_model(
-        params: _SwitchModelParams, models: Inject[ModelSwitch]
+        params: SwitchModelParams, models: Inject[ModelSwitch]
     ) -> str:
         try:
             if params.reasoning_effort is None:
@@ -95,11 +95,11 @@ def register_model_control_tools(tools: Tools) -> None:
             "Smoke-test and then change the active model's reasoning effort. "
             "The current configuration remains active if validation fails."
         ),
-        params=_SetReasoningEffortParams,
+        params=SetReasoningEffortParams,
         available_when=reasoning_available,
     )
     async def set_reasoning_effort(
-        params: _SetReasoningEffortParams,
+        params: SetReasoningEffortParams,
         models: Inject[ModelSwitch],
     ) -> str:
         try:
