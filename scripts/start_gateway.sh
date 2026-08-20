@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+uv run gateway-migrate
+
 # No --reload by default: on Windows uvicorn runs reloaded servers on a
 # SelectorEventLoop, which has no subprocess support, so the agent cannot start
 # its Docker sandbox and every turn using the bash tool fails instantly.

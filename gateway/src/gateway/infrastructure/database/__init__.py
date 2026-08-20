@@ -1,4 +1,4 @@
-from .di import DatabaseProvider, lifespan
+from .di import DatabaseProvider
 from .models import (
     DatabaseEntity,
     SessionAssistantMessageModel,
@@ -20,5 +20,4 @@ __all__ = [
     "SessionToolCallModel",
     "SessionToolCallSequenceModel",
     "SessionUserMessageModel",
-    "lifespan",
 ]

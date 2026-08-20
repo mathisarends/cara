@@ -3,7 +3,8 @@ from fastapi import FastAPI
 
 from gateway.container import create_container
 from gateway.features import FEATURES
-from gateway.infrastructure import DatabaseSettings, lifespan
+from gateway.infrastructure import DatabaseSettings
+from gateway.lifespan import lifespan
 from gateway.presentation import RequestLoggingMiddleware
 
 
