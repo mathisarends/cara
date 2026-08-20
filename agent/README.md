@@ -155,8 +155,9 @@ Tools are registered on an `agenttoolkit.Tools` instance via
 `@tools.action(description=..., params=...)`. Dependencies are declared as
 `Inject[SomeType]` parameters and resolved by `agenttoolkit`'s DI container;
 `available_when=...` predicates conditionally expose a tool to the model —
-for example, model-switch tools only appear when `ModelSwitch.has_alternatives`
-is true, and volume tools only appear when a `VolumeControl` was injected:
+for example, model-switch tools only appear when alternatives are configured,
+reasoning controls only appear when supported levels are registered, and
+volume tools only appear when a `VolumeControl` was injected:
 
 ```python
 from agenttoolkit import Inject, Tools
@@ -167,10 +168,10 @@ class SwitchModelParams(ToolParams):
     name: str = Field(description="Name of the model to switch to, exactly as listed.")
 
 def register_model_control_tools(tools: Tools) -> None:
-    @tools.action(description="Switch the model driving this conversation.", params=SwitchModelParams)
+    @tools.action(description="Validate and switch the active model.", params=SwitchModelParams)
     async def switch_model(params: SwitchModelParams, models: Inject[ModelSwitch]) -> str:
-        models.switch(params.name)
-        return f"Switched to {params.name}."
+        await models.switch(params.name)
+        return f"Smoke test passed. Switched to {params.name}."
 ```
 
 | Module | Tools |
@@ -180,7 +181,7 @@ def register_model_control_tools(tools: Tools) -> None:
 | `actions/weather.py` | `weather_report` (now/today/tomorrow/multi-day). |
 | `actions/web_search.py` | `web_search`, backed by Tavily. |
 | `actions/skills.py` | `load_skill` — loads a skill's full instructions on demand. |
-| `actions/model_control.py` | `current_model`, `list_models`, `switch_model` — only when more than one model is registered. |
+| `actions/model_control.py` | Inspect and smoke-test model/reasoning configuration, then switch atomically; failed candidates leave the active configuration untouched. |
 | `actions/volume.py` | `get_volume`, `set_volume` — only when a `VolumeControl` is injected. |
 | `actions/memory.py` | `recall` — currently a disabled placeholder pending a `retrieval.TextIndex` backend. |
 
@@ -222,7 +223,7 @@ cara = "agent.plugin:create_plugin"
 speaking only the [`agent_plugin_api`](../agent_plugin_api) contract:
 
 - `_CaraAgentPlugin.create(config, context)` validates `config` against a
-  frozen, `extra="forbid"` `_CaraAgentSettings` (`models`, `reasoning_effort`,
+  frozen, `extra="forbid"` `_CaraAgentSettings` (`models`,
   `workspace_root`, `sandbox_file`, `system_prompt`) — an unknown config key
   from `gateway.toml` fails fast at startup.
 - `_CaraAgentRunner.run(request)` loads prior turns via

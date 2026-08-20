@@ -51,7 +51,6 @@ def test_settings_load_the_agent_section_from_yaml(
     models:
       - gpt-5.3-codex-spark
       - gpt-5.6-sol
-    reasoning_effort: low
 """,
         encoding="utf-8",
     )
@@ -62,7 +61,6 @@ def test_settings_load_the_agent_section_from_yaml(
     assert settings.agent.plugin == "cara"
     assert settings.agent.config == {
         "models": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
-        "reasoning_effort": "low",
     }
 
 

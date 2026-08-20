@@ -8,6 +8,7 @@ from agenttoolkit import Skills
 from agenttoolkit.builtins import LocalWorkspace
 from llmify import (
     AssistantMessage,
+    ChatModel,
     Function,
     Message,
     ToolCall,
@@ -50,7 +51,6 @@ class _CaraAgentSettings(BaseModel):
         default=(CodexModel.SPARK,),
         min_length=1,
     )
-    reasoning_effort: CodexReasoningEffort = CodexReasoningEffort.LOW
     workspace_root: Path | None = None
     sandbox_file: Path | None = None
     system_prompt: str | None = None
@@ -109,15 +109,15 @@ class _ConfiguredAgentFactory:
         self._skills = Skills.from_dir(skills_root) if skills_root.is_dir() else None
 
     def __call__(self, context: AgentContext) -> Agent:
-        configured_models = {
-            model.value: create_codex_model(
-                model,
-                reasoning_effort=self._settings.reasoning_effort,
-            )
-            for model in self._settings.models
+        model_factories = {
+            model.value: _codex_model_factory(model) for model in self._settings.models
         }
         default_model = self._settings.models[0].value
-        models = ModelSwitch(configured_models, default=default_model)
+        models = ModelSwitch.configurable(
+            model_factories,
+            default=default_model,
+            reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
+        )
         tools = build_tools(
             injected_dependencies=(models,),
             skills=self._skills,
@@ -150,6 +150,20 @@ def _load_sandbox(path: Path | None) -> SandboxDefinition | None:
     if path is None:
         return None
     return SandboxDefinition.from_yaml(path.expanduser().resolve())
+
+
+def _codex_model_factory(
+    configured_model: CodexModel,
+) -> Callable[[str | None], ChatModel]:
+    def create(reasoning_effort: str | None) -> ChatModel:
+        if reasoning_effort is None:
+            return create_codex_model(configured_model)
+        return create_codex_model(
+            configured_model,
+            reasoning_effort=CodexReasoningEffort(reasoning_effort),
+        )
+
+    return create
 
 
 def _create_workspace(

@@ -197,7 +197,6 @@ plugin = "cara"
 
 [agent.config]
 models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
-reasoning_effort = "low"
 sandbox_file = "sandbox.yml"
 ```
 
@@ -263,13 +262,15 @@ plugin = "cara"
 
 [agent.config]
 models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
-reasoning_effort = "low"
 sandbox_file = "sandbox.yml"
 ```
 
-The first configured model drives the conversation initially. If more than one
-model is configured, the agent receives tools for listing and switching models
-at runtime. The equivalent YAML configuration is:
+The first configured model drives the conversation initially with the
+provider's default reasoning effort. The agent receives tools for inspecting
+and changing its model and reasoning effort at runtime. A candidate
+configuration must pass a separate model smoke test before it becomes active;
+if validation fails, the previous configuration remains active. The equivalent
+YAML configuration is:
 
 ```yaml
 agent:
@@ -278,7 +279,6 @@ agent:
     models:
       - gpt-5.3-codex-spark
       - gpt-5.6-sol
-    reasoning_effort: low
     sandbox_file: sandbox.yml
 ```
 

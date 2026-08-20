@@ -10,5 +10,4 @@ models = [
     "gpt-5.5",
     "gpt-5.4",
 ]
-reasoning_effort = "low"
 sandbox_file = "sandbox.yml"

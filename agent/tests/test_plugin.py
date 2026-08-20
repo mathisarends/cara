@@ -27,6 +27,7 @@ from agent_plugin_api import (
     ToolCallCompleted,
     ToolCallStarted,
 )
+from llm import CodexModel
 
 
 class _SessionReader:
@@ -103,6 +104,11 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     model = _Model()
     tools = _Tools()
     model_switches: list[ModelSwitch] = []
+    model_creations: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def create_test_model(*args: object, **kwargs: object) -> ChatModel:
+        model_creations.append((args, kwargs))
+        return cast(ChatModel, model)
 
     def build_test_tools(**kwargs: Any) -> AgentTools:
         model_switches.append(cast(ModelSwitch, kwargs["injected_dependencies"][0]))
@@ -110,7 +116,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
 
     monkeypatch.setattr(
         "agent.plugin.create_codex_model",
-        lambda *args, **kwargs: cast(ChatModel, model),
+        create_test_model,
     )
     monkeypatch.setattr(
         "agent.plugin.build_tools",
@@ -173,6 +179,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         "gpt-5.6-sol",
     )
     assert model_switches[0].current_name == "gpt-5.3-codex-spark"
+    assert model_creations == [((CodexModel.SPARK,), {})]
     assert [message.content for message in model.requests[0]] == [
         "",
         "Vorherige Frage",
