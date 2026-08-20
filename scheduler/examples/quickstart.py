@@ -1,31 +1,34 @@
 import asyncio
-from datetime import timedelta
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
-from scheduler import AgentRunRequest, Scheduler
+from scheduler import ScheduledRun, Scheduler
 
 
-async def run_agent(request: AgentRunRequest) -> None:
-    prompt = request.payload["prompt"]
-    print(f"[{request.kind}] {request.agent_id}: {prompt}")
+@dataclass(frozen=True, slots=True)
+class Message:
+    text: str
+
+
+async def handle(run: ScheduledRun[Message]) -> None:
+    print(f"[{run.kind}] {run.payload.text}")
 
 
 async def main() -> None:
-    scheduler = Scheduler(run_agent)
+    scheduler = Scheduler[Message](handle)
 
-    heartbeat = scheduler.heartbeat(
-        "demo-agent",
+    interval = scheduler.interval(
         every=timedelta(seconds=1),
-        payload={"prompt": "Look for unfinished work."},
-        name="demo heartbeat",
+        payload=Message("Look for unfinished work."),
+        name="demo interval",
     )
-    scheduler.reminder(
-        "demo-agent",
-        after=timedelta(seconds=2),
-        payload={"prompt": "This reminder only runs once."},
-        name="demo reminder",
+    scheduler.at(
+        datetime.now(UTC) + timedelta(seconds=2),
+        payload=Message("This job only runs once."),
+        name="demo one-shot",
     )
 
-    print(f"registered heartbeat {heartbeat.id}")
+    print(f"registered interval {interval.id}")
     async with scheduler:
         await asyncio.sleep(3.2)
 

@@ -1,33 +1,46 @@
 import asyncio
+from dataclasses import dataclass
 from datetime import timedelta
 
-from scheduler import AgentRunRequest, Scheduler
+from scheduler import ScheduledRun, Scheduler
+
+
+@dataclass(frozen=True, slots=True)
+class AgentWork:
+    agent_id: str
+    prompt: str
 
 
 class AgentRuntime:
-    async def run(self, agent_id: str, payload: dict[str, object]) -> None:
-        print(f"Starting {agent_id} with {payload}")
+    async def run(self, agent_id: str, prompt: str) -> None:
+        print(f"Starting {agent_id}: {prompt}")
 
 
 async def serve(runtime: AgentRuntime, shutdown: asyncio.Event) -> None:
-    async def run_agent(request: AgentRunRequest) -> None:
-        await runtime.run(request.agent_id, dict(request.payload))
+    async def run_agent(run: ScheduledRun[AgentWork]) -> None:
+        work = run.payload
+        await runtime.run(work.agent_id, work.prompt)
 
-    scheduler = Scheduler(run_agent)
+    scheduler = Scheduler[AgentWork](run_agent)
 
-    # Stable IDs make definitions easy to reconcile with persisted host config.
-    scheduler.heartbeat(
-        "primary-agent",
+    # Agent-specific concepts live in this host-side adapter, not in scheduler.
+    scheduler.interval(
         every=timedelta(minutes=5),
         run_immediately=False,
-        payload={"prompt": "Check inboxes and surface anything urgent."},
-        job_id="primary-agent-heartbeat",
+        payload=AgentWork(
+            agent_id="cara",
+            prompt="Run your heartbeat.",
+        ),
+        job_id="cara-heartbeat",
+        name="heartbeat",
     )
     scheduler.cron(
-        "morning-briefing-agent",
         expression="0 7 * * 1-5",
         timezone="Europe/Berlin",
-        payload={"prompt": "Prepare the weekday morning briefing."},
+        payload=AgentWork(
+            agent_id="cara",
+            prompt="Prepare the weekday morning briefing.",
+        ),
         job_id="weekday-morning-briefing",
     )
 
@@ -36,11 +49,7 @@ async def serve(runtime: AgentRuntime, shutdown: asyncio.Event) -> None:
 
 
 async def main() -> None:
-    shutdown = asyncio.Event()
-    try:
-        await serve(AgentRuntime(), shutdown)
-    finally:
-        shutdown.set()
+    await serve(AgentRuntime(), asyncio.Event())
 
 
 if __name__ == "__main__":
