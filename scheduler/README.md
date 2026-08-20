@@ -45,6 +45,68 @@ The scheduler itself only sees an opaque `AgentWork` value. A different host
 can use `Scheduler[Email]`, `Scheduler[Command]`, or any other concrete type
 without changing the library.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    Scheduler["Scheduler[PayloadT]"] --> Store["JobStore[PayloadT]"]
+    Scheduler --> Runner["JobRunner[PayloadT]"]
+    Store --> Memory[MemoryJobStore]
+    Store --> SQLite[SqliteJobStore]
+    SQLite --> Codec["Codec[PayloadT]"]
+    Runner --> Host[Host application]
+```
+
+The scheduler coordinates time and execution. It does not know how jobs are
+stored or what their payload means:
+
+- `JobStore[PayloadT]` owns asynchronous add, update, remove, get, and list
+  operations.
+- `JobRunner[PayloadT]` translates a due `ScheduledRun` into host behavior.
+- `Codec[PayloadT]` belongs to a serialized store and only translates the
+  host-owned payload. Trigger serialization remains the store's responsibility.
+
+`MemoryJobStore` is useful for tests and ephemeral processes:
+
+```python
+store = MemoryJobStore[AgentWork]()
+scheduler = Scheduler(run_agent, store)
+```
+
+For process-restart persistence, inject a `SqliteJobStore`:
+
+```python
+import json
+from dataclasses import asdict
+from pathlib import Path
+
+from scheduler import SqliteJobStore
+
+
+class AgentWorkCodec:
+    def encode(self, value: AgentWork) -> str:
+        return json.dumps(asdict(value))
+
+    def decode(self, value: str) -> AgentWork:
+        return AgentWork(**json.loads(value))
+
+
+store = SqliteJobStore(
+    Path("scheduler.db"),
+    payload_codec=AgentWorkCodec(),
+)
+scheduler = Scheduler(run_agent, store)
+```
+
+The SQLite schema stores `id`, `name`, `trigger_kind`, JSON `trigger_data`, the
+codec-produced `payload`, `created_at`, and `next_run_at`. `start()` reloads all
+jobs from the store. Recurring jobs advance and persist `next_run_at` after each
+run, so an interval keeps its original cadence across restarts instead of being
+anchored to the restart time.
+
+An `At` job is removed after its run finishes. Stopping the scheduler only
+cancels in-process tasks; it does not remove persisted jobs.
+
 ## API
 
 `Scheduler.schedule()` accepts an `At`, `Interval`, or `Cron` trigger directly.
@@ -70,6 +132,8 @@ time, name, and the same typed payload.
   with an interval and a one-shot `At` job.
 - [`examples/long_running.py`](examples/long_running.py) demonstrates how an
   agent-specific payload and adapter stay in the host application.
+- [`examples/sqlite_persistence.py`](examples/sqlite_persistence.py) shows a
+  persistent store with a host-owned JSON payload codec.
 
 Run the quickstart from the workspace root:
 
@@ -89,3 +153,15 @@ uv run --package scheduler python scheduler/examples/quickstart.py
 - A failed run is logged and does not stop later recurring runs.
 - Job lifetime is controlled by the injected store. `MemoryJobStore` is useful
   for tests and ephemeral processes.
+
+## Delivery semantics
+
+The current implementation targets one scheduler process per job database. It
+persists the next run after the runner returns. If the process exits during a
+run, that occurrence remains due and may be delivered again after restart. This
+at-least-once bias avoids silently losing work.
+
+Multiple scheduler processes can open the same SQLite database, but V1 does not
+claim or lease due jobs. Running active schedulers against the same jobs can
+therefore execute them more than once. Cross-process coordination can be added
+later at the `JobStore` boundary without coupling it to payloads or runners.
