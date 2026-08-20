@@ -8,6 +8,7 @@ from gateway_client.models import (
     ChatCompleted,
     ChatDelta,
     Item,
+    SessionChannel,
     SessionEvent,
     ToolCallCompleted,
     ToolCallItem,
@@ -20,8 +21,10 @@ from gateway_client.models import (
     UserMessageItem,
 )
 
+_METADATA = {"client": "cara-cli"}
+
 _HELP = """\
-/new              start a fresh session
+/new              start a fresh session on the channel
 /session          show the current session id
 /history          replay the session snapshot from the gateway
 /events           toggle the raw event trace
@@ -31,9 +34,16 @@ _HELP = """\
 
 
 class ChatSession:
-    def __init__(self, client: GatewayClient, console: Console, trace: bool) -> None:
+    def __init__(
+        self,
+        client: GatewayClient,
+        console: Console,
+        channel: SessionChannel,
+        trace: bool,
+    ) -> None:
         self._client = client
         self._console = console
+        self._channel = channel
         self._trace = trace
         self._session_id: UUID | None = None
         self._turn_finished = asyncio.Event()
@@ -51,15 +61,28 @@ class ChatSession:
 
     async def _open(self, session_id: UUID | None) -> None:
         if session_id is None:
-            session = await self._client.session.create(metadata={"client": "cara-cli"})
-            self._session_id = session.id
-            self._console.info(f"session {session.id} created")
-        else:
-            snapshot = await self._client.session.get(session_id=session_id)
-            self._session_id = snapshot.session.id
-            self._console.info(f"session {snapshot.session.id} resumed")
-            self._replay(snapshot.items)
-        await self._client.session.subscribe(session_id=self._session_id)
+            session = await self._client.session.open(
+                channel=self._channel,
+                metadata=_METADATA,
+            )
+            session_id = session.id
+        await self._attach(session_id)
+
+    async def _create(self) -> None:
+        session = await self._client.session.create(
+            channel=self._channel,
+            metadata=_METADATA,
+        )
+        await self._attach(session.id)
+
+    async def _attach(self, session_id: UUID) -> None:
+        if self._session_id is not None:
+            await self._client.session.unsubscribe(session_id=self._session_id)
+        snapshot = await self._client.session.get(session_id=session_id)
+        self._session_id = session_id
+        self._console.info(f"session {session_id} on channel {self._channel.name}")
+        self._replay(snapshot.items)
+        await self._client.session.subscribe(session_id=session_id)
         self._console.info("subscribed — type a message, /help for commands")
 
     async def _prompt_loop(self) -> None:
@@ -80,7 +103,7 @@ class ChatSession:
             case ["/help" | "/h"]:
                 self._console.info(_HELP)
             case ["/new"]:
-                await self._open(None)
+                await self._create()
             case ["/session"]:
                 self._console.info(str(self._session_id))
             case ["/history"]:

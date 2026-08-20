@@ -6,8 +6,10 @@ from uuid import UUID
 from cli.chat import ChatSession
 from cli.console import Console
 from gateway_client import GatewayClient, GatewayClientError
+from gateway_client.models import SessionChannel
 
 DEFAULT_URL = "ws://127.0.0.1:8000/v1/gateway"
+DEFAULT_CHANNEL = "cli"
 
 
 def main() -> None:
@@ -27,8 +29,9 @@ async def _run(args: argparse.Namespace) -> None:
         console.error(f"cannot reach the gateway: {error}")
         raise SystemExit(1) from error
 
+    channel = SessionChannel(name=args.channel, account_id=args.account)
     async with client:
-        chat = ChatSession(client, console, trace=args.events)
+        chat = ChatSession(client, console, channel, trace=args.events)
         try:
             await chat.run(args.session)
         except GatewayClientError as error:
@@ -43,10 +46,16 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument(
+        "--channel",
+        default=DEFAULT_CHANNEL,
+        help="channel whose current session is opened",
+    )
+    parser.add_argument("--account", default=None, help="account id of the channel")
+    parser.add_argument(
         "--session",
         type=UUID,
         default=None,
-        help="resume an existing session instead of creating one",
+        help="attach to this session instead of the channel's current one",
     )
     parser.add_argument(
         "--events",
