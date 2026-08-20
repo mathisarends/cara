@@ -4,12 +4,15 @@ from dataclasses import dataclass
 from dishka import Provider
 from fastapi import APIRouter, FastAPI
 
+from gateway.presentation.protocol import RpcFeatureDefinition
+
 
 @dataclass(frozen=True, slots=True)
 class Feature:
     name: str
     routers: Sequence[APIRouter] = ()
     providers: Sequence[type[Provider]] = ()
+    protocol: RpcFeatureDefinition | None = None
 
     def install(self, app: FastAPI) -> None:
         for router in self.routers:

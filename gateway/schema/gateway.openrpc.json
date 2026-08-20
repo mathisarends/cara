@@ -1,0 +1,1398 @@
+{
+  "openrpc": "1.3.2",
+  "info": {
+    "title": "Cara Gateway",
+    "version": "1.0.0",
+    "description": "Typed JSON-RPC API over the Cara Gateway WebSocket."
+  },
+  "servers": [
+    {
+      "name": "local",
+      "url": "ws://127.0.0.1:8000/v1/gateway"
+    }
+  ],
+  "methods": [
+    {
+      "name": "session.create",
+      "summary": "Create a conversation session.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "metadata",
+          "required": false,
+          "schema": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/SessionResponse"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/CreateSessionRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/CreateSessionParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "session.get",
+      "summary": "Get a conversation session snapshot.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/SessionSnapshotResponse"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/GetSessionRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "session.subscribe",
+      "summary": "Subscribe this connection to a conversation session.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/SubscriptionResult"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/SubscribeSessionRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "session.unsubscribe",
+      "summary": "Unsubscribe this connection from a conversation session.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/UnsubscriptionResult"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/UnsubscribeSessionRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "turn.start",
+      "summary": "Start an agent turn in a conversation session.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        {
+          "name": "message",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        {
+          "name": "metadata",
+          "required": false,
+          "schema": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/TurnCommandResult"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/StartTurnRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/StartTurnParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32009,
+          "message": "Turn already running"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "turn.cancel",
+      "summary": "Cancel the active turn in a conversation session.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/TurnCommandResult"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/CancelTurnRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "AssistantMessageItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "type": {
+            "const": "assistant_message",
+            "default": "assistant_message",
+            "title": "Type",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "content"
+        ],
+        "title": "AssistantMessageItem",
+        "type": "object"
+      },
+      "CancelTurnRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "method": {
+            "const": "turn.cancel",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "title": "CancelTurnRequest",
+        "type": "object"
+      },
+      "ChatCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "chat.completed",
+            "default": "chat.completed",
+            "title": "Type",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "finish_reason": {
+            "title": "Finish Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "text",
+          "finish_reason"
+        ],
+        "title": "ChatCompleted",
+        "type": "object"
+      },
+      "ChatDelta": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "chat.delta",
+            "default": "chat.delta",
+            "title": "Type",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "text"
+        ],
+        "title": "ChatDelta",
+        "type": "object"
+      },
+      "CreateSessionParams": {
+        "additionalProperties": false,
+        "properties": {
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        },
+        "title": "CreateSessionParams",
+        "type": "object"
+      },
+      "CreateSessionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "method": {
+            "const": "session.create",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/CreateSessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method"
+        ],
+        "title": "CreateSessionRequest",
+        "type": "object"
+      },
+      "GetSessionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "method": {
+            "const": "session.get",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "title": "GetSessionRequest",
+        "type": "object"
+      },
+      "Item": {
+        "discriminator": {
+          "mapping": {
+            "assistant_message": "#/components/schemas/AssistantMessageItem",
+            "tool_call": "#/components/schemas/ToolCallItem",
+            "user_message": "#/components/schemas/UserMessageItem"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/UserMessageItem"
+          },
+          {
+            "$ref": "#/components/schemas/AssistantMessageItem"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCallItem"
+          }
+        ]
+      },
+      "RpcErrorCode": {
+        "enum": [
+          -32700,
+          -32600,
+          -32601,
+          -32602,
+          -32603,
+          -32004,
+          -32009
+        ],
+        "title": "RpcErrorCode",
+        "type": "integer"
+      },
+      "RpcErrorData": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/RpcErrorCode"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "RpcErrorData",
+        "type": "object"
+      },
+      "RpcFailure": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "default": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "error": {
+            "$ref": "#/components/schemas/RpcErrorData"
+          }
+        },
+        "required": [
+          "id",
+          "error"
+        ],
+        "title": "RpcFailure",
+        "type": "object"
+      },
+      "RpcNotification": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "default": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "method": {
+            "default": "session.event",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "title": "Params"
+          }
+        },
+        "required": [
+          "params"
+        ],
+        "title": "RpcNotification",
+        "type": "object"
+      },
+      "RpcSuccess": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "default": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "result": {
+            "title": "Result"
+          }
+        },
+        "required": [
+          "id",
+          "result"
+        ],
+        "title": "RpcSuccess",
+        "type": "object"
+      },
+      "SessionEvent": {
+        "discriminator": {
+          "mapping": {
+            "chat.completed": "#/components/schemas/ChatCompleted",
+            "chat.delta": "#/components/schemas/ChatDelta",
+            "tool_call.completed": "#/components/schemas/ToolCallCompleted",
+            "tool_call.started": "#/components/schemas/ToolCallStarted",
+            "turn.cancelled": "#/components/schemas/TurnCancelled",
+            "turn.completed": "#/components/schemas/TurnCompleted",
+            "turn.failed": "#/components/schemas/TurnFailed",
+            "turn.started": "#/components/schemas/TurnStarted"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TurnStarted"
+          },
+          {
+            "$ref": "#/components/schemas/ChatDelta"
+          },
+          {
+            "$ref": "#/components/schemas/ChatCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCallStarted"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCallCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/TurnCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/TurnCancelled"
+          },
+          {
+            "$ref": "#/components/schemas/TurnFailed"
+          }
+        ]
+      },
+      "SessionParams": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "SessionParams",
+        "type": "object"
+      },
+      "SessionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "created_at"
+        ],
+        "title": "SessionResponse",
+        "type": "object"
+      },
+      "SessionSnapshotResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/SessionResponse"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "turn_active": {
+            "title": "Turn Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "session",
+          "items",
+          "turn_active"
+        ],
+        "title": "SessionSnapshotResponse",
+        "type": "object"
+      },
+      "StartTurnParams": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        },
+        "required": [
+          "session_id",
+          "message"
+        ],
+        "title": "StartTurnParams",
+        "type": "object"
+      },
+      "StartTurnRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "method": {
+            "const": "turn.start",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/StartTurnParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "title": "StartTurnRequest",
+        "type": "object"
+      },
+      "SubscribeSessionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "method": {
+            "const": "session.subscribe",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "title": "SubscribeSessionRequest",
+        "type": "object"
+      },
+      "SubscriptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "subscribed": {
+            "format": "uuid",
+            "title": "Subscribed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscribed"
+        ],
+        "title": "SubscriptionResult",
+        "type": "object"
+      },
+      "ToolCallCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "tool_call.completed",
+            "default": "tool_call.completed",
+            "title": "Type",
+            "type": "string"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "result": {
+            "title": "Result"
+          },
+          "is_error": {
+            "title": "Is Error",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "call_id",
+          "name",
+          "result",
+          "is_error"
+        ],
+        "title": "ToolCallCompleted",
+        "type": "object"
+      },
+      "ToolCallItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "type": {
+            "const": "tool_call",
+            "default": "tool_call",
+            "title": "Type",
+            "type": "string"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ToolCallStatus"
+          },
+          "result": {
+            "default": null,
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "call_id",
+          "name",
+          "arguments",
+          "status"
+        ],
+        "title": "ToolCallItem",
+        "type": "object"
+      },
+      "ToolCallStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "tool_call.started",
+            "default": "tool_call.started",
+            "title": "Type",
+            "type": "string"
+          },
+          "call_id": {
+            "title": "Call Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "call_id",
+          "name",
+          "arguments"
+        ],
+        "title": "ToolCallStarted",
+        "type": "object"
+      },
+      "ToolCallStatus": {
+        "enum": [
+          "pending",
+          "completed",
+          "failed"
+        ],
+        "title": "ToolCallStatus",
+        "type": "string"
+      },
+      "TurnCancelled": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "turn.cancelled",
+            "default": "turn.cancelled",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence"
+        ],
+        "title": "TurnCancelled",
+        "type": "object"
+      },
+      "TurnCommandResult": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "TurnCommandResult",
+        "type": "object"
+      },
+      "TurnCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "turn.completed",
+            "default": "turn.completed",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence"
+        ],
+        "title": "TurnCompleted",
+        "type": "object"
+      },
+      "TurnFailed": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "turn.failed",
+            "default": "turn.failed",
+            "title": "Type",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "code",
+          "message"
+        ],
+        "title": "TurnFailed",
+        "type": "object"
+      },
+      "TurnStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "turn.started",
+            "default": "turn.started",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence"
+        ],
+        "title": "TurnStarted",
+        "type": "object"
+      },
+      "UnsubscribeSessionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "method": {
+            "const": "session.unsubscribe",
+            "title": "Method",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "title": "UnsubscribeSessionRequest",
+        "type": "object"
+      },
+      "UnsubscriptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "unsubscribed": {
+            "format": "uuid",
+            "title": "Unsubscribed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unsubscribed"
+        ],
+        "title": "UnsubscriptionResult",
+        "type": "object"
+      },
+      "UserMessageItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "type": {
+            "const": "user_message",
+            "default": "user_message",
+            "title": "Type",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "content"
+        ],
+        "title": "UserMessageItem",
+        "type": "object"
+      }
+    }
+  },
+  "x-cara-protocol-version": 1,
+  "x-cara-notifications": [
+    {
+      "name": "session.event",
+      "summary": "Publish a subscribed conversation session event.",
+      "payload": {
+        "$ref": "#/components/schemas/SessionEvent"
+      }
+    }
+  ]
+}

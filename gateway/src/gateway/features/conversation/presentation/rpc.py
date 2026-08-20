@@ -1,10 +1,9 @@
 from enum import IntEnum, StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import Field, TypeAdapter
 
-from gateway.features.conversation.presentation.events import SessionEvent
 from gateway.features.conversation.presentation.schemas import (
     SessionResponse,
     SessionSnapshotResponse,
@@ -136,7 +135,7 @@ class RpcErrorData(RpcSchema):
 class RpcSuccess(RpcSchema):
     jsonrpc: Literal["2.0"] = "2.0"
     id: str | int | None
-    result: RpcResult
+    result: Any
 
 
 class RpcFailure(RpcSchema):
@@ -147,7 +146,5 @@ class RpcFailure(RpcSchema):
 
 class RpcNotification(RpcSchema):
     jsonrpc: Literal["2.0"] = "2.0"
-    method: Literal[RpcNotificationMethod.SESSION_EVENT] = (
-        RpcNotificationMethod.SESSION_EVENT
-    )
-    params: SessionEvent
+    method: str = RpcNotificationMethod.SESSION_EVENT
+    params: Any

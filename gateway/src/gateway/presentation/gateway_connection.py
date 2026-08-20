@@ -1,15 +1,12 @@
 import asyncio
-from uuid import uuid4
 
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from gateway.features.conversation.application import ConversationService, EventBroker
+from gateway.features.conversation.application import EventBroker
 from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
 from gateway.features.conversation.presentation.mapping import session_event
 from gateway.features.conversation.presentation.rpc import (
-    CONVERSATION_REQUEST_ADAPTER,
-    ConversationRequest,
     RpcErrorCode,
     RpcErrorData,
     RpcFailure,
@@ -17,9 +14,11 @@ from gateway.features.conversation.presentation.rpc import (
     RpcSchema,
     RpcSuccess,
 )
-from gateway.features.conversation.presentation.rpc_methods import (
-    ConversationRpcMethods,
+from gateway.presentation.protocol import (
+    RpcInvalidRequestError,
+    RpcMethodNotFoundError,
 )
+from gateway.presentation.rpc_methods import GatewayRpcMethods
 
 
 class _GatewayProtocolError(Exception):
@@ -35,16 +34,15 @@ class GatewayConnection:
     def __init__(
         self,
         socket: WebSocket,
-        service: ConversationService,
         broker: EventBroker,
+        client_id: str,
+        methods: GatewayRpcMethods,
     ) -> None:
         self._socket = socket
         self._broker = broker
-        self._client_id = str(uuid4())
-        self._receiver = broker.connect(self._client_id)
-        self._conversation_methods = ConversationRpcMethods(
-            service, broker, self._client_id
-        )
+        self._client_id = client_id
+        self._receiver = broker.connect(client_id)
+        self._methods = methods
         self._send_lock = asyncio.Lock()
 
     async def run(self) -> None:
@@ -72,8 +70,8 @@ class GatewayConnection:
     async def _handle(self, raw_request: object) -> None:
         request_id = _request_id(raw_request)
         try:
-            request = _parse_request(raw_request)
-            result = await self._conversation_methods.execute(request)
+            request = self._methods.parse_request(raw_request)
+            result = await self._methods.execute(request)
         except Exception as error:
             failure = _protocol_error(error)
             await self._send_error(request_id, failure.code, failure.message)
@@ -98,17 +96,8 @@ class GatewayConnection:
             await self._socket.send_json(message.model_dump(mode="json"))
 
 
-def _parse_request(raw_request: object) -> ConversationRequest:
-    try:
-        return CONVERSATION_REQUEST_ADAPTER.validate_python(raw_request)
-    except ValidationError as error:
-        raise _request_error(error) from error
-
-
 def _request_error(error: ValidationError) -> _GatewayProtocolError:
     issue = error.errors(include_url=False)[0]
-    if issue["type"] == "union_tag_invalid":
-        return _GatewayProtocolError(RpcErrorCode.METHOD_NOT_FOUND, "Method not found")
     if "params" in issue["loc"]:
         location = ".".join(str(part) for part in issue["loc"])
         message = f"Invalid params at {location}: {issue['msg']}"
@@ -119,6 +108,12 @@ def _request_error(error: ValidationError) -> _GatewayProtocolError:
 def _protocol_error(error: Exception) -> _GatewayProtocolError:
     if isinstance(error, _GatewayProtocolError):
         return error
+    if isinstance(error, RpcMethodNotFoundError):
+        return _GatewayProtocolError(RpcErrorCode.METHOD_NOT_FOUND, "Method not found")
+    if isinstance(error, RpcInvalidRequestError):
+        return _GatewayProtocolError(RpcErrorCode.INVALID_REQUEST, "Invalid Request")
+    if isinstance(error, ValidationError):
+        return _request_error(error)
     if isinstance(error, SessionNotFoundError):
         return _GatewayProtocolError(
             RpcErrorCode.RESOURCE_NOT_FOUND, f"Not found: {error}"
