@@ -1,7 +1,6 @@
-from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import selectinload
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, select
 
 from gateway.infrastructure.database import (
     SessionAssistantMessageModel,
@@ -12,18 +11,7 @@ from gateway.infrastructure.database import (
 )
 
 
-def _enable_sqlite_foreign_keys(engine: Engine) -> None:
-    @event.listens_for(engine, "connect")
-    def enable_foreign_keys(dbapi_connection, _) -> None:
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-
-def test_session_entries_and_tool_calls_are_ordered() -> None:
-    engine = create_engine("sqlite://")
-    _enable_sqlite_foreign_keys(engine)
-    SQLModel.metadata.create_all(engine)
+def test_session_entries_and_tool_calls_are_ordered(sqlite_engine: Engine) -> None:
     model = SessionModel(
         user_messages=[
             SessionUserMessageModel(position=2, content="Second"),
@@ -57,7 +45,7 @@ def test_session_entries_and_tool_calls_are_ordered() -> None:
         ],
     )
 
-    with Session(engine) as database:
+    with Session(sqlite_engine) as database:
         database.add(model)
         database.commit()
         statement = select(SessionModel).options(
@@ -77,10 +65,9 @@ def test_session_entries_and_tool_calls_are_ordered() -> None:
         assert restored.tool_call_sequences[0].calls[1].result == {"temperature": 21}
 
 
-def test_deleting_session_cascades_to_its_context_entries() -> None:
-    engine = create_engine("sqlite://")
-    _enable_sqlite_foreign_keys(engine)
-    SQLModel.metadata.create_all(engine)
+def test_deleting_session_cascades_to_its_context_entries(
+    sqlite_engine: Engine,
+) -> None:
     model = SessionModel(
         user_messages=[SessionUserMessageModel(position=0, content="Hello")],
         tool_call_sequences=[
@@ -99,7 +86,7 @@ def test_deleting_session_cascades_to_its_context_entries() -> None:
         ],
     )
 
-    with Session(engine) as database:
+    with Session(sqlite_engine) as database:
         database.add(model)
         database.commit()
         database.delete(model)
