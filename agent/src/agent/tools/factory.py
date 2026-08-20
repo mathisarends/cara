@@ -3,8 +3,6 @@ from pathlib import Path
 
 import agenttoolkit
 from agenttoolkit import (
-    CallLoggingMiddleware,
-    ErrorBoundaryMiddleware,
     Skills,
     ToolContext,
 )
@@ -20,6 +18,7 @@ from agenttoolkit.builtins import (
 from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools.actions import register_tools
 from agent.tools.handler import IpLocationLookup, OpenMeteoWeather, TavilyWebSearch
+from agent.tools.middleware import ToolResultMiddleware
 
 
 class AgentTools(agenttoolkit.Tools):
@@ -28,7 +27,7 @@ class AgentTools(agenttoolkit.Tools):
     def __init__(self, context: ToolContext) -> None:
         super().__init__(
             context=context,
-            middleware=(CallLoggingMiddleware(), ErrorBoundaryMiddleware()),
+            middleware=(ToolResultMiddleware(),),
         )
         self._sandbox = context.resolve(DockerSandbox)
 

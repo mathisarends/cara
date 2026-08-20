@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from pathlib import Path
 
 import pytest
@@ -144,6 +145,110 @@ def test_shell_tool_delegates_to_agenttoolkit_sandbox(
 
     assert result == "hello from sandbox"
     assert sandbox.command == "printf hello"
+
+
+def test_expected_shell_failure_logs_one_warning_without_traceback(
+    tmp_path: Path, caplog, make_tool_context, make_tools
+) -> None:
+    class FailingSandbox:
+        policy = SandboxPolicy.for_workspace(tmp_path)
+
+        async def execute(self, command: str, **kwargs) -> CommandResult:
+            return CommandResult(
+                command=command,
+                returncode=1,
+                stdout="",
+                stderr="no speakers found\n",
+                duration_seconds=0.01,
+            )
+
+    context = make_tool_context(
+        workspace=LocalWorkspace(tmp_path), runner=FailingSandbox()
+    )
+    tools = make_tools(context)
+
+    with caplog.at_level(logging.INFO, logger="agent.tools.middleware"):
+        result = asyncio.run(tools.execute("shell", {"command": "sonos group solo"}))
+
+    records = [
+        record for record in caplog.records if record.name == "agent.tools.middleware"
+    ]
+    assert result.endswith("no speakers found")
+    assert len(records) == 1
+    assert records[0].levelno == logging.WARNING
+    assert "shell failed" in records[0].getMessage()
+    assert "finished" not in records[0].getMessage()
+    assert not records[0].exc_info
+
+
+def test_invalid_tool_input_is_returned_and_logged_on_one_line(caplog) -> None:
+    tools = build_tools()
+
+    with caplog.at_level(logging.INFO, logger="agent.tools.middleware"):
+        result = asyncio.run(
+            tools.execute(
+                "shell",
+                {"command": "sonos search spotify", "max_results": 5},
+            )
+        )
+
+    records = [
+        record for record in caplog.records if record.name == "agent.tools.middleware"
+    ]
+    assert result.startswith("Tool failed: 1 validation error for ShellParams")
+    assert len(records) == 1
+    assert records[0].levelno == logging.WARNING
+    assert "Extra inputs are not permitted" in records[0].getMessage()
+    assert "\n" not in records[0].getMessage()
+    assert not records[0].exc_info
+
+
+def test_unexpected_tool_exception_is_logged_and_propagated(caplog) -> None:
+    additional_tools = Tools()
+
+    @additional_tools.action(description="Crash unexpectedly.")
+    def explode() -> str:
+        raise RuntimeError("broken implementation")
+
+    tools = build_tools(additional_tools=additional_tools)
+
+    with (
+        caplog.at_level(logging.INFO, logger="agent.tools.middleware"),
+        pytest.raises(RuntimeError, match="broken implementation"),
+    ):
+        asyncio.run(tools.execute("explode"))
+
+    records = [
+        record for record in caplog.records if record.name == "agent.tools.middleware"
+    ]
+    assert len(records) == 1
+    assert records[0].levelno == logging.ERROR
+    assert "explode crashed" in records[0].getMessage()
+    assert records[0].exc_info is not None
+
+
+def test_successful_tool_output_is_truncated_on_debug(caplog) -> None:
+    additional_tools = Tools()
+
+    @additional_tools.action(description="Return a long result.")
+    def long_result() -> str:
+        return "x" * 400
+
+    tools = build_tools(additional_tools=additional_tools)
+
+    with caplog.at_level(logging.DEBUG, logger="agent.tools.middleware"):
+        result = asyncio.run(tools.execute("long_result"))
+
+    output_record = next(
+        record
+        for record in caplog.records
+        if record.name == "agent.tools.middleware"
+        and " output: " in record.getMessage()
+    )
+    message = output_record.getMessage()
+    assert result == "x" * 400
+    assert "x" * 300 in message
+    assert "x" * 301 not in message
 
 
 def test_agent_tools_prepare_and_close_default_docker_sandbox(

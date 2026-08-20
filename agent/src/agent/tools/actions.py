@@ -10,6 +10,7 @@ from agent.tools.handler import (
     WeatherReport,
     WebSearch,
 )
+from agent.tools.middleware import ToolError
 from agent.tools.params import (
     EditFileParams,
     GlobParams,
@@ -37,7 +38,10 @@ def register_tools(tools: Tools) -> None:
         available_when=requires(Skills, predicate=lambda skills: len(skills) > 0),
     )
     async def load_skill(params: LoadSkillParams, skills: Inject[Skills]) -> str:
-        loaded = skills.load(params.name)
+        try:
+            loaded = skills.load(params.name)
+        except ValueError as error:
+            raise ToolError(str(error)) from None
         return loaded.instructions
 
     @tools.action(

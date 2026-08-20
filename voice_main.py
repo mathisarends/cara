@@ -20,6 +20,7 @@ from voice.audio.output.sonos import SonosOutput
 from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 
 load_dotenv(override=True)
