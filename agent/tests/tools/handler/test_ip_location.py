@@ -3,7 +3,7 @@ import asyncio
 import httpx
 import pytest
 
-from agent.tools.handler import IpLocationClient, Location
+from agent.tools.handler import IpLocationLookup, Location
 
 _RESPONSE = {
     "success": True,
@@ -14,8 +14,8 @@ _RESPONSE = {
 }
 
 
-def _client(handler) -> IpLocationClient:
-    return IpLocationClient(transport=httpx.MockTransport(handler))
+def _client(handler) -> IpLocationLookup:
+    return IpLocationLookup(transport=httpx.MockTransport(handler))
 
 
 def test_current_returns_location_for_the_public_ip() -> None:

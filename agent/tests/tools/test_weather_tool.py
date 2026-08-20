@@ -3,11 +3,11 @@ from datetime import datetime
 
 from agent.tools import create_tool_context, create_tools
 from agent.tools.actions import _render_weather_report
-from agent.tools.handler import IpLocationClient
+from agent.tools.handler import LocationLookup
 from agent.tools.handler.weather import (
     HourlyForecast,
     Location,
-    OpenMeteoClient,
+    Weather,
     WeatherReport,
 )
 
@@ -27,9 +27,8 @@ def _report(name: str) -> WeatherReport:
     )
 
 
-class _StubClient(OpenMeteoClient):
+class _StubClient(Weather):
     def __init__(self, *, locations: dict[str, Location] | None = None) -> None:
-        super().__init__()
         self.current_calls: list[Location] = []
         self.locate_calls: list[str] = []
         self._locations = locations or {}
@@ -43,9 +42,8 @@ class _StubClient(OpenMeteoClient):
         return self._locations.get(query)
 
 
-class _StubLocationClient(IpLocationClient):
+class _StubLocationClient(LocationLookup):
     def __init__(self, location: Location) -> None:
-        super().__init__()
         self._location = location
         self.calls = 0
 
@@ -54,7 +52,7 @@ class _StubLocationClient(IpLocationClient):
         return self._location
 
 
-def _tools(client: OpenMeteoClient, location_client: IpLocationClient):
+def _tools(client: Weather, location_client: LocationLookup):
     return create_tools(create_tool_context(client, location_client))
 
 

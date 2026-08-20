@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -42,7 +44,12 @@ class SearchResponse(BaseModel):
         return "\n\n".join(parts)
 
 
-class TavilySearchClient:
+class WebSearch(ABC):
+    @abstractmethod
+    async def search(self, query: str, *, max_results: int = 5) -> SearchResponse: ...
+
+
+class TavilyWebSearch(WebSearch):
     """Web search via the Tavily API.
 
     Credentials are resolved lazily on the first search, not at construction,

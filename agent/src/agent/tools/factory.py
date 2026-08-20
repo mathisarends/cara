@@ -12,7 +12,7 @@ from agenttoolkit.builtins import DockerSandbox, Workspace
 from agent.sandbox import SandboxConfig
 from agent.tools.actions import register_tools
 from agent.tools.context import create_tool_context
-from agent.tools.handler import IpLocationClient, OpenMeteoClient, TavilySearchClient
+from agent.tools.handler import IpLocationLookup, OpenMeteoWeather, TavilyWebSearch
 
 
 class AgentTools(agenttoolkit.Tools):
@@ -51,9 +51,9 @@ def build_tools(
 ) -> AgentTools:
     tool_context = create_tool_context(
         *injected_dependencies,
-        IpLocationClient(),
-        OpenMeteoClient(),
-        TavilySearchClient(),
+        IpLocationLookup(),
+        OpenMeteoWeather(),
+        TavilyWebSearch(),
         skills,
         workspace=workspace,
         sandbox=sandbox,

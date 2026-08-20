@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
 
@@ -86,7 +87,15 @@ class WeatherReport(BaseModel):
         return _with_weather_description(data)
 
 
-class OpenMeteoClient:
+class Weather(ABC):
+    @abstractmethod
+    async def locate(self, query: str) -> Location | None: ...
+
+    @abstractmethod
+    async def current(self, location: Location) -> WeatherReport: ...
+
+
+class OpenMeteoWeather(Weather):
     """Current weather and place lookup via the keyless Open-Meteo APIs."""
 
     def __init__(

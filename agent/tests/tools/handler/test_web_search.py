@@ -5,7 +5,7 @@ import httpx
 from agent.tools.handler.web_search import (
     SearchResponse,
     TavilyCredentials,
-    TavilySearchClient,
+    TavilyWebSearch,
 )
 
 _RESULTS = {
@@ -22,11 +22,11 @@ _RESULTS = {
 }
 
 
-def _client(payload: dict) -> TavilySearchClient:
+def _client(payload: dict) -> TavilyWebSearch:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=payload)
 
-    return TavilySearchClient(
+    return TavilyWebSearch(
         credentials=TavilyCredentials(api_key="test-key"),
         client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )

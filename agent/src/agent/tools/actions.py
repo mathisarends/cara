@@ -5,10 +5,10 @@ from agenttoolkit.builtins import CommandRunner, Workspace
 from agenttoolkit.builtins.fs import Entry
 
 from agent.tools.handler import (
-    IpLocationClient,
-    OpenMeteoClient,
-    TavilySearchClient,
+    LocationLookup,
+    Weather,
     WeatherReport,
+    WebSearch,
 )
 from agent.tools.params import (
     EditFileParams,
@@ -50,26 +50,24 @@ def register_tools(tools: Tools) -> None:
     )
     async def weather_report(
         params: WeatherParams,
-        location_client: Inject[IpLocationClient],
-        client: Inject[OpenMeteoClient],
+        location_client: Inject[LocationLookup],
+        weather_client: Inject[Weather],
     ) -> str:
         if params.location:
-            location = await client.locate(params.location)
+            location = await weather_client.locate(params.location)
             if location is None:
                 return f"Kein Ort namens '{params.location}' gefunden."
         else:
             location = await location_client.current()
-        report = await client.current(location)
+        report = await weather_client.current(location)
         return _render_weather_report(report)
 
     @tools.action(
         description=("Search the web for current information, news, or facts."),
         params=WebSearchParams,
     )
-    async def web_search(
-        params: WebSearchParams, client: Inject[TavilySearchClient]
-    ) -> str:
-        response = await client.search(params.query, max_results=params.max_results)
+    async def web_search(params: WebSearchParams, websearch: Inject[WebSearch]) -> str:
+        response = await websearch.search(params.query, max_results=params.max_results)
         return response.summary()
 
     @tools.action(

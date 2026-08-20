@@ -3,7 +3,7 @@ import json
 
 import httpx
 
-from agent.tools.handler.weather import Location, OpenMeteoClient, WeatherReport
+from agent.tools.handler.weather import Location, OpenMeteoWeather, WeatherReport
 
 _BERLIN = Location(
     name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin"
@@ -40,11 +40,11 @@ _GEOCODING = {
 }
 
 
-def _client(routes: dict[str, dict]) -> OpenMeteoClient:
+def _client(routes: dict[str, dict]) -> OpenMeteoWeather:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=routes[request.url.path])
 
-    return OpenMeteoClient(transport=httpx.MockTransport(handler))
+    return OpenMeteoWeather(transport=httpx.MockTransport(handler))
 
 
 def test_report_parses_forecast_payload_via_model_validate() -> None:
@@ -107,7 +107,7 @@ def test_forecast_request_carries_location_coordinates() -> None:
         captured.update(request.url.params)
         return httpx.Response(200, content=json.dumps(_FORECAST))
 
-    client = OpenMeteoClient(transport=httpx.MockTransport(handler))
+    client = OpenMeteoWeather(transport=httpx.MockTransport(handler))
     asyncio.run(client.current(_BERLIN))
 
     assert captured["latitude"] == "52.52"

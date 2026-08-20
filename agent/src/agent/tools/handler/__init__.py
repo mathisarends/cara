@@ -1,13 +1,16 @@
-from .ip_location import IpLocationClient
-from .weather import Location, OpenMeteoClient, WeatherReport
-from .web_search import SearchResponse, SearchResult, TavilySearchClient
+from .ip_location import IpLocationLookup, LocationLookup
+from .weather import Location, OpenMeteoWeather, Weather, WeatherReport
+from .web_search import SearchResponse, SearchResult, TavilyWebSearch, WebSearch
 
 __all__ = [
-    "IpLocationClient",
+    "IpLocationLookup",
     "Location",
-    "OpenMeteoClient",
+    "LocationLookup",
+    "OpenMeteoWeather",
     "SearchResponse",
     "SearchResult",
-    "TavilySearchClient",
+    "TavilyWebSearch",
+    "Weather",
     "WeatherReport",
+    "WebSearch",
 ]

@@ -4,11 +4,11 @@ from agent.tools import create_tool_context, create_tools
 from agent.tools.handler.web_search import (
     SearchResponse,
     SearchResult,
-    TavilySearchClient,
+    WebSearch,
 )
 
 
-class _StubClient(TavilySearchClient):
+class _StubClient(WebSearch):
     def __init__(self, response: SearchResponse) -> None:
         self._response = response
         self.queries: list[tuple[str, int]] = []
@@ -18,7 +18,7 @@ class _StubClient(TavilySearchClient):
         return self._response
 
 
-def _tools(client: TavilySearchClient):
+def _tools(client: WebSearch):
     return create_tools(create_tool_context(client))
 
 
