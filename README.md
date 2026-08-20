@@ -12,8 +12,27 @@ pipeline:
 
 ## Run
 
-Start the gateway, set `OPENAI_API_KEY`, connect a microphone and speakers, then run
-the voice client:
+The gateway runs directly on the host; Docker is not part of its runtime. Set
+`OPENAI_API_KEY`, then start it from Git Bash (or WSL/macOS/Linux):
+
+```bash
+bash scripts/start_gateway.sh
+```
+
+The script applies Alembic migrations and starts the server on
+`127.0.0.1:8000`. The equivalent explicit commands are:
+
+```powershell
+uv run gateway-migrate
+uv run cara-gateway
+```
+
+Clients connect to `ws://127.0.0.1:8000/v1/conversation`. Commands, correlated
+responses, and subscribed events use one JSON-RPC 2.0 WebSocket. The shared
+Python contracts and typed client live in the `agent-protocol` workspace
+package; the wire schema is served at `GET /v1/conversation/schema`.
+
+Connect a microphone and speakers, then run the voice client:
 
 ```powershell
 uv run python voice_main.py

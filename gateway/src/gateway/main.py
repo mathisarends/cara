@@ -21,10 +21,10 @@ logging.basicConfig(
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Cara Gateway API",
-        summary="Session-based gateway for Cara clients.",
+        summary="JSON-RPC conversation gateway for Cara clients.",
         description=(
-            "Create and inspect sessions through HTTP. Send commands and receive "
-            "turn, chat, and tool-call events through the versioned WebSocket API."
+            "Commands, responses, and live events share one typed, long-lived "
+            "WebSocket connection at /v1/conversation."
         ),
         version="0.1.0",
         lifespan=lifespan,
@@ -48,5 +48,9 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
+def main() -> None:
+    uvicorn.run("gateway.main:app", host="127.0.0.1", port=8000, reload=False)
+
+
 if __name__ == "__main__":
-    uvicorn.run("gateway.main:app", reload=True)
+    main()

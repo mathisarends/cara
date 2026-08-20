@@ -35,6 +35,9 @@ class InMemoryEventBroker(EventBroker):
     def subscribe(self, client_id: str, session_id: UUID) -> None:
         self._subscriptions[session_id].add(client_id)
 
+    def unsubscribe(self, client_id: str, session_id: UUID) -> None:
+        self._subscriptions[session_id].discard(client_id)
+
     async def publish(self, event: GatewayEvent) -> None:
         if event.session_id is None:
             return

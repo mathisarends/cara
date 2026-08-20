@@ -1,47 +1,12 @@
 name: cara
 
-# Optional, for running the gateway in isolation. `scripts/start_gateway.sh` is the
-# supported way to run it: the agent's `bash` tool sandboxes commands in a sibling
-# Docker container, which it cannot reach from in here, so turns that shell out fail.
-#
-# Note: a service that sets `volumes` replaces this list rather than extending it,
-# so each service below spells out every mount it needs.
-x-gateway: &gateway
-  build:
-    context: .
-    dockerfile: docker/gateway.Dockerfile
-  environment:
-    # Host paths from .env are mounted below; processes inside the container use
-    # the corresponding container path.
-    CARA_WORKSPACE_ROOT: /root/.cara/workspace
-    DATABASE_URL: sqlite+aiosqlite:////app/data/gateway.sqlite3
-  env_file:
-    - path: .env
-      required: false
-
+# The gateway runs on the host via `scripts/start_gateway.sh`. Docker is only
+# used here for the optional SQLite browser.
 services:
-  # Runs to completion before the gateway starts. Alembic brings up its own event
-  # loop, so it must never share a process with the server.
-  migrate:
-    <<: *gateway
-    command: ["gateway-migrate"]
-    volumes:
-      - gateway-data:/app/data
-
-  gateway:
-    <<: *gateway
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
+  sqlite-web:
+    image: ghcr.io/coleifer/sqlite-web:latest
+    command: ["gateway.sqlite3"]
     ports:
-      - "8000:8000"
+      - "8080:8080"
     volumes:
-      - gateway-data:/app/data
-      # The agent authenticates with the host's Codex CLI credentials instead of
-      # requiring a `codex login` of its own inside the container.
-      - ~/.codex:/root/.codex:ro
-      # `cara onboard` creates the configured persistent workspace on the host.
-      - ${CARA_WORKSPACE_ROOT:-~/.cara/workspace}:/root/.cara/workspace
-
-volumes:
-  gateway-data:
+      - ./gateway.sqlite3:/data/gateway.sqlite3

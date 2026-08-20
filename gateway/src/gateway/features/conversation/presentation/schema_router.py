@@ -1,34 +1,44 @@
 from typing import Any
 
 from fastapi import APIRouter, FastAPI
+from fastapi.responses import JSONResponse
+from pydantic import TypeAdapter
 
-from gateway.features.conversation.presentation.schemas import event_adapter
+from agent_protocol.rpc import (
+    CONVERSATION_PROTOCOL_ADAPTER,
+    CONVERSATION_REQUEST_ADAPTER,
+    CONVERSATION_SERVER_MESSAGE_ADAPTER,
+)
 
-schema_router = APIRouter(prefix="/v1/schemas", tags=["events"])
+schema_router = APIRouter(tags=["conversation schema"])
 
 
 @schema_router.get(
-    "/events",
-    operation_id="get_event_schema",
-    response_model=dict[str, Any],
-    summary="Get the WebSocket event schema",
+    "/v1/conversation/schema",
+    response_class=JSONResponse,
+    summary="Conversation WebSocket JSON Schema",
 )
-async def get_event_schema() -> dict[str, Any]:
-    return event_adapter.json_schema()
+async def conversation_schema() -> JSONResponse:
+    return JSONResponse(
+        CONVERSATION_PROTOCOL_ADAPTER.json_schema(mode="serialization"),
+        media_type="application/schema+json",
+    )
 
 
-def install_event_openapi(app: FastAPI) -> None:
-    original_openapi = app.openapi
+def install_protocol_openapi(app: FastAPI) -> None:
+    document = app.openapi()
+    schemas = document.setdefault("components", {}).setdefault("schemas", {})
+    _add_schema(schemas, "ConversationRequest", CONVERSATION_REQUEST_ADAPTER)
+    _add_schema(
+        schemas, "ConversationServerMessage", CONVERSATION_SERVER_MESSAGE_ADAPTER
+    )
 
-    def openapi() -> dict[str, Any]:
-        document = original_openapi()
-        event_schema = event_adapter.json_schema(
-            ref_template="#/components/schemas/{model}"
-        )
-        definitions = event_schema.pop("$defs", {})
-        schemas = document.setdefault("components", {}).setdefault("schemas", {})
-        schemas.update(definitions)
-        schemas["GatewayEventMessage"] = event_schema
-        return document
 
-    app.openapi = openapi
+def _add_schema(
+    components: dict[str, Any], name: str, adapter: TypeAdapter[Any]
+) -> None:
+    schema = adapter.json_schema(
+        mode="serialization", ref_template="#/components/schemas/{model}"
+    )
+    components.update(schema.pop("$defs", {}))
+    components[name] = schema

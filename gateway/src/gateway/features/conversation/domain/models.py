@@ -6,11 +6,14 @@ from uuid import UUID, uuid4
 
 
 class GatewayEventType(StrEnum):
+    TURN_STARTED = "turn.started"
     CHAT_DELTA = "chat.delta"
     CHAT_COMPLETED = "chat.completed"
     TOOL_CALL_STARTED = "tool_call.started"
     TOOL_CALL_COMPLETED = "tool_call.completed"
     TURN_FAILED = "turn.failed"
+    TURN_COMPLETED = "turn.completed"
+    TURN_CANCELLED = "turn.cancelled"
 
 
 @dataclass(frozen=True, slots=True)

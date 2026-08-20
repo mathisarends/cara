@@ -14,9 +14,9 @@ if [[ "${CARA_RELOAD:-0}" == "1" ]]; then
     echo "CARA_RELOAD=1: hot reload on, the agent's bash tool will not work." >&2
     exec uv run uvicorn gateway.main:app --reload \
         --reload-dir gateway/src \
-        --reload-dir cara/src \
+        --reload-dir agent/src \
         --reload-dir llm/src \
         "$@"
 fi
 
-exec uv run uvicorn gateway.main:app "$@"
+exec uv run cara-gateway

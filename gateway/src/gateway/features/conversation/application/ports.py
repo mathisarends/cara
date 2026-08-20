@@ -27,6 +27,9 @@ class EventBroker(EventPublisher):
     @abstractmethod
     def subscribe(self, client_id: str, session_id: UUID) -> None: ...
 
+    @abstractmethod
+    def unsubscribe(self, client_id: str, session_id: UUID) -> None: ...
+
 
 class AgentRunner(ABC):
     @abstractmethod

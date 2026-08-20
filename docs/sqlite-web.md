@@ -1,22 +1,14 @@
 # SQLite-Datenbank im Browser ansehen
 
-Für die lokale Entwicklung startet Docker Compose `sqlite-web` zusammen mit den
-anderen Diensten:
-
-```powershell
-docker compose up -d
-```
-
-Danach ist die Datenbankoberfläche unter <http://localhost:8080> erreichbar.
-Eine Anmeldung ist nicht nötig: `sqlite-web` öffnet automatisch die Datei
-`gateway.sqlite3` aus dem gemeinsamen Docker-Volume.
-
-Über die Oberfläche lassen sich Tabellen und Inhalte ansehen, SQL-Abfragen
-ausführen sowie Ergebnisse als CSV oder JSON exportieren. Änderungen wirken
-direkt auf die lokale Anwendungsdatenbank.
-
-Falls nur die Datenbankoberfläche nachgestartet werden soll:
+Das Gateway läuft auf dem Host und schreibt standardmäßig nach
+`./gateway.sqlite3`. Optional kann nur die Datenbankoberfläche in Docker
+gestartet werden:
 
 ```powershell
 docker compose up -d sqlite-web
 ```
+
+Danach ist `sqlite-web` unter <http://localhost:8080> erreichbar. Der Container
+bindet dieselbe lokale `gateway.sqlite3` ein, die auch das Host-Gateway nutzt.
+Änderungen über die Oberfläche wirken daher direkt auf die lokale
+Anwendungsdatenbank.

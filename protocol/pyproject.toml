@@ -1,17 +1,11 @@
 [project]
-name = "gateway-client"
+name = "agent-protocol"
 version = "0.1.0"
-description = "Typed async client for the Cara Gateway HTTP and WebSocket API."
+description = "Canonical wire contracts and client for the Cara gateway."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "httpx>=0.28.0",
     "pydantic>=2.7.0",
     "websockets>=14.0",
-]
-
-[dependency-groups]
-dev = [
-    "pytest>=8.0.0",
 ]
 
 [build-system]
@@ -19,7 +13,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/gateway_client"]
+packages = ["src/agent_protocol"]
 
 [tool.ruff]
 extend = "../pyproject.toml"

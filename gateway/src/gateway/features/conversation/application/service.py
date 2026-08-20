@@ -30,7 +30,7 @@ class ConversationService:
         self._sessions = sessions
         self._events = events
         self._agent = agent
-        self._background_tasks: set[asyncio.Task[None]] = set()
+        self._background_tasks: dict[UUID, asyncio.Task[None]] = {}
 
     async def create_session(self, metadata: dict[str, Any]) -> Session:
         session = Session.create(metadata)
@@ -52,15 +52,28 @@ class ConversationService:
         if not await self._sessions.claim_turn(session_id):
             raise SessionBusyError(session_id)
         task = asyncio.create_task(self._execute(session_id, text, metadata))
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
+        self._background_tasks[session_id] = task
+        task.add_done_callback(
+            lambda completed, key=session_id: self._discard_task(key, completed)
+        )
+
+    async def cancel_turn(self, session_id: UUID) -> None:
+        await self.get_session(session_id)
+        task = self._background_tasks.get(session_id)
+        if task is None or task.done():
+            raise ValueError(f"Session {session_id} has no active turn")
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await self._sessions.release_turn(session_id)
 
     async def close(self) -> None:
-        tasks = tuple(self._background_tasks)
-        for task in tasks:
+        tasks = tuple(self._background_tasks.items())
+        for _, task in tasks:
             task.cancel()
         if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            await asyncio.gather(*(task for _, task in tasks), return_exceptions=True)
+            for session_id, _ in tasks:
+                await self._sessions.release_turn(session_id)
 
     async def _execute(
         self,
@@ -79,13 +92,37 @@ class ConversationService:
                 session,
                 self._sessions,
                 self._events,
-                0,
+                1,
             )
             event_router.bind(event_bus)
+            await self._events.publish(
+                GatewayEvent(
+                    type=GatewayEventType.TURN_STARTED,
+                    session_id=session_id,
+                    sequence=1,
+                    data={},
+                )
+            )
             await self._agent.run(session.id, metadata, event_bus)
+            await self._events.publish(
+                GatewayEvent(
+                    type=GatewayEventType.TURN_COMPLETED,
+                    session_id=session_id,
+                    sequence=event_router.sequence + 1,
+                    data={},
+                )
+            )
         except asyncio.CancelledError:
             current_session = event_router.session if event_router else session
             await self._fail_pending_tool_calls(current_session, "Turn cancelled")
+            await self._events.publish(
+                GatewayEvent(
+                    type=GatewayEventType.TURN_CANCELLED,
+                    session_id=session_id,
+                    sequence=event_router.sequence + 1 if event_router else 1,
+                    data={},
+                )
+            )
         except Exception as error:
             logger.exception(
                 "Conversation turn failed for session %s",
@@ -96,6 +133,10 @@ class ConversationService:
             await self._publish_turn_failed(session_id, event_router, error)
         finally:
             await self._sessions.release_turn(session_id)
+
+    def _discard_task(self, session_id: UUID, completed: asyncio.Task[None]) -> None:
+        if self._background_tasks.get(session_id) is completed:
+            self._background_tasks.pop(session_id, None)
 
     async def _publish_turn_failed(
         self,

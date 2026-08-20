@@ -51,8 +51,11 @@ async def _assert_failed_turn_is_published() -> None:
     await _wait_for_event(publisher)
     await service.close()
 
-    assert [event.type for event in publisher.events] == [GatewayEventType.TURN_FAILED]
-    failure = publisher.events[0]
+    assert [event.type for event in publisher.events] == [
+        GatewayEventType.TURN_STARTED,
+        GatewayEventType.TURN_FAILED,
+    ]
+    failure = publisher.events[1]
     assert failure.session_id == session.id
     # NotImplementedError carries no message, so the type name stands in for it.
     assert failure.data == {
