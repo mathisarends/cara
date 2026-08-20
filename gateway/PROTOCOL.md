@@ -1,14 +1,14 @@
-# Cara conversation protocol
+# Cara gateway protocol
 
 Cara exposes one long-lived JSON-RPC 2.0 WebSocket:
 
 ```text
-ws://127.0.0.1:8000/v1/conversation
+ws://127.0.0.1:8000/v1/gateway
 ```
 
 Commands, correlated responses, and subscribed session events share that
-connection. Its Pydantic wire models and request validation live in the
-conversation presentation layer of the gateway.
+connection. The connection lifecycle lives at the gateway presentation boundary;
+each feature owns its Pydantic wire models and request handling.
 
 Available methods are `session.create`, `session.get`, `session.subscribe`,
 `session.unsubscribe`, `turn.start`, and `turn.cancel`. Events arrive as

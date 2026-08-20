@@ -4,10 +4,7 @@ from uuid import uuid4
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from gateway.features.conversation.application import (
-    ConversationService,
-    EventBroker,
-)
+from gateway.features.conversation.application import ConversationService, EventBroker
 from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
 from gateway.features.conversation.presentation.mapping import session_event
 from gateway.features.conversation.presentation.rpc import (
@@ -25,14 +22,16 @@ from gateway.features.conversation.presentation.rpc_methods import (
 )
 
 
-class JsonRpcError(Exception):
+class _GatewayProtocolError(Exception):
     def __init__(self, code: RpcErrorCode, message: str) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
 
 
-class JsonRpcConnection:
+class GatewayConnection:
+    """Owns the single bidirectional protocol connection for a gateway client."""
+
     def __init__(
         self,
         socket: WebSocket,
@@ -43,12 +42,16 @@ class JsonRpcConnection:
         self._broker = broker
         self._client_id = str(uuid4())
         self._receiver = broker.connect(self._client_id)
-        self._methods = ConversationRpcMethods(service, broker, self._client_id)
+        self._conversation_methods = ConversationRpcMethods(
+            service, broker, self._client_id
+        )
         self._send_lock = asyncio.Lock()
 
     async def run(self) -> None:
         await self._socket.accept()
-        events = asyncio.create_task(self._forward_events(), name="socket-events")
+        events = asyncio.create_task(
+            self._forward_conversation_events(), name="gateway-events"
+        )
         try:
             while True:
                 try:
@@ -70,15 +73,15 @@ class JsonRpcConnection:
         request_id = _request_id(raw_request)
         try:
             request = _parse_request(raw_request)
-            result = await self._methods.execute(request)
+            result = await self._conversation_methods.execute(request)
         except Exception as error:
-            failure = _rpc_error(error)
+            failure = _protocol_error(error)
             await self._send_error(request_id, failure.code, failure.message)
             return
         if request.expects_response:
             await self._send(RpcSuccess(id=request.id, result=result))
 
-    async def _forward_events(self) -> None:
+    async def _forward_conversation_events(self) -> None:
         while True:
             event = await self._receiver.receive()
             await self._send(RpcNotification(params=session_event(event)))
@@ -102,30 +105,34 @@ def _parse_request(raw_request: object) -> ConversationRequest:
         raise _request_error(error) from error
 
 
-def _request_error(error: ValidationError) -> JsonRpcError:
+def _request_error(error: ValidationError) -> _GatewayProtocolError:
     issue = error.errors(include_url=False)[0]
     if issue["type"] == "union_tag_invalid":
-        return JsonRpcError(RpcErrorCode.METHOD_NOT_FOUND, "Method not found")
+        return _GatewayProtocolError(RpcErrorCode.METHOD_NOT_FOUND, "Method not found")
     if "params" in issue["loc"]:
         location = ".".join(str(part) for part in issue["loc"])
         message = f"Invalid params at {location}: {issue['msg']}"
-        return JsonRpcError(RpcErrorCode.INVALID_PARAMS, message)
-    return JsonRpcError(RpcErrorCode.INVALID_REQUEST, "Invalid Request")
+        return _GatewayProtocolError(RpcErrorCode.INVALID_PARAMS, message)
+    return _GatewayProtocolError(RpcErrorCode.INVALID_REQUEST, "Invalid Request")
 
 
-def _rpc_error(error: Exception) -> JsonRpcError:
-    if isinstance(error, JsonRpcError):
+def _protocol_error(error: Exception) -> _GatewayProtocolError:
+    if isinstance(error, _GatewayProtocolError):
         return error
     if isinstance(error, SessionNotFoundError):
-        return JsonRpcError(RpcErrorCode.RESOURCE_NOT_FOUND, f"Not found: {error}")
+        return _GatewayProtocolError(
+            RpcErrorCode.RESOURCE_NOT_FOUND, f"Not found: {error}"
+        )
     if isinstance(error, SessionBusyError):
-        return JsonRpcError(
+        return _GatewayProtocolError(
             RpcErrorCode.TURN_ALREADY_RUNNING,
             f"Turn already running: {error}",
         )
     if isinstance(error, ValueError):
-        return JsonRpcError(RpcErrorCode.INVALID_PARAMS, f"Invalid params: {error}")
-    return JsonRpcError(RpcErrorCode.INTERNAL_ERROR, "Internal error")
+        return _GatewayProtocolError(
+            RpcErrorCode.INVALID_PARAMS, f"Invalid params: {error}"
+        )
+    return _GatewayProtocolError(RpcErrorCode.INTERNAL_ERROR, "Internal error")
 
 
 def _request_id(raw_request: object) -> str | int | None:

@@ -26,10 +26,10 @@ The gateway applies pending Alembic migrations during startup and starts on
 uv run cara-gateway
 ```
 
-Clients connect to `ws://127.0.0.1:8000/v1/conversation`. Commands, correlated
-responses, and subscribed events use one JSON-RPC 2.0 WebSocket. The wire
-models and request validation are internal to the gateway's conversation
-presentation layer.
+Clients connect to `ws://127.0.0.1:8000/v1/gateway`. Requests, commands,
+correlated responses, and subscribed events use one JSON-RPC 2.0 WebSocket.
+The connection lifecycle belongs to the gateway presentation boundary; each
+feature owns its wire models and request handling.
 
 Connect a microphone and speakers, then run the voice client:
 

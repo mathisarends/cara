@@ -5,6 +5,7 @@ from gateway.features import FEATURES
 from gateway.features.conversation.application import AgentRunner
 from gateway.features.conversation.infrastructure import RuntimeAgentRunner
 from gateway.infrastructure import DatabaseProvider, SchedulerProvider
+from gateway.presentation.gateway_di import GatewayProvider
 
 
 class _AgentProvider(Provider):
@@ -23,6 +24,7 @@ def create_container() -> AsyncContainer:
         _AgentProvider(),
         DatabaseProvider(),
         SchedulerProvider(),
+        GatewayProvider(),
         *feature_providers,
         FastapiProvider(),
     )
