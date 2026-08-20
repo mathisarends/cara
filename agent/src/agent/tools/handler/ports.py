@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+MAX_FORECAST_DAYS = 7
 
 
 class Location(BaseModel):
@@ -28,16 +30,33 @@ class HourlyForecast(BaseModel):
         return _with_weather_description(data)
 
 
+class DailyForecast(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore", populate_by_name=True)
+
+    day: date = Field(alias="time")
+    temperature_min_c: float = Field(alias="temperature_2m_min")
+    temperature_max_c: float = Field(alias="temperature_2m_max")
+    precipitation_probability: int = Field(alias="precipitation_probability_max")
+    description: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _describe_weather_code(cls, data: Any) -> Any:
+        return _with_weather_description(data)
+
+
 class WeatherReport(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore", populate_by_name=True)
 
     location_name: str
+    observed_at: datetime = Field(alias="time")
     temperature_c: float = Field(alias="temperature_2m")
     apparent_temperature_c: float = Field(alias="apparent_temperature")
     wind_speed_kmh: float = Field(alias="wind_speed_10m")
     is_day: bool
     description: str
     hourly: list[HourlyForecast] = Field(default_factory=list)
+    daily: list[DailyForecast] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -50,7 +69,7 @@ class Weather(ABC):
     async def locate(self, query: str) -> Location | None: ...
 
     @abstractmethod
-    async def current(self, location: Location) -> WeatherReport: ...
+    async def forecast(self, location: Location, *, days: int) -> WeatherReport: ...
 
 
 class LocationLookup(ABC):

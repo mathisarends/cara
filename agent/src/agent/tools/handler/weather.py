@@ -2,7 +2,12 @@ from datetime import datetime
 
 import httpx
 
-from agent.tools.handler.ports import Location, Weather, WeatherReport
+from agent.tools.handler.ports import (
+    MAX_FORECAST_DAYS,
+    Location,
+    Weather,
+    WeatherReport,
+)
 
 _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 _GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -11,7 +16,9 @@ _CURRENT_FIELDS = (
     "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day"
 )
 _HOURLY_FIELDS = "temperature_2m,weather_code,precipitation_probability"
-_HOURLY_HOURS_AHEAD = 24
+_DAILY_FIELDS = (
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+)
 
 
 class OpenMeteoWeather(Weather):
@@ -42,7 +49,8 @@ class OpenMeteoWeather(Weather):
             timezone=result["timezone"],
         )
 
-    async def current(self, location: Location) -> WeatherReport:
+    async def forecast(self, location: Location, *, days: int) -> WeatherReport:
+        days = max(1, min(days, MAX_FORECAST_DAYS))
         data = await self._get(
             _FORECAST_URL,
             {
@@ -50,17 +58,23 @@ class OpenMeteoWeather(Weather):
                 "longitude": location.longitude,
                 "current": _CURRENT_FIELDS,
                 "hourly": _HOURLY_FIELDS,
-                "forecast_days": 2,
+                "daily": _DAILY_FIELDS,
+                "forecast_days": days,
                 "wind_speed_unit": "kmh",
                 "timezone": location.timezone,
             },
         )
         current_time = datetime.fromisoformat(data["current"]["time"])
         hourly = _upcoming_hourly_entries(
-            data["hourly"], after=current_time, limit=_HOURLY_HOURS_AHEAD
+            data["hourly"], after=current_time, limit=days * 24
         )
         return WeatherReport.model_validate(
-            {**data["current"], "location_name": location.name, "hourly": hourly}
+            {
+                **data["current"],
+                "location_name": location.name,
+                "hourly": hourly,
+                "daily": _daily_entries(data["daily"]),
+            }
         )
 
     async def _get(self, url: str, params: dict[str, object]) -> dict:
@@ -70,6 +84,21 @@ class OpenMeteoWeather(Weather):
             response = await client.get(url, params=params)
             response.raise_for_status()
             return response.json()
+
+
+def _daily_entries(daily: dict[str, list]) -> list[dict]:
+    return [
+        {
+            "time": day,
+            "weather_code": daily["weather_code"][index],
+            "temperature_2m_max": daily["temperature_2m_max"][index],
+            "temperature_2m_min": daily["temperature_2m_min"][index],
+            "precipitation_probability_max": daily["precipitation_probability_max"][
+                index
+            ],
+        }
+        for index, day in enumerate(daily["time"])
+    ]
 
 
 def _upcoming_hourly_entries(

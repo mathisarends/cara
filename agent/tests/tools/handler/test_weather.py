@@ -26,6 +26,13 @@ _FORECAST = {
         "weather_code": [2, 2, 61],
         "precipitation_probability": [5, 10, 60],
     },
+    "daily": {
+        "time": ["2026-07-21", "2026-07-22"],
+        "weather_code": [2, 61],
+        "temperature_2m_max": [26.0, 21.0],
+        "temperature_2m_min": [15.0, 13.0],
+        "precipitation_probability_max": [10, 70],
+    },
 }
 
 _GEOCODING = {
@@ -68,21 +75,44 @@ def test_report_maps_unknown_weather_code_to_fallback() -> None:
     assert report.description == "unknown weather condition"
 
 
-def test_current_returns_report_for_location() -> None:
+def test_forecast_returns_report_for_location() -> None:
     client = _client({"/v1/forecast": _FORECAST})
 
-    report = asyncio.run(client.current(_BERLIN))
+    report = asyncio.run(client.forecast(_BERLIN, days=1))
 
     assert report.temperature_c == 24.1
     assert report.description == "partly cloudy"
 
 
-def test_current_filters_hourly_entries_before_now() -> None:
+def test_forecast_filters_hourly_entries_before_now() -> None:
     client = _client({"/v1/forecast": _FORECAST})
 
-    report = asyncio.run(client.current(_BERLIN))
+    report = asyncio.run(client.forecast(_BERLIN, days=1))
 
     assert [hour.time.strftime("%H:%M") for hour in report.hourly] == ["14:00", "15:00"]
+
+
+def test_forecast_parses_daily_entries() -> None:
+    client = _client({"/v1/forecast": _FORECAST})
+
+    report = asyncio.run(client.forecast(_BERLIN, days=2))
+
+    assert [str(day.day) for day in report.daily] == ["2026-07-21", "2026-07-22"]
+    assert report.daily[1].description == "light rain"
+    assert report.daily[1].temperature_max_c == 21.0
+
+
+def test_forecast_clamps_days_to_the_supported_range() -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(request.url.params)
+        return httpx.Response(200, content=json.dumps(_FORECAST))
+
+    client = OpenMeteoWeather(transport=httpx.MockTransport(handler))
+    asyncio.run(client.forecast(_BERLIN, days=99))
+
+    assert captured["forecast_days"] == "7"
 
 
 def test_locate_resolves_first_geocoding_result() -> None:
@@ -109,7 +139,7 @@ def test_forecast_request_carries_location_coordinates() -> None:
         return httpx.Response(200, content=json.dumps(_FORECAST))
 
     client = OpenMeteoWeather(transport=httpx.MockTransport(handler))
-    asyncio.run(client.current(_BERLIN))
+    asyncio.run(client.forecast(_BERLIN, days=1))
 
     assert captured["latitude"] == "52.52"
     assert captured["longitude"] == "13.405"
