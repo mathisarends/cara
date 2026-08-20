@@ -11,6 +11,10 @@ class LoadSkillParams(ToolParams):
     name: str = Field(description="Name of the skill to load, exactly as listed.")
 
 
+class SwitchModelParams(ToolParams):
+    name: str = Field(description="Name of the model to switch to, exactly as listed.")
+
+
 class ShellParams(ToolParams):
     command: str = Field(
         description="Shell command to execute inside the isolated workspace sandbox.",

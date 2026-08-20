@@ -5,7 +5,7 @@ from agenttoolkit import Skills
 from agenttoolkit.builtins import LocalWorkspace
 from dotenv import load_dotenv
 
-from agent import Agent
+from agent import Agent, ModelSwitch
 from agent.sandbox import SandboxDefinition
 from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
@@ -32,7 +32,7 @@ async def main() -> None:
         sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
     )
     agent = Agent(
-        llm=llm,
+        models=ModelSwitch.single(llm),
         tools=tools,
         skills=skills,
     )

@@ -6,7 +6,7 @@ from agenttoolkit import Skills
 from dotenv import load_dotenv
 from sonosify import SonosClient
 
-from agent import Agent
+from agent import Agent, ModelSwitch
 from agent.sandbox import SandboxDefinition
 from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
@@ -37,16 +37,24 @@ async def main() -> None:
     sonos_settings = SonosSettings()
     async with SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
+        models = ModelSwitch(
+            {
+                CodexModel.SPARK.value: create_codex_model(
+                    CodexModel.SPARK,
+                    reasoning_effort=CodexReasoningEffort.LOW,
+                ),
+                CodexModel.GPT_5_5.value: create_codex_model(CodexModel.GPT_5_5),
+                CodexModel.GPT_5_4.value: create_codex_model(CodexModel.GPT_5_4),
+            },
+            default=CodexModel.SPARK.value,
+        )
         tools = build_tools(
-            injected_dependencies=(audio_output,),
+            injected_dependencies=(audio_output, models),
             skills=skills,
             sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
         )
         agent_session = Agent(
-            llm=create_codex_model(
-                CodexModel.SPARK,
-                reasoning_effort=CodexReasoningEffort.LOW,
-            ),
+            models=models,
             tools=tools,
             skills=skills,
         )

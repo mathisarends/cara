@@ -1,9 +1,16 @@
 from collections.abc import Sequence
 
-from agenttoolkit import Inject, Skills, Tools, provided, requires
+from agenttoolkit import (
+    Inject,
+    Skills,
+    Tools,
+    provided,
+    requires,
+)
 from agenttoolkit.builtins import CommandRunner, Workspace
 from agenttoolkit.builtins.fs import Entry
 
+from agent.models import ModelSwitch
 from agent.tools.handler import (
     LocationLookup,
     Weather,
@@ -19,6 +26,7 @@ from agent.tools.params import (
     LoadSkillParams,
     ReadFileParams,
     ShellParams,
+    SwitchModelParams,
     VolumeParams,
     WeatherParams,
     WebSearchParams,
@@ -43,6 +51,40 @@ def register_tools(tools: Tools) -> None:
         except ValueError as error:
             raise ToolError(str(error)) from None
         return loaded.instructions
+
+    @tools.action(
+        description="Get the name of the model currently driving this conversation.",
+        available_when=requires(
+            ModelSwitch, predicate=lambda models: models.has_alternatives
+        ),
+    )
+    async def current_model(models: Inject[ModelSwitch]) -> str:
+        return models.current_name
+
+    @tools.action(
+        description="List the models available to switch to.",
+        available_when=requires(
+            ModelSwitch, predicate=lambda models: models.has_alternatives
+        ),
+    )
+    async def list_models(models: Inject[ModelSwitch]) -> str:
+        return ", ".join(models.names)
+
+    @tools.action(
+        description="Switch the model driving this conversation.",
+        params=SwitchModelParams,
+        available_when=requires(
+            ModelSwitch, predicate=lambda models: models.has_alternatives
+        ),
+    )
+    async def switch_model(
+        params: SwitchModelParams, models: Inject[ModelSwitch]
+    ) -> str:
+        try:
+            models.switch(params.name)
+        except ValueError as error:
+            raise ToolError(str(error)) from None
+        return f"Switched to {params.name}."
 
     @tools.action(
         description=(

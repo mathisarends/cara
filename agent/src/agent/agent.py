@@ -16,6 +16,7 @@ from llmify import (
 )
 
 from agent.messages import MessageManager
+from agent.models import ModelSwitch
 from agent.prompt import SystemPrompt
 from agent.tools import AgentTools
 from voice.llm.events import (
@@ -39,12 +40,12 @@ class Agent:
     def __init__(
         self,
         *,
-        llm: ChatModel,
+        models: ModelSwitch,
         tools: AgentTools,
         skills: Skills | None = None,
         system_prompt: str | None = None,
     ) -> None:
-        self._llm = llm
+        self._models = models
         self._tools = tools
         self._context = MessageManager(
             SystemPrompt(system_prompt=system_prompt, skills=skills)
@@ -52,6 +53,10 @@ class Agent:
         self._turn: asyncio.Task[None] | None = None
         self._tool_preparation: asyncio.Task[None] | None = None
         self._tool_lifecycle = asyncio.Lock()
+
+    @property
+    def _llm(self) -> ChatModel:
+        return self._models.current
 
     async def prepare_turn(self) -> None:
         async with self._tool_lifecycle:

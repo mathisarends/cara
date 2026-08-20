@@ -31,6 +31,8 @@ class CodexModel(StrEnum):
     LUNA = "gpt-5.6-luna"
     TERRA = "gpt-5.6-terra"
     SOL = "gpt-5.6-sol"
+    GPT_5_5 = "gpt-5.5"
+    GPT_5_4 = "gpt-5.4"
 
 
 class CodexReasoningEffort(StrEnum):

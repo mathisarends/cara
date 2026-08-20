@@ -95,6 +95,8 @@ def test_codex_enums_expose_the_supported_configuration_values() -> None:
         "gpt-5.6-luna",
         "gpt-5.6-terra",
         "gpt-5.6-sol",
+        "gpt-5.5",
+        "gpt-5.4",
     }
     assert {effort.value for effort in CodexReasoningEffort} == {
         "none",

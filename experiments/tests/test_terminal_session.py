@@ -13,6 +13,7 @@ from llmify import (
 )
 
 from agent.agent import Agent
+from agent.models import ModelSwitch
 from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalRenderer, TerminalSession
@@ -55,7 +56,7 @@ def test_terminal_session_sends_text_turns_to_agent() -> None:
 
     llm = EchoChatModel()
     session = TerminalSession(
-        AgentTurnRunner(Agent(llm=llm, tools=build_tools())),
+        AgentTurnRunner(Agent(models=ModelSwitch.single(llm), tools=build_tools())),
         input_reader=read,
         renderer=TerminalRenderer(
             output_writer=outputs.append,
@@ -85,7 +86,9 @@ def test_terminal_session_stops_at_end_of_input() -> None:
         raise EOFError
 
     session = TerminalSession(
-        AgentTurnRunner(Agent(llm=EchoChatModel(), tools=build_tools())),
+        AgentTurnRunner(
+            Agent(models=ModelSwitch.single(EchoChatModel()), tools=build_tools())
+        ),
         input_reader=end_of_input,
     )
 
@@ -124,7 +127,9 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
         return f"Wetter für {location}"
 
     session = TerminalSession(
-        AgentTurnRunner(Agent(llm=ToolCallingChatModel(), tools=tools)),
+        AgentTurnRunner(
+            Agent(models=ModelSwitch.single(ToolCallingChatModel()), tools=tools)
+        ),
         input_reader=lambda prompt: next(inputs),
         renderer=TerminalRenderer(
             output_writer=outputs.append,
