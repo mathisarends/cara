@@ -4,7 +4,13 @@ from uuid import uuid4
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
-from agent_protocol.rpc import (
+from gateway.features.conversation.application import (
+    ConversationService,
+    EventBroker,
+)
+from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
+from gateway.features.conversation.presentation.mapping import session_event
+from gateway.features.conversation.presentation.rpc import (
     CONVERSATION_REQUEST_ADAPTER,
     ConversationRequest,
     RpcErrorCode,
@@ -14,12 +20,6 @@ from agent_protocol.rpc import (
     RpcSchema,
     RpcSuccess,
 )
-from gateway.features.conversation.application import (
-    ConversationService,
-    EventBroker,
-)
-from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
-from gateway.features.conversation.presentation.protocol_mapping import session_event
 from gateway.features.conversation.presentation.rpc_methods import (
     ConversationRpcMethods,
 )

@@ -1,7 +1,8 @@
 from typing import assert_never
 
-from agent_protocol.models import Session as ProtocolSession
-from agent_protocol.rpc import (
+from gateway.features.conversation.application import ConversationService, EventBroker
+from gateway.features.conversation.presentation.mapping import session_snapshot
+from gateway.features.conversation.presentation.rpc import (
     CancelTurnRequest,
     ConversationRequest,
     CreateSessionRequest,
@@ -14,8 +15,7 @@ from agent_protocol.rpc import (
     UnsubscribeSessionRequest,
     UnsubscriptionResult,
 )
-from gateway.features.conversation.application import ConversationService, EventBroker
-from gateway.features.conversation.presentation.protocol_mapping import session_snapshot
+from gateway.features.conversation.presentation.schemas import SessionResponse
 
 
 class ConversationRpcMethods:
@@ -33,7 +33,7 @@ class ConversationRpcMethods:
         match request:
             case CreateSessionRequest(params=params):
                 session = await self._service.create_session(params.metadata)
-                return ProtocolSession(
+                return SessionResponse(
                     id=session.id,
                     created_at=session.created_at,
                     metadata=session.metadata,

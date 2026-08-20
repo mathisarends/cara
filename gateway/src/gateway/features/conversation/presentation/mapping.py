@@ -1,15 +1,3 @@
-from agent_protocol.events import SESSION_EVENT_ADAPTER, SessionEvent
-from agent_protocol.models import (
-    AssistantMessageItem,
-    Item,
-    SessionSnapshot,
-    ToolCallItem,
-    ToolCallStatus,
-    UserMessageItem,
-)
-from agent_protocol.models import (
-    Session as ProtocolSession,
-)
 from gateway.features.conversation.domain import (
     AssistantMessage,
     GatewayEvent,
@@ -17,9 +5,22 @@ from gateway.features.conversation.domain import (
     ToolCallSequence,
     UserMessage,
 )
+from gateway.features.conversation.presentation.events import (
+    SESSION_EVENT_ADAPTER,
+    SessionEvent,
+)
+from gateway.features.conversation.presentation.schemas import (
+    AssistantMessageItem,
+    Item,
+    SessionResponse,
+    SessionSnapshotResponse,
+    ToolCallItem,
+    ToolCallStatus,
+    UserMessageItem,
+)
 
 
-def session_snapshot(session: Session) -> SessionSnapshot:
+def session_snapshot(session: Session) -> SessionSnapshotResponse:
     items: list[Item] = []
     for entry in session.entries:
         if isinstance(entry, UserMessage):
@@ -48,8 +49,8 @@ def session_snapshot(session: Session) -> SessionSnapshot:
                 )
                 for call in entry.calls
             )
-    return SessionSnapshot(
-        session=ProtocolSession(
+    return SessionSnapshotResponse(
+        session=SessionResponse(
             id=session.id,
             created_at=session.created_at,
             metadata=session.metadata,

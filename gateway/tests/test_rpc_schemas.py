@@ -3,8 +3,11 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from agent_protocol.events import SESSION_EVENT_ADAPTER, ChatDelta
-from agent_protocol.rpc import (
+from gateway.features.conversation.presentation.events import (
+    SESSION_EVENT_ADAPTER,
+    ChatDelta,
+)
+from gateway.features.conversation.presentation.rpc import (
     CONVERSATION_REQUEST_ADAPTER,
     RpcMethod,
     StartTurnRequest,

@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class Schema(BaseModel):
+class WireSchema(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
@@ -22,13 +22,13 @@ class ToolCallStatus(StrEnum):
     FAILED = "failed"
 
 
-class Session(Schema):
+class SessionResponse(WireSchema):
     id: UUID
     created_at: datetime
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ItemBase(Schema):
+class ItemBase(WireSchema):
     id: UUID
     created_at: datetime
 
@@ -59,7 +59,7 @@ type Item = Annotated[
 ]
 
 
-class SessionSnapshot(Schema):
-    session: Session
+class SessionSnapshotResponse(WireSchema):
+    session: SessionResponse
     items: tuple[Item, ...]
     turn_active: bool

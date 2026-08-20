@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "JSON-RPC WebSocket gateway for Cara conversations."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "agent-protocol",
     "aiosqlite>=0.22.0",
     "alembic>=1.19.1",
     "dishka>=1.4.0",
@@ -37,6 +36,3 @@ packages = ["src/gateway"]
 
 [tool.ruff]
 extend = "../pyproject.toml"
-
-[tool.uv.sources]
-agent-protocol = { workspace = true }

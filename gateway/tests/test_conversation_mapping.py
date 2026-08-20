@@ -3,7 +3,7 @@ from gateway.features.conversation.domain import (
     GatewayEventType,
     Session,
 )
-from gateway.features.conversation.presentation.protocol_mapping import (
+from gateway.features.conversation.presentation.mapping import (
     session_event,
     session_snapshot,
 )

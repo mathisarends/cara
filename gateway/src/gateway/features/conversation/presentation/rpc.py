@@ -4,8 +4,12 @@ from uuid import UUID
 
 from pydantic import Field, TypeAdapter
 
-from agent_protocol.events import SessionEvent
-from agent_protocol.models import Schema, Session, SessionSnapshot
+from gateway.features.conversation.presentation.events import SessionEvent
+from gateway.features.conversation.presentation.schemas import (
+    SessionResponse,
+    SessionSnapshotResponse,
+    WireSchema,
+)
 
 
 class RpcMethod(StrEnum):
@@ -31,7 +35,7 @@ class RpcErrorCode(IntEnum):
     TURN_ALREADY_RUNNING = -32009
 
 
-class RpcSchema(Schema):
+class RpcSchema(WireSchema):
     """Base class for every JSON-RPC wire object."""
 
 
@@ -115,8 +119,8 @@ class TurnCommandResult(RpcSchema):
 
 
 type RpcResult = (
-    Session
-    | SessionSnapshot
+    SessionResponse
+    | SessionSnapshotResponse
     | SubscriptionResult
     | UnsubscriptionResult
     | TurnCommandResult
@@ -147,19 +151,3 @@ class RpcNotification(RpcSchema):
         RpcNotificationMethod.SESSION_EVENT
     )
     params: SessionEvent
-
-
-type ConversationServerMessage = RpcSuccess | RpcFailure | RpcNotification
-
-
-class ConversationProtocol(RpcSchema):
-    client_message: ConversationRequest
-    server_message: ConversationServerMessage
-
-
-CONVERSATION_SERVER_MESSAGE_ADAPTER: TypeAdapter[ConversationServerMessage] = (
-    TypeAdapter(ConversationServerMessage)
-)
-CONVERSATION_PROTOCOL_ADAPTER: TypeAdapter[ConversationProtocol] = TypeAdapter(
-    ConversationProtocol
-)

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, TypeAdapter
 
-from agent_protocol.models import Schema
+from gateway.features.conversation.presentation.schemas import WireSchema
 
 
 class SessionEventType(StrEnum):
@@ -19,7 +19,7 @@ class SessionEventType(StrEnum):
     TURN_FAILED = "turn.failed"
 
 
-class EventBase(Schema):
+class EventBase(WireSchema):
     event_id: UUID
     timestamp: datetime
     session_id: UUID

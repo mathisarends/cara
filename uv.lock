@@ -15,7 +15,6 @@ supported-markers = [
 [manifest]
 members = [
     "agent",
-    "agent-protocol",
     "gateway",
     "llm",
     "retrieval",
@@ -67,21 +66,6 @@ requires-dist = [
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "tzdata", specifier = ">=2024.1" },
     { name = "voice", editable = "voice" },
-]
-
-[[package]]
-name = "agent-protocol"
-version = "0.1.0"
-source = { editable = "protocol" }
-dependencies = [
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "websockets", specifier = ">=14.0" },
 ]
 
 [[package]]
@@ -340,7 +324,6 @@ name = "gateway"
 version = "0.1.0"
 source = { editable = "gateway" }
 dependencies = [
-    { name = "agent-protocol", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "alembic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -361,7 +344,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-protocol", editable = "protocol" },
     { name = "aiosqlite", specifier = ">=0.22.0" },
     { name = "alembic", specifier = ">=1.19.1" },
     { name = "dishka", specifier = ">=1.4.0" },
