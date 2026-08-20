@@ -28,25 +28,20 @@ planned; today everything runs locally against OpenAI.
 
 ## Architecture
 
-```text
-Voice client                    CLI client
-(voice/, voice_main.py)         (cli/, cara-chat)
-       │                               │
-       │        JSON-RPC 2.0 over WebSocket ("/v1/gateway")
-       ▼                               ▼
-                 gateway_client (generated, typed)
-                              │
-                              ▼
-                    gateway (FastAPI process)
-      owns sessions, turns, persistence, event fan-out
-                              │
-                              │ AgentRunRequest, via agent_plugin_api
-                              ▼
-              configured AgentRunner plugin (installed package,
-                 discovered by Python entry point at startup)
-                              │
-                              ▼
-                agent (models, tools, skills, sandbox)
+```mermaid
+flowchart TD
+    Voice["voice client<br/>(voice/, voice_main.py)"]
+    Cli["cli client<br/>(cli/, cara-chat)"]
+    Client["gateway_client<br/>(generated, typed)"]
+    Gateway["gateway (FastAPI)<br/>sessions · turns · persistence · event fan-out"]
+    Plugin["configured AgentRunner plugin<br/>(installed package, discovered by<br/>Python entry point at startup)"]
+    Agent["agent<br/>models · tools · skills · sandbox"]
+
+    Voice --> Client
+    Cli --> Client
+    Client -- "JSON-RPC 2.0 over WebSocket<br/>'/v1/gateway'" --> Gateway
+    Gateway -- "AgentRunRequest, via agent_plugin_api" --> Plugin
+    Plugin --> Agent
 ```
 
 Three ideas hold this together:
@@ -78,6 +73,33 @@ Three ideas hold this together:
 session-per-channel reuse (`session.open`) for free from the gateway.
 
 ## Packages
+
+All nine packages are members of one `uv` workspace (`pyproject.toml`); the graph below is their
+actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
+relationship that is *not* a package dependency: `gateway` never imports `agent` — it only
+discovers whichever plugin `gateway.toml` names, at startup, through the `cara.agent_plugins`
+entry-point group.
+
+```mermaid
+flowchart TD
+    voice --> gateway_client
+    cli --> gateway_client
+    gateway --> agent_plugin_api
+    gateway --> scheduler
+    agent --> agent_plugin_api
+    agent --> llm
+    agent --> retrieval
+    gateway -.->|"entry point:<br/>cara.agent_plugins"| agent
+
+    gateway_client
+    agent_plugin_api
+    scheduler
+    llm
+    retrieval
+```
+
+The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`, `llm`, `retrieval`,
+`scheduler`) have zero intra-workspace dependencies — each is usable and testable standalone.
 
 | Package | What it is |
 | --- | --- |
