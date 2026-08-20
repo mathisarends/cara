@@ -1,0 +1,89 @@
+import asyncio
+import json
+from collections.abc import AsyncIterator
+from typing import Any, Protocol, Self
+
+from websockets.asyncio.client import ClientConnection, connect
+
+from gateway_client.errors import GatewayRpcError, GatewayTransportError
+
+
+class RpcTransport(Protocol):
+    async def request(self, method: str, params: dict[str, Any]) -> Any: ...
+
+    def notifications(self) -> AsyncIterator[dict[str, Any]]: ...
+
+    async def close(self) -> None: ...
+
+
+class WebSocketTransport:
+    def __init__(self, connection: ClientConnection) -> None:
+        self._connection = connection
+        self._next_id = 0
+        self._pending: dict[int, asyncio.Future[Any]] = {}
+        self._notifications: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+        self._reader_task = asyncio.create_task(self._read_messages())
+
+    @classmethod
+    async def connect(cls, url: str) -> Self:
+        return cls(await connect(url))
+
+    async def request(self, method: str, params: dict[str, Any]) -> Any:
+        self._next_id += 1
+        request_id = self._next_id
+        future = asyncio.get_running_loop().create_future()
+        self._pending[request_id] = future
+        message = {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": method,
+            "params": params,
+        }
+        try:
+            await self._connection.send(json.dumps(message, default=str))
+            return await future
+        except BaseException:
+            self._pending.pop(request_id, None)
+            raise
+
+    async def notifications(self) -> AsyncIterator[dict[str, Any]]:
+        while (message := await self._notifications.get()) is not None:
+            yield message
+
+    async def close(self) -> None:
+        await self._connection.close()
+        await self._reader_task
+
+    async def _read_messages(self) -> None:
+        failure: GatewayTransportError | None = None
+        try:
+            async for raw_message in self._connection:
+                message = json.loads(raw_message)
+                if "id" not in message:
+                    await self._notifications.put(message)
+                    continue
+                request_id = message["id"]
+                future = self._pending.pop(request_id, None)
+                if future is None:
+                    continue
+                if error := message.get("error"):
+                    future.set_exception(
+                        GatewayRpcError(
+                            code=error["code"],
+                            message=error["message"],
+                            data=error.get("data"),
+                        )
+                    )
+                else:
+                    future.set_result(message.get("result"))
+        except Exception as error:
+            failure = GatewayTransportError("Gateway WebSocket connection closed")
+            failure.__cause__ = error
+        finally:
+            if failure is None:
+                failure = GatewayTransportError("Gateway WebSocket connection closed")
+            for future in self._pending.values():
+                if not future.done():
+                    future.set_exception(failure)
+            self._pending.clear()
+            await self._notifications.put(None)
