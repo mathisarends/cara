@@ -17,28 +17,24 @@ from llmify import (
     ToolResultMessage,
 )
 
-from agent.messages import MessageManager
-from agent.models import ModelSwitch
-from agent.prompt import SystemPrompt
-from agent.tools import AgentTools
-from agent.tools.middleware import ToolFailure
-from voice.llm.events import (
+from agent.events import (
     AgentEvent,
     TextDelta,
     ToolCompleted,
     ToolStarted,
     TurnCompleted,
 )
+from agent.messages import MessageManager
+from agent.models import ModelSwitch
+from agent.prompt import SystemPrompt
+from agent.tools import AgentTools
+from agent.tools.middleware import ToolFailure
 
 type _EventQueue = asyncio.Queue[AgentEvent | _Failure]
 
 
 class Agent:
-    """Runs the tool-calling agent loop as a voice ``AgentSession`` implementation.
-
-    ``voice.llm.port.AgentSession`` is a structural protocol, so it is
-    deliberately not imported or subclassed here.
-    """
+    """Runs one stateful tool-calling agent loop."""
 
     def __init__(
         self,

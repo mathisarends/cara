@@ -1,16 +1,10 @@
 import asyncio
 import logging
-from pathlib import Path
+import os
 
-from agenttoolkit import Skills
-from agenttoolkit.builtins import LocalWorkspace
 from dotenv import load_dotenv
 from sonosify import SonosClient
 
-from agent import Agent, ModelSwitch
-from agent.sandbox import SandboxDefinition
-from agent.tools import build_tools
-from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
     HueObserver,
     SonosAudioFocusObserver,
@@ -20,6 +14,7 @@ from voice import (
     VoiceAgent,
 )
 from voice.audio.output.sonos import SonosOutput
+from voice.llm import GatewayAgentSession
 from voice.sonos import SonosSettings
 from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
@@ -29,41 +24,31 @@ logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 
 load_dotenv(override=True)
 
-_SANDBOX_CONFIG = Path(__file__).parent / "sandbox.yml"
+_GATEWAY_URL = os.environ.get(
+    "CARA_GATEWAY_URL",
+    "ws://127.0.0.1:8000/v1/gateway",
+)
+_VOICE_CHANNEL = os.environ.get("CARA_VOICE_CHANNEL", "voice")
+_VOICE_ACCOUNT_ID = os.environ.get("CARA_VOICE_ACCOUNT_ID")
+_NEW_VOICE_SESSION = os.environ.get("CARA_VOICE_NEW_SESSION", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 
 async def main() -> None:
-    sandbox = SandboxDefinition.from_yaml(_SANDBOX_CONFIG)
-    workspace = LocalWorkspace(
-        sandbox.resolve_workspace_root(),
-        max_file_bytes=sandbox.workspace.max_file_bytes,
-    )
-    skills = Skills.from_dir(workspace.root / "skills")
     sonos_settings = SonosSettings()
-    async with SonosClient(sonos_settings.ip_address) as sonos_client:
+    gateway_session = await GatewayAgentSession.connect(
+        _GATEWAY_URL,
+        channel=_VOICE_CHANNEL,
+        account_id=_VOICE_ACCOUNT_ID,
+        new_session=_NEW_VOICE_SESSION,
+    )
+    async with gateway_session, SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
-        codex_spark = create_codex_model(
-            CodexModel.SPARK,
-            reasoning_effort=CodexReasoningEffort.LOW,
-        )
-        models = ModelSwitch.single(
-            codex_spark,
-            name="codex-spark",
-        )
-        tools = build_tools(
-            injected_dependencies=(audio_output, models),
-            skills=skills,
-            workspace=workspace,
-            sandbox=sandbox,
-        )
-        agent_session = Agent(
-            models=models,
-            tools=tools,
-            skills=skills,
-            workspace_root=workspace.root,
-        )
         agent = VoiceAgent(
-            agent_session=agent_session,
+            agent_session=gateway_session,
             audio_output=audio_output,
             text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
             barge_in=SpeechBargeIn(),

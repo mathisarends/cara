@@ -390,7 +390,9 @@ werden korrekt geöffnet und geschlossen.
   ergänzen.
 - Voice öffnet seine Gateway-Session einmal und sendet danach nur Turns mit der
   erhaltenen `session_id`.
-- Der direkte lokale `Agent` bleibt höchstens ein expliziter Entwicklungsmodus.
+- Ein Wake Word startet nur einen Turn und erzeugt keine neue Session.
+- Standardmäßig verwendet Voice `session.open`; nur die explizite Konfiguration
+  `CARA_VOICE_NEW_SESSION=true` verwendet beim Prozessstart `session.create`.
 
 **Ergebnis:** Voice, CLI und spätere Channels verwenden denselben Session- und
 Agent-Lifecycle im Gateway.

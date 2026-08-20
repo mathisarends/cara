@@ -17,6 +17,7 @@ from llmify import (
 from pydantic import BaseModel, ConfigDict
 
 from agent.agent import Agent
+from agent.events import TextDelta, ToolCompleted, ToolStarted, TurnCompleted
 from agent.models import ModelSwitch
 from agent.sandbox import SandboxDefinition
 from agent.tools import build_tools
@@ -40,12 +41,6 @@ from agent_plugin_api import (
     ToolCallStarted,
 )
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
-from voice.llm import (
-    TextDelta,
-    ToolCompleted,
-    ToolStarted,
-    TurnCompleted,
-)
 
 
 class _CaraAgentSettings(BaseModel):

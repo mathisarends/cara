@@ -17,7 +17,6 @@ dependencies = [
     "retrieval",
     "tavily-python>=0.7.26",
     "tzdata>=2024.1",
-    "voice",
 ]
 
 [project.entry-points."cara.agent_plugins"]
