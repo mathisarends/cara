@@ -2,7 +2,7 @@ from agenttoolkit import Inject, ToolAvailability, Tools
 from pydantic import Field
 
 from agent.tools.params import ToolParams
-from retrieverkit import RetrievalResult, TextIndex
+from retrieval import RetrievalResult, TextIndex
 
 # Not wired to a concrete TextIndex yet, so keep this out of the schema
 # entirely until a real implementation is injected.

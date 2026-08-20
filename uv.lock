@@ -18,7 +18,7 @@ members = [
     "gateway",
     "gateway-client",
     "llm",
-    "retrieverkit",
+    "retrieval",
     "scheduler",
     "voice",
 ]
@@ -46,7 +46,7 @@ dependencies = [
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "retrieverkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "retrieval", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tavily-python", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "voice", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -63,7 +63,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "retrieverkit", editable = "retrieverkit" },
+    { name = "retrieval", editable = "retrieval" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "tzdata", specifier = ">=2024.1" },
     { name = "voice", editable = "voice" },
@@ -1098,9 +1098,9 @@ wheels = [
 ]
 
 [[package]]
-name = "retrieverkit"
+name = "retrieval"
 version = "0.1.0"
-source = { editable = "retrieverkit" }
+source = { editable = "retrieval" }
 
 [package.optional-dependencies]
 openai = [

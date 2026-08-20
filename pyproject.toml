@@ -20,7 +20,7 @@ members = [
     "gateway",
     "gateway_client",
     "llm",
-    "retrieverkit",
+    "retrieval",
     "scheduler",
     "voice",
 ]
@@ -30,7 +30,7 @@ agent = { workspace = true }
 gateway = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
-retrieverkit = { workspace = true }
+retrieval = { workspace = true }
 scheduler = { workspace = true }
 voice = { workspace = true }
 
@@ -56,7 +56,7 @@ known-first-party = [
     "gateway",
     "gateway_client",
     "llm",
-    "retrieverkit",
+    "retrieval",
     "scheduler",
     "voice",
 ]
