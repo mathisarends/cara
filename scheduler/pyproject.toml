@@ -1,0 +1,24 @@
+[project]
+name = "scheduler"
+version = "0.1.0"
+description = "Async scheduling primitives for agent heartbeats, reminders, and cron jobs."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "croniter>=6.0.0,<7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scheduler"]
+
+[tool.ruff]
+extend = "../pyproject.toml"
