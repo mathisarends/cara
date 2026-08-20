@@ -39,14 +39,12 @@ async def main() -> None:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
         models = ModelSwitch(
             {
-                CodexModel.SPARK.value: create_codex_model(
+                CodexModel.SPARK: create_codex_model(
                     CodexModel.SPARK,
                     reasoning_effort=CodexReasoningEffort.LOW,
                 ),
-                CodexModel.GPT_5_5.value: create_codex_model(CodexModel.GPT_5_5),
-                CodexModel.GPT_5_4.value: create_codex_model(CodexModel.GPT_5_4),
             },
-            default=CodexModel.SPARK.value,
+            default=CodexModel.SPARK,
         )
         tools = build_tools(
             injected_dependencies=(audio_output, models),

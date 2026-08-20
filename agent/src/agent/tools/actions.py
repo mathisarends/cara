@@ -109,7 +109,7 @@ def register_tools(tools: Tools) -> None:
         return _render_weather_report(report)
 
     @tools.action(
-        description=("Search the web for current information, news, or facts."),
+        description="Search the web for current information, news, or facts.",
         params=WebSearchParams,
     )
     async def web_search(params: WebSearchParams, websearch: Inject[WebSearch]) -> str:
