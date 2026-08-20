@@ -1,4 +1,4 @@
-from .entries import (
+from .entities import (
     AssistantMessage,
     SessionEntry,
     ToolCall,

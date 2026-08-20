@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Self
 from uuid import UUID
 
-from gateway.features.conversation.domain.entries import (
+from gateway.features.conversation.domain.entities import (
     AssistantMessage,
     SessionEntry,
     ToolCall,
