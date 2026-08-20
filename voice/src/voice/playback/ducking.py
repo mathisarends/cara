@@ -3,7 +3,7 @@ import logging
 
 from sonosify import SonosClient, TransportState
 
-from voice.playback.strategy import PlaybackStrategy
+from voice.playback.policy import SonosAudioFocusPolicy
 from voice.sonos import SonosSettings
 
 logger = logging.getLogger(__name__)
@@ -12,8 +12,8 @@ _DUCK_DURATION_MILLIS = 60_000
 _DUCK_REFRESH_SECONDS = 45
 
 
-class DuckingStrategy(PlaybackStrategy):
-    """Lowers active playback while leaving audio clips audible."""
+class SonosDuckingPolicy(SonosAudioFocusPolicy):
+    """Yields audio focus by lowering active Sonos playback."""
 
     def __init__(
         self,

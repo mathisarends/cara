@@ -11,8 +11,12 @@ from sonosify import (
 )
 
 import voice.playback.ducking as ducking_module
-import voice.playback.strategy as strategy_module
-from voice import DuckingStrategy, PauseStrategy, SonosPlaybackObserver
+import voice.playback.policy as policy_module
+from voice import (
+    SonosAudioFocusObserver,
+    SonosDuckingPolicy,
+    SonosPausePolicy,
+)
 from voice.events import (
     FollowUpTimedOut,
     SessionEnded,
@@ -93,8 +97,8 @@ def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> Non
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosPlaybackObserver(
-            strategy=DuckingStrategy(client=cast(SonosClient, client))
+        observer = SonosAudioFocusObserver(
+            policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
@@ -124,8 +128,8 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PAUSED_PLAYBACK)
-        observer = SonosPlaybackObserver(
-            strategy=DuckingStrategy(client=cast(SonosClient, client))
+        observer = SonosAudioFocusObserver(
+            policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
@@ -144,8 +148,8 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
 def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosPlaybackObserver(
-            strategy=DuckingStrategy(client=cast(SonosClient, client))
+        observer = SonosAudioFocusObserver(
+            policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
         event_bus = EventBus()
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
@@ -166,11 +170,11 @@ def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
     assert client.unduck_calls == 1
 
 
-def test_can_use_pause_strategy() -> None:
+def test_can_use_pause_policy() -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosPlaybackObserver(
-            strategy=PauseStrategy(client=cast(SonosClient, client)),
+        observer = SonosAudioFocusObserver(
+            policy=SonosPausePolicy(client=cast(SonosClient, client)),
         )
         event_bus = EventBus()
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
@@ -191,11 +195,11 @@ def test_can_use_pause_strategy() -> None:
     assert client.subscription.closed is True
 
 
-def test_pause_strategy_does_not_resume_after_external_pause() -> None:
+def test_pause_policy_does_not_resume_after_external_pause() -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosPlaybackObserver(
-            strategy=PauseStrategy(client=cast(SonosClient, client)),
+        observer = SonosAudioFocusObserver(
+            policy=SonosPausePolicy(client=cast(SonosClient, client)),
         )
         event_bus = EventBus()
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
@@ -234,8 +238,8 @@ def test_loads_sonos_target_from_settings(monkeypatch) -> None:
                 return client
 
         controller = RecordingController()
-        monkeypatch.setattr(strategy_module, "SonosController", lambda: controller)
-        observer = SonosPlaybackObserver()
+        monkeypatch.setattr(policy_module, "SonosController", lambda: controller)
+        observer = SonosAudioFocusObserver()
         event_bus = EventBus()
         bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()

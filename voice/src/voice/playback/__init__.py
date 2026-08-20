@@ -1,11 +1,11 @@
-from .ducking import DuckingStrategy
-from .pause import PauseStrategy
-from .sonos import SonosPlaybackObserver
-from .strategy import PlaybackStrategy
+from .audio_focus import SonosAudioFocusObserver
+from .ducking import SonosDuckingPolicy
+from .pause import SonosPausePolicy
+from .policy import SonosAudioFocusPolicy
 
 __all__ = [
-    "DuckingStrategy",
-    "PauseStrategy",
-    "PlaybackStrategy",
-    "SonosPlaybackObserver",
+    "SonosAudioFocusObserver",
+    "SonosAudioFocusPolicy",
+    "SonosDuckingPolicy",
+    "SonosPausePolicy",
 ]

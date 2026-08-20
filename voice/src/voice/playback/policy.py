@@ -8,8 +8,8 @@ from voice.sonos import SonosSettings
 logger = logging.getLogger(__name__)
 
 
-class PlaybackStrategy(ABC):
-    """Controls how Sonos playback behaves during a voice interaction."""
+class SonosAudioFocusPolicy(ABC):
+    """Defines how Sonos yields audio focus during a voice interaction."""
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class PlaybackStrategy(ABC):
                 ip=self._settings.ip_address,
             )
         logger.info(
-            "Sonos playback strategy ready for %s",
+            "Sonos audio focus policy ready for %s",
             self._settings.speaker_name or self._client.ip,
         )
 
@@ -40,7 +40,7 @@ class PlaybackStrategy(ABC):
 
     async def close(self) -> None:
         if self._client is not None and self._owns_client:
-            logger.debug("Closing Sonos playback strategy client")
+            logger.debug("Closing Sonos audio focus policy client")
             await self._client.close()
             self._client = None
 
@@ -50,5 +50,5 @@ class PlaybackStrategy(ABC):
 
     def _prepared_client(self) -> SonosClient:
         if self._client is None:
-            raise RuntimeError("PlaybackStrategy must be prepared before use.")
+            raise RuntimeError("SonosAudioFocusPolicy must be prepared before use.")
         return self._client

@@ -11,7 +11,7 @@ from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
     HueObserver,
-    SonosPlaybackObserver,
+    SonosAudioFocusObserver,
     SoundObserver,
     SpeechBargeIn,
     VoiceAgent,
@@ -53,7 +53,7 @@ async def main() -> None:
         observers=(
             SoundObserver(),
             HueObserver(),
-            SonosPlaybackObserver(),
+            SonosAudioFocusObserver(),
         ),
     )
     await agent.start()

@@ -9,14 +9,14 @@ from sonosify import (
     TransportState,
 )
 
-from voice.playback.strategy import PlaybackStrategy
+from voice.playback.policy import SonosAudioFocusPolicy
 from voice.sonos import SonosSettings
 
 logger = logging.getLogger(__name__)
 
 
-class PauseStrategy(PlaybackStrategy):
-    """Pauses active playback and resumes only playback it paused itself."""
+class SonosPausePolicy(SonosAudioFocusPolicy):
+    """Yields audio focus by pausing active Sonos playback."""
 
     def __init__(
         self,
