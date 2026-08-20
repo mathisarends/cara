@@ -1,5 +1,5 @@
 [project]
-name = "cara-agent-plugin-api"
+name = "agent-plugin-api"
 version = "0.1.0"
 description = "Stable agent plugin contracts for the Cara Gateway."
 readme = "README.md"
@@ -16,7 +16,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cara_agent_plugin_api"]
+packages = ["src/agent_plugin_api"]
 
 [tool.ruff]
 extend = "../pyproject.toml"

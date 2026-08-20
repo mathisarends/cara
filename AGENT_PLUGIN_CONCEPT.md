@@ -77,7 +77,7 @@ der Plugin-Vertrag.
 
 ## Öffentliche Plugin-API
 
-Die API sollte als kleines Paket `cara-agent-plugin-api` ohne FastAPI-, Dishka- oder
+Die API sollte als kleines Paket `agent-plugin-api` ohne FastAPI-, Dishka- oder
 SQL-Abhängigkeiten angelegt werden. Damit hängt ein Plugin nur am stabilen
 Vertrag und nicht an der Gateway-Implementierung. Das Gateway selbst implementiert
 die darin definierten Ports.
@@ -209,9 +209,9 @@ Ein Plugin deklariert beispielsweise:
 ```toml
 [project]
 name = "cara-agent-plugin"
-dependencies = ["cara-agent-plugin-api"]
+dependencies = ["agent-plugin-api"]
 
-[project.entry-points."cara.gateway.agent"]
+[project.entry-points."cara.agent_plugins"]
 cara = "cara_agent_plugin:plugin"
 ```
 
@@ -221,7 +221,7 @@ Das exportierte Objekt ist eine kleine Factory:
 from collections.abc import Mapping
 from typing import Any
 
-from cara_agent_plugin_api import AgentPlugin, AgentPluginContext, AgentRunner
+from agent_plugin_api import AgentPlugin, AgentPluginContext, AgentRunner
 
 
 class CaraAgentPlugin:
@@ -259,7 +259,7 @@ Alternativ bzw. für Deployment:
 
 ```text
 CARA_AGENT_PLUGIN=cara
-CARA_AGENT_CONFIG_FILE=gateway.toml
+CARA_AGENT_CONFIG={"model":"codex-spark"}
 OPENAI_API_KEY=...
 ```
 
@@ -272,15 +272,14 @@ beim Start statt mitten in einem Turn abgewiesen wird.
 
 ## Loader und DI-Anbindung
 
-Der Loader verwendet `importlib.metadata.entry_points()` und gibt ein
-`LoadedAgentPlugin` zurück. Nur der Gateway-Composition-Root kennt Loader und
-Dishka:
+Der Loader verwendet `importlib.metadata.entry_points()` und gibt ein geprüftes
+`AgentPlugin` zurück. Nur der Gateway-Composition-Root kennt Loader und Dishka:
 
 ```python
 def load_agent_plugin(name: str) -> AgentPlugin:
     matches = tuple(
         entry_point
-        for entry_point in entry_points(group="cara.gateway.agent")
+        for entry_point in entry_points(group="cara.agent_plugins")
         if entry_point.name == name
     )
     if len(matches) != 1:

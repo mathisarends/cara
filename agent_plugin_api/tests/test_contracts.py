@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from cara_agent_plugin_api import (
+from agent_plugin_api import (
     AGENT_PLUGIN_API_VERSION,
     AgentChannelRef,
     AgentRunRequest,

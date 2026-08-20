@@ -4,7 +4,7 @@ import logging
 from typing import Any
 from uuid import UUID, uuid4
 
-from cara_agent_plugin_api import (
+from agent_plugin_api import (
     AgentChannelRef,
     AgentEvent,
     AgentRunner,

@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from cara_agent_plugin_api import AgentRunner, AgentSessionReader
+from agent_plugin_api import AgentRunner, AgentSessionReader
 from gateway.features.conversation.application import (
     ConversationService,
     EventBroker,

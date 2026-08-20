@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from cara_agent_plugin_api import (
+from agent_plugin_api import (
     AgentEvent,
     AgentRunner,
     AgentRunRequest,

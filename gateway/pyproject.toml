@@ -6,7 +6,7 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "aiosqlite>=0.22.0",
     "alembic>=1.19.1",
-    "cara-agent-plugin-api",
+    "agent-plugin-api",
     "dishka>=1.4.0",
     "fastapi>=0.115.0",
     "pydantic>=2.7.0",
@@ -22,6 +22,9 @@ dependencies = [
 cara-gateway = "gateway.main:main"
 cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
 gateway-migrate = "gateway.infrastructure.database.migrations:main"
+
+[project.entry-points."cara.agent_plugins"]
+echo = "gateway.features.conversation.infrastructure.echo_agent:plugin"
 
 [build-system]
 requires = ["hatchling"]

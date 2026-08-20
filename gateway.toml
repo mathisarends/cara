@@ -1,0 +1,5 @@
+[agent]
+plugin = "echo"
+
+[agent.config]
+delta_delay = 0.05

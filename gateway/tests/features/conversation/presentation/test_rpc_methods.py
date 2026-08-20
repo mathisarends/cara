@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from cara_agent_plugin_api import AgentEvent, AgentRunner, AgentRunRequest
+from agent_plugin_api import AgentEvent, AgentRunner, AgentRunRequest
 from gateway.features.conversation.application.service import ConversationService
 from gateway.features.conversation.domain import (
     GatewayEvent,

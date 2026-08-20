@@ -31,7 +31,7 @@ members = [
 agent = { workspace = true }
 cli = { workspace = true }
 gateway = { workspace = true }
-cara-agent-plugin-api = { workspace = true }
+agent-plugin-api = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
 retrieval = { workspace = true }
@@ -59,7 +59,7 @@ known-first-party = [
     "cli",
     "experiments",
     "gateway",
-    "cara_agent_plugin_api",
+    "agent_plugin_api",
     "gateway_client",
     "llm",
     "retrieval",

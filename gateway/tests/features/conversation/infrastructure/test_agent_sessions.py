@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from cara_agent_plugin_api import (
+from agent_plugin_api import (
     AgentAssistantMessage,
     AgentToolCallSequence,
     AgentToolCallState,

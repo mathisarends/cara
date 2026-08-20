@@ -1,9 +1,13 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
+from typing import Any
 from uuid import uuid4
 
-from cara_agent_plugin_api import (
+from agent_plugin_api import (
+    AGENT_PLUGIN_API_VERSION,
     AgentEvent,
+    AgentPlugin,
+    AgentPluginContext,
     AgentRunner,
     AgentRunRequest,
     ChatCompleted,
@@ -53,3 +57,27 @@ class EchoAgentRunner(AgentRunner):
 def _chunks(text: str) -> list[str]:
     words = text.split(" ")
     return [word if index == 0 else f" {word}" for index, word in enumerate(words)]
+
+
+class EchoAgentPlugin:
+    api_version = AGENT_PLUGIN_API_VERSION
+
+    def create(
+        self,
+        config: Mapping[str, Any],
+        context: AgentPluginContext,
+    ) -> AgentRunner:
+        del context
+        unknown = set(config) - {"delta_delay"}
+        if unknown:
+            fields = ", ".join(sorted(unknown))
+            raise ValueError(f"Unknown echo plugin configuration: {fields}")
+        delta_delay = config.get("delta_delay", 0.05)
+        if isinstance(delta_delay, bool) or not isinstance(delta_delay, (int, float)):
+            raise TypeError("echo delta_delay must be a number")
+        if delta_delay < 0:
+            raise ValueError("echo delta_delay must not be negative")
+        return EchoAgentRunner(float(delta_delay))
+
+
+plugin: AgentPlugin = EchoAgentPlugin()

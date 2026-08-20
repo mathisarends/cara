@@ -1,10 +1,10 @@
 from collections.abc import AsyncIterator, Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
-from cara_agent_plugin_api.events import AgentEvent
-from cara_agent_plugin_api.models import AgentContext, AgentRunRequest
+from agent_plugin_api.events import AgentEvent
+from agent_plugin_api.models import AgentContext, AgentRunRequest
 
 AGENT_PLUGIN_API_VERSION = 1
 
@@ -22,12 +22,14 @@ class AgentPluginContext:
     sessions: AgentSessionReader
 
 
+@runtime_checkable
 class AgentRunner(Protocol):
     def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]: ...
 
     async def close(self) -> None: ...
 
 
+@runtime_checkable
 class AgentPlugin(Protocol):
     api_version: int
 

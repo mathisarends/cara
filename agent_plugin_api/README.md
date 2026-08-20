@@ -1,6 +1,6 @@
 # Cara Agent Plugin API
 
-`cara-agent-plugin-api` is the dependency boundary between the Cara Gateway and an
+`agent-plugin-api` is the dependency boundary between the Cara Gateway and an
 installed agent plugin. It contains immutable request/context models, streamed
 agent events, and structural protocols. It deliberately has no dependency on
 FastAPI, Dishka, SQLModel, or the Gateway implementation.
@@ -10,4 +10,4 @@ The Gateway owns sessions and transcripts. A runner receives only the current
 read-only `AgentSessionReader` supplied in `AgentPluginContext`.
 
 Plugins should import their complete Gateway-facing API from
-`cara_agent_plugin_api`, not from modules below `gateway`.
+`agent_plugin_api`, not from modules below `gateway`.

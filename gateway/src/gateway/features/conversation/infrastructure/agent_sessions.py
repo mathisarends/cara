@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from cara_agent_plugin_api import (
+from agent_plugin_api import (
     AgentAssistantMessage,
     AgentContext,
     AgentContextEntry,
