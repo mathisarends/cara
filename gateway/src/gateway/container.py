@@ -4,7 +4,7 @@ from dishka.integrations.fastapi import FastapiProvider
 from gateway.features import FEATURES
 from gateway.features.conversation.application import AgentRunner
 from gateway.features.conversation.infrastructure import RuntimeAgentRunner
-from gateway.infrastructure import DatabaseProvider
+from gateway.infrastructure import DatabaseProvider, DatabaseSettings
 
 
 class _AgentProvider(Provider):
@@ -15,13 +15,13 @@ class _AgentProvider(Provider):
         return RuntimeAgentRunner()
 
 
-def create_container() -> AsyncContainer:
+def create_container(settings: DatabaseSettings) -> AsyncContainer:
     feature_providers = (
         provider() for feature in FEATURES for provider in feature.providers
     )
     return make_async_container(
         _AgentProvider(),
-        DatabaseProvider(),
+        DatabaseProvider(settings),
         *feature_providers,
         FastapiProvider(),
     )

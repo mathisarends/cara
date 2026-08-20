@@ -1,6 +1,9 @@
+import logging
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from dishka import Provider, Scope, provide
+from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -8,16 +11,18 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
-from sqlmodel import SQLModel
 
+from gateway.infrastructure.database.migrations import run_migrations
 from gateway.infrastructure.database.settings import DatabaseSettings
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseProvider(Provider):
     scope = Scope.APP
 
-    def __init__(self, settings: DatabaseSettings | None = None) -> None:
-        self._settings = settings or DatabaseSettings()
+    def __init__(self, settings: DatabaseSettings) -> None:
+        self._settings = settings
         super().__init__()
 
     @provide
@@ -25,16 +30,13 @@ class DatabaseProvider(Provider):
         return self._settings
 
     @provide
-    async def engine(self) -> AsyncIterator[AsyncEngine]:
-        options = {"poolclass": StaticPool} if self._settings.is_in_memory else {}
-        engine = create_async_engine(self._settings.async_url, **options)
+    async def engine(
+        self,
+        settings: DatabaseSettings,
+    ) -> AsyncIterator[AsyncEngine]:
+        options = {"poolclass": StaticPool} if settings.is_in_memory else {}
+        engine = create_async_engine(settings.async_url, **options)
         try:
-            if self._settings.is_in_memory:
-                # A fresh in-memory database has no migration history to apply
-                # against, so create its schema directly. Persistent databases are
-                # migrated before the server starts, never from inside it.
-                async with engine.begin() as connection:
-                    await connection.run_sync(SQLModel.metadata.create_all)
             yield engine
         finally:
             await engine.dispose()
@@ -58,3 +60,15 @@ class DatabaseProvider(Provider):
             except Exception:
                 await session.rollback()
                 raise
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    logger.info("%s starting up", app.title)
+    engine = await app.state.dishka_container.get(AsyncEngine)
+    await run_migrations(engine)
+    try:
+        yield
+    finally:
+        await app.state.dishka_container.close()
+        logger.info("%s shutting down", app.title)

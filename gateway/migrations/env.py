@@ -44,7 +44,7 @@ def _run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-async def run_migrations_online() -> None:
+async def _run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = _database_url()
     connectable = async_engine_from_config(
@@ -57,7 +57,15 @@ async def run_migrations_online() -> None:
     await connectable.dispose()
 
 
+def run_migrations_online() -> None:
+    connection = config.attributes.get("connection")
+    if connection is not None:
+        _run_migrations(connection)
+        return
+    asyncio.run(_run_migrations_online())
+
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    asyncio.run(run_migrations_online())
+    run_migrations_online()

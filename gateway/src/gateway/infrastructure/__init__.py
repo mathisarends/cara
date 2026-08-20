@@ -1,3 +1,3 @@
-from .database import DatabaseProvider, DatabaseSettings, Repository
+from .database import DatabaseProvider, DatabaseSettings, Repository, lifespan
 
-__all__ = ["DatabaseProvider", "DatabaseSettings", "Repository"]
+__all__ = ["DatabaseProvider", "DatabaseSettings", "Repository", "lifespan"]

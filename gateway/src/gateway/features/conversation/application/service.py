@@ -56,6 +56,9 @@ class ConversationService:
         task.add_done_callback(
             lambda completed, key=session_id: self._discard_task(key, completed)
         )
+        # Let the task enter its try/finally before callers can cancel it. This
+        # guarantees that the claimed turn is released during shutdown too.
+        await asyncio.sleep(0)
 
     async def cancel_turn(self, session_id: UUID) -> None:
         await self.get_session(session_id)
@@ -64,7 +67,6 @@ class ConversationService:
             raise ValueError(f"Session {session_id} has no active turn")
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
-        await self._sessions.release_turn(session_id)
 
     async def close(self) -> None:
         tasks = tuple(self._background_tasks.items())
@@ -72,8 +74,6 @@ class ConversationService:
             task.cancel()
         if tasks:
             await asyncio.gather(*(task for _, task in tasks), return_exceptions=True)
-            for session_id, _ in tasks:
-                await self._sessions.release_turn(session_id)
 
     async def _execute(
         self,

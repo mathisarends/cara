@@ -1,8 +1,11 @@
+import asyncio
 import logging
 from pathlib import Path
 
 from alembic.command import upgrade
 from alembic.config import Config
+from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from gateway.infrastructure.database.settings import DatabaseSettings
 
@@ -11,8 +14,10 @@ _MIGRATIONS_ROOT = Path(__file__).resolve().parents[4]
 logger = logging.getLogger(__name__)
 
 
-def run_migrations(url: str) -> None:
-    upgrade(_config(url), "head")
+async def run_migrations(engine: AsyncEngine) -> None:
+    config = _config()
+    async with engine.connect() as connection:
+        await connection.run_sync(_upgrade, config)
 
 
 def main() -> None:
@@ -21,16 +26,28 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    url = DatabaseSettings().async_url
-    logger.info("Migrating database to head")
-    run_migrations(url)
-    logger.info("Database is up to date")
+    asyncio.run(_run())
 
 
-def _config(url: str) -> Config:
+async def _run() -> None:
+    settings = DatabaseSettings()
+    engine = create_async_engine(settings.async_url)
+    try:
+        logger.info("Migrating database to head")
+        await run_migrations(engine)
+        logger.info("Database is up to date")
+    finally:
+        await engine.dispose()
+
+
+def _upgrade(connection: Connection, config: Config) -> None:
+    config.attributes["connection"] = connection
+    upgrade(config, "head")
+
+
+def _config() -> Config:
     config = Config(_MIGRATIONS_ROOT / "alembic.ini")
     config.set_main_option("script_location", str(_MIGRATIONS_ROOT / "migrations"))
-    config.set_main_option("sqlalchemy.url", url)
     return config
 
 

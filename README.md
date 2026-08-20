@@ -19,11 +19,10 @@ The gateway runs directly on the host; Docker is not part of its runtime. Set
 bash scripts/start_gateway.sh
 ```
 
-The script applies Alembic migrations and starts the server on
+The gateway applies pending Alembic migrations during startup and starts on
 `127.0.0.1:8000`. The equivalent explicit commands are:
 
 ```powershell
-uv run gateway-migrate
 uv run cara-gateway
 ```
 
