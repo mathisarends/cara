@@ -94,14 +94,20 @@ Set `SONOS_SPEAKER_NAME`, or `SONOS_IP_ADDRESS` to skip discovery. Import Sonos 
 
 ## Audio outputs
 
-`AudioPlayer` serializes WAV and streaming PCM playback on one audio output. Pass it to `SpeechOutput`
-and the tool context:
+`AudioPlayer` serializes WAV and streaming PCM playback on one audio output:
 
 ```python
 audio_player = AudioPlayer(SonosOutput())
+```
 
-speech_output = SpeechOutput(tts, audio_player, speech_settings, event_bus)
-tools = build_tools(audio_player)
+Outputs that can change their playback level implement `voice.audio.VolumeControl` on top of the
+`AudioOutput` port, so the port itself stays free of volume concerns. Inject such an output into the
+tool context and the agent gains `get_volume` and `set_volume`; without it, neither tool is
+offered to the model:
+
+```python
+audio_output = SonosOutput()
+tools = build_tools(injected_dependencies=(audio_output,))
 ```
 
 ## Tool safety

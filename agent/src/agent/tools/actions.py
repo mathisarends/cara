@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from agenttoolkit import Inject, Skills, Tools, requires
+from agenttoolkit import Inject, Skills, Tools, provided, requires
 from agenttoolkit.builtins import CommandRunner, Workspace
 from agenttoolkit.builtins.fs import Entry
 
@@ -18,10 +18,12 @@ from agent.tools.params import (
     LoadSkillParams,
     ReadFileParams,
     ShellParams,
+    VolumeParams,
     WeatherParams,
     WebSearchParams,
     WriteFileParams,
 )
+from voice.audio import VolumeControl
 
 
 def register_tools(tools: Tools) -> None:
@@ -69,6 +71,25 @@ def register_tools(tools: Tools) -> None:
     ) -> str:
         response = await client.search(params.query, max_results=params.max_results)
         return response.summary()
+
+    @tools.action(
+        description=(
+            "Read the current playback volume in percent. Call this before a "
+            "relative change such as 'a bit quieter'."
+        ),
+        available_when=provided(VolumeControl),
+    )
+    async def get_volume(control: Inject[VolumeControl]) -> str:
+        return _render_volume(await control.get_volume())
+
+    @tools.action(
+        description="Set the playback volume to a percentage.",
+        params=VolumeParams,
+        available_when=provided(VolumeControl),
+    )
+    async def set_volume(params: VolumeParams, control: Inject[VolumeControl]) -> str:
+        await control.set_volume(params.volume)
+        return _render_volume(params.volume)
 
     @tools.action(
         description="Execute a shell command in the isolated workspace sandbox.",
@@ -157,6 +178,10 @@ def register_tools(tools: Tools) -> None:
     async def edit_file(params: EditFileParams, workspace: Inject[Workspace]) -> str:
         await workspace.edit_file(params.path, params.old_text, params.new_text)
         return f"Edited {params.path}."
+
+
+def _render_volume(volume: int) -> str:
+    return f"Lautstärke: {volume} %."
 
 
 def _render_weather_report(report: WeatherReport) -> str:

@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import agenttoolkit
 from agenttoolkit import (
     CallLoggingMiddleware,
@@ -40,14 +42,15 @@ def create_tools(context: ToolContext | None = None) -> AgentTools:
 
 
 def build_tools(
-    *dependencies: object,
+    *,
+    injected_dependencies: Sequence[object] = (),
     skills: Skills | None = None,
     workspace: Workspace | None = None,
     sandbox: SandboxConfig | None = None,
     additional_tools: agenttoolkit.Tools | None = None,
 ) -> AgentTools:
     tool_context = create_tool_context(
-        *dependencies,
+        *injected_dependencies,
         IpLocationClient(),
         OpenMeteoClient(),
         TavilySearchClient(),

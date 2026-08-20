@@ -27,6 +27,12 @@ class WeatherParams(ToolParams):
     )
 
 
+class VolumeParams(ToolParams):
+    volume: int = Field(
+        ge=0, le=100, description="Playback volume in percent, from 0 to 100."
+    )
+
+
 class WebSearchParams(ToolParams):
     query: str = Field(description="Search query for the web search.")
     max_results: int = Field(

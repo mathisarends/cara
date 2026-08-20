@@ -29,7 +29,12 @@ _SKILLS_ROOT = Path(__file__).parent / "skills"
 
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
-    tools = build_tools(skills=skills, sandbox=SandboxConfig(network_access=True))
+    audio_output = SonosOutput()
+    tools = build_tools(
+        injected_dependencies=(audio_output,),
+        skills=skills,
+        sandbox=SandboxConfig(network_access=True),
+    )
     agent_session = Agent(
         llm=create_codex_model(
             CodexModel.SPARK,
@@ -40,7 +45,7 @@ async def main() -> None:
     )
     agent = VoiceAgent(
         agent_session=agent_session,
-        audio_output=SonosOutput(),
+        audio_output=audio_output,
         text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
         barge_in=SpeechBargeIn(),
         observers=(
