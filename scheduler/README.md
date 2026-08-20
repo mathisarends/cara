@@ -16,7 +16,7 @@ execution. The host application owns their meaning:
 from dataclasses import dataclass
 from datetime import timedelta
 
-from scheduler import ScheduledRun, Scheduler
+from scheduler import MemoryJobStore, ScheduledRun, Scheduler
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,8 +30,8 @@ async def run_agent(run: ScheduledRun[AgentWork]) -> None:
     await agent_runtime.run(agent_id=work.agent_id, prompt=work.prompt)
 
 
-scheduler = Scheduler[AgentWork](run_agent)
-scheduler.interval(
+scheduler = Scheduler(run_agent, MemoryJobStore[AgentWork]())
+await scheduler.interval(
     every=timedelta(minutes=30),
     payload=AgentWork(
         agent_id="cara",
@@ -51,9 +51,9 @@ without changing the library.
 The convenience methods mirror those trigger types:
 
 ```python
-scheduler.at(when, payload=payload)
-scheduler.interval(every=timedelta(minutes=5), payload=payload)
-scheduler.cron(
+await scheduler.at(when, payload=payload)
+await scheduler.interval(every=timedelta(minutes=5), payload=payload)
+await scheduler.cron(
     expression="0 7 * * 1-5",
     timezone="Europe/Berlin",
     payload=payload,
@@ -87,5 +87,5 @@ uv run --package scheduler python scheduler/examples/quickstart.py
 - Different jobs may run concurrently. A single recurring job never overlaps
   with itself, and missed occurrences are skipped rather than replayed.
 - A failed run is logged and does not stop later recurring runs.
-- Jobs live in memory. A host can restore definitions from its own persistence
-  layer before starting the scheduler.
+- Job lifetime is controlled by the injected store. `MemoryJobStore` is useful
+  for tests and ephemeral processes.

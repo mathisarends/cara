@@ -3,13 +3,14 @@ from .models import (
     Cron,
     ErrorHandler,
     Interval,
-    JobRunner,
     ScheduledJob,
     ScheduledRun,
     ScheduleKind,
     Trigger,
 )
+from .ports import JobRunner, JobStore
 from .scheduler import Scheduler
+from .stores import MemoryJobStore
 
 __all__ = [
     "At",
@@ -17,6 +18,8 @@ __all__ = [
     "ErrorHandler",
     "Interval",
     "JobRunner",
+    "JobStore",
+    "MemoryJobStore",
     "ScheduledJob",
     "ScheduledRun",
     "ScheduleKind",

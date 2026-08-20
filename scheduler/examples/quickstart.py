@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from scheduler import ScheduledRun, Scheduler
+from scheduler import MemoryJobStore, ScheduledRun, Scheduler
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,14 +15,14 @@ async def handle(run: ScheduledRun[Message]) -> None:
 
 
 async def main() -> None:
-    scheduler = Scheduler[Message](handle)
+    scheduler = Scheduler(handle, MemoryJobStore[Message]())
 
-    interval = scheduler.interval(
+    interval = await scheduler.interval(
         every=timedelta(seconds=1),
         payload=Message("Look for unfinished work."),
         name="demo interval",
     )
-    scheduler.at(
+    await scheduler.at(
         datetime.now(UTC) + timedelta(seconds=2),
         payload=Message("This job only runs once."),
         name="demo one-shot",

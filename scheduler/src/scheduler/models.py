@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
-from typing import Literal, Protocol
+from typing import Literal
 
 from croniter import croniter
 
@@ -45,11 +45,17 @@ class ScheduledJob[PayloadT]:
     id: str
     trigger: Trigger
     payload: PayloadT
+    created_at: datetime
+    next_run_at: datetime
     name: str | None = None
 
     def __post_init__(self) -> None:
         if not self.id.strip():
             raise ValueError("Job id must not be empty")
+        if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
+            raise ValueError("Job creation time must include a timezone")
+        if self.next_run_at.tzinfo is None or self.next_run_at.utcoffset() is None:
+            raise ValueError("Next run time must include a timezone")
 
     @property
     def kind(self) -> ScheduleKind:
@@ -69,10 +75,6 @@ class ScheduledRun[PayloadT]:
     scheduled_for: datetime
     payload: PayloadT
     job_name: str | None = None
-
-
-class JobRunner[PayloadT](Protocol):
-    def __call__(self, run: ScheduledRun[PayloadT]) -> Awaitable[None]: ...
 
 
 type ErrorHandler[PayloadT] = Callable[

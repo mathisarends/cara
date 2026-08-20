@@ -1,6 +1,8 @@
 import asyncio
 import logging
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta, tzinfo
+from functools import partial
 from typing import Self
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -12,11 +14,11 @@ from scheduler.models import (
     Cron,
     ErrorHandler,
     Interval,
-    JobRunner,
     ScheduledJob,
     ScheduledRun,
     Trigger,
 )
+from scheduler.ports import JobRunner, JobStore
 
 logger = logging.getLogger(__name__)
 
@@ -25,24 +27,22 @@ class Scheduler[PayloadT]:
     def __init__(
         self,
         runner: JobRunner[PayloadT],
+        store: JobStore[PayloadT],
         *,
         error_handler: ErrorHandler[PayloadT] | None = None,
     ) -> None:
         self._runner = runner
+        self._store = store
         self._error_handler = error_handler
-        self._jobs: dict[str, ScheduledJob[PayloadT]] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._running = False
+        self._lock = asyncio.Lock()
 
     @property
     def is_running(self) -> bool:
         return self._running
 
-    @property
-    def jobs(self) -> tuple[ScheduledJob[PayloadT], ...]:
-        return tuple(self._jobs.values())
-
-    def schedule(
+    async def schedule(
         self,
         *,
         trigger: Trigger,
@@ -50,21 +50,22 @@ class Scheduler[PayloadT]:
         job_id: str | None = None,
         name: str | None = None,
     ) -> ScheduledJob[PayloadT]:
+        created_at = datetime.now(UTC)
         job = ScheduledJob(
             id=job_id or uuid4().hex,
             trigger=trigger,
             payload=payload,
+            created_at=created_at,
+            next_run_at=_first_run(trigger, created_at),
             name=name,
         )
-        if job.id in self._jobs:
-            raise ValueError(f"A job with id {job.id!r} is already scheduled")
-
-        self._jobs[job.id] = job
-        if self._running:
-            self._start_job(job)
+        async with self._lock:
+            await self._store.add(job)
+            if self._running:
+                self._start_job(job)
         return job
 
-    def at(
+    async def at(
         self,
         when: datetime,
         *,
@@ -72,14 +73,14 @@ class Scheduler[PayloadT]:
         job_id: str | None = None,
         name: str | None = None,
     ) -> ScheduledJob[PayloadT]:
-        return self.schedule(
+        return await self.schedule(
             trigger=At(when=when),
             payload=payload,
             job_id=job_id,
             name=name,
         )
 
-    def interval(
+    async def interval(
         self,
         *,
         every: timedelta,
@@ -88,14 +89,14 @@ class Scheduler[PayloadT]:
         job_id: str | None = None,
         name: str | None = None,
     ) -> ScheduledJob[PayloadT]:
-        return self.schedule(
+        return await self.schedule(
             trigger=Interval(every=every, run_immediately=run_immediately),
             payload=payload,
             job_id=job_id,
             name=name,
         )
 
-    def cron(
+    async def cron(
         self,
         *,
         expression: str,
@@ -107,37 +108,39 @@ class Scheduler[PayloadT]:
         resolved_timezone = (
             ZoneInfo(timezone) if isinstance(timezone, str) else timezone
         )
-        return self.schedule(
+        return await self.schedule(
             trigger=Cron(expression=expression, timezone=resolved_timezone),
             payload=payload,
             job_id=job_id,
             name=name,
         )
 
-    def remove(self, job_id: str) -> bool:
-        job = self._jobs.pop(job_id, None)
-        if job is None:
-            return False
-        task = self._tasks.pop(job_id, None)
-        if task is not None:
-            task.cancel()
-        return True
+    async def remove(self, job_id: str) -> bool:
+        async with self._lock:
+            removed = await self._store.remove(job_id)
+            task = self._tasks.pop(job_id, None)
+            if task is not None:
+                task.cancel()
+            return removed
 
     async def start(self) -> None:
-        if self._running:
-            return
-        self._running = True
-        for job in self._jobs.values():
-            self._start_job(job)
+        async with self._lock:
+            if self._running:
+                return
+            jobs = await self._store.list()
+            self._running = True
+            for job in jobs:
+                self._start_job(job)
 
     async def stop(self) -> None:
-        if not self._running:
-            return
-        self._running = False
-        tasks = tuple(self._tasks.values())
-        self._tasks.clear()
-        for task in tasks:
-            task.cancel()
+        async with self._lock:
+            if not self._running:
+                return
+            self._running = False
+            tasks = tuple(self._tasks.values())
+            self._tasks.clear()
+            for task in tasks:
+                task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def __aenter__(self) -> Self:
@@ -153,25 +156,41 @@ class Scheduler[PayloadT]:
         await self.stop()
 
     def _start_job(self, job: ScheduledJob[PayloadT]) -> None:
-        self._tasks[job.id] = asyncio.create_task(
+        if job.id in self._tasks:
+            return
+        task = asyncio.create_task(
             self._run_job(job),
             name=f"scheduler:{job.id}",
         )
+        self._tasks[job.id] = task
+        task.add_done_callback(partial(self._job_finished, job.id))
+
+    def _job_finished(self, job_id: str, task: asyncio.Task[None]) -> None:
+        if self._tasks.get(job_id) is task:
+            self._tasks.pop(job_id)
+        if task.cancelled():
+            return
+        if error := task.exception():
+            logger.error(
+                "Scheduler task for job %s stopped unexpectedly",
+                job_id,
+                exc_info=(type(error), error, error.__traceback__),
+            )
 
     async def _run_job(self, job: ScheduledJob[PayloadT]) -> None:
-        scheduled_for = _first_run(job.trigger, datetime.now(UTC))
-        while scheduled_for is not None:
-            await _sleep_until(scheduled_for)
-            if job.id not in self._jobs:
-                return
-            await self._dispatch(job, scheduled_for)
-            scheduled_for = _next_run(
+        while True:
+            await _sleep_until(job.next_run_at)
+            await self._dispatch(job, job.next_run_at)
+            next_run_at = _next_run(
                 job.trigger,
-                previous=scheduled_for,
+                previous=job.next_run_at,
                 now=datetime.now(UTC),
             )
-        self._jobs.pop(job.id, None)
-        self._tasks.pop(job.id, None)
+            if next_run_at is None:
+                await self._store.remove(job.id)
+                return
+            job = replace(job, next_run_at=next_run_at)
+            await self._store.update(job)
 
     async def _dispatch(
         self,

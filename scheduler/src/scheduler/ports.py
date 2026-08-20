@@ -1,0 +1,20 @@
+from collections.abc import Awaitable
+from typing import Protocol
+
+from scheduler.models import ScheduledJob, ScheduledRun
+
+
+class JobRunner[PayloadT](Protocol):
+    def __call__(self, run: ScheduledRun[PayloadT]) -> Awaitable[None]: ...
+
+
+class JobStore[PayloadT](Protocol):
+    async def add(self, job: ScheduledJob[PayloadT]) -> None: ...
+
+    async def update(self, job: ScheduledJob[PayloadT]) -> None: ...
+
+    async def remove(self, job_id: str) -> bool: ...
+
+    async def get(self, job_id: str) -> ScheduledJob[PayloadT] | None: ...
+
+    async def list(self) -> tuple[ScheduledJob[PayloadT], ...]: ...

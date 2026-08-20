@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
 
-from scheduler import ScheduledRun, Scheduler
+from scheduler import MemoryJobStore, ScheduledRun, Scheduler
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,10 +21,10 @@ async def serve(runtime: AgentRuntime, shutdown: asyncio.Event) -> None:
         work = run.payload
         await runtime.run(work.agent_id, work.prompt)
 
-    scheduler = Scheduler[AgentWork](run_agent)
+    scheduler = Scheduler(run_agent, MemoryJobStore[AgentWork]())
 
     # Agent-specific concepts live in this host-side adapter, not in scheduler.
-    scheduler.interval(
+    await scheduler.interval(
         every=timedelta(minutes=5),
         run_immediately=False,
         payload=AgentWork(
@@ -34,7 +34,7 @@ async def serve(runtime: AgentRuntime, shutdown: asyncio.Event) -> None:
         job_id="cara-heartbeat",
         name="heartbeat",
     )
-    scheduler.cron(
+    await scheduler.cron(
         expression="0 7 * * 1-5",
         timezone="Europe/Berlin",
         payload=AgentWork(
