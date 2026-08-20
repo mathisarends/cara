@@ -4,9 +4,7 @@ from fastapi import FastAPI
 from gateway.container import create_container
 from gateway.features import FEATURES
 from gateway.infrastructure import DatabaseSettings, lifespan
-from gateway.presentation import RequestLoggingMiddleware, health_router
-
-_API_PREFIX = "/v1"
+from gateway.presentation import RequestLoggingMiddleware
 
 
 def create_app(settings: DatabaseSettings) -> FastAPI:
@@ -25,7 +23,6 @@ def create_app(settings: DatabaseSettings) -> FastAPI:
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)
-    app.include_router(health_router, prefix=_API_PREFIX)
     for feature in FEATURES:
         feature.install(app)
 
