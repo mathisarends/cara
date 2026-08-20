@@ -37,14 +37,13 @@ async def main() -> None:
     sonos_settings = SonosSettings()
     async with SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
-        models = ModelSwitch(
-            {
-                CodexModel.SPARK: create_codex_model(
-                    CodexModel.SPARK,
-                    reasoning_effort=CodexReasoningEffort.LOW,
-                ),
-            },
-            default=CodexModel.SPARK,
+        codex_spark = create_codex_model(
+            CodexModel.SPARK,
+            reasoning_effort=CodexReasoningEffort.LOW,
+        )
+        models = ModelSwitch.single(
+            codex_spark,
+            name="codex-spark",
         )
         tools = build_tools(
             injected_dependencies=(audio_output, models),
