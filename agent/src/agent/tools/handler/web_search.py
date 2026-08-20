@@ -1,9 +1,9 @@
-from abc import ABC, abstractmethod
-
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from tavily import AsyncTavilyClient
+
+from agent.tools.handler.ports import SearchResponse, WebSearch
 
 
 class TavilyCredentials(BaseSettings):
@@ -17,36 +17,6 @@ class TavilyCredentials(BaseSettings):
     )
 
     api_key: SecretStr
-
-
-class SearchResult(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-    title: str
-    url: str
-    content: str
-
-
-class SearchResponse(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-    results: list[SearchResult] = Field(default_factory=list)
-    answer: str | None = None
-
-    def summary(self) -> str:
-        if self.answer is None and not self.results:
-            return "Keine Ergebnisse gefunden."
-        parts = [self.answer] if self.answer else []
-        parts.extend(
-            f"{result.title} ({result.url}): {result.content}"
-            for result in self.results
-        )
-        return "\n\n".join(parts)
-
-
-class WebSearch(ABC):
-    @abstractmethod
-    async def search(self, query: str, *, max_results: int = 5) -> SearchResponse: ...
 
 
 class TavilyWebSearch(WebSearch):

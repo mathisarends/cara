@@ -1,16 +1,10 @@
-from abc import ABC, abstractmethod
 from typing import Any
 
 import httpx
 
-from agent.tools.handler.weather import Location
+from agent.tools.handler.ports import Location, LocationLookup
 
 _IP_LOCATION_URL = "https://ipwho.is/"
-
-
-class LocationLookup(ABC):
-    @abstractmethod
-    async def current(self) -> Location: ...
 
 
 class IpLocationLookup(LocationLookup):

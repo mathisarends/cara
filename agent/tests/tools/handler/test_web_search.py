@@ -2,11 +2,8 @@ import asyncio
 
 import httpx
 
-from agent.tools.handler.web_search import (
-    SearchResponse,
-    TavilyCredentials,
-    TavilyWebSearch,
-)
+from agent.tools.handler.ports import SearchResponse
+from agent.tools.handler.web_search import TavilyCredentials, TavilyWebSearch
 
 _RESULTS = {
     "query": "aktuelles wetter berlin",
@@ -54,7 +51,7 @@ def test_summary_includes_answer_and_results() -> None:
 def test_summary_reports_no_results_when_empty() -> None:
     response = SearchResponse()
 
-    assert response.summary() == "Keine Ergebnisse gefunden."
+    assert response.summary() == "No results found."
 
 
 def test_search_returns_parsed_response_from_api() -> None:

@@ -1,11 +1,7 @@
 import asyncio
 
 from agent.tools import build_tools
-from agent.tools.handler.web_search import (
-    SearchResponse,
-    SearchResult,
-    WebSearch,
-)
+from agent.tools.handler.ports import SearchResponse, SearchResult, WebSearch
 
 
 class _StubClient(WebSearch):

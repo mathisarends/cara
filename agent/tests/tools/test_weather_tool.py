@@ -2,9 +2,9 @@ import asyncio
 from datetime import datetime
 
 from agent.tools import build_tools
-from agent.tools.actions import _render_weather_report
+from agent.tools.actions.weather import _render_weather_report
 from agent.tools.handler import LocationLookup
-from agent.tools.handler.weather import (
+from agent.tools.handler.ports import (
     HourlyForecast,
     Location,
     Weather,
@@ -23,7 +23,7 @@ def _report(name: str) -> WeatherReport:
         apparent_temperature_c=20.0,
         wind_speed_kmh=5.0,
         is_day=True,
-        description="klar",
+        description="clear",
     )
 
 
@@ -68,7 +68,7 @@ def test_render_weather_report_includes_apparent_temperature_when_it_diverges() 
     )
 
     assert _render_weather_report(report) == (
-        "## Weather in Berlin\n\n**24 °C**, feels like 22 °C, klar, Wind 5 km/h."
+        "## Weather in Berlin\n\n**24 °C**, feels like 22 °C, clear, Wind 5 km/h."
     )
 
 
@@ -78,13 +78,13 @@ def test_render_weather_report_appends_hourly_outlook() -> None:
             time=datetime(2026, 7, 21, 14, 0),
             temperature_c=24.1,
             precipitation_probability=10,
-            description="teils bewölkt",
+            description="partly cloudy",
         ),
         HourlyForecast(
             time=datetime(2026, 7, 21, 15, 0),
             temperature_c=25.0,
             precipitation_probability=60,
-            description="leichter Regen",
+            description="light rain",
         ),
     ]
     report = _report("Berlin").model_copy(update={"hourly": hourly})
@@ -94,8 +94,8 @@ def test_render_weather_report_appends_hourly_outlook() -> None:
     assert rendered.endswith(
         "| Time | Weather | Temp | Rain |\n"
         "| --- | --- | --- | --- |\n"
-        "| 14:00 | teils bewölkt | 24 °C | 10% |\n"
-        "| 15:00 | leichter Regen | 25 °C | 60% |"
+        "| 14:00 | partly cloudy | 24 °C | 10% |\n"
+        "| 15:00 | light rain | 25 °C | 60% |"
     )
 
 

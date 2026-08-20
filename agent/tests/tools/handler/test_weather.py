@@ -3,7 +3,8 @@ import json
 
 import httpx
 
-from agent.tools.handler.weather import Location, OpenMeteoWeather, WeatherReport
+from agent.tools.handler.ports import Location, WeatherReport
+from agent.tools.handler.weather import OpenMeteoWeather
 
 _BERLIN = Location(
     name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin"
@@ -34,7 +35,7 @@ _GEOCODING = {
             "latitude": 53.55,
             "longitude": 9.99,
             "timezone": "Europe/Berlin",
-            "country": "Deutschland",
+            "country": "Germany",
         }
     ]
 }
@@ -56,7 +57,7 @@ def test_report_parses_forecast_payload_via_model_validate() -> None:
     assert report.apparent_temperature_c == 22.0
     assert report.wind_speed_kmh == 11.3
     assert report.is_day is True
-    assert report.description == "teils bewölkt"
+    assert report.description == "partly cloudy"
 
 
 def test_report_maps_unknown_weather_code_to_fallback() -> None:
@@ -64,7 +65,7 @@ def test_report_maps_unknown_weather_code_to_fallback() -> None:
         {**_FORECAST["current"], "weather_code": 123, "location_name": "Berlin"}
     )
 
-    assert report.description == "unbekannte Wetterlage"
+    assert report.description == "unknown weather condition"
 
 
 def test_current_returns_report_for_location() -> None:
@@ -73,7 +74,7 @@ def test_current_returns_report_for_location() -> None:
     report = asyncio.run(client.current(_BERLIN))
 
     assert report.temperature_c == 24.1
-    assert report.description == "teils bewölkt"
+    assert report.description == "partly cloudy"
 
 
 def test_current_filters_hourly_entries_before_now() -> None:
