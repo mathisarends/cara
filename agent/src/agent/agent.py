@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,6 +9,7 @@ from agenttoolkit import Skills
 from llmify import (
     ChatModel,
     LLMifyError,
+    Message,
     OpenAIResponsesStreamEnd,
     StreamEnd,
     StreamTextDelta,
@@ -20,6 +21,7 @@ from agent.messages import MessageManager
 from agent.models import ModelSwitch
 from agent.prompt import SystemPrompt
 from agent.tools import AgentTools
+from agent.tools.middleware import ToolFailure
 from voice.llm.events import (
     AgentEvent,
     TextDelta,
@@ -46,6 +48,7 @@ class Agent:
         skills: Skills | None = None,
         system_prompt: str | None = None,
         workspace_root: Path | None = None,
+        messages: Sequence[Message] = (),
     ) -> None:
         self._models = models
         self._tools = tools
@@ -54,7 +57,8 @@ class Agent:
                 root=workspace_root,
                 system_prompt=system_prompt,
                 skills=skills,
-            )
+            ),
+            messages,
         )
         self._turn: asyncio.Task[None] | None = None
         self._tool_preparation: asyncio.Task[None] | None = None
@@ -125,13 +129,20 @@ class Agent:
             await turn
 
     async def _run_loop(self, events: _EventQueue) -> None:
+        response_parts: list[str] = []
         while True:
             end = await self._stream_completion(events)
             completion = end.completion or ""
+            response_parts.append(completion)
 
             if not end.tool_calls:
                 self._context.add_assistant(completion)
-                await events.put(TurnCompleted())
+                await events.put(
+                    TurnCompleted(
+                        text="".join(response_parts),
+                        finish_reason=end.stop_reason or "stop",
+                    )
+                )
                 return
 
             tool_results = await self._execute_tools(end.tool_calls, events)
@@ -160,9 +171,29 @@ class Agent:
         for tool_call in tool_calls:
             name = tool_call.function.name
             arguments = json.loads(tool_call.function.arguments or "{}")
-            await events.put(ToolStarted(name))
-            result = await self._tools.execute(name, arguments)
-            await events.put(ToolCompleted(name))
+            if not isinstance(arguments, dict):
+                raise ValueError(f"Tool arguments for '{name}' must be an object")
+            await events.put(ToolStarted(name, tool_call.id, arguments))
+            try:
+                result = await self._tools.execute(name, arguments)
+            except Exception as error:
+                await events.put(
+                    ToolCompleted(
+                        name,
+                        tool_call.id,
+                        str(error) or type(error).__name__,
+                        is_error=True,
+                    )
+                )
+                raise
+            await events.put(
+                ToolCompleted(
+                    name,
+                    tool_call.id,
+                    result,
+                    is_error=isinstance(result, ToolFailure),
+                )
+            )
             content = "Tool completed successfully." if result is None else str(result)
             results.append(
                 ToolResultMessage(tool_call_id=tool_call.id, content=content)

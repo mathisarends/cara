@@ -15,6 +15,10 @@ class ToolError(Exception):
     """An expected tool failure that should be returned to the model."""
 
 
+class ToolFailure(str):
+    """A model-visible tool result that is also identifiable as a failure."""
+
+
 _EXPECTED_TOOL_ERRORS = (
     ToolError,
     ValidationError,
@@ -54,7 +58,7 @@ class ToolResultMiddleware(ToolMiddleware):
                 call.raw_args,
                 exc_info=logger.isEnabledFor(logging.DEBUG),
             )
-            return f"Tool failed: {error}"
+            return ToolFailure(f"Tool failed: {error}")
 
         elapsed_ms = _elapsed_ms(started)
         logger.info(

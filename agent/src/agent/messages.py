@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from llmify import (
     AssistantMessage,
     Message,
@@ -13,9 +15,13 @@ from agent.prompt import SystemPrompt
 class MessageManager:
     """Append-only conversation history sent to the model on each turn."""
 
-    def __init__(self, system_prompt: SystemPrompt) -> None:
+    def __init__(
+        self,
+        system_prompt: SystemPrompt,
+        messages: Sequence[Message] = (),
+    ) -> None:
         self._system_prompt = system_prompt
-        self._messages: list[Message] = []
+        self._messages = list(messages)
 
     def add_user(self, text: str) -> None:
         self._messages.append(UserMessage(content=text))

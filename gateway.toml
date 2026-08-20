@@ -1,5 +1,7 @@
 [agent]
-plugin = "echo"
+plugin = "cara"
 
 [agent.config]
-delta_delay = 0.05
+model = "gpt-5.3-codex-spark"
+reasoning_effort = "low"
+sandbox_file = "sandbox.yml"
