@@ -26,12 +26,19 @@ class SandboxWorkspace(_ConfigModel):
     max_file_bytes: int | None = Field(default=None, gt=0)
 
 
+class PathMount(_ConfigModel):
+    source: Path
+    target: PurePosixPath
+    writable: bool = False
+
+
 class CliCredentialMount(_ConfigModel):
     name: str = Field(min_length=1)
     target: PurePosixPath
 
 
 class SandboxMounts(_ConfigModel):
+    paths: tuple[PathMount, ...] = ()
     cli_credentials: tuple[CliCredentialMount, ...] = ()
 
 
@@ -48,13 +55,19 @@ class SandboxDefinition(_ConfigModel):
     _root: Path = PrivateAttr(default_factory=Path.cwd)
 
     def resolve_workspace_root(self) -> Path:
-        if self.workspace.root.is_absolute():
-            return self.workspace.root
-        return self._root / self.workspace.root
+        return self.resolve_path(self.workspace.root)
+
+    def resolve_path(self, path: Path) -> Path:
+        expanded = path.expanduser()
+        if expanded.is_absolute():
+            return expanded
+        return self._root / expanded
 
     @model_validator(mode="after")
     def _reject_reserved_mount_targets(self) -> Self:
-        configured_targets = {mount.target for mount in self.mounts.cli_credentials}
+        configured_targets = {
+            mount.target for mount in (*self.mounts.paths, *self.mounts.cli_credentials)
+        }
         conflicts = configured_targets & self.reserved_targets
         if conflicts:
             targets = ", ".join(map(str, sorted(conflicts)))

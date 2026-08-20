@@ -25,7 +25,6 @@ class SandboxConfig(BaseModel):
     runner: CommandRunner | None = None
     environment: Mapping[str, str] | None = None
     mounts: Sequence[BindMount] | None = None
-    network_access: bool | None = None
 
 
 def create_sandbox(
@@ -34,11 +33,10 @@ def create_sandbox(
     definition: SandboxDefinition | None = None,
     environment: Mapping[str, str] | None = None,
     mounts: Sequence[BindMount] = (),
-    network_access: bool | None = None,
 ) -> DockerSandbox:
     selected_definition = definition or load_sandbox_definition()
     _validate_mounts(selected_definition, mounts)
-    configured_mounts = _cli_credential_mounts(selected_definition)
+    configured_mounts = _configured_mounts(selected_definition)
     defaults = selected_definition.defaults
     limits = selected_definition.limits
     return DockerSandbox(
@@ -56,11 +54,7 @@ def create_sandbox(
         ),
         policy=SandboxPolicy.for_workspace(
             working_directory,
-            enable_network_access=(
-                selected_definition.network_access
-                if network_access is None
-                else network_access
-            ),
+            enable_network_access=selected_definition.network_access,
             limits=SandboxLimits(
                 memory_bytes=limits.memory_bytes,
                 pids=limits.pids,
@@ -81,6 +75,20 @@ def _validate_mounts(
         raise ValueError(
             f"Sandbox mount target is reserved; reserved targets: {targets}."
         )
+
+
+def _configured_mounts(definition: SandboxDefinition) -> tuple[BindMount, ...]:
+    return (*_path_mounts(definition), *_cli_credential_mounts(definition))
+
+
+def _path_mounts(definition: SandboxDefinition) -> tuple[BindMount, ...]:
+    mounts = []
+    for mount in definition.mounts.paths:
+        source = definition.resolve_path(mount.source)
+        if not source.exists():
+            raise ValueError(f"Sandbox mount source does not exist: {source}.")
+        mounts.append(BindMount(source, mount.target, writable=mount.writable))
+    return tuple(mounts)
 
 
 def _cli_credential_mounts(

@@ -2,11 +2,10 @@ import asyncio
 from pathlib import Path
 
 from agenttoolkit import Skills
-from agenttoolkit.builtins import BindMount, LocalWorkspace
+from agenttoolkit.builtins import LocalWorkspace
 from dotenv import load_dotenv
 
 from agent import Agent
-from agent.sandbox import SandboxConfig
 from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalSession
@@ -28,10 +27,6 @@ async def main() -> None:
     tools = build_tools(
         skills=skills,
         workspace=_create_workspace(),
-        sandbox=SandboxConfig(
-            mounts=_editable_sandbox_mounts(),
-            network_access=True,
-        ),
     )
     agent = Agent(
         llm=llm,
@@ -51,14 +46,6 @@ def _create_workspace() -> LocalWorkspace:
             "/experiments": _EXPERIMENTS_ROOT,
             "/skills": _SKILLS_ROOT,
         },
-    )
-
-
-def _editable_sandbox_mounts() -> tuple[BindMount, ...]:
-    return (
-        BindMount.read_write(_AGENT_SRC, "/src/agent"),
-        BindMount.read_write(_EXPERIMENTS_ROOT, "/experiments"),
-        BindMount.read_write(_SKILLS_ROOT, "/skills"),
     )
 
 

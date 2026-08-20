@@ -16,14 +16,9 @@ def create_tool_context(
     definition: SandboxDefinition | None = None,
 ) -> ToolContext:
     overrides = sandbox or SandboxConfig()
-    if overrides.runner is not None and (
-        overrides.environment
-        or overrides.mounts
-        or overrides.network_access is not None
-    ):
+    if overrides.runner is not None and (overrides.environment or overrides.mounts):
         raise ValueError(
-            "Configure environment, mounts, and network access on the provided "
-            "sandbox runner directly."
+            "Configure environment and mounts on the provided sandbox runner directly."
         )
     selected_definition = definition or load_sandbox_definition()
     selected_workspace = workspace or _default_workspace(selected_definition)
@@ -32,7 +27,6 @@ def create_tool_context(
         definition=selected_definition,
         environment=overrides.environment,
         mounts=overrides.mounts or (),
-        network_access=overrides.network_access,
     )
     return ToolContext(selected_workspace, selected_sandbox, *dependencies)
 

@@ -43,6 +43,64 @@ def test_create_sandbox_uses_definition(tmp_path: Path) -> None:
     assert sandbox.policy.enable_network_access == definition.network_access
 
 
+def test_configured_path_mounts_resolve_relative_to_yml(tmp_path: Path) -> None:
+    source = tmp_path / "notes"
+    source.mkdir()
+    config_path = tmp_path / "sandbox.yml"
+    config_path.write_text(
+        """image: example:latest
+shell: /bin/sh
+defaults:
+  home: /tmp
+  timeout_seconds: 5
+  max_output_bytes: 1024
+limits:
+  memory_bytes: 1024
+  pids: 8
+  cpus: 1
+mounts:
+  paths:
+    - source: notes
+      target: /notes
+""",
+        encoding="utf-8",
+    )
+    definition = SandboxDefinition.from_yaml(config_path)
+
+    sandbox = create_sandbox(tmp_path, definition=definition)
+
+    mount = sandbox.mounts[-1]
+    assert mount.source == source.resolve()
+    assert mount.target == PurePosixPath("/notes")
+    assert not mount.writable
+
+
+def test_missing_path_mount_source_is_rejected(tmp_path: Path) -> None:
+    config_path = tmp_path / "sandbox.yml"
+    config_path.write_text(
+        """image: example:latest
+shell: /bin/sh
+defaults:
+  home: /tmp
+  timeout_seconds: 5
+  max_output_bytes: 1024
+limits:
+  memory_bytes: 1024
+  pids: 8
+  cpus: 1
+mounts:
+  paths:
+    - source: missing
+      target: /missing
+""",
+        encoding="utf-8",
+    )
+    definition = SandboxDefinition.from_yaml(config_path)
+
+    with pytest.raises(ValueError, match="mount source does not exist"):
+        create_sandbox(tmp_path, definition=definition)
+
+
 def test_definition_resolves_workspace_relative_to_yml(tmp_path: Path) -> None:
     config_path = tmp_path / "sandbox.yml"
     config_path.write_text(

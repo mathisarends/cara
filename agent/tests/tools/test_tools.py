@@ -187,7 +187,7 @@ def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
     assert not workspace_mount.endswith(",readonly")
 
 
-def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> None:
+def test_sandbox_accepts_explicit_environment_and_mounts(tmp_path: Path) -> None:
     config_root = tmp_path / "example-cli"
     config_root.mkdir()
     mount = BindMount.read_write(config_root, "/tmp/.config/example-cli")
@@ -196,7 +196,6 @@ def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> N
         sandbox=SandboxConfig(
             environment={"EXAMPLE_CONFIG": "/etc/example.toml"},
             mounts=(mount,),
-            network_access=True,
         )
     )
     sandbox = context.resolve(DockerSandbox)
@@ -204,7 +203,6 @@ def test_sandbox_accepts_explicit_mounts_and_network_access(tmp_path: Path) -> N
     assert sandbox is not None
     assert sandbox.defaults.environment["EXAMPLE_CONFIG"] == "/etc/example.toml"
     assert sandbox.mounts[-1:] == (mount,)
-    assert sandbox.policy.enable_network_access
 
 
 def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:

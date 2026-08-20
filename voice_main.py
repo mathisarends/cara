@@ -6,7 +6,6 @@ from agenttoolkit import Skills
 from dotenv import load_dotenv
 
 from agent import Agent
-from agent.sandbox import SandboxConfig
 from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
@@ -33,7 +32,6 @@ async def main() -> None:
     tools = build_tools(
         injected_dependencies=(audio_output,),
         skills=skills,
-        sandbox=SandboxConfig(network_access=True),
     )
     agent_session = Agent(
         llm=create_codex_model(

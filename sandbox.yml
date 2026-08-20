@@ -18,6 +18,17 @@ limits:
 network_access: true
 
 mounts:
+  paths:
+    - source: agent/src/agent
+      target: /src/agent
+      writable: true
+    - source: experiments
+      target: /experiments
+      writable: true
+    - source: skills
+      target: /skills
+      writable: true
+
   cli_credentials:
     - name: huego
       target: /tmp/.config/huego
