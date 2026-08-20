@@ -1,15 +1,12 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from types import FunctionType
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import BaseModel
 
 _METHOD_METADATA_KEY = "__cara_rpc_method__"
 _EVENT_METADATA_KEY = "__cara_rpc_event__"
-
-Handler = TypeVar("Handler", bound=Callable[..., Any])
-EventMessage = TypeVar("EventMessage", bound=type[BaseModel])
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,13 +21,13 @@ class RpcEventMetadata:
     name: str
 
 
-def method(
+def method[HandlerT: Callable[..., Any]](
     name: str,
     *,
     summary: str,
     errors: tuple[int, ...] = (),
-) -> Callable[[Handler], Handler]:
-    def decorate(handler: Handler) -> Handler:
+) -> Callable[[HandlerT], HandlerT]:
+    def decorate(handler: HandlerT) -> HandlerT:
         if _METHOD_METADATA_KEY in handler.__dict__:
             raise ValueError(f"RPC handler is already decorated: {handler.__name__}")
         setattr(
@@ -43,8 +40,8 @@ def method(
     return decorate
 
 
-def event(name: str) -> Callable[[EventMessage], EventMessage]:
-    def decorate(message: EventMessage) -> EventMessage:
+def event[EventT: type[BaseModel]](name: str) -> Callable[[EventT], EventT]:
+    def decorate(message: EventT) -> EventT:
         if _EVENT_METADATA_KEY in message.__dict__:
             raise ValueError(f"RPC event is already decorated: {message.__name__}")
         schema = message.model_json_schema()
