@@ -10,9 +10,7 @@ from agent.sandbox import SandboxConfig
 from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
-    AcknowledgmentObserver,
     HueObserver,
-    PrerenderedAcknowledgment,
     SonosPlaybackObserver,
     SoundObserver,
     SpeechBargeIn,
@@ -46,7 +44,6 @@ async def main() -> None:
         text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
         barge_in=SpeechBargeIn(),
         observers=(
-            AcknowledgmentObserver(strategy=PrerenderedAcknowledgment()),
             SoundObserver(),
             HueObserver(),
             SonosPlaybackObserver(),
