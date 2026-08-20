@@ -27,9 +27,9 @@ uv run cara-gateway
 ```
 
 Clients connect to `ws://127.0.0.1:8000/v1/conversation`. Commands, correlated
-responses, and subscribed events use one JSON-RPC 2.0 WebSocket. The shared
-Python contracts and typed client live in the `agent-protocol` workspace
-package; the wire schema is served at `GET /v1/conversation/schema`.
+responses, and subscribed events use one JSON-RPC 2.0 WebSocket. The wire
+models and request validation are internal to the gateway's conversation
+presentation layer.
 
 Connect a microphone and speakers, then run the voice client:
 
