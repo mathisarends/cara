@@ -174,11 +174,12 @@ def test_expected_shell_failure_logs_one_warning_without_traceback(
         record for record in caplog.records if record.name == "agent.tools.middleware"
     ]
     assert result.endswith("no speakers found")
-    assert len(records) == 1
-    assert records[0].levelno == logging.WARNING
-    assert "shell failed" in records[0].getMessage()
-    assert "finished" not in records[0].getMessage()
-    assert not records[0].exc_info
+    assert len(records) == 2
+    assert "shell called with arguments" in records[0].getMessage()
+    assert records[1].levelno == logging.WARNING
+    assert "shell failed" in records[1].getMessage()
+    assert all("finished" not in record.getMessage() for record in records)
+    assert not records[1].exc_info
 
 
 def test_invalid_tool_input_is_returned_and_logged_on_one_line(caplog) -> None:
@@ -196,11 +197,12 @@ def test_invalid_tool_input_is_returned_and_logged_on_one_line(caplog) -> None:
         record for record in caplog.records if record.name == "agent.tools.middleware"
     ]
     assert result.startswith("Tool failed: 1 validation error for ShellParams")
-    assert len(records) == 1
-    assert records[0].levelno == logging.WARNING
-    assert "Extra inputs are not permitted" in records[0].getMessage()
-    assert "\n" not in records[0].getMessage()
-    assert not records[0].exc_info
+    assert len(records) == 2
+    assert "shell called with arguments" in records[0].getMessage()
+    assert records[1].levelno == logging.WARNING
+    assert "Extra inputs are not permitted" in records[1].getMessage()
+    assert "\n" not in records[1].getMessage()
+    assert not records[1].exc_info
 
 
 def test_unexpected_tool_exception_is_logged_and_propagated(caplog) -> None:
@@ -221,10 +223,11 @@ def test_unexpected_tool_exception_is_logged_and_propagated(caplog) -> None:
     records = [
         record for record in caplog.records if record.name == "agent.tools.middleware"
     ]
-    assert len(records) == 1
-    assert records[0].levelno == logging.ERROR
-    assert "explode crashed" in records[0].getMessage()
-    assert records[0].exc_info is not None
+    assert len(records) == 2
+    assert "explode called with arguments" in records[0].getMessage()
+    assert records[1].levelno == logging.ERROR
+    assert "explode crashed" in records[1].getMessage()
+    assert records[1].exc_info is not None
 
 
 def test_successful_tool_output_is_truncated_on_debug(caplog) -> None:

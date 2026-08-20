@@ -1,7 +1,7 @@
 import logging
 import time
 
-from agenttoolkit import ToolCall, ToolMiddleware
+from agenttoolkit import CallLoggingMiddleware, ToolCall
 from agenttoolkit.builtins import CommandError, WorkspaceError
 from agenttoolkit.tools.middleware import ToolHandler
 from pydantic import ValidationError
@@ -27,10 +27,11 @@ _EXPECTED_TOOL_ERRORS = (
 )
 
 
-class ToolResultMiddleware(ToolMiddleware):
+class ToolResultMiddleware(CallLoggingMiddleware):
     """Log one outcome per tool call and preserve traces for real crashes."""
 
     async def __call__(self, call: ToolCall, next: ToolHandler) -> object:
+        logger.info("[tool] %s called with arguments: %r", call.name, call.raw_args)
         started = time.perf_counter()
         try:
             result = await next(call)
