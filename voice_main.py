@@ -29,17 +29,16 @@ logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 
 load_dotenv(override=True)
 
-_SKILLS_ROOT = Path(__file__).parent / "skills"
 _SANDBOX_CONFIG = Path(__file__).parent / "sandbox.yml"
 
 
 async def main() -> None:
-    skills = Skills.from_dir(_SKILLS_ROOT)
     sandbox = SandboxDefinition.from_yaml(_SANDBOX_CONFIG)
     workspace = LocalWorkspace(
         sandbox.resolve_workspace_root(),
         max_file_bytes=sandbox.workspace.max_file_bytes,
     )
+    skills = Skills.from_dir(workspace.root / "skills")
     sonos_settings = SonosSettings()
     async with SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)

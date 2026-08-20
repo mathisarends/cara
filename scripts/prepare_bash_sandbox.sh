@@ -7,7 +7,8 @@ readonly PYTHON_IMAGE="python:3.14-alpine"
 readonly GO_IMAGE="golang:1.26-alpine"
 readonly SANDBOX_IMAGE="cara-bash-sandbox:latest"
 readonly TOOLS_MANIFEST="${PROJECT_DIR}/docker/tools.txt"
-readonly SKILLS_DIR="${PROJECT_DIR}/skills"
+readonly WORKSPACE_DIR="${CARA_WORKSPACE_ROOT:-${HOME}/.cara/workspace}"
+readonly SKILLS_DIR="${WORKSPACE_DIR}/skills"
 
 tool_names() {
     while read -r name _module _version || [[ -n "${name}" ]]; do
@@ -76,6 +77,7 @@ docker run \
     bash -lc "${verification}"
 
 echo "Scaffolding skills for CLIs that are not documented yet"
+mkdir -p "${SKILLS_DIR}"
 for tool in $(tool_names); do
     skill_file="${SKILLS_DIR}/${tool}/SKILL.md"
     if [[ -e "${skill_file}" ]]; then
@@ -83,7 +85,7 @@ for tool in $(tool_names); do
     fi
     mkdir -p "${SKILLS_DIR}/${tool}"
     write_skill_stub "${tool}" >"${skill_file}"
-    echo "  created skills/${tool}/SKILL.md"
+    echo "  created ${skill_file}"
 done
 
 echo "Sandbox image is ready: ${SANDBOX_IMAGE}"

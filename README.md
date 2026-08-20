@@ -86,12 +86,6 @@ Die mit Docker Compose gestartete SQLite-Datenbank kann lokal mit sqlite-web
 angesehen werden. Eine kurze Anleitung steht in
 [docs/sqlite-web.md](docs/sqlite-web.md).
 
-The terminal composition is also available as an explicit example:
-
-```powershell
-uv run python experiments/chat_in_terminal.py
-```
-
 ## Device discovery
 
 Helper scripts under `scripts/` find the local devices Cara talks to and print the environment variables to add to your `.env`:
@@ -138,9 +132,9 @@ and symlinks that resolve outside the workspace.
 The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: by default, the
 container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
 memory, process, output, and execution-time limits. The reusable tool factory defaults to a dedicated
-`LocalWorkspace` rooted at `~/.cara/workspace`. Cara's concrete entry point additionally exposes only
-`agent/`, `experiments/`, and `skills/` as writable mounted directories. The project `.env`, `.git`, and
-the rest of the repository are not exposed. Other callers can
+`LocalWorkspace` rooted at `~/.cara/workspace`. Skills live below that workspace at `skills/`; the
+repository only exposes the editable agent runtime at `/src/agent`. The project `.env`, `.git`, and the
+rest of the repository are not exposed. Other callers can
 provide their own `Workspace` or `Sandbox`, or opt into additional sandbox mounts, environment variables,
 and network access through `build_tools()`.
 
@@ -156,5 +150,6 @@ From PowerShell on Windows, Git Bash can be selected explicitly to avoid the WSL
 & 'C:\Program Files\Git\usr\bin\bash.exe' scripts/prepare_bash_sandbox.sh
 ```
 
-The setup script builds `cara-bash-sandbox:latest` and verifies its bundled runtimes and CLIs. Images are
-never pulled or built automatically during a tool call.
+The setup script builds `cara-bash-sandbox:latest`, verifies its bundled runtimes and CLIs, and scaffolds
+missing CLI skills in `${CARA_WORKSPACE_ROOT:-$HOME/.cara/workspace}/skills`. Existing skills are left
+untouched. Images are never pulled or built automatically during a tool call.

@@ -1,3 +1,5 @@
+# CLI skills are scaffolded under $CARA_WORKSPACE_ROOT/skills by
+# scripts/prepare_bash_sandbox.sh.
 # name    module                                            version
 huego     github.com/mathisarends/huego                     v0.1.0
 spoti     github.com/mathisarends/spoti                      v0.1.0

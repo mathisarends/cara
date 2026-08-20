@@ -22,12 +22,6 @@ mounts:
     - source: agent/src/agent
       target: /src/agent
       writable: true
-    - source: experiments
-      target: /experiments
-      writable: true
-    - source: skills
-      target: /skills
-      writable: true
 
   cli_credentials:
     - name: huego
