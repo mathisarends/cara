@@ -1,6 +1,5 @@
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
-from typing import Any
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
@@ -9,7 +8,9 @@ from gateway.presentation.protocol import (
     RpcMethodDefinition,
     RpcRequestEnvelope,
 )
-from gateway.presentation.rpc_decorators import method_metadata
+from gateway.presentation.rpc_decorators import RpcHandler, decorated_methods
+
+type BoundRpcMethod = Callable[[BaseModel], Awaitable[BaseModel | None]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,7 +32,7 @@ class GatewayRpcMethods:
     def __init__(
         self,
         protocol: GatewayProtocol,
-        handlers: Iterable[Any],
+        handlers: Iterable[RpcHandler],
     ) -> None:
         self._protocol = protocol
         self._handlers = _handlers_by_name(handlers)
@@ -54,18 +55,16 @@ class GatewayRpcMethods:
             raise RpcInvalidParamsError(error) from error
         return RpcInvocation(request=request, method=method, params=params)
 
-    async def execute(self, invocation: RpcInvocation) -> Any:
+    async def execute(self, invocation: RpcInvocation) -> BaseModel | None:
         return await self._handlers[invocation.method.name](invocation.params)
 
 
-def _handlers_by_name(handlers: Iterable[Any]) -> dict[str, Any]:
-    by_name: dict[str, Any] = {}
+def _handlers_by_name(handlers: Iterable[RpcHandler]) -> dict[str, BoundRpcMethod]:
+    by_name: dict[str, BoundRpcMethod] = {}
     for owner in handlers:
-        for attribute_name, function in vars(type(owner)).items():
-            metadata = method_metadata(function)
-            if metadata is None:
-                continue
-            if metadata.name in by_name:
-                raise ValueError(f"Duplicate RPC handler: {metadata.name}")
-            by_name[metadata.name] = getattr(owner, attribute_name)
+        for decorated in decorated_methods(type(owner)):
+            name = decorated.metadata.name
+            if name in by_name:
+                raise ValueError(f"Duplicate RPC handler: {name}")
+            by_name[name] = decorated.function.__get__(owner)
     return by_name

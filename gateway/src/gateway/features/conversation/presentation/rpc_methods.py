@@ -17,7 +17,7 @@ from gateway.presentation import rpc
 from gateway.presentation.rpc_envelopes import RpcErrorCode
 
 
-class ConversationRpcMethods:
+class ConversationRpcMethods(rpc.RpcHandler):
     def __init__(
         self,
         service: ConversationService,

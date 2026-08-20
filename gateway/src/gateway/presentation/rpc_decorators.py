@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from types import FunctionType
 from typing import Any
@@ -7,6 +7,10 @@ from pydantic import BaseModel
 
 _METHOD_METADATA_KEY = "__cara_rpc_method__"
 _EVENT_METADATA_KEY = "__cara_rpc_event__"
+
+
+class RpcHandler:
+    """Base for classes whose methods are exposed through `@rpc.method`."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,6 +23,13 @@ class RpcMethodMetadata:
 @dataclass(frozen=True, slots=True)
 class RpcEventMetadata:
     name: str
+
+
+@dataclass(frozen=True, slots=True)
+class DecoratedRpcMethod:
+    attribute_name: str
+    function: FunctionType
+    metadata: RpcMethodMetadata
 
 
 def method[HandlerT: Callable[..., Any]](
@@ -57,15 +68,13 @@ def event[EventT: type[BaseModel]](name: str) -> Callable[[EventT], EventT]:
     return decorate
 
 
-def method_metadata(handler: object) -> RpcMethodMetadata | None:
-    if not isinstance(handler, FunctionType):
-        return None
-    metadata = handler.__dict__.get(_METHOD_METADATA_KEY)
-    if metadata is None:
-        return None
-    if not isinstance(metadata, RpcMethodMetadata):
-        raise TypeError(f"Invalid RPC method metadata on {handler.__name__}")
-    return metadata
+def decorated_methods(
+    handler: type[RpcHandler],
+) -> Iterator[DecoratedRpcMethod]:
+    for attribute_name, attribute in vars(handler).items():
+        metadata = _method_metadata(attribute)
+        if metadata is not None:
+            yield DecoratedRpcMethod(attribute_name, attribute, metadata)
 
 
 def event_metadata(message: type[BaseModel]) -> RpcEventMetadata | None:
@@ -74,4 +83,15 @@ def event_metadata(message: type[BaseModel]) -> RpcEventMetadata | None:
         return None
     if not isinstance(metadata, RpcEventMetadata):
         raise TypeError(f"Invalid RPC event metadata on {message.__name__}")
+    return metadata
+
+
+def _method_metadata(attribute: object) -> RpcMethodMetadata | None:
+    if not isinstance(attribute, FunctionType):
+        return None
+    metadata = attribute.__dict__.get(_METHOD_METADATA_KEY)
+    if metadata is None:
+        return None
+    if not isinstance(metadata, RpcMethodMetadata):
+        raise TypeError(f"Invalid RPC method metadata on {attribute.__name__}")
     return metadata

@@ -14,7 +14,12 @@ from typing import (
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from gateway.presentation.rpc_decorators import event_metadata, method_metadata
+from gateway.presentation.rpc_decorators import (
+    DecoratedRpcMethod,
+    RpcHandler,
+    decorated_methods,
+    event_metadata,
+)
 
 
 class RpcRequestEnvelope(BaseModel):
@@ -57,7 +62,7 @@ class RpcEventDefinition:
 @dataclass(frozen=True, slots=True)
 class RpcFeatureDefinition:
     name: str
-    handler: type[Any]
+    handler: type[RpcHandler]
     methods: tuple[RpcMethodDefinition, ...] = ()
     notifications: tuple[RpcNotificationDefinition, ...] = ()
     events: tuple[RpcEventDefinition, ...] = ()
@@ -110,13 +115,11 @@ class GatewayProtocol:
 def rpc_feature(
     name: str,
     *,
-    handler: type[Any],
+    handler: type[RpcHandler],
     notifications: tuple[RpcNotificationDefinition, ...] = (),
 ) -> RpcFeatureDefinition:
     methods = tuple(
-        _method_definition(handler_name, value)
-        for handler_name, value in vars(handler).items()
-        if method_metadata(value) is not None
+        _method_definition(decorated) for decorated in decorated_methods(handler)
     )
     events = tuple(
         event
@@ -132,13 +135,9 @@ def rpc_feature(
     )
 
 
-def _method_definition(
-    handler_name: str,
-    handler: Any,
-) -> RpcMethodDefinition:
-    metadata = method_metadata(handler)
-    if metadata is None:
-        raise ValueError(f"RPC handler is not decorated: {handler_name}")
+def _method_definition(decorated: DecoratedRpcMethod) -> RpcMethodDefinition:
+    handler = decorated.function
+    metadata = decorated.metadata
     signature = inspect.signature(handler)
     parameters = tuple(signature.parameters.values())
     if len(parameters) != 2 or parameters[0].name != "self":
@@ -163,8 +162,8 @@ def _method_definition(
         )
     return RpcMethodDefinition(
         name=metadata.name,
-        handler_name=handler_name,
-        request_name=f"{_pascal_case(handler_name)}Request",
+        handler_name=decorated.attribute_name,
+        request_name=f"{_pascal_case(decorated.attribute_name)}Request",
         params=params,
         result=result,
         summary=metadata.summary,

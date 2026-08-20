@@ -52,7 +52,7 @@ def test_protocol_rejects_duplicate_method_names() -> None:
 
 
 def test_feature_rejects_handler_without_typed_params() -> None:
-    class InvalidRpcMethods:
+    class InvalidRpcMethods(rpc.RpcHandler):
         @rpc.method("invalid", summary="Invalid handler for testing.")
         async def invalid(self, params) -> SessionResponse:
             raise AssertionError
