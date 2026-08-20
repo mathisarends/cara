@@ -6,6 +6,7 @@ from agenttoolkit import Skills
 from dotenv import load_dotenv
 
 from agent import Agent
+from agent.sandbox import SandboxDefinition
 from agent.tools import build_tools
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
@@ -24,6 +25,7 @@ logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 load_dotenv(override=True)
 
 _SKILLS_ROOT = Path(__file__).parent / "skills"
+_SANDBOX_CONFIG = Path(__file__).parent / "sandbox.yml"
 
 
 async def main() -> None:
@@ -32,6 +34,7 @@ async def main() -> None:
     tools = build_tools(
         injected_dependencies=(audio_output,),
         skills=skills,
+        sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
     )
     agent_session = Agent(
         llm=create_codex_model(

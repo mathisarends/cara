@@ -6,6 +6,7 @@ from agenttoolkit.builtins import LocalWorkspace
 from dotenv import load_dotenv
 
 from agent import Agent
+from agent.sandbox import SandboxDefinition
 from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalSession
@@ -16,6 +17,7 @@ _SKILLS_ROOT = _PROJECT_ROOT / "skills"
 _WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
 _AGENT_SRC = _PROJECT_ROOT / "agent" / "src" / "agent"
 _EXPERIMENTS_ROOT = _PROJECT_ROOT / "experiments"
+_SANDBOX_CONFIG = _PROJECT_ROOT / "sandbox.yml"
 
 load_dotenv()
 
@@ -27,6 +29,7 @@ async def main() -> None:
     tools = build_tools(
         skills=skills,
         workspace=_create_workspace(),
+        sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
     )
     agent = Agent(
         llm=llm,

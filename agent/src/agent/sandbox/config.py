@@ -82,10 +82,3 @@ class SandboxDefinition(_ConfigModel):
         definition = cls.model_validate(raw_config)
         definition._root = resolved_path.parent
         return definition
-
-
-_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[4] / "sandbox.yml"
-
-
-def load_sandbox_definition(path: Path | None = None) -> SandboxDefinition:
-    return SandboxDefinition.from_yaml(path or _DEFAULT_CONFIG_PATH)

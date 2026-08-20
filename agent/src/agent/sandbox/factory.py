@@ -7,40 +7,27 @@ from agenttoolkit.builtins import (
     BindMount,
     CommandDefaults,
     CommandLimits,
-    CommandRunner,
     DockerSandbox,
     SandboxLimits,
     SandboxPolicy,
 )
-from pydantic import BaseModel, ConfigDict
 
-from agent.sandbox.config import SandboxDefinition, load_sandbox_definition
-
-
-class SandboxConfig(BaseModel):
-    """Application overrides for the configured sandbox."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
-
-    runner: CommandRunner | None = None
-    environment: Mapping[str, str] | None = None
-    mounts: Sequence[BindMount] | None = None
+from agent.sandbox.config import SandboxDefinition
 
 
 def create_sandbox(
     working_directory: Path,
+    definition: SandboxDefinition,
     *,
-    definition: SandboxDefinition | None = None,
     environment: Mapping[str, str] | None = None,
     mounts: Sequence[BindMount] = (),
 ) -> DockerSandbox:
-    selected_definition = definition or load_sandbox_definition()
-    _validate_mounts(selected_definition, mounts)
-    configured_mounts = _configured_mounts(selected_definition)
-    defaults = selected_definition.defaults
-    limits = selected_definition.limits
+    _validate_mounts(definition, mounts)
+    configured_mounts = _configured_mounts(definition)
+    defaults = definition.defaults
+    limits = definition.limits
     return DockerSandbox(
-        selected_definition.image,
+        definition.image,
         defaults=CommandDefaults(
             working_directory=working_directory,
             environment={
@@ -54,7 +41,7 @@ def create_sandbox(
         ),
         policy=SandboxPolicy.for_workspace(
             working_directory,
-            enable_network_access=selected_definition.network_access,
+            enable_network_access=definition.network_access,
             limits=SandboxLimits(
                 memory_bytes=limits.memory_bytes,
                 pids=limits.pids,
@@ -62,7 +49,7 @@ def create_sandbox(
             ),
         ),
         mounts=(*configured_mounts, *mounts),
-        shell=str(selected_definition.shell),
+        shell=str(definition.shell),
     )
 
 

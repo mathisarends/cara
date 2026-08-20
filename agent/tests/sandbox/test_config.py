@@ -3,15 +3,13 @@ from pathlib import Path, PurePosixPath
 import pytest
 from pydantic import ValidationError
 
-from agent.sandbox import (
-    SandboxDefinition,
-    create_sandbox,
-    load_sandbox_definition,
-)
+from agent.sandbox import SandboxDefinition, create_sandbox
+
+_PROJECT_CONFIG = Path(__file__).resolve().parents[3] / "sandbox.yml"
 
 
 def test_load_default_sandbox_definition() -> None:
-    definition = load_sandbox_definition()
+    definition = SandboxDefinition.from_yaml(_PROJECT_CONFIG)
 
     assert definition.image == "cara-bash-sandbox:latest"
     assert definition.shell == PurePosixPath("/bin/bash")
@@ -27,9 +25,9 @@ def test_load_default_sandbox_definition() -> None:
 
 
 def test_create_sandbox_uses_definition(tmp_path: Path) -> None:
-    definition = load_sandbox_definition()
+    definition = SandboxDefinition.from_yaml(_PROJECT_CONFIG)
 
-    sandbox = create_sandbox(tmp_path, definition=definition)
+    sandbox = create_sandbox(tmp_path, definition)
 
     open_argv = sandbox.build_open_argv(container_name="test")
     assert open_argv[-4] == definition.image
@@ -67,7 +65,7 @@ mounts:
     )
     definition = SandboxDefinition.from_yaml(config_path)
 
-    sandbox = create_sandbox(tmp_path, definition=definition)
+    sandbox = create_sandbox(tmp_path, definition)
 
     mount = sandbox.mounts[-1]
     assert mount.source == source.resolve()
@@ -98,7 +96,7 @@ mounts:
     definition = SandboxDefinition.from_yaml(config_path)
 
     with pytest.raises(ValueError, match="mount source does not exist"):
-        create_sandbox(tmp_path, definition=definition)
+        create_sandbox(tmp_path, definition)
 
 
 def test_definition_resolves_workspace_relative_to_yml(tmp_path: Path) -> None:

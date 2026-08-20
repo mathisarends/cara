@@ -5,18 +5,26 @@ import pytest
 from agenttoolkit import Tools
 from agenttoolkit.builtins import (
     CommandResult,
+    CommandRunner,
     DockerSandbox,
+    LocalShellRunner,
     LocalWorkspace,
     SandboxPolicy,
     Workspace,
 )
 
-from agent.sandbox import BindMount, SandboxConfig
+from agent.sandbox import BindMount, SandboxDefinition, create_sandbox
 from agent.tools import (
     build_tools,
     create_tool_context,
     create_tools,
 )
+
+_PROJECT_CONFIG = Path(__file__).resolve().parents[3] / "sandbox.yml"
+
+
+def _project_definition() -> SandboxDefinition:
+    return SandboxDefinition.from_yaml(_PROJECT_CONFIG)
 
 
 def test_custom_action_uses_agenttoolkit_execution() -> None:
@@ -131,9 +139,7 @@ def test_shell_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
             )
 
     sandbox = RecordingSandbox()
-    context = create_tool_context(
-        workspace=LocalWorkspace(tmp_path), sandbox=SandboxConfig(runner=sandbox)
-    )
+    context = create_tool_context(workspace=LocalWorkspace(tmp_path), runner=sandbox)
     tools = create_tools(context)
 
     result = asyncio.run(tools.execute("shell", {"command": "printf hello"}))
@@ -156,7 +162,7 @@ def test_agent_tools_prepare_and_close_default_docker_sandbox(monkeypatch) -> No
     monkeypatch.setattr(DockerSandbox, "close", close_sandbox)
 
     async def run() -> None:
-        context = create_tool_context()
+        context = create_tool_context(sandbox=_project_definition())
         sandbox = context.resolve(DockerSandbox)
         tools = create_tools(context)
 
@@ -169,8 +175,15 @@ def test_agent_tools_prepare_and_close_default_docker_sandbox(monkeypatch) -> No
     asyncio.run(run())
 
 
-def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
+def test_context_without_sandbox_runs_commands_on_the_host() -> None:
     context = create_tool_context()
+
+    assert context.resolve(DockerSandbox) is None
+    assert isinstance(context.resolve(CommandRunner), LocalShellRunner)
+
+
+def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
+    context = create_tool_context(sandbox=_project_definition())
     workspace = context.resolve(Workspace)
     sandbox = context.resolve(DockerSandbox)
 
@@ -192,15 +205,13 @@ def test_sandbox_accepts_explicit_environment_and_mounts(tmp_path: Path) -> None
     config_root.mkdir()
     mount = BindMount.read_write(config_root, "/tmp/.config/example-cli")
 
-    context = create_tool_context(
-        sandbox=SandboxConfig(
-            environment={"EXAMPLE_CONFIG": "/etc/example.toml"},
-            mounts=(mount,),
-        )
+    sandbox = create_sandbox(
+        tmp_path,
+        _project_definition(),
+        environment={"EXAMPLE_CONFIG": "/etc/example.toml"},
+        mounts=(mount,),
     )
-    sandbox = context.resolve(DockerSandbox)
 
-    assert sandbox is not None
     assert sandbox.defaults.environment["EXAMPLE_CONFIG"] == "/etc/example.toml"
     assert sandbox.mounts[-1:] == (mount,)
 
@@ -215,10 +226,8 @@ def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:
         BindMount.read_write(projects, "/projects"),
     )
 
-    context = create_tool_context(sandbox=SandboxConfig(mounts=mounts))
-    sandbox = context.resolve(DockerSandbox)
+    sandbox = create_sandbox(tmp_path, _project_definition(), mounts=mounts)
 
-    assert sandbox is not None
     assert sandbox.mounts[-len(mounts) :] == mounts
     assert not mounts[0].writable
     assert mounts[1].writable
@@ -234,19 +243,17 @@ def test_sandbox_mounts_have_explicit_access_modes(tmp_path: Path) -> None:
 def test_workspace_container_accepts_nested_mounts(tmp_path: Path) -> None:
     mount = BindMount.read_write(tmp_path, "/workspace/projects")
 
-    context = create_tool_context(sandbox=SandboxConfig(mounts=(mount,)))
+    sandbox = create_sandbox(tmp_path, _project_definition(), mounts=(mount,))
 
-    sandbox = context.resolve(DockerSandbox)
-    assert sandbox is not None
     assert sandbox.mounts[-1:] == (mount,)
 
 
 def test_primary_workspace_container_target_is_reserved(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="reserved"):
-        create_tool_context(
-            sandbox=SandboxConfig(
-                mounts=(BindMount.read_write(tmp_path, "/workspace"),)
-            )
+        create_sandbox(
+            tmp_path,
+            _project_definition(),
+            mounts=(BindMount.read_write(tmp_path, "/workspace"),),
         )
 
 
