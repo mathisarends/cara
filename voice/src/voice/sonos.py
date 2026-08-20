@@ -10,8 +10,7 @@ class SonosSettings(BaseSettings):
         extra="ignore",
     )
 
-    speaker_name: str | None = None
-    ip_address: str | None = None
+    ip_address: str
     local_host: str | None = None
     # Speech carries less energy than music, so clips play above the speaker's
     # own volume rather than at it.

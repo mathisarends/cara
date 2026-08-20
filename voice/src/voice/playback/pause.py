@@ -10,7 +10,6 @@ from sonosify import (
 )
 
 from voice.playback.policy import SonosAudioFocusPolicy
-from voice.sonos import SonosSettings
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +20,9 @@ class SonosPausePolicy(SonosAudioFocusPolicy):
     def __init__(
         self,
         *,
-        settings: SonosSettings | None = None,
-        client: SonosClient | None = None,
+        client: SonosClient,
     ) -> None:
-        super().__init__(settings=settings, client=client)
+        super().__init__(client=client)
         self._active = False
         self._resume_allowed = False
         self._awaiting_initial_state = False
@@ -38,7 +36,7 @@ class SonosPausePolicy(SonosAudioFocusPolicy):
                 logger.debug("Sonos playback remains paused: %s", reason)
                 return
 
-            client = self._prepared_client()
+            client = self._client
             transport = await client.get_transport_info()
             if transport.state is not TransportState.PLAYING:
                 logger.debug(
@@ -61,11 +59,11 @@ class SonosPausePolicy(SonosAudioFocusPolicy):
 
     async def deactivate(self, *, reason: str) -> None:
         async with self._lock:
-            if not self._is_prepared or not self._active:
+            if not self._active:
                 logger.debug("No Sonos playback to resume: %s", reason)
                 return
 
-            client = self._prepared_client()
+            client = self._client
             try:
                 await asyncio.sleep(0)
                 transport = await client.get_transport_info()

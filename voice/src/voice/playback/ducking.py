@@ -4,7 +4,6 @@ import logging
 from sonosify import SonosClient, TransportState
 
 from voice.playback.policy import SonosAudioFocusPolicy
-from voice.sonos import SonosSettings
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +17,9 @@ class SonosDuckingPolicy(SonosAudioFocusPolicy):
     def __init__(
         self,
         *,
-        settings: SonosSettings | None = None,
-        client: SonosClient | None = None,
+        client: SonosClient,
     ) -> None:
-        super().__init__(settings=settings, client=client)
+        super().__init__(client=client)
         self._active = False
         self._refresh_task: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
@@ -32,7 +30,7 @@ class SonosDuckingPolicy(SonosAudioFocusPolicy):
                 logger.debug("Sonos playback remains ducked: %s", reason)
                 return
 
-            client = self._prepared_client()
+            client = self._client
             transport = await client.get_transport_info()
             if transport.state is not TransportState.PLAYING:
                 logger.debug(
@@ -58,7 +56,7 @@ class SonosDuckingPolicy(SonosAudioFocusPolicy):
         refresh_task: asyncio.Task[None] | None = None
         try:
             async with self._lock:
-                if not self._is_prepared or not self._active:
+                if not self._active:
                     logger.debug("No Sonos playback to unduck: %s", reason)
                     return
 
@@ -66,7 +64,7 @@ class SonosDuckingPolicy(SonosAudioFocusPolicy):
                 if refresh_task is not None:
                     refresh_task.cancel()
 
-                await self._prepared_client().unduck()
+                await self._client.unduck()
                 self._active = False
                 logger.info("Sonos playback unducked: %s", reason)
         finally:
@@ -80,7 +78,7 @@ class SonosDuckingPolicy(SonosAudioFocusPolicy):
                 if not self._active:
                     return
                 try:
-                    await self._prepared_client().duck(_DUCK_DURATION_MILLIS)
+                    await self._client.duck(_DUCK_DURATION_MILLIS)
                     logger.debug(
                         "Refreshed Sonos playback duck for %d seconds",
                         _DUCK_DURATION_MILLIS // 1000,

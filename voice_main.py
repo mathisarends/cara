@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 from dotenv import load_dotenv
+from sonosify import SonosClient
 
 from agent import Agent
 from agent.sandbox import SandboxDefinition
@@ -12,11 +13,13 @@ from llm import CodexModel, CodexReasoningEffort, create_codex_model
 from voice import (
     HueObserver,
     SonosAudioFocusObserver,
+    SonosDuckingPolicy,
     SoundObserver,
     SpeechBargeIn,
     VoiceAgent,
 )
 from voice.audio.output.sonos import SonosOutput
+from voice.sonos import SonosSettings
 from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
 logging.basicConfig(level=logging.INFO)
@@ -31,32 +34,34 @@ _SANDBOX_CONFIG = Path(__file__).parent / "sandbox.yml"
 
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
-    audio_output = SonosOutput()
-    tools = build_tools(
-        injected_dependencies=(audio_output,),
-        skills=skills,
-        sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
-    )
-    agent_session = Agent(
-        llm=create_codex_model(
-            CodexModel.SPARK,
-            reasoning_effort=CodexReasoningEffort.LOW,
-        ),
-        tools=tools,
-        skills=skills,
-    )
-    agent = VoiceAgent(
-        agent_session=agent_session,
-        audio_output=audio_output,
-        text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
-        barge_in=SpeechBargeIn(),
-        observers=(
-            SoundObserver(),
-            HueObserver(),
-            SonosAudioFocusObserver(),
-        ),
-    )
-    await agent.start()
+    sonos_settings = SonosSettings()
+    async with SonosClient(sonos_settings.ip_address) as sonos_client:
+        audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
+        tools = build_tools(
+            injected_dependencies=(audio_output,),
+            skills=skills,
+            sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
+        )
+        agent_session = Agent(
+            llm=create_codex_model(
+                CodexModel.SPARK,
+                reasoning_effort=CodexReasoningEffort.LOW,
+            ),
+            tools=tools,
+            skills=skills,
+        )
+        agent = VoiceAgent(
+            agent_session=agent_session,
+            audio_output=audio_output,
+            text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
+            barge_in=SpeechBargeIn(),
+            observers=(
+                SoundObserver(),
+                HueObserver(),
+                SonosAudioFocusObserver(policy=SonosDuckingPolicy(client=sonos_client)),
+            ),
+        )
+        await agent.start()
 
 
 if __name__ == "__main__":

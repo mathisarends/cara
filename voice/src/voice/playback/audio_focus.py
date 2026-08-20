@@ -1,5 +1,4 @@
 from voice.observer import Observer, ObserverContext
-from voice.playback.ducking import SonosDuckingPolicy
 from voice.playback.policy import SonosAudioFocusPolicy
 
 
@@ -9,9 +8,9 @@ class SonosAudioFocusObserver(Observer):
     def __init__(
         self,
         *,
-        policy: SonosAudioFocusPolicy | None = None,
+        policy: SonosAudioFocusPolicy,
     ) -> None:
-        self._policy = policy if policy is not None else SonosDuckingPolicy()
+        self._policy = policy
 
     async def prepare(self, context: ObserverContext) -> None:
         await self._policy.prepare()
@@ -34,7 +33,4 @@ class SonosAudioFocusObserver(Observer):
         await self._policy.deactivate(reason=f"voice turn {turn_id} timed out")
 
     async def on_agent_stopped(self) -> None:
-        try:
-            await self._policy.deactivate(reason="voice agent stopped")
-        finally:
-            await self._policy.close()
+        await self._policy.deactivate(reason="voice agent stopped")

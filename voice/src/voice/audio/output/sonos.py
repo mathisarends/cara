@@ -12,7 +12,6 @@ from sonosify import (
     SonosClient,
     streaming_wav_header,
 )
-from sonosify import SonosController as SonosifyController
 
 from voice.audio.ports import AudioOutput
 from voice.audio.volume import VolumeControl
@@ -33,13 +32,11 @@ class SonosOutput(AudioOutput, VolumeControl):
     def __init__(
         self,
         *,
-        client: SonosClient | None = None,
+        client: SonosClient,
         settings: SonosSettings | None = None,
     ) -> None:
         self._client = client
         self._settings = settings or SonosSettings()
-        self._owns_client = client is None
-        self._client_lock = asyncio.Lock()
         self._sample_rate: int | None = None
         self._channels: int | None = None
         self._stream: AudioClipStream | None = None
@@ -58,7 +55,7 @@ class SonosOutput(AudioOutput, VolumeControl):
             raise ValueError("channels must be positive")
 
         await self.clear_buffer()
-        client = await self._resolve_client()
+        client = self._client
         frame_size = channels * _BYTES_PER_SAMPLE
         prebuffer_seconds = self._settings.clip_prebuffer_seconds
         stream = await client.stream_audio_clip(
@@ -81,12 +78,9 @@ class SonosOutput(AudioOutput, VolumeControl):
         )
 
     async def stop(self) -> None:
-        if not self._active and self._client is None:
+        if not self._active:
             return
         await self.clear_buffer()
-        if self._client is not None and self._owns_client:
-            await self._client.close()
-            self._client = None
         self._active = False
 
     async def play_chunk(self, chunk: bytes) -> None:
@@ -128,12 +122,10 @@ class SonosOutput(AudioOutput, VolumeControl):
                 await task
 
     async def get_volume(self) -> int:
-        client = await self._resolve_client()
-        return await client.get_volume()
+        return await self._client.get_volume()
 
     async def set_volume(self, volume: int) -> None:
-        client = await self._resolve_client()
-        await client.set_volume(volume)
+        await self._client.set_volume(volume)
 
     async def _pad_to_minimum_duration(self, stream: AudioClipStream) -> None:
         """Sonos discards clips that are shorter than roughly a second."""
@@ -173,15 +165,3 @@ class SonosOutput(AudioOutput, VolumeControl):
         if boost == 0:
             return None
         return min(await client.get_volume() + boost, _MAX_CLIP_VOLUME)
-
-    async def _resolve_client(self) -> SonosClient:
-        if self._client is not None:
-            return self._client
-        async with self._client_lock:
-            if self._client is None:
-                controller = SonosifyController()
-                self._client = await controller.client(
-                    self._settings.speaker_name,
-                    ip=self._settings.ip_address,
-                )
-            return self._client

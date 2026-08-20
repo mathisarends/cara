@@ -12,7 +12,6 @@ from sonosify import (
     streaming_wav_header,
 )
 
-import voice.audio.output.sonos as sonos_module
 from voice.audio.output.sonos import SonosOutput
 from voice.sonos import SonosSettings
 
@@ -75,7 +74,7 @@ class FakeSonosClient:
 def _output(client: FakeSonosClient) -> SonosOutput:
     return SonosOutput(
         client=cast(SonosClient, client),
-        settings=SonosSettings(speaker_name="Zimmer"),
+        settings=SonosSettings(ip_address=client.ip),
     )
 
 
@@ -168,7 +167,7 @@ def test_clips_play_above_the_speakers_own_volume(
         client = FakeSonosClient(volume=speaker_volume)
         output = SonosOutput(
             client=cast(SonosClient, client),
-            settings=SonosSettings(speaker_name="Zimmer", clip_volume_boost=boost),
+            settings=SonosSettings(ip_address=client.ip, clip_volume_boost=boost),
         )
         await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         return client
@@ -183,7 +182,10 @@ def test_prebuffer_is_configurable() -> None:
         client = FakeSonosClient()
         output = SonosOutput(
             client=cast(SonosClient, client),
-            settings=SonosSettings(speaker_name="Zimmer", clip_prebuffer_seconds=0.25),
+            settings=SonosSettings(
+                ip_address=client.ip,
+                clip_prebuffer_seconds=0.25,
+            ),
         )
         await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         return client
@@ -249,29 +251,3 @@ def test_stop_leaves_an_injected_client_open() -> None:
     asyncio.run(output.stop())
 
     assert not client.closed
-
-
-def test_output_resolves_and_owns_a_local_client(monkeypatch) -> None:
-    client = FakeSonosClient()
-
-    class FakeController:
-        async def client(self, room: str | None, *, ip: str | None) -> FakeSonosClient:
-            assert room == "Zimmer"
-            assert ip == "192.168.1.42"
-            return client
-
-    monkeypatch.setattr(sonos_module, "SonosifyController", FakeController)
-    output = SonosOutput(
-        settings=SonosSettings(
-            speaker_name="Zimmer",
-            ip_address="192.168.1.42",
-        )
-    )
-
-    async def run() -> None:
-        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
-        await output.stop()
-
-    asyncio.run(run())
-
-    assert client.closed

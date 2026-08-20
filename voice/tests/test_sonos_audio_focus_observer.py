@@ -11,7 +11,6 @@ from sonosify import (
 )
 
 import voice.playback.ducking as ducking_module
-import voice.playback.policy as policy_module
 from voice import (
     SonosAudioFocusObserver,
     SonosDuckingPolicy,
@@ -219,43 +218,3 @@ def test_pause_policy_does_not_resume_after_external_pause() -> None:
     assert client.pause_calls == 1
     assert client.play_calls == 0
     assert client.subscription.closed is True
-
-
-def test_loads_sonos_target_from_settings(monkeypatch) -> None:
-    async def run() -> tuple[tuple[str | None, str | None], _RecordingSonosClient]:
-        client = _RecordingSonosClient(TransportState.PLAYING)
-
-        class RecordingController:
-            call: tuple[str | None, str | None]
-
-            async def client(
-                self,
-                room: str | None,
-                *,
-                ip: str | None,
-            ) -> _RecordingSonosClient:
-                self.call = (room, ip)
-                return client
-
-        controller = RecordingController()
-        monkeypatch.setattr(policy_module, "SonosController", lambda: controller)
-        observer = SonosAudioFocusObserver()
-        event_bus = EventBus()
-        bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
-        bridge.setup()
-
-        await bridge.prepare()
-        await event_bus.dispatch(UserTurnStarted())
-        await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=5))
-        await event_bus.dispatch(SessionEnded())
-        return controller.call, client
-
-    monkeypatch.setenv("SONOS_SPEAKER_NAME", "Arbeitszimmer")
-    monkeypatch.setenv("SONOS_IP_ADDRESS", "192.0.2.10")
-
-    call, client = asyncio.run(run())
-
-    assert call == ("Arbeitszimmer", "192.0.2.10")
-    assert client.duck_calls == [60_000]
-    assert client.unduck_calls == 1
-    assert client.closed is True
