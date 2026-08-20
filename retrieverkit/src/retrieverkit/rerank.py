@@ -1,5 +1,5 @@
-from retrieval import Embedding, EmbeddingProvider, RetrievalResult, Retriever
-from retrieval._similarity import cosine, normalize
+from retrieverkit import Embedding, EmbeddingProvider, RetrievalResult, Retriever
+from retrieverkit._similarity import cosine, normalize
 
 
 class MaximalMarginalRelevance(Retriever):

@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from retrieval import Document, RetrievalResult, Retriever
-from retrieval.fusion import ReciprocalRankFusion
+from retrieverkit import Document, RetrievalResult, Retriever
+from retrieverkit.fusion import ReciprocalRankFusion
 
 
 class FakeRetriever(Retriever):

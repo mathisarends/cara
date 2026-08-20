@@ -4,7 +4,7 @@ from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from retrieval import Document, LexicalTokenizer, RetrievalResult, TextIndex
+from retrieverkit import Document, LexicalTokenizer, RetrievalResult, TextIndex
 
 
 class InMemoryBM25Index(TextIndex):

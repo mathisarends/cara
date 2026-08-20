@@ -2,8 +2,8 @@ from collections.abc import Sequence
 
 from openai import AsyncOpenAI
 
-from retrieval import Embedding, EmbeddingProvider
-from retrieval.openai.models import OpenAIEmbeddingModel
+from retrieverkit import Embedding, EmbeddingProvider
+from retrieverkit.openai.models import OpenAIEmbeddingModel
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):

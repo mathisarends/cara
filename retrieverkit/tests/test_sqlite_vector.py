@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from retrieval import Document, Embedding, EmbeddingProvider
-from retrieval.sqlite import SQLiteVectorIndex
+from retrieverkit import Document, Embedding, EmbeddingProvider
+from retrieverkit.sqlite import SQLiteVectorIndex
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):
@@ -186,7 +186,7 @@ def test_missing_sqlite_vec_reports_extra_to_install(
     database = tmp_path / "missing-dependency.db"
     monkeypatch.setitem(sys.modules, "sqlite_vec", None)
 
-    with pytest.raises(ImportError, match=r"pip install 'retrieval\[sqlite\]'"):
+    with pytest.raises(ImportError, match=r"pip install 'retrieverkit\[sqlite\]'"):
         SQLiteVectorIndex(database, FakeEmbeddingProvider({}), dimensions=2)
 
     assert not database.exists()
@@ -196,7 +196,7 @@ def test_sqlite_package_import_does_not_require_sqlite_vec() -> None:
     script = (
         "import sys; "
         "sys.modules['sqlite_vec'] = None; "
-        "from retrieval.sqlite import SQLiteFts5Index"
+        "from retrieverkit.sqlite import SQLiteFts5Index"
     )
 
     result = subprocess.run(

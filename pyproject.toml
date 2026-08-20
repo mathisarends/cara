@@ -22,7 +22,7 @@ agent = { workspace = true }
 gateway = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
-retrieval = { workspace = true }
+retrieverkit = { workspace = true }
 voice = { workspace = true }
 
 [tool.ruff]
@@ -47,6 +47,6 @@ known-first-party = [
     "gateway",
     "gateway_client",
     "llm",
-    "retrieval",
+    "retrieverkit",
     "voice",
 ]

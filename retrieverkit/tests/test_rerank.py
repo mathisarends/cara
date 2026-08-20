@@ -3,8 +3,14 @@ from collections.abc import Sequence
 
 import pytest
 
-from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, Retriever
-from retrieval.rerank import MaximalMarginalRelevance
+from retrieverkit import (
+    Document,
+    Embedding,
+    EmbeddingProvider,
+    RetrievalResult,
+    Retriever,
+)
+from retrieverkit.rerank import MaximalMarginalRelevance
 
 # Both candidates sit equally close to the query, so only their similarity to
 # an already-selected document can separate them: "near-duplicate" repeats

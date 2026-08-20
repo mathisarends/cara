@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
-from retrieval.types import Document, Embedding, RetrievalResult
+from retrieverkit.types import Document, Embedding, RetrievalResult
 
 
 class Chunker(ABC):

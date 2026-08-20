@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock, patch
 
 from openai import AsyncOpenAI
 
-from retrieval.openai import OpenAIEmbeddingProvider
+from retrieverkit.openai import OpenAIEmbeddingProvider
 
 
 def test_provider_builds_client_with_configured_api_key() -> None:
-    with patch("retrieval.openai.provider.AsyncOpenAI") as client_type:
+    with patch("retrieverkit.openai.provider.AsyncOpenAI") as client_type:
         OpenAIEmbeddingProvider(
             "text-embedding-3-small",
             api_key="test-api-key",
@@ -19,7 +19,7 @@ def test_provider_builds_client_with_configured_api_key() -> None:
 
 
 def test_provider_delegates_environment_authentication_to_client() -> None:
-    with patch("retrieval.openai.provider.AsyncOpenAI") as client_type:
+    with patch("retrieverkit.openai.provider.AsyncOpenAI") as client_type:
         OpenAIEmbeddingProvider("text-embedding-3-small")
 
     client_type.assert_called_once_with()

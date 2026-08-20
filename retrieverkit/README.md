@@ -1,8 +1,8 @@
-# retrieval
+# retrieverkit
 
 Provider-agnostic indexing and retrieval for Python.
 
-`retrieval` gives you the building blocks of a RAG pipeline — chunking, dense
+`retrieverkit` gives you the building blocks of a RAG pipeline — chunking, dense
 retrieval, lexical retrieval and rank fusion — behind small abstract base
 classes you can implement yourself. The core package has **no dependencies**;
 embedding providers are optional extras.
@@ -48,14 +48,14 @@ results = await hybrid.retrieve("How do I talk to Cara?", limit=5)
 ## Installation
 
 ```bash
-pip install retrieval
+pip install retrieverkit
 ```
 
 The core package pulls in nothing. Install an extra if you want a bundled
 embedding provider:
 
 ```bash
-pip install "retrieval[openai]"
+pip install "retrieverkit[openai]"
 ```
 
 Requires Python 3.13.
@@ -67,9 +67,9 @@ Requires Python 3.13.
 ```python
 import asyncio
 
-from retrieval import Document
-from retrieval.chunking import MarkdownChunker
-from retrieval.lexical import InMemoryBM25Index
+from retrieverkit import Document
+from retrieverkit.chunking import MarkdownChunker
+from retrieverkit.lexical import InMemoryBM25Index
 
 
 async def main() -> None:
@@ -104,7 +104,7 @@ implementation of one of them, and every implementation is interchangeable.
 ### Ports
 
 ```python
-from retrieval import Chunker, EmbeddingProvider, LexicalTokenizer, Retriever, TextIndex
+from retrieverkit import Chunker, EmbeddingProvider, LexicalTokenizer, Retriever, TextIndex
 ```
 
 | Port | Method | Purpose |
@@ -127,7 +127,7 @@ holds.
 ### Types
 
 ```python
-from retrieval import Document, Embedding, RetrievalResult
+from retrieverkit import Document, Embedding, RetrievalResult
 ```
 
 ```python
@@ -164,7 +164,7 @@ to rank within one retriever, never to threshold across several.
 ## Chunking
 
 ```python
-from retrieval.chunking import FixedSizeChunker, MarkdownChunker, RecursiveChunker
+from retrieverkit.chunking import FixedSizeChunker, MarkdownChunker, RecursiveChunker
 ```
 
 ### Strategies
@@ -200,7 +200,7 @@ from collections.abc import Sequence
 
 import tiktoken
 
-from retrieval.chunking import RecursiveChunker, TextTokenizer
+from retrieverkit.chunking import RecursiveChunker, TextTokenizer
 
 
 class TiktokenTokenizer(TextTokenizer):
@@ -222,7 +222,7 @@ chunker = RecursiveChunker(500, chunk_overlap=50, tokenizer=TiktokenTokenizer())
 ## Dense retrieval
 
 ```python
-from retrieval.vector import InMemoryVectorIndex
+from retrieverkit.vector import InMemoryVectorIndex
 ```
 
 `InMemoryVectorIndex` embeds documents on `index()` and ranks by cosine
@@ -250,7 +250,7 @@ All documents in an index must share one embedding dimensionality;
 Install the optional SQLite backend together with your embedding provider:
 
 ```bash
-pip install "retrieval[openai,sqlite]"
+pip install "retrieverkit[openai,sqlite]"
 ```
 
 `SQLiteVectorIndex` implements the same `TextIndex` port as the in-memory
@@ -258,9 +258,9 @@ index, but persists documents and cosine-searchable vectors in one SQLite
 file. It uses `sqlite-vec`; the embedding model stays outside the database.
 
 ```python
-from retrieval import Document
-from retrieval.openai import OpenAIEmbeddingProvider
-from retrieval.sqlite import SQLiteVectorIndex
+from retrieverkit import Document
+from retrieverkit.openai import OpenAIEmbeddingProvider
+from retrieverkit.sqlite import SQLiteVectorIndex
 
 provider = OpenAIEmbeddingProvider("text-embedding-3-small")
 
@@ -330,7 +330,7 @@ extension. It needs no embedding provider; the `sqlite` extra installs its
 asynchronous SQLite driver:
 
 ```python
-from retrieval.sqlite import SQLiteFts5Index
+from retrieverkit.sqlite import SQLiteFts5Index
 
 async with SQLiteFts5Index("cara.db") as index:
     await index.index(documents)
@@ -364,8 +364,8 @@ one and remembers its results, so a re-index costs API calls only for text
 that is actually new:
 
 ```python
-from retrieval.openai import OpenAIEmbeddingProvider
-from retrieval.sqlite import SQLiteEmbeddingCache, SQLiteVectorIndex
+from retrieverkit.openai import OpenAIEmbeddingProvider
+from retrieverkit.sqlite import SQLiteEmbeddingCache, SQLiteVectorIndex
 
 provider = SQLiteEmbeddingCache(
     "cara.db",
@@ -396,7 +396,7 @@ computed one in the last digits.
 ## Lexical retrieval
 
 ```python
-from retrieval.lexical import InMemoryBM25Index, WordTokenizer
+from retrieverkit.lexical import InMemoryBM25Index, WordTokenizer
 ```
 
 `InMemoryBM25Index` implements Okapi BM25 with Lucene's inverse document
@@ -451,7 +451,7 @@ import re
 
 import snowballstemmer
 
-from retrieval import LexicalTokenizer
+from retrieverkit import LexicalTokenizer
 
 STOP_WORDS = {"der", "die", "das", "und", "ist", "ein", "eine"}
 
@@ -484,7 +484,7 @@ on a populated index, re-index everything.
 ## Hybrid retrieval
 
 ```python
-from retrieval.fusion import ReciprocalRankFusion
+from retrieverkit.fusion import ReciprocalRankFusion
 ```
 
 Dense and lexical retrieval fail in different places, which makes them worth
@@ -556,7 +556,7 @@ two.
 ## Reranking
 
 ```python
-from retrieval.rerank import MaximalMarginalRelevance
+from retrieverkit.rerank import MaximalMarginalRelevance
 ```
 
 Ranking by relevance alone fills the top places with near duplicates: the same
@@ -603,7 +603,7 @@ export OPENAI_API_KEY="sk-..."
 ```python
 from dotenv import load_dotenv
 
-from retrieval.openai import OpenAIEmbeddingProvider
+from retrieverkit.openai import OpenAIEmbeddingProvider
 
 load_dotenv()
 
@@ -645,7 +645,7 @@ vector per input, in input order:
 ```python
 from collections.abc import Sequence
 
-from retrieval import Embedding, EmbeddingProvider
+from retrieverkit import Embedding, EmbeddingProvider
 
 
 class SentenceTransformerProvider(EmbeddingProvider):
@@ -675,7 +675,7 @@ Every part of the pipeline is replaceable through the port it implements:
   layout-aware splitting.
 
 ```python
-from retrieval import RetrievalResult, Retriever
+from retrieverkit import RetrievalResult, Retriever
 
 
 class CrossEncoderReranker(Retriever):

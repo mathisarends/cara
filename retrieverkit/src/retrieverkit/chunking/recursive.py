@@ -1,13 +1,13 @@
 from collections.abc import Sequence
 
-from retrieval import Chunker
-from retrieval.chunking._common import (
+from retrieverkit import Chunker
+from retrieverkit.chunking._common import (
     largest_prefix,
     overlap_start,
     token_count,
     validate_sizes,
 )
-from retrieval.chunking.tokenizers import CharacterTokenizer, TextTokenizer
+from retrieverkit.chunking.tokenizers import CharacterTokenizer, TextTokenizer
 
 _DEFAULT_SEPARATORS = ("\n\n", "\n", ". ", " ")
 

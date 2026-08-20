@@ -1,7 +1,13 @@
 from collections.abc import Sequence
 
-from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, TextIndex
-from retrieval._similarity import cosine, normalize
+from retrieverkit import (
+    Document,
+    Embedding,
+    EmbeddingProvider,
+    RetrievalResult,
+    TextIndex,
+)
+from retrieverkit._similarity import cosine, normalize
 
 
 class InMemoryVectorIndex(TextIndex):

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from retrieval import Embedding, EmbeddingProvider
-from retrieval.sqlite import SQLiteEmbeddingCache
+from retrieverkit import Embedding, EmbeddingProvider
+from retrieverkit.sqlite import SQLiteEmbeddingCache
 
 
 class CountingEmbeddingProvider(EmbeddingProvider):

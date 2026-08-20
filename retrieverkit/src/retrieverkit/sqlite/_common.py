@@ -6,7 +6,7 @@ from pathlib import Path
 
 import aiosqlite
 
-from retrieval import Document
+from retrieverkit import Document
 
 DOCUMENT_COLUMNS = "id, parent_id, text, metadata, created_at"
 

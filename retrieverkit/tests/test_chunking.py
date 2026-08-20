@@ -2,8 +2,8 @@ from collections.abc import Sequence
 
 import pytest
 
-from retrieval import Chunker
-from retrieval.chunking import (
+from retrieverkit import Chunker
+from retrieverkit.chunking import (
     FixedSizeChunker,
     MarkdownChunker,
     RecursiveChunker,

@@ -1,4 +1,4 @@
-from retrieval.chunking.tokenizers import TextTokenizer
+from retrieverkit.chunking.tokenizers import TextTokenizer
 
 
 def validate_sizes(chunk_size: int, chunk_overlap: int) -> None:

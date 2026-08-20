@@ -3,8 +3,8 @@ from collections.abc import Sequence
 
 import pytest
 
-from retrieval import Document, Embedding, EmbeddingProvider
-from retrieval.vector import InMemoryVectorIndex
+from retrieverkit import Document, Embedding, EmbeddingProvider
+from retrieverkit.vector import InMemoryVectorIndex
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):

@@ -2,10 +2,10 @@ import asyncio
 
 from dotenv import load_dotenv
 
-from retrieval import Document
-from retrieval.chunking import MarkdownChunker
-from retrieval.openai import OpenAIEmbeddingProvider
-from retrieval.vector import InMemoryVectorIndex
+from retrieverkit import Document
+from retrieverkit.chunking import MarkdownChunker
+from retrieverkit.openai import OpenAIEmbeddingProvider
+from retrieverkit.vector import InMemoryVectorIndex
 
 load_dotenv(override=True)
 

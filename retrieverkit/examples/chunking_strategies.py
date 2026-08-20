@@ -1,4 +1,4 @@
-from retrieval.chunking import (
+from retrieverkit.chunking import (
     CharacterTokenizer,
     FixedSizeChunker,
     MarkdownChunker,

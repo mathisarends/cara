@@ -2,11 +2,11 @@ import asyncio
 
 from dotenv import load_dotenv
 
-from retrieval import Document
-from retrieval.fusion import ReciprocalRankFusion
-from retrieval.lexical import InMemoryBM25Index
-from retrieval.openai import OpenAIEmbeddingProvider
-from retrieval.vector import InMemoryVectorIndex
+from retrieverkit import Document
+from retrieverkit.fusion import ReciprocalRankFusion
+from retrieverkit.lexical import InMemoryBM25Index
+from retrieverkit.openai import OpenAIEmbeddingProvider
+from retrieverkit.vector import InMemoryVectorIndex
 
 load_dotenv(override=True)
 

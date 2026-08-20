@@ -1,8 +1,8 @@
 import re
 
-from retrieval import Chunker
-from retrieval.chunking.recursive import RecursiveChunker
-from retrieval.chunking.tokenizers import TextTokenizer
+from retrieverkit import Chunker
+from retrieverkit.chunking.recursive import RecursiveChunker
+from retrieverkit.chunking.tokenizers import TextTokenizer
 
 _HEADING = re.compile(r"^[ \t]{0,3}#{1,6}[ \t]+")
 _FENCE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})")

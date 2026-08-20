@@ -6,8 +6,14 @@ from typing import Protocol
 
 import aiosqlite
 
-from retrieval import Document, Embedding, EmbeddingProvider, RetrievalResult, TextIndex
-from retrieval.sqlite._common import (
+from retrieverkit import (
+    Document,
+    Embedding,
+    EmbeddingProvider,
+    RetrievalResult,
+    TextIndex,
+)
+from retrieverkit.sqlite._common import (
     DOCUMENT_COLUMNS,
     aliased_document_columns,
     document_from_row,
@@ -319,6 +325,6 @@ def _import_sqlite_vec() -> _SQLiteVec:
             raise
         raise ImportError(
             "SQLiteVectorIndex requires the optional SQLite dependencies. "
-            "Install them with `pip install 'retrieval[sqlite]'`."
+            "Install them with `pip install 'retrieverkit[sqlite]'`."
         ) from error
     return sqlite_vec

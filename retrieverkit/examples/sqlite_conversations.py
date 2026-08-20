@@ -3,9 +3,9 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 
-from retrieval import Document
-from retrieval.openai import OpenAIEmbeddingProvider
-from retrieval.sqlite import SQLiteVectorIndex
+from retrieverkit import Document
+from retrieverkit.openai import OpenAIEmbeddingProvider
+from retrieverkit.sqlite import SQLiteVectorIndex
 
 load_dotenv(override=True)
 

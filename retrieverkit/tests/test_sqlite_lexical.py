@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from retrieval import Document
-from retrieval.sqlite import SQLiteFts5Index
+from retrieverkit import Document
+from retrieverkit.sqlite import SQLiteFts5Index
 
 
 @contextmanager

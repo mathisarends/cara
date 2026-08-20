@@ -1,6 +1,6 @@
 import math
 
-from retrieval.types import Embedding
+from retrieverkit.types import Embedding
 
 
 def normalize(embedding: Embedding) -> Embedding:

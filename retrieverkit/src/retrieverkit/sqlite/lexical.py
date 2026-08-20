@@ -6,8 +6,8 @@ from types import TracebackType
 
 import aiosqlite
 
-from retrieval import Document, RetrievalResult, TextIndex
-from retrieval.sqlite._common import (
+from retrieverkit import Document, RetrievalResult, TextIndex
+from retrieverkit.sqlite._common import (
     DOCUMENT_COLUMNS,
     aliased_document_columns,
     document_from_row,

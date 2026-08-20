@@ -7,8 +7,8 @@ from types import TracebackType
 
 import aiosqlite
 
-from retrieval import Embedding, EmbeddingProvider
-from retrieval.sqlite._common import open_database
+from retrieverkit import Embedding, EmbeddingProvider
+from retrieverkit.sqlite._common import open_database
 
 _CACHE = "embedding_cache"
 _LOOKUP_BATCH = 500

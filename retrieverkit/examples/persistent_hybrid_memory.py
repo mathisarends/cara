@@ -11,12 +11,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from retrieval import Document, TextIndex
-from retrieval.chunking import MarkdownChunker
-from retrieval.fusion import ReciprocalRankFusion
-from retrieval.openai import OpenAIEmbeddingProvider
-from retrieval.rerank import MaximalMarginalRelevance
-from retrieval.sqlite import SQLiteEmbeddingCache, SQLiteFts5Index, SQLiteVectorIndex
+from retrieverkit import Document, TextIndex
+from retrieverkit.chunking import MarkdownChunker
+from retrieverkit.fusion import ReciprocalRankFusion
+from retrieverkit.openai import OpenAIEmbeddingProvider
+from retrieverkit.rerank import MaximalMarginalRelevance
+from retrieverkit.sqlite import SQLiteEmbeddingCache, SQLiteFts5Index, SQLiteVectorIndex
 
 load_dotenv(override=True)
 

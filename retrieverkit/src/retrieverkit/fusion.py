@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Sequence
 
-from retrieval import Document, RetrievalResult, Retriever
+from retrieverkit import Document, RetrievalResult, Retriever
 
 
 class ReciprocalRankFusion(Retriever):

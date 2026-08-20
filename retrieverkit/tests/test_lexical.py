@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from retrieval import Document
-from retrieval.lexical import InMemoryBM25Index, WordTokenizer
+from retrieverkit import Document
+from retrieverkit.lexical import InMemoryBM25Index, WordTokenizer
 
 
 def test_retrieve_ranks_documents_by_term_overlap() -> None:

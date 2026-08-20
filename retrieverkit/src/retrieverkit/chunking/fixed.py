@@ -1,6 +1,6 @@
-from retrieval import Chunker
-from retrieval.chunking._common import validate_sizes
-from retrieval.chunking.tokenizers import CharacterTokenizer, TextTokenizer
+from retrieverkit import Chunker
+from retrieverkit.chunking._common import validate_sizes
+from retrieverkit.chunking.tokenizers import CharacterTokenizer, TextTokenizer
 
 
 class FixedSizeChunker(Chunker):
