@@ -29,8 +29,8 @@ agent:
         max_output_bytes: 1000000
 
       limits:
-        memory_bytes: 268435456 # 256 MiB
-        pids: 64
+        memory_bytes: 536870912 # 512 MiB
+        pids: 512
         cpus: 1
 
       # Host CLI config directories mounted into the container.
