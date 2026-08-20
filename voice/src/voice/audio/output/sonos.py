@@ -1,17 +1,16 @@
 import asyncio
-import io
 import logging
-import wave
 from contextlib import suppress
 
 from sonosify import (
     AudioClip,
+    AudioClipStream,
     ClipLEDBehavior,
     ClipPriority,
     ClipStatus,
     ClipType,
-    HostedAudioClip,
     SonosClient,
+    streaming_wav_header,
 )
 from sonosify import SonosController as SonosifyController
 
@@ -29,7 +28,7 @@ _MAX_CLIP_VOLUME = 100
 
 
 class SonosOutput(AudioOutput, VolumeControl):
-    """Buffers PCM chunks and plays each completed response as a Sonos clip."""
+    """Streams PCM chunks to the speaker as a single growing Sonos clip."""
 
     def __init__(
         self,
@@ -43,24 +42,43 @@ class SonosOutput(AudioOutput, VolumeControl):
         self._client_lock = asyncio.Lock()
         self._sample_rate: int | None = None
         self._channels: int | None = None
-        self._pcm = bytearray()
+        self._stream: AudioClipStream | None = None
+        self._pcm_bytes = 0
         self._active = False
-        self._clip: HostedAudioClip | None = None
         self._playback_task: asyncio.Task[None] | None = None
 
     @property
     def is_playing(self) -> bool:
-        return bool(self._pcm) or self._clip is not None
+        return self._stream is not None
 
     async def start(self, *, sample_rate: int, channels: int) -> None:
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
         if channels <= 0:
             raise ValueError("channels must be positive")
-        await self._resolve_client()
+
+        await self.clear_buffer()
+        client = await self._resolve_client()
+        frame_size = channels * _BYTES_PER_SAMPLE
+        prebuffer_seconds = self._settings.clip_prebuffer_seconds
+        stream = await client.stream_audio_clip(
+            local_host=self._settings.local_host,
+            app_id=_CLIP_APP_ID,
+            name=_CLIP_NAME,
+            volume=await self._clip_volume(client),
+            priority=ClipPriority.HIGH,
+            clip_type=ClipType.CUSTOM,
+            led_behavior=ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
+            prebuffer_bytes=round(prebuffer_seconds * sample_rate) * frame_size,
+        )
         self._sample_rate = sample_rate
         self._channels = channels
+        self._pcm_bytes = 0
+        self._stream = stream
         self._active = True
+        await stream.write(
+            streaming_wav_header(sample_rate, channels, _BYTES_PER_SAMPLE)
+        )
 
     async def stop(self) -> None:
         if not self._active and self._client is None:
@@ -72,69 +90,35 @@ class SonosOutput(AudioOutput, VolumeControl):
         self._active = False
 
     async def play_chunk(self, chunk: bytes) -> None:
-        if not self._active:
+        if not self._active or self._stream is None:
             raise RuntimeError("Audio output is not active.")
-        self._pcm.extend(chunk)
+        self._pcm_bytes += len(chunk)
+        await self._stream.write(chunk)
 
     async def finish_response(self) -> None:
-        if not self._active or not self._pcm:
+        stream = self._stream
+        if not self._active or stream is None:
             return
-        sample_rate = self._sample_rate
-        channels = self._channels
-        if sample_rate is None or channels is None:
-            raise RuntimeError("Audio output format is not configured.")
+        if self._pcm_bytes == 0:
+            await self.clear_buffer()
+            return
 
-        pcm = bytes(self._pcm)
-        self._pcm.clear()
-        client = await self._resolve_client()
-        audio = _wav(pcm, sample_rate=sample_rate, channels=channels)
-        clip = await client.play_audio_clip_data(
-            audio,
-            local_host=self._settings.local_host,
-            app_id=_CLIP_APP_ID,
-            name=_CLIP_NAME,
-            volume=await self._clip_volume(client),
-            priority=ClipPriority.HIGH,
-            clip_type=ClipType.CUSTOM,
-            led_behavior=ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
-        )
-        result = await self._wait_for_clip(clip)
+        await self._pad_to_minimum_duration(stream)
+        await stream.end()
+        result = await self._wait_for_clip(stream)
         if result.status is ClipStatus.DONE:
             return
         raise RuntimeError(
             "Sonos audio clip was not played: "
-            f"fetched={clip.fetched} "
+            f"fetched={stream.fetched} "
             f"result={result.model_dump(exclude_none=True)!r}"
         )
 
-    async def _clip_volume(self, client: SonosClient) -> int | None:
-        """Raise the clip above whatever the speaker is currently set to."""
-        boost = self._settings.clip_volume_boost
-        if boost == 0:
-            return None
-        return min(await client.get_volume() + boost, _MAX_CLIP_VOLUME)
-
-    async def _wait_for_clip(self, clip: HostedAudioClip) -> AudioClip:
-        self._clip = clip
-        self._playback_task = asyncio.current_task()
-        try:
-            return await clip.wait_until_finished()
-        except asyncio.CancelledError:
-            # This task is itself being cancelled, so cancelling the clip
-            # must be shielded or the send would be cancelled before it goes out.
-            await asyncio.shield(self._cancel_clip(clip))
-            raise
-        finally:
-            if self._clip is clip:
-                self._clip = None
-            self._playback_task = None
-            clip.close()
-
     async def clear_buffer(self) -> None:
-        self._pcm.clear()
-        clip, self._clip = self._clip, None
-        if clip is not None:
-            await self._cancel_clip(clip)
+        self._pcm_bytes = 0
+        stream, self._stream = self._stream, None
+        if stream is not None:
+            await self._abort_stream(stream)
 
         task, self._playback_task = self._playback_task, None
         current = asyncio.current_task()
@@ -151,11 +135,44 @@ class SonosOutput(AudioOutput, VolumeControl):
         client = await self._resolve_client()
         await client.set_volume(volume)
 
-    async def _cancel_clip(self, clip: HostedAudioClip) -> None:
+    async def _pad_to_minimum_duration(self, stream: AudioClipStream) -> None:
+        """Sonos discards clips that are shorter than roughly a second."""
+        if self._sample_rate is None or self._channels is None:
+            raise RuntimeError("Audio output format is not configured.")
+        frame_size = self._channels * _BYTES_PER_SAMPLE
+        minimum = round(_MIN_CLIP_DURATION_SECONDS * self._sample_rate) * frame_size
+        if self._pcm_bytes >= minimum:
+            return
+        await stream.write(bytes(minimum - self._pcm_bytes))
+        self._pcm_bytes = minimum
+
+    async def _wait_for_clip(self, stream: AudioClipStream) -> AudioClip:
+        self._playback_task = asyncio.current_task()
         try:
-            await clip.cancel()
+            return await stream.wait_until_finished()
+        except asyncio.CancelledError:
+            # This task is itself being cancelled, so aborting the stream must
+            # be shielded or the cancel command would never go out.
+            await asyncio.shield(self._abort_stream(stream))
+            raise
+        finally:
+            if self._stream is stream:
+                self._stream = None
+            self._playback_task = None
+            stream.close()
+
+    async def _abort_stream(self, stream: AudioClipStream) -> None:
+        try:
+            await stream.abort()
         except Exception:
-            logger.exception("Could not cancel Sonos audio clip.")
+            logger.exception("Could not abort Sonos audio clip stream.")
+
+    async def _clip_volume(self, client: SonosClient) -> int | None:
+        """Raise the clip above whatever the speaker is currently set to."""
+        boost = self._settings.clip_volume_boost
+        if boost == 0:
+            return None
+        return min(await client.get_volume() + boost, _MAX_CLIP_VOLUME)
 
     async def _resolve_client(self) -> SonosClient:
         if self._client is not None:
@@ -168,19 +185,3 @@ class SonosOutput(AudioOutput, VolumeControl):
                     ip=self._settings.ip_address,
                 )
             return self._client
-
-
-def _wav(pcm: bytes, *, sample_rate: int, channels: int) -> bytes:
-    minimum_size = round(_MIN_CLIP_DURATION_SECONDS * sample_rate) * (
-        channels * _BYTES_PER_SAMPLE
-    )
-    if len(pcm) < minimum_size:
-        pcm += bytes(minimum_size - len(pcm))
-
-    output = io.BytesIO()
-    with wave.open(output, "wb") as wav_file:
-        wav_file.setnchannels(channels)
-        wav_file.setsampwidth(_BYTES_PER_SAMPLE)
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(pcm)
-    return output.getvalue()

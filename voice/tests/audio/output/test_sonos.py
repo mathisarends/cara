@@ -1,6 +1,4 @@
 import asyncio
-import io
-import wave
 from typing import cast
 
 import pytest
@@ -11,20 +9,38 @@ from sonosify import (
     ClipStatus,
     ClipType,
     SonosClient,
+    streaming_wav_header,
 )
 
 import voice.audio.output.sonos as sonos_module
 from voice.audio.output.sonos import SonosOutput
 from voice.sonos import SonosSettings
 
+_SAMPLE_RATE = 16_000
+_HEADER = streaming_wav_header(_SAMPLE_RATE, 1, 2)
 
-class FakeHostedAudioClip:
+
+class FakeAudioClipStream:
     def __init__(self, status: ClipStatus = ClipStatus.DONE) -> None:
-        self.finished = asyncio.Event()
-        self.cancelled = False
+        self.written = bytearray()
+        self.ended = False
+        self.aborted = False
         self.closed = False
-        self.status = status
         self.fetched = True
+        self.finished = asyncio.Event()
+        self.status = status
+
+    async def write(self, data: bytes) -> None:
+        self.written.extend(data)
+
+    async def end(self) -> None:
+        self.ended = True
+
+    async def abort(self) -> None:
+        self.aborted = True
+
+    def close(self) -> None:
+        self.closed = True
 
     async def wait_until_finished(self) -> AudioClip:
         await self.finished.wait()
@@ -35,30 +51,22 @@ class FakeHostedAudioClip:
             status=self.status,
         )
 
-    async def cancel(self) -> None:
-        self.cancelled = True
-
-    def close(self) -> None:
-        self.closed = True
-
 
 class FakeSonosClient:
     ip = "192.168.1.42"
 
     def __init__(self, volume: int = 30) -> None:
-        self.clip = FakeHostedAudioClip()
-        self.played: list[tuple[bytes, dict[str, object]]] = []
+        self.stream = FakeAudioClipStream()
+        self.opened: list[dict[str, object]] = []
         self.closed = False
         self.volume = volume
 
     async def get_volume(self) -> int:
         return self.volume
 
-    async def play_audio_clip_data(
-        self, audio: bytes, **kwargs: object
-    ) -> FakeHostedAudioClip:
-        self.played.append((audio, kwargs))
-        return self.clip
+    async def stream_audio_clip(self, **kwargs: object) -> FakeAudioClipStream:
+        self.opened.append(kwargs)
+        return self.stream
 
     async def close(self) -> None:
         self.closed = True
@@ -71,37 +79,82 @@ def _output(client: FakeSonosClient) -> SonosOutput:
     )
 
 
-def test_finish_response_uses_sonosifys_hosted_clip_api() -> None:
-    async def run() -> tuple[FakeSonosClient, FakeHostedAudioClip]:
+def test_start_opens_a_streaming_clip_and_writes_a_wav_header() -> None:
+    async def run() -> FakeSonosClient:
+        client = FakeSonosClient()
+        await _output(client).start(sample_rate=_SAMPLE_RATE, channels=1)
+        return client
+
+    client = asyncio.run(run())
+
+    assert client.opened == [
+        {
+            "local_host": None,
+            "app_id": "cara",
+            "name": "Cara",
+            "volume": 45,
+            "priority": ClipPriority.HIGH,
+            "clip_type": ClipType.CUSTOM,
+            "led_behavior": ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
+            # 1.5s of head start at 16 kHz mono 16-bit
+            "prebuffer_bytes": 48_000,
+        }
+    ]
+    assert bytes(client.stream.written) == _HEADER
+
+
+def test_play_chunk_reaches_the_speaker_before_the_response_finishes() -> None:
+    async def run() -> FakeAudioClipStream:
         client = FakeSonosClient()
         output = _output(client)
-        await output.start(sample_rate=16_000, channels=1)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
+        await output.play_chunk(b"\x01\x00\x02\x00")
+        return client.stream
+
+    stream = asyncio.run(run())
+
+    assert bytes(stream.written) == _HEADER + b"\x01\x00\x02\x00"
+    assert not stream.ended
+
+
+def test_finish_response_pads_short_responses_and_ends_the_stream() -> None:
+    async def run() -> FakeAudioClipStream:
+        client = FakeSonosClient()
+        output = _output(client)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         await output.play_chunk(b"\x01\x00\x02\x00")
         finish = asyncio.create_task(output.finish_response())
         await asyncio.sleep(0)
-        client.clip.finished.set()
+        client.stream.finished.set()
         await finish
-        return client, client.clip
+        return client.stream
 
-    client, clip = asyncio.run(run())
-    audio, options = client.played[0]
-    with wave.open(io.BytesIO(audio), "rb") as wav_file:
-        assert wav_file.getframerate() == 16_000
-        assert wav_file.getnchannels() == 1
-        assert wav_file.getnframes() == 24_000
-        pcm = wav_file.readframes(wav_file.getnframes())
-        assert pcm[:4] == b"\x01\x00\x02\x00"
-        assert pcm[4:] == bytes(47_996)
-    assert options == {
-        "local_host": None,
-        "app_id": "cara",
-        "name": "Cara",
-        "volume": 45,
-        "priority": ClipPriority.HIGH,
-        "clip_type": ClipType.CUSTOM,
-        "led_behavior": ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
-    }
-    assert clip.closed
+    stream = asyncio.run(run())
+
+    pcm = bytes(stream.written)[len(_HEADER) :]
+    assert len(pcm) == 48_000
+    assert pcm[:4] == b"\x01\x00\x02\x00"
+    assert pcm[4:] == bytes(47_996)
+    assert stream.ended
+    assert stream.closed
+    assert not stream.aborted
+
+
+def test_finish_response_leaves_long_responses_unpadded() -> None:
+    async def run() -> FakeAudioClipStream:
+        client = FakeSonosClient()
+        output = _output(client)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
+        await output.play_chunk(bytes(60_000))
+        finish = asyncio.create_task(output.finish_response())
+        await asyncio.sleep(0)
+        client.stream.finished.set()
+        await finish
+        return client.stream
+
+    stream = asyncio.run(run())
+
+    assert len(bytes(stream.written)) == len(_HEADER) + 60_000
 
 
 @pytest.mark.parametrize(
@@ -117,52 +170,76 @@ def test_clips_play_above_the_speakers_own_volume(
             client=cast(SonosClient, client),
             settings=SonosSettings(speaker_name="Zimmer", clip_volume_boost=boost),
         )
-        await output.start(sample_rate=16_000, channels=1)
-        await output.play_chunk(b"\x01\x00")
-        finish = asyncio.create_task(output.finish_response())
-        await asyncio.sleep(0)
-        client.clip.finished.set()
-        await finish
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         return client
 
     client = asyncio.run(run())
 
-    assert client.played[0][1]["volume"] == expected
+    assert client.opened[0]["volume"] == expected
 
 
-def test_clear_buffer_cancels_a_running_hosted_clip() -> None:
-    async def run() -> FakeHostedAudioClip:
+def test_prebuffer_is_configurable() -> None:
+    async def run() -> FakeSonosClient:
+        client = FakeSonosClient()
+        output = SonosOutput(
+            client=cast(SonosClient, client),
+            settings=SonosSettings(speaker_name="Zimmer", clip_prebuffer_seconds=0.25),
+        )
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
+        return client
+
+    client = asyncio.run(run())
+
+    assert client.opened[0]["prebuffer_bytes"] == 8_000
+
+
+def test_clear_buffer_aborts_a_running_stream() -> None:
+    async def run() -> FakeAudioClipStream:
         client = FakeSonosClient()
         output = _output(client)
-        await output.start(sample_rate=16_000, channels=1)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         await output.play_chunk(b"\x00\x00")
         finish = asyncio.create_task(output.finish_response())
         await asyncio.sleep(0)
         await output.clear_buffer()
         await asyncio.gather(finish, return_exceptions=True)
-        return client.clip
+        return client.stream
 
-    clip = asyncio.run(run())
+    stream = asyncio.run(run())
 
-    assert clip.cancelled
-    assert clip.closed
+    assert stream.aborted
+    assert stream.closed
+
+
+def test_finish_response_without_audio_discards_the_stream() -> None:
+    async def run() -> FakeAudioClipStream:
+        client = FakeSonosClient()
+        output = _output(client)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
+        await output.finish_response()
+        return client.stream
+
+    stream = asyncio.run(run())
+
+    assert stream.aborted
+    assert not stream.ended
 
 
 def test_finish_response_fails_when_sonos_rejects_clip() -> None:
     client = FakeSonosClient()
-    client.clip = FakeHostedAudioClip(ClipStatus.ERROR)
-    client.clip.finished.set()
+    client.stream = FakeAudioClipStream(ClipStatus.ERROR)
+    client.stream.finished.set()
     output = _output(client)
 
     async def run() -> None:
-        await output.start(sample_rate=16_000, channels=1)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         await output.play_chunk(b"\x00\x00")
         await output.finish_response()
 
     with pytest.raises(RuntimeError, match="audio clip was not played"):
         asyncio.run(run())
 
-    assert len(client.played) == 1
+    assert len(client.opened) == 1
 
 
 def test_stop_leaves_an_injected_client_open() -> None:
@@ -192,7 +269,7 @@ def test_output_resolves_and_owns_a_local_client(monkeypatch) -> None:
     )
 
     async def run() -> None:
-        await output.start(sample_rate=16_000, channels=1)
+        await output.start(sample_rate=_SAMPLE_RATE, channels=1)
         await output.stop()
 
     asyncio.run(run())
