@@ -1,14 +1,95 @@
 # Cara
 
-Input-agnostic conversational agent with terminal and wake-word-driven voice sessions. The shared
-agent handles text, conversation history, skills, and tools. Voice mode wraps it in this local audio
-pipeline:
+Input-agnostic conversational agent with terminal and wake-word-driven voice sessions. A central
+gateway owns conversation state, history, and turn execution over one JSON-RPC WebSocket; terminal
+and voice are both just clients of it. Voice mode wraps a client around this local audio pipeline:
 
 1. listens for the wake word
-2. records one microphone utterance until silence
-3. sends the WAV to OpenAI speech-to-text
-4. sends the transcript to the OpenAI Responses API
-5. synthesizes the answer as WAV and plays it locally
+2. records one microphone utterance (the speech-to-text provider detects end of speech)
+3. streams the transcript to the gateway over JSON-RPC
+4. the gateway's agent plugin answers via the OpenAI Responses API, streaming the reply back
+5. synthesizes the answer as audio and plays it locally
+
+This is a learning project built to understand, hands-on, how an agent-gateway architecture like
+[OpenClaw's](https://github.com/openclaw/openclaw) actually works — several concepts here (session
+keys, database-first sessions, the gateway/plugin split) are deliberately adapted from it rather
+than invented from scratch. Longer term, adapters to real open-cloud backends (e.g. Hermes) are
+planned; today everything runs locally against OpenAI.
+
+## Table of contents
+
+- [Architecture](#architecture)
+- [Packages](#packages)
+- [Run](#run)
+- [Workspace and Docker binds](#workspace-and-docker-binds)
+- [Device discovery](#device-discovery)
+- [Audio outputs](#audio-outputs)
+- [Tool safety](#tool-safety)
+
+## Architecture
+
+```text
+Voice client                    CLI client
+(voice/, voice_main.py)         (cli/, cara-chat)
+       │                               │
+       │        JSON-RPC 2.0 over WebSocket ("/v1/gateway")
+       ▼                               ▼
+                 gateway_client (generated, typed)
+                              │
+                              ▼
+                    gateway (FastAPI process)
+      owns sessions, turns, persistence, event fan-out
+                              │
+                              │ AgentRunRequest, via agent_plugin_api
+                              ▼
+              configured AgentRunner plugin (installed package,
+                 discovered by Python entry point at startup)
+                              │
+                              ▼
+                agent (models, tools, skills, sandbox)
+```
+
+Three ideas hold this together:
+
+- **The gateway is the only owner of conversation state.** Sessions, turns, message history, and
+  tool-call records live in the gateway's database. Clients never hold history themselves — they
+  send new input against a session id and receive streamed events back. See
+  [`gateway`](gateway#readme) for the session/turn lifecycle in full.
+- **The wire protocol is generated from code, not hand-maintained.** RPC methods and events are
+  declared once, in the gateway, via decorators; `cara-gateway-schema` renders that registry into
+  an OpenRPC document (`gateway/schema/gateway.openrpc.json`), and
+  [`gateway_client`](gateway_client#readme) generates a fully typed Python client from that same
+  document. Changing the protocol is: change a decorated method, regenerate the schema, regenerate
+  the client — never edit generated files by hand. See
+  [gateway → JSON-RPC / OpenRPC schema generation](gateway#json-rpc--openrpc-schema-generation) for
+  the exact mechanism.
+- **The agent runtime is a plugin, not a hardwired dependency.** The gateway defines a small,
+  stable contract in [`agent_plugin_api`](agent_plugin_api#readme) (a run request, a read-only
+  session-context reader, a streamed event union) with zero dependency on FastAPI, the database, or
+  DI. [`agent`](agent#readme) implements that contract and registers itself under the Python
+  entry-point group `cara.agent_plugins`; the gateway discovers, validates, and loads whichever
+  plugin `gateway.toml` names at startup, and fails fast if it's missing, mismatched, or
+  misconfigured — never mid-turn. See
+  [gateway → Agent plugin system](gateway#agent-plugin-system) and
+  [`AGENT_PLUGIN_CONCEPT.md`](AGENT_PLUGIN_CONCEPT.md) for the design rationale.
+
+[`voice`](voice#readme) and [`cli`](cli#readme) are both thin clients built on
+[`gateway_client`](gateway_client#readme): neither talks to an LLM directly, and both get
+session-per-channel reuse (`session.open`) for free from the gateway.
+
+## Packages
+
+| Package | What it is |
+| --- | --- |
+| [`gateway`](gateway#readme) | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
+| [`agent`](agent#readme) | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
+| [`agent_plugin_api`](agent_plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin. |
+| [`gateway_client`](gateway_client#readme) | Generated, fully typed Python client for the gateway's JSON-RPC API. |
+| [`voice`](voice#readme) | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support. |
+| [`cli`](cli#readme) | Interactive terminal client (`cara-chat`) for the gateway. |
+| [`llm`](llm#readme) | Cara's Codex/OpenAI Responses model configuration, used by `agent`. |
+| [`retrieval`](retrieval#readme) | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core. |
+| [`scheduler`](scheduler#readme) | A small in-memory/SQLite async scheduler, independent of agent runtimes. |
 
 ## Run
 
@@ -29,7 +110,8 @@ uv run cara-gateway
 Clients connect to `ws://127.0.0.1:8000/v1/gateway`. Requests, commands,
 correlated responses, and subscribed events use one JSON-RPC 2.0 WebSocket.
 The connection lifecycle belongs to the gateway presentation boundary; each
-feature owns its wire models and request handling.
+feature owns its wire models and request handling. See [`gateway`](gateway#readme)
+for the full protocol and session/turn lifecycle.
 
 Connect a microphone and speakers, then run the voice client:
 
@@ -39,16 +121,17 @@ uv run python voice_main.py
 
 Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you
 stop speaking, answers through the speakers, and briefly listens for a follow-up.
-Press Ctrl+C to stop the client.
+Press Ctrl+C to stop the client. See [`voice`](voice#readme) for the full pipeline.
 
-For a traditional text conversation in the terminal, run:
+For a terminal conversation against the same gateway, run:
 
 ```powershell
-uv run python main.py
+uv run cara-chat
 ```
 
-Terminal input, including short replies such as `1`, `2`, or `3`, is sent to the same conversation
-gateway as transcribed speech. Use `exit`, `quit`, `:q`, Ctrl+C, or EOF to leave terminal mode.
+`cara-chat` reuses the current session on its channel across runs, so restarting it continues the
+same conversation. Use `/quit`, `/exit`, `/q`, or Ctrl+C to leave. See [`cli`](cli#readme) for the
+full command list.
 
 ## Workspace and Docker binds
 
