@@ -2,16 +2,20 @@ import asyncio
 import json
 import logging
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from gateway.features.conversation.application.agent_events import (
+from cara_agent_plugin_api import (
+    AgentChannelRef,
     AgentEvent,
+    AgentRunner,
+    AgentRunRequest,
+    AgentSessionRef,
     ChatCompleted,
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
 )
-from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
+from gateway.features.conversation.application.ports import EventPublisher
 from gateway.features.conversation.domain import (
     ChannelRef,
     GatewayEvent,
@@ -106,7 +110,7 @@ class ConversationService:
         turn: _TurnExecution | None = None
         try:
             session = await self.get_session(session_id)
-            session.add_user_message(text)
+            input_message = session.add_user_message(text)
             session = await self._sessions.save(session)
             turn = _TurnExecution(
                 session,
@@ -114,7 +118,20 @@ class ConversationService:
                 self._events,
             )
             await turn.publish(GatewayEventType.TURN_STARTED, {})
-            async for event in self._agent.run(session.id, metadata):
+            request = AgentRunRequest(
+                session=AgentSessionRef(
+                    id=session.id,
+                    channel=AgentChannelRef(
+                        name=session.channel.name,
+                        account_id=session.channel.account_id,
+                    ),
+                ),
+                turn_id=uuid4(),
+                input_id=input_message.id,
+                input=text,
+                turn_metadata=dict(metadata),
+            )
+            async for event in self._agent.run(request):
                 await turn.handle(event)
             await turn.publish(GatewayEventType.TURN_COMPLETED, {})
         except asyncio.CancelledError:

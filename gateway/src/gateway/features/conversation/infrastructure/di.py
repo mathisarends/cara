@@ -3,13 +3,16 @@ from collections.abc import AsyncIterator
 from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from cara_agent_plugin_api import AgentRunner, AgentSessionReader
 from gateway.features.conversation.application import (
-    AgentRunner,
     ConversationService,
     EventBroker,
     EventPublisher,
 )
 from gateway.features.conversation.domain import SessionRepository
+from gateway.features.conversation.infrastructure.agent_sessions import (
+    GatewayAgentSessionReader,
+)
 from gateway.features.conversation.infrastructure.memory import (
     InMemoryEventBroker,
 )
@@ -27,6 +30,20 @@ class ConversationProvider(Provider):
         session_factory: async_sessionmaker[AsyncSession],
     ) -> SessionRepository:
         return SQLSessionRepository(session_factory)
+
+    @provide
+    def agent_sessions(
+        self,
+        sessions: SessionRepository,
+    ) -> GatewayAgentSessionReader:
+        return GatewayAgentSessionReader(sessions)
+
+    @provide
+    def agent_session_reader(
+        self,
+        reader: GatewayAgentSessionReader,
+    ) -> AgentSessionReader:
+        return reader
 
     @provide(scope=Scope.APP)
     def event_broker(self) -> InMemoryEventBroker:

@@ -1,12 +1,12 @@
 import asyncio
 from collections.abc import AsyncIterator
-from uuid import UUID
 
 import pytest
 
-from gateway.features.conversation.application import (
+from cara_agent_plugin_api import (
     AgentEvent,
     AgentRunner,
+    AgentRunRequest,
     ChatCompleted,
     ChatDelta,
     ToolCallCompleted,
@@ -31,25 +31,32 @@ _CHANNEL = ChannelRef("test")
 class _FailingAgentRunner(AgentRunner):
     async def run(
         self,
-        session_id: UUID,
-        metadata: dict[str, object],
+        request: AgentRunRequest,
     ) -> AsyncIterator[AgentEvent]:
-        del session_id, metadata
+        del request
         raise NotImplementedError
         yield
 
+    async def close(self) -> None:
+        pass
+
 
 class _StreamingAgentRunner(AgentRunner):
+    def __init__(self) -> None:
+        self.requests: list[AgentRunRequest] = []
+
     async def run(
         self,
-        session_id: UUID,
-        metadata: dict[str, object],
+        request: AgentRunRequest,
     ) -> AsyncIterator[AgentEvent]:
-        del session_id, metadata
+        self.requests.append(request)
         yield ChatDelta("Hel")
         yield ToolCallStarted("call-1", "lookup", {"query": "Cara"})
         yield ToolCallCompleted("call-1", "lookup", {"answer": 42})
         yield ChatCompleted("Hello", finish_reason="stop")
+
+    async def close(self) -> None:
+        pass
 
 
 class _RecordingPublisher(EventPublisher):
@@ -93,9 +100,8 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     session_repository: SQLSessionRepository,
     publisher: _RecordingPublisher,
 ) -> None:
-    service = ConversationService(
-        session_repository, publisher, _StreamingAgentRunner()
-    )
+    runner = _StreamingAgentRunner()
+    service = ConversationService(session_repository, publisher, runner)
     session = await service.create_session(_CHANNEL, {})
 
     await service.start_turn(session.id, "hello", {})
@@ -112,6 +118,12 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     assert [event.sequence for event in publisher.events] == list(range(1, 7))
 
     persisted = await service.get_session(session.id)
+    request = runner.requests[0]
+    assert request.session.id == session.id
+    assert request.session.channel.name == "test"
+    assert request.input == "hello"
+    assert request.input_id == persisted.entries[0].id
+    assert request.turn_id != request.input_id
     assert [type(entry).__name__ for entry in persisted.entries] == [
         "UserMessage",
         "ToolCallSequence",

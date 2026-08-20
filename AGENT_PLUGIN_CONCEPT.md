@@ -77,7 +77,7 @@ der Plugin-Vertrag.
 
 ## Öffentliche Plugin-API
 
-Die API sollte als kleines Paket `cara-gateway-api` ohne FastAPI-, Dishka- oder
+Die API sollte als kleines Paket `cara-agent-plugin-api` ohne FastAPI-, Dishka- oder
 SQL-Abhängigkeiten angelegt werden. Damit hängt ein Plugin nur am stabilen
 Vertrag und nicht an der Gateway-Implementierung. Das Gateway selbst implementiert
 die darin definierten Ports.
@@ -90,7 +90,7 @@ from uuid import UUID
 
 
 @dataclass(frozen=True, slots=True)
-class ChannelRef:
+class AgentChannelRef:
     name: str                    # "voice", "cli", später z. B. "telegram"
     account_id: str | None = None
 
@@ -98,7 +98,7 @@ class ChannelRef:
 @dataclass(frozen=True, slots=True)
 class AgentSessionRef:
     id: UUID
-    channel: ChannelRef
+    channel: AgentChannelRef
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,7 +209,7 @@ Ein Plugin deklariert beispielsweise:
 ```toml
 [project]
 name = "cara-agent-plugin"
-dependencies = ["cara-gateway-api"]
+dependencies = ["cara-agent-plugin-api"]
 
 [project.entry-points."cara.gateway.agent"]
 cara = "cara_agent_plugin:plugin"
@@ -221,7 +221,7 @@ Das exportierte Objekt ist eine kleine Factory:
 from collections.abc import Mapping
 from typing import Any
 
-from cara_gateway_api import AgentPlugin, AgentPluginContext, AgentRunner
+from cara_agent_plugin_api import AgentPlugin, AgentPluginContext, AgentRunner
 
 
 class CaraAgentPlugin:

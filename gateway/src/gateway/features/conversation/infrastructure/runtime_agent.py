@@ -1,7 +1,6 @@
 from collections.abc import AsyncIterator
-from uuid import UUID
 
-from gateway.features.conversation.application import AgentEvent, AgentRunner
+from cara_agent_plugin_api import AgentEvent, AgentRunner, AgentRunRequest
 
 
 class RuntimeAgentRunner(AgentRunner):
@@ -9,8 +8,10 @@ class RuntimeAgentRunner(AgentRunner):
 
     def run(
         self,
-        session_id: UUID,
-        metadata: dict[str, object],
+        request: AgentRunRequest,
     ) -> AsyncIterator[AgentEvent]:
-        del session_id, metadata
+        del request
         raise NotImplementedError("The gateway agent runtime is not configured.")
+
+    async def close(self) -> None:
+        pass

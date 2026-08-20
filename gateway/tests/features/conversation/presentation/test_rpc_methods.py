@@ -1,10 +1,10 @@
 import asyncio
 from collections.abc import AsyncIterator
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
-from gateway.features.conversation.application import AgentEvent, AgentRunner
+from cara_agent_plugin_api import AgentEvent, AgentRunner, AgentRunRequest
 from gateway.features.conversation.application.service import ConversationService
 from gateway.features.conversation.domain import (
     GatewayEvent,
@@ -35,23 +35,27 @@ _CHANNEL = SessionChannel(name="voice", account_id="local")
 class _NullAgentRunner(AgentRunner):
     async def run(
         self,
-        session_id: UUID,
-        metadata: dict[str, object],
+        request: AgentRunRequest,
     ) -> AsyncIterator[AgentEvent]:
-        del session_id, metadata
+        del request
         return
         yield
+
+    async def close(self) -> None:
+        pass
 
 
 class _HangingAgentRunner(AgentRunner):
     async def run(
         self,
-        session_id: UUID,
-        metadata: dict[str, object],
+        request: AgentRunRequest,
     ) -> AsyncIterator[AgentEvent]:
-        del session_id, metadata
+        del request
         await asyncio.Event().wait()
         yield
+
+    async def close(self) -> None:
+        pass
 
 
 @pytest.fixture
