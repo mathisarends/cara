@@ -14,11 +14,7 @@ from agenttoolkit.builtins import (
 )
 
 from agent.sandbox import BindMount, SandboxDefinition, create_sandbox
-from agent.tools import (
-    build_tools,
-    create_tool_context,
-    create_tools,
-)
+from agent.tools import build_tools
 
 _PROJECT_CONFIG = Path(__file__).resolve().parents[3] / "sandbox.yml"
 
@@ -57,7 +53,7 @@ def test_build_tools_registers_core_and_additional_tools(tmp_path: Path) -> None
 
 def test_workspace_tools_use_agenttoolkit_local_workspace(tmp_path: Path) -> None:
     workspace = LocalWorkspace(tmp_path)
-    tools = create_tools(create_tool_context(workspace=workspace))
+    tools = build_tools(workspace=workspace)
 
     write_result = asyncio.run(
         tools.execute("write_file", {"path": "notes/a.txt", "content": "hello"})
@@ -81,7 +77,7 @@ def test_glob_tool_uses_agenttoolkit_workspace_matching(tmp_path: Path) -> None:
     asyncio.run(workspace.write_file("src/app.py", "print('app')\n"))
     asyncio.run(workspace.write_file("src/readme.md", "docs\n"))
     asyncio.run(workspace.write_file("tests/test_app.py", "def test_app(): pass\n"))
-    tools = create_tools(create_tool_context(workspace=workspace))
+    tools = build_tools(workspace=workspace)
 
     result = asyncio.run(
         tools.execute("glob", {"pattern": "**/*.py", "max_results": 1})
@@ -94,7 +90,7 @@ def test_grep_tool_uses_agenttoolkit_workspace_search(tmp_path: Path) -> None:
     workspace = LocalWorkspace(tmp_path)
     asyncio.run(workspace.write_file("src/app.py", "before\nNeedle here\nafter\n"))
     asyncio.run(workspace.write_file("src/readme.md", "needle in docs\n"))
-    tools = create_tools(create_tool_context(workspace=workspace))
+    tools = build_tools(workspace=workspace)
 
     result = asyncio.run(
         tools.execute(
@@ -113,7 +109,7 @@ def test_grep_tool_uses_agenttoolkit_workspace_search(tmp_path: Path) -> None:
 
 def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> None:
     result = asyncio.run(
-        create_tools(create_tool_context(workspace=LocalWorkspace(tmp_path))).execute(
+        build_tools(workspace=LocalWorkspace(tmp_path)).execute(
             "write_file",
             {"path": "../outside.txt", "content": "blocked"},
         )
@@ -122,7 +118,9 @@ def test_default_error_middleware_handles_workspace_errors(tmp_path: Path) -> No
     assert result.startswith("Tool failed:")
 
 
-def test_shell_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
+def test_shell_tool_delegates_to_agenttoolkit_sandbox(
+    tmp_path: Path, make_tool_context, make_tools
+) -> None:
     class RecordingSandbox:
         def __init__(self) -> None:
             self.policy = SandboxPolicy.for_workspace(tmp_path)
@@ -139,8 +137,8 @@ def test_shell_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
             )
 
     sandbox = RecordingSandbox()
-    context = create_tool_context(workspace=LocalWorkspace(tmp_path), runner=sandbox)
-    tools = create_tools(context)
+    context = make_tool_context(workspace=LocalWorkspace(tmp_path), runner=sandbox)
+    tools = make_tools(context)
 
     result = asyncio.run(tools.execute("shell", {"command": "printf hello"}))
 
@@ -148,7 +146,9 @@ def test_shell_tool_delegates_to_agenttoolkit_sandbox(tmp_path: Path) -> None:
     assert sandbox.command == "printf hello"
 
 
-def test_agent_tools_prepare_and_close_default_docker_sandbox(monkeypatch) -> None:
+def test_agent_tools_prepare_and_close_default_docker_sandbox(
+    monkeypatch, make_tool_context, make_tools
+) -> None:
     opened: list[DockerSandbox] = []
     closed: list[DockerSandbox] = []
 
@@ -162,9 +162,9 @@ def test_agent_tools_prepare_and_close_default_docker_sandbox(monkeypatch) -> No
     monkeypatch.setattr(DockerSandbox, "close", close_sandbox)
 
     async def run() -> None:
-        context = create_tool_context(sandbox=_project_definition())
+        context = make_tool_context(sandbox=_project_definition())
         sandbox = context.resolve(DockerSandbox)
-        tools = create_tools(context)
+        tools = make_tools(context)
 
         await tools.prepare()
         assert opened == [sandbox]
@@ -175,15 +175,15 @@ def test_agent_tools_prepare_and_close_default_docker_sandbox(monkeypatch) -> No
     asyncio.run(run())
 
 
-def test_context_without_sandbox_runs_commands_on_the_host() -> None:
-    context = create_tool_context()
+def test_context_without_sandbox_runs_commands_on_the_host(make_tool_context) -> None:
+    context = make_tool_context()
 
     assert context.resolve(DockerSandbox) is None
     assert isinstance(context.resolve(CommandRunner), LocalShellRunner)
 
 
-def test_default_workspace_is_an_agenttoolkit_workspace() -> None:
-    context = create_tool_context(sandbox=_project_definition())
+def test_default_workspace_is_an_agenttoolkit_workspace(make_tool_context) -> None:
+    context = make_tool_context(sandbox=_project_definition())
     workspace = context.resolve(Workspace)
     sandbox = context.resolve(DockerSandbox)
 
@@ -260,7 +260,7 @@ def test_primary_workspace_container_target_is_reserved(tmp_path: Path) -> None:
 def test_to_schema_returns_openai_function_schema() -> None:
     schema = next(
         item
-        for item in create_tools().get_schema("openai")
+        for item in build_tools().get_schema("openai")
         if item["function"]["name"] == "shell"
     )
 

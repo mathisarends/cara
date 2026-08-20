@@ -13,7 +13,7 @@ from llmify import (
 )
 
 from agent.agent import Agent
-from agent.tools import create_tools
+from agent.tools import build_tools
 from experiments.agent_runner import AgentTurnRunner
 from experiments.terminal import TerminalRenderer, TerminalSession
 
@@ -55,7 +55,7 @@ def test_terminal_session_sends_text_turns_to_agent() -> None:
 
     llm = EchoChatModel()
     session = TerminalSession(
-        AgentTurnRunner(Agent(llm=llm, tools=create_tools())),
+        AgentTurnRunner(Agent(llm=llm, tools=build_tools())),
         input_reader=read,
         renderer=TerminalRenderer(
             output_writer=outputs.append,
@@ -85,7 +85,7 @@ def test_terminal_session_stops_at_end_of_input() -> None:
         raise EOFError
 
     session = TerminalSession(
-        AgentTurnRunner(Agent(llm=EchoChatModel(), tools=create_tools())),
+        AgentTurnRunner(Agent(llm=EchoChatModel(), tools=build_tools())),
         input_reader=end_of_input,
     )
 
@@ -117,7 +117,7 @@ def test_terminal_session_shows_tool_calls_and_results(tmp_path: Path) -> None:
 
     inputs = iter(("Wie wird das Wetter?", "/exit"))
     outputs: list[str] = []
-    tools = create_tools()
+    tools = build_tools()
 
     @tools.action("Wetter abrufen.", name="weather_lookup")
     async def weather_lookup(location: str) -> str:

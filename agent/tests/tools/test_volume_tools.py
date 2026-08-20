@@ -3,7 +3,7 @@ from pathlib import Path
 
 from agenttoolkit.builtins import LocalWorkspace
 
-from agent.tools import build_tools, create_tool_context, create_tools
+from agent.tools import build_tools
 from voice.audio import VolumeControl
 
 
@@ -19,7 +19,7 @@ class _FakeVolumeControl(VolumeControl):
 
 
 def test_volume_tools_are_unavailable_without_volume_control() -> None:
-    tools = create_tools()
+    tools = build_tools()
 
     assert {schema.name for schema in tools.get_schema()}.isdisjoint(
         {"get_volume", "set_volume"}
@@ -27,7 +27,7 @@ def test_volume_tools_are_unavailable_without_volume_control() -> None:
 
 
 def test_volume_tools_are_available_with_volume_control() -> None:
-    tools = create_tools(create_tool_context(_FakeVolumeControl(50)))
+    tools = build_tools(injected_dependencies=(_FakeVolumeControl(50),))
 
     assert {"get_volume", "set_volume"} <= {
         schema.name for schema in tools.get_schema()
@@ -35,7 +35,7 @@ def test_volume_tools_are_available_with_volume_control() -> None:
 
 
 def test_get_volume_reports_the_current_level() -> None:
-    tools = create_tools(create_tool_context(_FakeVolumeControl(35)))
+    tools = build_tools(injected_dependencies=(_FakeVolumeControl(35),))
 
     result = asyncio.run(tools.execute("get_volume", {}))
 
@@ -44,7 +44,7 @@ def test_get_volume_reports_the_current_level() -> None:
 
 def test_set_volume_changes_the_output_level() -> None:
     control = _FakeVolumeControl(50)
-    tools = create_tools(create_tool_context(control))
+    tools = build_tools(injected_dependencies=(control,))
 
     result = asyncio.run(tools.execute("set_volume", {"volume": 60}))
 
@@ -54,7 +54,7 @@ def test_set_volume_changes_the_output_level() -> None:
 
 def test_setting_a_volume_beyond_the_range_fails() -> None:
     control = _FakeVolumeControl(50)
-    tools = create_tools(create_tool_context(control))
+    tools = build_tools(injected_dependencies=(control,))
 
     result = asyncio.run(tools.execute("set_volume", {"volume": 120}))
 

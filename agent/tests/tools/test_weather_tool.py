@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 
-from agent.tools import create_tool_context, create_tools
+from agent.tools import build_tools
 from agent.tools.actions import _render_weather_report
 from agent.tools.handler import LocationLookup
 from agent.tools.handler.weather import (
@@ -53,7 +53,7 @@ class _StubLocationClient(LocationLookup):
 
 
 def _tools(client: Weather, location_client: LocationLookup):
-    return create_tools(create_tool_context(client, location_client))
+    return build_tools(injected_dependencies=(client, location_client))
 
 
 def test_render_weather_report_drops_apparent_temperature_when_close() -> None:
@@ -100,7 +100,7 @@ def test_render_weather_report_appends_hourly_outlook() -> None:
 
 
 def test_weather_tool_is_registered_without_availability_checks() -> None:
-    assert create_tools().get("weather_report") is not None
+    assert build_tools().get("weather_report") is not None
 
 
 def test_weather_tool_description_lets_location_be_omitted() -> None:

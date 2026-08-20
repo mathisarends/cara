@@ -49,26 +49,26 @@ def build_tools(
     sandbox: SandboxDefinition | None = None,
     additional_tools: agenttoolkit.Tools | None = None,
 ) -> AgentTools:
-    dependencies = (*injected_dependencies, *_builtin_handlers(), skills)
-    tool_context = create_tool_context(
+    dependencies = (*_builtin_handlers(), *injected_dependencies, skills)
+    tool_context = _create_tool_context(
         *dependencies,
         workspace=workspace,
         sandbox=sandbox,
     )
-    tools = create_tools(tool_context)
+    tools = _create_tools(tool_context)
     if additional_tools is not None:
         tools.merge(additional_tools)
     return tools
 
 
-def create_tools(context: ToolContext | None = None) -> AgentTools:
-    selected_context = context if context is not None else create_tool_context()
+def _create_tools(context: ToolContext | None = None) -> AgentTools:
+    selected_context = context if context is not None else _create_tool_context()
     tools = AgentTools(selected_context)
     register_tools(tools)
     return tools
 
 
-def create_tool_context(
+def _create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
     sandbox: SandboxDefinition | None = None,

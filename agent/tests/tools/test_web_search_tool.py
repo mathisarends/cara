@@ -1,6 +1,6 @@
 import asyncio
 
-from agent.tools import create_tool_context, create_tools
+from agent.tools import build_tools
 from agent.tools.handler.web_search import (
     SearchResponse,
     SearchResult,
@@ -19,11 +19,11 @@ class _StubClient(WebSearch):
 
 
 def _tools(client: WebSearch):
-    return create_tools(create_tool_context(client))
+    return build_tools(injected_dependencies=(client,))
 
 
 def test_web_search_tool_is_registered_without_availability_checks() -> None:
-    assert create_tools().get("web_search") is not None
+    assert build_tools().get("web_search") is not None
 
 
 def test_web_search_returns_the_client_summary() -> None:
