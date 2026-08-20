@@ -26,5 +26,5 @@ class GatewayProvider(Provider):
     ) -> GatewayConnection:
         client_id = str(uuid4())
         conversation = ConversationRpcMethods(service, broker, client_id)
-        methods = GatewayRpcMethods(self._protocol, conversation.bindings())
+        methods = GatewayRpcMethods(self._protocol, (conversation,))
         return GatewayConnection(websocket, broker, client_id, methods)

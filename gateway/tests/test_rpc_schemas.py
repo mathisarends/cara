@@ -1,23 +1,22 @@
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from gateway.features.conversation.presentation.events import (
     SESSION_EVENT_ADAPTER,
     ChatDelta,
 )
-from gateway.features.conversation.presentation.rpc import (
-    CONVERSATION_REQUEST_ADAPTER,
-    RpcMethod,
-    StartTurnRequest,
+from gateway.features.conversation.presentation.protocol import (
+    CONVERSATION_PROTOCOL,
 )
+from gateway.features.conversation.presentation.rpc import StartTurnParams
+from gateway.presentation.protocol import RpcRequestEnvelope
 
 
-def test_request_union_is_discriminated_by_method() -> None:
+def test_request_params_are_selected_by_decorated_method() -> None:
     session_id = uuid4()
-
-    request = CONVERSATION_REQUEST_ADAPTER.validate_python(
+    request = RpcRequestEnvelope.model_validate(
         {
             "jsonrpc": "2.0",
             "id": 7,
@@ -25,16 +24,23 @@ def test_request_union_is_discriminated_by_method() -> None:
             "params": {"session_id": str(session_id), "message": "hello"},
         }
     )
+    definition = next(
+        method
+        for method in CONVERSATION_PROTOCOL.methods
+        if method.name == request.method
+    )
 
-    assert isinstance(request, StartTurnRequest)
-    assert request.method is RpcMethod.TURN_START
-    assert request.params.session_id == session_id
+    params = TypeAdapter(definition.params).validate_python(request.params)
+
+    assert definition.handler_name == "start_turn"
+    assert isinstance(params, StartTurnParams)
+    assert params.session_id == session_id
     assert request.expects_response
 
 
-def test_unknown_fields_are_rejected() -> None:
+def test_unknown_request_fields_are_rejected() -> None:
     with pytest.raises(ValidationError):
-        CONVERSATION_REQUEST_ADAPTER.validate_python(
+        RpcRequestEnvelope.model_validate(
             {
                 "jsonrpc": "2.0",
                 "id": 1,

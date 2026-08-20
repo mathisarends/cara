@@ -301,46 +301,6 @@
         "title": "AssistantMessageItem",
         "type": "object"
       },
-      "CancelTurnRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Id"
-          },
-          "method": {
-            "const": "turn.cancel",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/SessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ],
-        "title": "CancelTurnRequest",
-        "type": "object"
-      },
       "ChatCompleted": {
         "additionalProperties": false,
         "properties": {
@@ -454,85 +414,6 @@
         "title": "CreateSessionParams",
         "type": "object"
       },
-      "CreateSessionRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Id"
-          },
-          "method": {
-            "const": "session.create",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/CreateSessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method"
-        ],
-        "title": "CreateSessionRequest",
-        "type": "object"
-      },
-      "GetSessionRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Id"
-          },
-          "method": {
-            "const": "session.get",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/SessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ],
-        "title": "GetSessionRequest",
-        "type": "object"
-      },
       "Item": {
         "discriminator": {
           "mapping": {
@@ -617,30 +498,6 @@
           "error"
         ],
         "title": "RpcFailure",
-        "type": "object"
-      },
-      "RpcNotification": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "default": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "method": {
-            "default": "session.event",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "title": "Params"
-          }
-        },
-        "required": [
-          "params"
-        ],
-        "title": "RpcNotification",
         "type": "object"
       },
       "RpcSuccess": {
@@ -809,86 +666,6 @@
           "message"
         ],
         "title": "StartTurnParams",
-        "type": "object"
-      },
-      "StartTurnRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Id"
-          },
-          "method": {
-            "const": "turn.start",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/StartTurnParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ],
-        "title": "StartTurnRequest",
-        "type": "object"
-      },
-      "SubscribeSessionRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Id"
-          },
-          "method": {
-            "const": "session.subscribe",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/SessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ],
-        "title": "SubscribeSessionRequest",
         "type": "object"
       },
       "SubscriptionResult": {
@@ -1296,46 +1073,6 @@
         "title": "TurnStarted",
         "type": "object"
       },
-      "UnsubscribeSessionRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "title": "Jsonrpc",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Id"
-          },
-          "method": {
-            "const": "session.unsubscribe",
-            "title": "Method",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/SessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ],
-        "title": "UnsubscribeSessionRequest",
-        "type": "object"
-      },
       "UnsubscriptionResult": {
         "additionalProperties": false,
         "properties": {
@@ -1382,6 +1119,250 @@
         ],
         "title": "UserMessageItem",
         "type": "object"
+      },
+      "CreateSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CreateSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "session.create",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/CreateSessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method"
+        ]
+      },
+      "GetSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GetSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "session.get",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "SubscribeSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SubscribeSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "session.subscribe",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "UnsubscribeSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UnsubscribeSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "session.unsubscribe",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "StartTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "StartTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "turn.start",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/StartTurnParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "CancelTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CancelTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "turn.cancel",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "SessionEventNotification": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SessionEventNotification",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "method": {
+            "const": "session.event",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionEvent"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
       }
     }
   },
@@ -1392,6 +1373,59 @@
       "summary": "Publish a subscribed conversation session event.",
       "payload": {
         "$ref": "#/components/schemas/SessionEvent"
+      },
+      "message": {
+        "$ref": "#/components/schemas/SessionEventNotification"
+      }
+    }
+  ],
+  "x-cara-events": [
+    {
+      "name": "turn.started",
+      "payload": {
+        "$ref": "#/components/schemas/TurnStarted"
+      }
+    },
+    {
+      "name": "chat.delta",
+      "payload": {
+        "$ref": "#/components/schemas/ChatDelta"
+      }
+    },
+    {
+      "name": "chat.completed",
+      "payload": {
+        "$ref": "#/components/schemas/ChatCompleted"
+      }
+    },
+    {
+      "name": "tool_call.started",
+      "payload": {
+        "$ref": "#/components/schemas/ToolCallStarted"
+      }
+    },
+    {
+      "name": "tool_call.completed",
+      "payload": {
+        "$ref": "#/components/schemas/ToolCallCompleted"
+      }
+    },
+    {
+      "name": "turn.completed",
+      "payload": {
+        "$ref": "#/components/schemas/TurnCompleted"
+      }
+    },
+    {
+      "name": "turn.cancelled",
+      "payload": {
+        "$ref": "#/components/schemas/TurnCancelled"
+      }
+    },
+    {
+      "name": "turn.failed",
+      "payload": {
+        "$ref": "#/components/schemas/TurnFailed"
       }
     }
   ]

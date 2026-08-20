@@ -1,20 +1,21 @@
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from pydantic import TypeAdapter
 
 from gateway.features import FEATURES
-from gateway.features.conversation.presentation.rpc import (
-    RpcErrorCode,
-    RpcFailure,
-    RpcNotification,
-    RpcSuccess,
-)
 from gateway.presentation.protocol import (
     GatewayProtocol,
     RpcMethodDefinition,
+    RpcNotificationDefinition,
+)
+from gateway.presentation.rpc_envelopes import (
+    RpcErrorCode,
+    RpcFailure,
+    RpcSuccess,
 )
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -40,20 +41,32 @@ def render_gateway_schema(protocol: GatewayProtocol) -> dict[str, Any]:
         description="JSON-RPC requests, responses, and notifications.",
     )
     refs = {name: schema_map[(name, "validation")] for name in adapters}
-    frame_names = [method.request.__name__ for method in protocol.methods]
-    frame_names.extend(("RpcSuccess", "RpcFailure", "RpcNotification"))
+    definitions = root["$defs"]
+    for method in protocol.methods:
+        definitions[method.request_name] = _request_schema(method)
+        refs[method.request_name] = {"$ref": f"#/$defs/{method.request_name}"}
+    for notification in protocol.notifications:
+        name = _notification_schema_name(notification.name)
+        definitions[name] = _notification_schema(notification, name)
+        refs[name] = {"$ref": f"#/$defs/{name}"}
+    frame_names = [method.request_name for method in protocol.methods]
+    frame_names.extend(("RpcSuccess", "RpcFailure"))
+    frame_names.extend(
+        _notification_schema_name(notification.name)
+        for notification in protocol.notifications
+    )
     return {
         "$schema": _JSON_SCHEMA_DIALECT,
         "$id": "https://cara.local/gateway.schema.json",
         "title": "Cara Gateway Protocol",
         "description": "JSON-RPC requests, responses, and notifications.",
         "oneOf": [refs[name] for name in frame_names],
-        "$defs": root["$defs"],
+        "$defs": definitions,
         "x-cara-protocol-version": protocol.version,
         "x-cara-methods": [
             {
                 "name": method.name,
-                "request": refs[method.request.__name__],
+                "request": refs[method.request_name],
                 "params": refs[_type_name(method.params)],
                 "result": refs[_type_name(method.result)],
             }
@@ -63,8 +76,16 @@ def render_gateway_schema(protocol: GatewayProtocol) -> dict[str, Any]:
             {
                 "name": notification.name,
                 "payload": refs[_type_name(notification.payload)],
+                "message": refs[_notification_schema_name(notification.name)],
             }
             for notification in protocol.notifications
+        ],
+        "x-cara-events": [
+            {
+                "name": event.name,
+                "payload": refs[_type_name(event.payload)],
+            }
+            for event in protocol.events
         ],
     }
 
@@ -95,8 +116,21 @@ def render_openrpc_schema(protocol: GatewayProtocol) -> dict[str, Any]:
                 "payload": {
                     "$ref": (f"#/components/schemas/{_type_name(notification.payload)}")
                 },
+                "message": {
+                    "$ref": (
+                        "#/components/schemas/"
+                        f"{_notification_schema_name(notification.name)}"
+                    )
+                },
             }
             for notification in protocol.notifications
+        ],
+        "x-cara-events": [
+            {
+                "name": event.name,
+                "payload": {"$ref": f"#/components/schemas/{event.payload.__name__}"},
+            }
+            for event in protocol.events
         ],
     }
 
@@ -132,12 +166,13 @@ def main() -> None:
 def _adapters(protocol: GatewayProtocol) -> dict[str, Any]:
     annotations: dict[str, Any] = {}
     for method in protocol.methods:
-        _add_annotation(annotations, method.request)
         _add_annotation(annotations, method.params)
         _add_annotation(annotations, method.result)
     for notification in protocol.notifications:
         _add_annotation(annotations, notification.payload)
-    for envelope in (RpcSuccess, RpcFailure, RpcNotification):
+    for event in protocol.events:
+        _add_annotation(annotations, event.payload)
+    for envelope in (RpcSuccess, RpcFailure):
         _add_annotation(annotations, envelope)
     return annotations
 
@@ -163,6 +198,12 @@ def _openrpc_method(
 ) -> dict[str, Any]:
     params_name = _type_name(method.params)
     params_schema = components[params_name]
+    result_name = _type_name(method.result)
+    result_schema = (
+        {"$ref": f"#/components/schemas/{result_name}"}
+        if result_name in components
+        else _rewrite_refs(TypeAdapter(method.result).json_schema())
+    )
     required = set(params_schema.get("required", ()))
     document: dict[str, Any] = {
         "name": method.name,
@@ -178,10 +219,10 @@ def _openrpc_method(
         ],
         "result": {
             "name": "result",
-            "schema": {"$ref": f"#/components/schemas/{_type_name(method.result)}"},
+            "schema": result_schema,
         },
         "x-cara-request-schema": {
-            "$ref": f"#/components/schemas/{method.request.__name__}"
+            "$ref": f"#/components/schemas/{method.request_name}"
         },
         "x-cara-params-schema": {"$ref": f"#/components/schemas/{params_name}"},
     }
@@ -194,6 +235,54 @@ def _openrpc_method(
             for code in method.errors
         ]
     return document
+
+
+def _request_schema(method: RpcMethodDefinition) -> dict[str, Any]:
+    params_schema = method.params.model_json_schema()
+    required = ["jsonrpc", "method"]
+    if params_schema.get("required"):
+        required.append("params")
+    return {
+        "additionalProperties": False,
+        "type": "object",
+        "title": method.request_name,
+        "properties": {
+            "jsonrpc": {"const": "2.0", "type": "string"},
+            "id": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "integer"},
+                    {"type": "null"},
+                ],
+                "default": None,
+            },
+            "method": {"const": method.name, "type": "string"},
+            "params": {"$ref": f"#/$defs/{method.params.__name__}"},
+        },
+        "required": required,
+    }
+
+
+def _notification_schema(
+    notification: RpcNotificationDefinition,
+    schema_name: str,
+) -> dict[str, Any]:
+    return {
+        "additionalProperties": False,
+        "type": "object",
+        "title": schema_name,
+        "properties": {
+            "jsonrpc": {"const": "2.0", "type": "string"},
+            "method": {"const": notification.name, "type": "string"},
+            "params": {"$ref": f"#/$defs/{_type_name(notification.payload)}"},
+        },
+        "required": ["jsonrpc", "method", "params"],
+    }
+
+
+def _notification_schema_name(name: str) -> str:
+    parts = (part for part in re.split(r"[^a-zA-Z0-9]+", name) if part)
+    return "".join(part.capitalize() for part in parts) + "Notification"
 
 
 def _error_message(code: int) -> str:

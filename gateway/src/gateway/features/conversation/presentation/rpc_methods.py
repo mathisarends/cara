@@ -1,19 +1,19 @@
 from gateway.features.conversation.application import ConversationService, EventBroker
 from gateway.features.conversation.presentation.mapping import session_snapshot
 from gateway.features.conversation.presentation.rpc import (
-    CancelTurnRequest,
-    CreateSessionRequest,
-    GetSessionRequest,
-    RpcResult,
-    StartTurnRequest,
-    SubscribeSessionRequest,
+    CreateSessionParams,
+    SessionParams,
+    StartTurnParams,
     SubscriptionResult,
     TurnCommandResult,
-    UnsubscribeSessionRequest,
     UnsubscriptionResult,
 )
-from gateway.features.conversation.presentation.schemas import SessionResponse
-from gateway.presentation.rpc_methods import RpcMethodBinding
+from gateway.features.conversation.presentation.schemas import (
+    SessionResponse,
+    SessionSnapshotResponse,
+)
+from gateway.presentation import rpc
+from gateway.presentation.rpc_envelopes import RpcErrorCode
 
 
 class ConversationRpcMethods:
@@ -27,48 +27,73 @@ class ConversationRpcMethods:
         self._broker = broker
         self._client_id = client_id
 
-    def bindings(self) -> tuple[RpcMethodBinding, ...]:
-        return (
-            RpcMethodBinding("session.create", self._create_session),
-            RpcMethodBinding("session.get", self._get_session),
-            RpcMethodBinding("session.subscribe", self._subscribe_session),
-            RpcMethodBinding("session.unsubscribe", self._unsubscribe_session),
-            RpcMethodBinding("turn.start", self._start_turn),
-            RpcMethodBinding("turn.cancel", self._cancel_turn),
-        )
-
-    async def _create_session(self, request: CreateSessionRequest) -> RpcResult:
-        session = await self._service.create_session(request.params.metadata)
+    @rpc.method(
+        "session.create",
+        summary="Create a conversation session.",
+        errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
+    )
+    async def create_session(self, params: CreateSessionParams) -> SessionResponse:
+        session = await self._service.create_session(params.metadata)
         return SessionResponse(
             id=session.id,
             created_at=session.created_at,
             metadata=session.metadata,
         )
 
-    async def _get_session(self, request: GetSessionRequest) -> RpcResult:
-        return session_snapshot(
-            await self._service.get_session(request.params.session_id)
-        )
+    @rpc.method(
+        "session.get",
+        summary="Get a conversation session snapshot.",
+        errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
+    )
+    async def get_session(self, params: SessionParams) -> SessionSnapshotResponse:
+        return session_snapshot(await self._service.get_session(params.session_id))
 
-    async def _subscribe_session(self, request: SubscribeSessionRequest) -> RpcResult:
-        await self._service.get_session(request.params.session_id)
-        self._broker.subscribe(self._client_id, request.params.session_id)
-        return SubscriptionResult(subscribed=request.params.session_id)
+    @rpc.method(
+        "session.subscribe",
+        summary="Subscribe this connection to a conversation session.",
+        errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
+    )
+    async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
+        await self._service.get_session(params.session_id)
+        self._broker.subscribe(self._client_id, params.session_id)
+        return SubscriptionResult(subscribed=params.session_id)
 
-    async def _unsubscribe_session(
-        self, request: UnsubscribeSessionRequest
-    ) -> RpcResult:
-        self._broker.unsubscribe(self._client_id, request.params.session_id)
-        return UnsubscriptionResult(unsubscribed=request.params.session_id)
+    @rpc.method(
+        "session.unsubscribe",
+        summary="Unsubscribe this connection from a conversation session.",
+        errors=(RpcErrorCode.INTERNAL_ERROR,),
+    )
+    async def unsubscribe_session(self, params: SessionParams) -> UnsubscriptionResult:
+        self._broker.unsubscribe(self._client_id, params.session_id)
+        return UnsubscriptionResult(unsubscribed=params.session_id)
 
-    async def _start_turn(self, request: StartTurnRequest) -> RpcResult:
+    @rpc.method(
+        "turn.start",
+        summary="Start an agent turn in a conversation session.",
+        errors=(
+            RpcErrorCode.INVALID_PARAMS,
+            RpcErrorCode.RESOURCE_NOT_FOUND,
+            RpcErrorCode.TURN_ALREADY_RUNNING,
+            RpcErrorCode.INTERNAL_ERROR,
+        ),
+    )
+    async def start_turn(self, params: StartTurnParams) -> TurnCommandResult:
         await self._service.start_turn(
-            request.params.session_id,
-            request.params.message,
-            request.params.metadata,
+            params.session_id,
+            params.message,
+            params.metadata,
         )
-        return TurnCommandResult(session_id=request.params.session_id)
+        return TurnCommandResult(session_id=params.session_id)
 
-    async def _cancel_turn(self, request: CancelTurnRequest) -> RpcResult:
-        await self._service.cancel_turn(request.params.session_id)
-        return TurnCommandResult(session_id=request.params.session_id)
+    @rpc.method(
+        "turn.cancel",
+        summary="Cancel the active turn in a conversation session.",
+        errors=(
+            RpcErrorCode.INVALID_PARAMS,
+            RpcErrorCode.RESOURCE_NOT_FOUND,
+            RpcErrorCode.INTERNAL_ERROR,
+        ),
+    )
+    async def cancel_turn(self, params: SessionParams) -> TurnCommandResult:
+        await self._service.cancel_turn(params.session_id)
+        return TurnCommandResult(session_id=params.session_id)

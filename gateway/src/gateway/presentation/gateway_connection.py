@@ -6,7 +6,9 @@ from pydantic import ValidationError
 from gateway.features.conversation.application import EventBroker
 from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
 from gateway.features.conversation.presentation.mapping import session_event
-from gateway.features.conversation.presentation.rpc import (
+from gateway.features.conversation.presentation.rpc import RpcNotificationMethod
+from gateway.presentation.protocol import RpcMethodNotFoundError
+from gateway.presentation.rpc_envelopes import (
     RpcErrorCode,
     RpcErrorData,
     RpcFailure,
@@ -14,11 +16,7 @@ from gateway.features.conversation.presentation.rpc import (
     RpcSchema,
     RpcSuccess,
 )
-from gateway.presentation.protocol import (
-    RpcInvalidRequestError,
-    RpcMethodNotFoundError,
-)
-from gateway.presentation.rpc_methods import GatewayRpcMethods
+from gateway.presentation.rpc_methods import GatewayRpcMethods, RpcInvalidParamsError
 
 
 class _GatewayProtocolError(Exception):
@@ -70,19 +68,24 @@ class GatewayConnection:
     async def _handle(self, raw_request: object) -> None:
         request_id = _request_id(raw_request)
         try:
-            request = self._methods.parse_request(raw_request)
-            result = await self._methods.execute(request)
+            invocation = self._methods.parse_request(raw_request)
+            result = await self._methods.execute(invocation)
         except Exception as error:
             failure = _protocol_error(error)
             await self._send_error(request_id, failure.code, failure.message)
             return
-        if request.expects_response:
-            await self._send(RpcSuccess(id=request.id, result=result))
+        if invocation.request.expects_response:
+            await self._send(RpcSuccess(id=invocation.request.id, result=result))
 
     async def _forward_conversation_events(self) -> None:
         while True:
             event = await self._receiver.receive()
-            await self._send(RpcNotification(params=session_event(event)))
+            await self._send(
+                RpcNotification(
+                    method=RpcNotificationMethod.SESSION_EVENT,
+                    params=session_event(event),
+                )
+            )
 
     async def _send_error(
         self, request_id: str | int | None, code: RpcErrorCode, message: str
@@ -110,8 +113,8 @@ def _protocol_error(error: Exception) -> _GatewayProtocolError:
         return error
     if isinstance(error, RpcMethodNotFoundError):
         return _GatewayProtocolError(RpcErrorCode.METHOD_NOT_FOUND, "Method not found")
-    if isinstance(error, RpcInvalidRequestError):
-        return _GatewayProtocolError(RpcErrorCode.INVALID_REQUEST, "Invalid Request")
+    if isinstance(error, RpcInvalidParamsError):
+        return _GatewayProtocolError(RpcErrorCode.INVALID_PARAMS, error.message)
     if isinstance(error, ValidationError):
         return _request_error(error)
     if isinstance(error, SessionNotFoundError):
