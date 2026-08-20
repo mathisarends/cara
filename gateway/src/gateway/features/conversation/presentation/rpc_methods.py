@@ -1,6 +1,7 @@
 from gateway.features.conversation.application import ConversationService, EventBroker
 from gateway.features.conversation.presentation.mapping import session_snapshot
 from gateway.features.conversation.presentation.rpc import (
+    ConversationRpcMethod,
     CreateSessionParams,
     SessionParams,
     StartTurnParams,
@@ -28,7 +29,7 @@ class ConversationRpcMethods:
         self._client_id = client_id
 
     @rpc.method(
-        "session.create",
+        ConversationRpcMethod.SESSION_CREATE,
         summary="Create a conversation session.",
         errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
     )
@@ -41,7 +42,7 @@ class ConversationRpcMethods:
         )
 
     @rpc.method(
-        "session.get",
+        ConversationRpcMethod.SESSION_GET,
         summary="Get a conversation session snapshot.",
         errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
     )
@@ -49,7 +50,7 @@ class ConversationRpcMethods:
         return session_snapshot(await self._service.get_session(params.session_id))
 
     @rpc.method(
-        "session.subscribe",
+        ConversationRpcMethod.SESSION_SUBSCRIBE,
         summary="Subscribe this connection to a conversation session.",
         errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
     )
@@ -59,7 +60,7 @@ class ConversationRpcMethods:
         return SubscriptionResult(subscribed=params.session_id)
 
     @rpc.method(
-        "session.unsubscribe",
+        ConversationRpcMethod.SESSION_UNSUBSCRIBE,
         summary="Unsubscribe this connection from a conversation session.",
         errors=(RpcErrorCode.INTERNAL_ERROR,),
     )
@@ -68,7 +69,7 @@ class ConversationRpcMethods:
         return UnsubscriptionResult(unsubscribed=params.session_id)
 
     @rpc.method(
-        "turn.start",
+        ConversationRpcMethod.TURN_START,
         summary="Start an agent turn in a conversation session.",
         errors=(
             RpcErrorCode.INVALID_PARAMS,
@@ -86,7 +87,7 @@ class ConversationRpcMethods:
         return TurnCommandResult(session_id=params.session_id)
 
     @rpc.method(
-        "turn.cancel",
+        ConversationRpcMethod.TURN_CANCEL,
         summary="Cancel the active turn in a conversation session.",
         errors=(
             RpcErrorCode.INVALID_PARAMS,

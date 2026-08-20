@@ -6,6 +6,15 @@ from pydantic import Field
 from gateway.features.conversation.presentation.schemas import WireSchema
 
 
+class ConversationRpcMethod(StrEnum):
+    SESSION_CREATE = "session.create"
+    SESSION_GET = "session.get"
+    SESSION_SUBSCRIBE = "session.subscribe"
+    SESSION_UNSUBSCRIBE = "session.unsubscribe"
+    TURN_START = "turn.start"
+    TURN_CANCEL = "turn.cancel"
+
+
 class RpcNotificationMethod(StrEnum):
     SESSION_EVENT = "session.event"
 
