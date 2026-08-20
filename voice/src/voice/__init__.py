@@ -1,10 +1,3 @@
-from .acknowledgment import (
-    AcknowledgmentContext,
-    AcknowledgmentObserver,
-    AcknowledgmentStrategy,
-    NoAcknowledgment,
-    PrerenderedAcknowledgment,
-)
 from .agent import VoiceAgent
 from .barge_in import (
     BargeInContext,
@@ -38,9 +31,6 @@ from .sound import Earcon, SoundObserver
 from .wakeword import WakeWordSettings
 
 __all__ = [
-    "AcknowledgmentContext",
-    "AcknowledgmentObserver",
-    "AcknowledgmentStrategy",
     "AgentResult",
     "AssistantMessage",
     "BargeInContext",
@@ -58,13 +48,11 @@ __all__ = [
     "HumanMessage",
     "HueObserver",
     "LightingState",
-    "NoAcknowledgment",
     "NoBargeIn",
     "Observer",
     "ObserverContext",
     "PauseStrategy",
     "PlaybackStrategy",
-    "PrerenderedAcknowledgment",
     "SpeechBargeIn",
     "SoundObserver",
     "SonosPlaybackObserver",
