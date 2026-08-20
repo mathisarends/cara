@@ -1,16 +1,16 @@
+from collections.abc import AsyncIterator
 from uuid import UUID
 
-from gateway.features.conversation.application import AgentEventBus, AgentRunner
+from gateway.features.conversation.application import AgentEvent, AgentRunner
 
 
 class RuntimeAgentRunner(AgentRunner):
     """Placeholder until the gateway is connected to the current agent API."""
 
-    async def run(
+    def run(
         self,
         session_id: UUID,
         metadata: dict[str, object],
-        event_bus: AgentEventBus,
-    ) -> None:
-        del session_id, metadata, event_bus
+    ) -> AsyncIterator[AgentEvent]:
+        del session_id, metadata
         raise NotImplementedError("The gateway agent runtime is not configured.")

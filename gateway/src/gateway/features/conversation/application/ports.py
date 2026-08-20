@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from uuid import UUID
 
-from gateway.features.conversation.application.event_bus import AgentEventBus
+from gateway.features.conversation.application.agent_events import AgentEvent
 from gateway.features.conversation.domain import (
     GatewayEvent,
 )
@@ -33,9 +34,8 @@ class EventBroker(EventPublisher):
 
 class AgentRunner(ABC):
     @abstractmethod
-    async def run(
+    def run(
         self,
         session_id: UUID,
         metadata: dict[str, object],
-        event_bus: AgentEventBus,
-    ) -> None: ...
+    ) -> AsyncIterator[AgentEvent]: ...

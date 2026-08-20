@@ -1,12 +1,16 @@
 import asyncio
+import json
 import logging
 from typing import Any
 from uuid import UUID
 
-from gateway.features.conversation.application.agent_event_router import (
-    AgentEventRouter,
+from gateway.features.conversation.application.agent_events import (
+    AgentEvent,
+    ChatCompleted,
+    ChatDelta,
+    ToolCallCompleted,
+    ToolCallStarted,
 )
-from gateway.features.conversation.application.event_bus import AgentEventBus
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
     GatewayEvent,
@@ -82,55 +86,42 @@ class ConversationService:
         metadata: dict[str, object],
     ) -> None:
         session: Session | None = None
-        event_router: AgentEventRouter | None = None
+        turn: _TurnExecution | None = None
         try:
             session = await self.get_session(session_id)
             session.add_user_message(text)
             session = await self._sessions.save(session)
-            event_bus = AgentEventBus()
-            event_router = AgentEventRouter(
+            turn = _TurnExecution(
                 session,
                 self._sessions,
                 self._events,
-                1,
             )
-            event_router.bind(event_bus)
-            await self._events.publish(
-                GatewayEvent(
-                    type=GatewayEventType.TURN_STARTED,
-                    session_id=session_id,
-                    sequence=1,
-                    data={},
-                )
-            )
-            await self._agent.run(session.id, metadata, event_bus)
-            await self._events.publish(
-                GatewayEvent(
-                    type=GatewayEventType.TURN_COMPLETED,
-                    session_id=session_id,
-                    sequence=event_router.sequence + 1,
-                    data={},
-                )
-            )
+            await turn.publish(GatewayEventType.TURN_STARTED, {})
+            async for event in self._agent.run(session.id, metadata):
+                await turn.handle(event)
+            await turn.publish(GatewayEventType.TURN_COMPLETED, {})
         except asyncio.CancelledError:
-            current_session = event_router.session if event_router else session
+            current_session = turn.session if turn else session
             await self._fail_pending_tool_calls(current_session, "Turn cancelled")
-            await self._events.publish(
-                GatewayEvent(
-                    type=GatewayEventType.TURN_CANCELLED,
-                    session_id=session_id,
-                    sequence=event_router.sequence + 1 if event_router else 1,
-                    data={},
-                )
+            await self._publish_terminal(
+                session_id,
+                turn,
+                GatewayEventType.TURN_CANCELLED,
+                {},
             )
         except Exception as error:
             logger.exception(
                 "Conversation turn failed for session %s",
                 session_id,
             )
-            current_session = event_router.session if event_router else session
+            current_session = turn.session if turn else session
             await self._fail_pending_tool_calls(current_session, _message(error))
-            await self._publish_turn_failed(session_id, event_router, error)
+            await self._publish_terminal(
+                session_id,
+                turn,
+                GatewayEventType.TURN_FAILED,
+                {"code": type(error).__name__, "message": _message(error)},
+            )
         finally:
             await self._sessions.release_turn(session_id)
 
@@ -138,18 +129,22 @@ class ConversationService:
         if self._background_tasks.get(session_id) is completed:
             self._background_tasks.pop(session_id, None)
 
-    async def _publish_turn_failed(
+    async def _publish_terminal(
         self,
         session_id: UUID,
-        event_router: AgentEventRouter | None,
-        error: Exception,
+        turn: "_TurnExecution | None",
+        event_type: GatewayEventType,
+        data: dict[str, Any],
     ) -> None:
+        if turn is not None:
+            await turn.publish(event_type, data)
+            return
         await self._events.publish(
             GatewayEvent(
-                type=GatewayEventType.TURN_FAILED,
+                type=event_type,
                 session_id=session_id,
-                sequence=event_router.sequence + 1 if event_router else 1,
-                data={"code": type(error).__name__, "message": _message(error)},
+                sequence=1,
+                data=data,
             )
         )
 
@@ -163,5 +158,101 @@ class ConversationService:
         await self._sessions.save(session)
 
 
+class _TurnExecution:
+    def __init__(
+        self,
+        session: Session,
+        sessions: SessionRepository,
+        publisher: EventPublisher,
+    ) -> None:
+        self._session = session
+        self._sessions = sessions
+        self._publisher = publisher
+        self._sequence = 0
+
+    @property
+    def session(self) -> Session:
+        return self._session
+
+    async def handle(self, event: AgentEvent) -> None:
+        match event:
+            case ChatDelta():
+                await self.publish(
+                    GatewayEventType.CHAT_DELTA,
+                    {"text": event.text},
+                    event.metadata,
+                )
+            case ChatCompleted():
+                if event.text:
+                    self._session.add_assistant_message(event.text)
+                    await self._save_session()
+                await self.publish(
+                    GatewayEventType.CHAT_COMPLETED,
+                    {"text": event.text, "finish_reason": event.finish_reason},
+                    event.metadata,
+                )
+            case ToolCallStarted():
+                self._session.add_tool_call(
+                    event.call_id,
+                    event.name,
+                    event.arguments,
+                )
+                await self._save_session()
+                await self.publish(
+                    GatewayEventType.TOOL_CALL_STARTED,
+                    {"name": event.name, "arguments": event.arguments},
+                    event.metadata,
+                    call_id=event.call_id,
+                )
+            case ToolCallCompleted():
+                if event.is_error:
+                    self._session.fail_tool_call(
+                        event.call_id,
+                        _render_tool_value(event.result),
+                    )
+                else:
+                    self._session.resolve_tool_call(event.call_id, event.result)
+                await self._save_session()
+                await self.publish(
+                    GatewayEventType.TOOL_CALL_COMPLETED,
+                    {
+                        "name": event.name,
+                        "result": event.result,
+                        "is_error": event.is_error,
+                    },
+                    event.metadata,
+                    call_id=event.call_id,
+                )
+
+    async def publish(
+        self,
+        event_type: GatewayEventType,
+        data: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
+        *,
+        call_id: str | None = None,
+    ) -> None:
+        self._sequence += 1
+        await self._publisher.publish(
+            GatewayEvent(
+                type=event_type,
+                session_id=self._session.id,
+                call_id=call_id,
+                sequence=self._sequence,
+                metadata=metadata or {},
+                data=data,
+            )
+        )
+
+    async def _save_session(self) -> None:
+        self._session = await self._sessions.save(self._session)
+
+
 def _message(error: Exception) -> str:
     return str(error) or type(error).__name__
+
+
+def _render_tool_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
