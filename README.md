@@ -32,7 +32,7 @@ than invented from scratch.
 
 ```mermaid
 flowchart TD
-    Voice["voice client<br/>(voice/, voice_main.py)"]
+    Voice["voice client<br/>(voice/, voice/examples/voice_main.py)"]
     Cli["cli client<br/>(cli/, cara-chat)"]
     Client["gateway_client<br/>(generated, typed)"]
     Gateway["gateway (FastAPI)<br/>sessions · turns · persistence · event fan-out"]
@@ -140,7 +140,7 @@ for the full protocol and session/turn lifecycle.
 Connect a microphone and speakers, then run the voice client:
 
 ```powershell
-uv run python voice_main.py
+uv run python voice/examples/voice_main.py
 ```
 
 Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you

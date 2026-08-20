@@ -3,8 +3,8 @@ from pathlib import Path
 
 from voice.observer import Observer, ObserverContext
 
-# parents[3]: sound.py -> voice/src/voice(project) -> cara
-_DEFAULT_SOUNDS_DIR = Path(__file__).parents[3] / "static" / "sounds"
+# parents[2]: sound.py -> voice/src/voice(project) -> voice
+_DEFAULT_SOUNDS_DIR = Path(__file__).parents[2] / "static" / "sounds"
 
 
 class Earcon(StrEnum):
