@@ -225,6 +225,6 @@ async with SonosClient(ip) as sonos_client:
     await agent.start()
 ```
 
-See the [repo root README](../README.md) for running `voice/examples/voice_main.py`,
+See the [repo root README](../README.md) for running `examples/voice_main.py`,
 device discovery scripts, and workspace/sandbox configuration shared with
 [`agent`](../agent).
