@@ -11,3 +11,7 @@ read-only `AgentSessionReader` supplied in `AgentPluginContext`.
 
 Plugins should import their complete Gateway-facing API from
 `agent_plugin_api`, not from modules below `gateway`.
+
+An installed plugin registers a parameterless `create_plugin()` factory in the
+`cara.agent_plugins` entry-point group. The factory returns a new `AgentPlugin`;
+the plugin then creates its configured `AgentRunner` from the Gateway context.

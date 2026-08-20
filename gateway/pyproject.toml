@@ -24,7 +24,7 @@ cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
 gateway-migrate = "gateway.infrastructure.database.migrations:main"
 
 [project.entry-points."cara.agent_plugins"]
-echo = "gateway.features.conversation.infrastructure.echo_agent:plugin"
+echo = "gateway.features.conversation.infrastructure.echo_agent:create_plugin"
 
 [build-system]
 requires = ["hatchling"]

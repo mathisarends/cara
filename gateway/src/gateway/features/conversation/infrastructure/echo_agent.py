@@ -59,7 +59,7 @@ def _chunks(text: str) -> list[str]:
     return [word if index == 0 else f" {word}" for index, word in enumerate(words)]
 
 
-class EchoAgentPlugin:
+class _EchoAgentPlugin:
     api_version = AGENT_PLUGIN_API_VERSION
 
     def create(
@@ -80,4 +80,5 @@ class EchoAgentPlugin:
         return EchoAgentRunner(float(delta_delay))
 
 
-plugin: AgentPlugin = EchoAgentPlugin()
+def create_plugin() -> AgentPlugin:
+    return _EchoAgentPlugin()

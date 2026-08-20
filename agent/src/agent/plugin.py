@@ -203,4 +203,5 @@ def _plugin_event(event: object) -> AgentEvent:
     raise TypeError(f"Unsupported Cara agent event: {type(event).__name__}")
 
 
-plugin: AgentPlugin = _CaraAgentPlugin()
+def create_plugin() -> AgentPlugin:
+    return _CaraAgentPlugin()

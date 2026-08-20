@@ -38,3 +38,8 @@ class AgentPlugin(Protocol):
         config: Mapping[str, Any],
         context: AgentPluginContext,
     ) -> AgentRunner: ...
+
+
+@runtime_checkable
+class AgentPluginFactory(Protocol):
+    def __call__(self) -> AgentPlugin: ...

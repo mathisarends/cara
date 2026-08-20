@@ -8,7 +8,7 @@ import pytest
 from llmify import ChatModel, Function, Message, StreamEnd, StreamTextDelta, ToolCall
 from pydantic import ValidationError
 
-from agent.plugin import plugin
+from agent.plugin import create_plugin
 from agent.tools import AgentTools
 from agent_plugin_api import (
     AgentAssistantMessage,
@@ -137,7 +137,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         )
     )
     sessions = _SessionReader(context)
-    runner = plugin.create(
+    runner = create_plugin().create(
         {"workspace_root": str(tmp_path)},
         AgentPluginContext(sessions),
     )
@@ -185,7 +185,11 @@ def test_cara_plugin_rejects_unknown_configuration() -> None:
     sessions = _SessionReader(AgentContext(()))
 
     with pytest.raises(ValidationError, match="unknown"):
-        plugin.create(
+        create_plugin().create(
             {"unknown": True},
             AgentPluginContext(sessions),
         )
+
+
+def test_cara_plugin_factory_returns_a_fresh_plugin() -> None:
+    assert create_plugin() is not create_plugin()

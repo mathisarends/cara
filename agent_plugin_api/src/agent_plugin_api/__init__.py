@@ -21,6 +21,7 @@ from .plugins import (
     AGENT_PLUGIN_API_VERSION,
     AgentPlugin,
     AgentPluginContext,
+    AgentPluginFactory,
     AgentRunner,
     AgentSessionReader,
 )
@@ -34,6 +35,7 @@ __all__ = [
     "AgentEvent",
     "AgentPlugin",
     "AgentPluginContext",
+    "AgentPluginFactory",
     "AgentRunRequest",
     "AgentRunner",
     "AgentSessionReader",

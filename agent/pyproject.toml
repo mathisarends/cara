@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.entry-points."cara.agent_plugins"]
-cara = "agent.plugin:plugin"
+cara = "agent.plugin:create_plugin"
 
 [build-system]
 requires = ["hatchling"]

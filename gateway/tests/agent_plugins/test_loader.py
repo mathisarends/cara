@@ -55,7 +55,7 @@ def test_loader_returns_the_single_compatible_plugin(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     plugin = _Plugin()
-    _entry_points(monkeypatch, _EntryPoint("custom", plugin))
+    _entry_points(monkeypatch, _EntryPoint("custom", lambda: plugin))
 
     assert load_agent_plugin("custom") is plugin
 
@@ -72,8 +72,8 @@ def test_loader_rejects_duplicate_plugin_names(
 ) -> None:
     _entry_points(
         monkeypatch,
-        _EntryPoint("custom", _Plugin()),
-        _EntryPoint("custom", _Plugin()),
+        _EntryPoint("custom", lambda: _Plugin()),
+        _EntryPoint("custom", lambda: _Plugin()),
     )
 
     with pytest.raises(AgentPluginLoadError, match="registered 2 times"):
@@ -85,16 +85,37 @@ def test_loader_rejects_an_incompatible_api_version(
 ) -> None:
     plugin = _Plugin()
     plugin.api_version = AGENT_PLUGIN_API_VERSION + 1
-    _entry_points(monkeypatch, _EntryPoint("custom", plugin))
+    _entry_points(monkeypatch, _EntryPoint("custom", lambda: plugin))
 
     with pytest.raises(AgentPluginLoadError, match="uses API version"):
+        load_agent_plugin("custom")
+
+
+def test_loader_rejects_an_entry_point_without_a_plugin_factory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _entry_points(monkeypatch, _EntryPoint("custom", object()))
+
+    with pytest.raises(AgentPluginLoadError, match="plugin factory"):
         load_agent_plugin("custom")
 
 
 def test_loader_rejects_an_object_without_the_plugin_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _entry_points(monkeypatch, _EntryPoint("custom", object()))
+    _entry_points(monkeypatch, _EntryPoint("custom", lambda: object()))
 
     with pytest.raises(AgentPluginLoadError, match="plugin contract"):
+        load_agent_plugin("custom")
+
+
+def test_loader_reports_plugin_factory_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail() -> _Plugin:
+        raise RuntimeError("broken factory")
+
+    _entry_points(monkeypatch, _EntryPoint("custom", fail))
+
+    with pytest.raises(AgentPluginLoadError, match="could not be created"):
         load_agent_plugin("custom")

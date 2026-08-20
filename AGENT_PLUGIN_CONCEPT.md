@@ -212,7 +212,7 @@ name = "cara-agent-plugin"
 dependencies = ["agent-plugin-api"]
 
 [project.entry-points."cara.agent_plugins"]
-cara = "cara_agent_plugin:plugin"
+cara = "cara_agent_plugin:create_plugin"
 ```
 
 Das exportierte Objekt ist eine kleine Factory:
@@ -235,7 +235,8 @@ class CaraAgentPlugin:
         return CaraAgentRunner(config, sessions=context.sessions)
 
 
-plugin: AgentPlugin = CaraAgentPlugin()
+def create_plugin() -> AgentPlugin:
+    return CaraAgentPlugin()
 ```
 
 ## Gateway-Konfiguration
@@ -284,9 +285,16 @@ def load_agent_plugin(name: str) -> AgentPlugin:
     )
     if len(matches) != 1:
         raise AgentPluginLoadError(name, len(matches))
-    plugin = matches[0].load()
+    plugin_factory = matches[0].load()
+    plugin = plugin_factory()
     return validate_plugin(plugin)
 ```
+
+Der Entry Point liefert damit immer eine parameterlose Factory und kein beim
+Modulimport erzeugtes Singleton. Der Loader validiert zuerst die Factory, ruft
+sie genau einmal auf und validiert anschließend das erzeugte `AgentPlugin`.
+Erst der DI-Provider übergibt Konfiguration und Gateway-Capabilities an
+`plugin.create(config, context)`.
 
 `create_container()` lädt das konfigurierte Plugin und registriert dessen
 `AgentRunner` anstelle des fest verdrahteten `RuntimeAgentRunner`. Beim

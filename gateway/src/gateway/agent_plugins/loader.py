@@ -3,6 +3,7 @@ import importlib.metadata
 from agent_plugin_api import (
     AGENT_PLUGIN_API_VERSION,
     AgentPlugin,
+    AgentPluginFactory,
 )
 
 _ENTRY_POINT_GROUP = "cara.agent_plugins"
@@ -26,10 +27,21 @@ def load_agent_plugin(name: str) -> AgentPlugin:
         )
 
     try:
-        plugin = matches[0].load()
+        factory = matches[0].load()
     except Exception as error:
         raise AgentPluginLoadError(
-            f"Agent plugin '{name}' could not be loaded"
+            f"Agent plugin factory '{name}' could not be loaded"
+        ) from error
+
+    if not isinstance(factory, AgentPluginFactory):
+        raise AgentPluginLoadError(
+            f"Agent plugin '{name}' does not expose a plugin factory"
+        )
+    try:
+        plugin = factory()
+    except Exception as error:
+        raise AgentPluginLoadError(
+            f"Agent plugin '{name}' could not be created"
         ) from error
 
     if not isinstance(plugin, AgentPlugin):
