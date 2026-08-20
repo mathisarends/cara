@@ -4,7 +4,7 @@ import pytest
 
 from voice.events import SessionEnded, UserTranscriptionRequested, UserTurnStarted
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
+from voice.events.models import VoiceTurnEnded, VoiceTurnFailed, VoiceTurnRequested
 from voice.handler import TurnCoordinator, TurnListener
 
 
@@ -67,3 +67,41 @@ def test_turn_listener_maps_events_to_coordinator() -> None:
         ),
         VoiceTurnEnded(turn_id=1),
     ]
+
+
+def test_failure_event_stops_the_active_turn(caplog) -> None:
+    async def run() -> tuple[TurnCoordinator, list[VoiceTurnEnded]]:
+        event_bus = EventBus()
+        coordinator = TurnCoordinator()
+        TurnListener(event_bus=event_bus, coordinator=coordinator)
+        ended: list[VoiceTurnEnded] = []
+
+        async def transcribe(event: UserTranscriptionRequested) -> None:
+            await event_bus.dispatch(
+                VoiceTurnFailed(
+                    turn_id=event.turn_id,
+                    message="TTS connection closed",
+                )
+            )
+            await asyncio.Event().wait()
+
+        async def capture_ended(event: VoiceTurnEnded) -> None:
+            ended.append(event)
+
+        event_bus.on_request(UserTranscriptionRequested, transcribe)
+        event_bus.on(VoiceTurnEnded, capture_ended)
+
+        await event_bus.request(VoiceTurnRequested(sequence=12))
+        async with asyncio.timeout(1.0):
+            while coordinator.has_active_turn:
+                await asyncio.sleep(0)
+        return coordinator, ended
+
+    with caplog.at_level("ERROR", logger="voice.handler.turn"):
+        coordinator, ended = asyncio.run(run())
+
+    assert not coordinator.has_active_turn
+    assert ended == [VoiceTurnEnded(turn_id=1)]
+    assert "Voice turn 1 failure event received: TTS connection closed" in (
+        caplog.messages
+    )
