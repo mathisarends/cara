@@ -1,8 +1,3 @@
-import asyncio
-
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
-
 from gateway.features.conversation.domain import (
     AssistantMessage,
     Session,
@@ -15,29 +10,17 @@ from gateway.features.conversation.infrastructure.persistence import (
 )
 
 
-def test_session_aggregate_round_trips_with_complete_history() -> None:
-    asyncio.run(_assert_session_aggregate_round_trip())
-
-
-async def _assert_session_aggregate_round_trip() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(SQLModel.metadata.create_all)
-    repository = SQLSessionRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
-    )
+async def test_session_aggregate_round_trips_with_complete_history(
+    session_repository: SQLSessionRepository,
+) -> None:
     session = Session.create(metadata={"channel": "web"})
     user_message = session.add_user_message("Weather in Hamburg")
-    tool_call = session.add_tool_call(
-        "call-1",
-        "weather",
-        {"city": "Hamburg"},
-    )
+    tool_call = session.add_tool_call("call-1", "weather", {"city": "Hamburg"})
     session.resolve_tool_call("call-1", {"temperature": 21})
     assistant_message = session.add_assistant_message("It is 21 degrees.")
 
-    await repository.save(session)
-    restored = await repository.find_by_id(session.id)
+    await session_repository.save(session)
+    restored = await session_repository.find_by_id(session.id)
 
     assert restored is not None
     assert restored.id == session.id
@@ -55,29 +38,17 @@ async def _assert_session_aggregate_round_trip() -> None:
     assert restored_sequence.calls[0].state is ToolCallState.COMPLETED
     assert restored_sequence.calls[0].result == {"temperature": 21}
 
-    await engine.dispose()
 
-
-def test_saving_updated_aggregate_replaces_removed_child_rows() -> None:
-    asyncio.run(_assert_saving_updated_aggregate())
-
-
-async def _assert_saving_updated_aggregate() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(SQLModel.metadata.create_all)
-    repository = SQLSessionRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
-    )
+async def test_saving_updated_aggregate_replaces_removed_child_rows(
+    session_repository: SQLSessionRepository,
+) -> None:
     session = Session.create()
     session.add_user_message("First")
-    await repository.save(session)
+    await session_repository.save(session)
 
     session.add_assistant_message("Second")
-    await repository.save(session)
-    restored = await repository.find_by_id(session.id)
+    await session_repository.save(session)
+    restored = await session_repository.find_by_id(session.id)
 
     assert restored is not None
     assert [entry.content for entry in restored.entries] == ["First", "Second"]
-
-    await engine.dispose()

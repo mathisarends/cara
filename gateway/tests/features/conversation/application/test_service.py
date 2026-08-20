@@ -2,8 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlmodel import SQLModel
+import pytest
 
 from gateway.features.conversation.application import (
     AgentEvent,
@@ -37,14 +36,6 @@ class _FailingAgentRunner(AgentRunner):
         yield
 
 
-class _RecordingPublisher(EventPublisher):
-    def __init__(self) -> None:
-        self.events: list[GatewayEvent] = []
-
-    async def publish(self, event: GatewayEvent) -> None:
-        self.events.append(event)
-
-
 class _StreamingAgentRunner(AgentRunner):
     async def run(
         self,
@@ -58,27 +49,28 @@ class _StreamingAgentRunner(AgentRunner):
         yield ChatCompleted("Hello", finish_reason="stop")
 
 
-def test_failed_turn_publishes_turn_failed_event() -> None:
-    asyncio.run(_assert_failed_turn_is_published())
+class _RecordingPublisher(EventPublisher):
+    def __init__(self) -> None:
+        self.events: list[GatewayEvent] = []
+
+    async def publish(self, event: GatewayEvent) -> None:
+        self.events.append(event)
 
 
-def test_agent_stream_updates_session_and_publishes_ordered_events() -> None:
-    asyncio.run(_assert_agent_stream_is_processed())
+@pytest.fixture
+def publisher() -> _RecordingPublisher:
+    return _RecordingPublisher()
 
 
-async def _assert_failed_turn_is_published() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(SQLModel.metadata.create_all)
-    repository = SQLSessionRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
-    )
-    publisher = _RecordingPublisher()
-    service = ConversationService(repository, publisher, _FailingAgentRunner())
+async def test_failed_turn_publishes_turn_failed_event(
+    session_repository: SQLSessionRepository,
+    publisher: _RecordingPublisher,
+) -> None:
+    service = ConversationService(session_repository, publisher, _FailingAgentRunner())
     session = await service.create_session({})
 
     await service.start_turn(session.id, "hello", {})
-    await _wait_for_event(publisher)
+    await _wait_for_event(publisher, GatewayEventType.TURN_FAILED)
     await service.close()
 
     assert [event.type for event in publisher.events] == [
@@ -93,18 +85,14 @@ async def _assert_failed_turn_is_published() -> None:
         "message": "NotImplementedError",
     }
 
-    await engine.dispose()
 
-
-async def _assert_agent_stream_is_processed() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(SQLModel.metadata.create_all)
-    repository = SQLSessionRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
+async def test_agent_stream_updates_session_and_publishes_ordered_events(
+    session_repository: SQLSessionRepository,
+    publisher: _RecordingPublisher,
+) -> None:
+    service = ConversationService(
+        session_repository, publisher, _StreamingAgentRunner()
     )
-    publisher = _RecordingPublisher()
-    service = ConversationService(repository, publisher, _StreamingAgentRunner())
     session = await service.create_session({})
 
     await service.start_turn(session.id, "hello", {})
@@ -132,12 +120,11 @@ async def _assert_agent_stream_is_processed() -> None:
     assert sequence.calls[0].result == {"answer": 42}
 
     await service.close()
-    await engine.dispose()
 
 
 async def _wait_for_event(
     publisher: _RecordingPublisher,
-    event_type: GatewayEventType = GatewayEventType.TURN_FAILED,
+    event_type: GatewayEventType,
     timeout: float = 5.0,
 ) -> None:
     loop = asyncio.get_running_loop()
