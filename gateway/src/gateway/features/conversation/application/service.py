@@ -13,6 +13,7 @@ from gateway.features.conversation.application.agent_events import (
 )
 from gateway.features.conversation.application.ports import AgentRunner, EventPublisher
 from gateway.features.conversation.domain import (
+    ChannelRef,
     GatewayEvent,
     GatewayEventType,
     Session,
@@ -35,10 +36,26 @@ class ConversationService:
         self._events = events
         self._agent = agent
         self._background_tasks: dict[UUID, asyncio.Task[None]] = {}
+        self._session_open_lock = asyncio.Lock()
 
-    async def create_session(self, metadata: dict[str, Any]) -> Session:
-        session = Session.create(metadata)
+    async def create_session(
+        self,
+        channel: ChannelRef,
+        metadata: dict[str, Any],
+    ) -> Session:
+        session = Session.create(channel, metadata)
         return await self._sessions.save(session)
+
+    async def open_session(
+        self,
+        channel: ChannelRef,
+        metadata: dict[str, Any],
+    ) -> Session:
+        async with self._session_open_lock:
+            session = await self._sessions.find_latest_by_channel(channel)
+            if session is not None:
+                return session
+            return await self.create_session(channel, metadata)
 
     async def get_session(self, session_id: UUID) -> Session:
         session = await self._sessions.find_by_id(session_id)

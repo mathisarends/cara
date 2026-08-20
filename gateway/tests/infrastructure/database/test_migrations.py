@@ -18,7 +18,14 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
 
     engine = create_engine(f"sqlite:///{database_path.as_posix()}")
     try:
-        tables = set(inspect(engine).get_table_names())
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
+        session_columns = {
+            column["name"] for column in inspector.get_columns("gateway_sessions")
+        }
+        session_indexes = {
+            index["name"] for index in inspector.get_indexes("gateway_sessions")
+        }
     finally:
         engine.dispose()
 
@@ -30,3 +37,8 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
         "gateway_session_tool_calls",
         "gateway_session_user_messages",
     } <= tables
+    assert {
+        "channel_name",
+        "channel_account_id",
+    } <= session_columns
+    assert "ix_gateway_sessions_channel" in session_indexes

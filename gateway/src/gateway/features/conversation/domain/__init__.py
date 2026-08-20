@@ -18,6 +18,7 @@ from .exceptions import (
     ToolCallNotFoundError,
 )
 from .models import (
+    ChannelRef,
     GatewayEvent,
     GatewayEventType,
 )
@@ -27,6 +28,7 @@ from .session import Session
 __all__ = [
     "ConversationError",
     "ConversationInvariantError",
+    "ChannelRef",
     "DuplicateToolCallError",
     "GatewayEvent",
     "GatewayEventType",

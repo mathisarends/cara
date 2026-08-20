@@ -30,6 +30,7 @@ class EventType(StrEnum):
 
 class RpcMethod(StrEnum):
     SESSION_CREATE = "session.create"
+    SESSION_OPEN = "session.open"
     SESSION_GET = "session.get"
     SESSION_SUBSCRIBE = "session.subscribe"
     SESSION_UNSUBSCRIBE = "session.unsubscribe"
@@ -70,6 +71,12 @@ class ChatDelta(GatewayModel):
 
 
 class CreateSessionParams(GatewayModel):
+    channel: SessionChannel
+    metadata: dict[str, Any] | None = None
+
+
+class OpenSessionParams(GatewayModel):
+    channel: SessionChannel
     metadata: dict[str, Any] | None = None
 
 
@@ -100,6 +107,11 @@ class RpcSuccess(GatewayModel):
     result: Any
 
 
+class SessionChannel(GatewayModel):
+    name: str
+    account_id: str | None = None
+
+
 class SessionParams(GatewayModel):
     session_id: UUID
 
@@ -107,6 +119,7 @@ class SessionParams(GatewayModel):
 class SessionResponse(GatewayModel):
     id: UUID
     created_at: datetime
+    channel: SessionChannel
     metadata: dict[str, Any] | None = None
 
 
@@ -226,7 +239,14 @@ class CreateSessionRequest(GatewayModel):
     jsonrpc: Literal["2.0"]
     id: str | int | None = None
     method: Literal["session.create"]
-    params: CreateSessionParams | None = None
+    params: CreateSessionParams
+
+
+class OpenSessionRequest(GatewayModel):
+    jsonrpc: Literal["2.0"]
+    id: str | int | None = None
+    method: Literal["session.open"]
+    params: OpenSessionParams
 
 
 class GetSessionRequest(GatewayModel):
@@ -293,9 +313,11 @@ AssistantMessageItem.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
 CreateSessionParams.model_rebuild()
+OpenSessionParams.model_rebuild()
 RpcErrorData.model_rebuild()
 RpcFailure.model_rebuild()
 RpcSuccess.model_rebuild()
+SessionChannel.model_rebuild()
 SessionParams.model_rebuild()
 SessionResponse.model_rebuild()
 SessionSnapshotResponse.model_rebuild()
@@ -312,6 +334,7 @@ TurnStarted.model_rebuild()
 UnsubscriptionResult.model_rebuild()
 UserMessageItem.model_rebuild()
 CreateSessionRequest.model_rebuild()
+OpenSessionRequest.model_rebuild()
 GetSessionRequest.model_rebuild()
 SubscribeSessionRequest.model_rebuild()
 UnsubscribeSessionRequest.model_rebuild()

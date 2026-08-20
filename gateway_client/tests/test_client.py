@@ -5,6 +5,9 @@ from uuid import uuid4
 import pytest
 
 from gateway_client import GatewayClient
+from gateway_client.models import SessionChannel
+
+_CHANNEL = SessionChannel(name="voice", account_id="local")
 
 
 class FakeTransport:
@@ -20,6 +23,7 @@ class FakeTransport:
         return {
             "id": str(uuid4()),
             "created_at": "2026-08-20T12:00:00Z",
+            "channel": params["channel"],
             "metadata": params.get("metadata", {}),
         }
 
@@ -36,11 +40,24 @@ async def test_namespaced_method_returns_typed_model() -> None:
     transport = FakeTransport()
     client = GatewayClient(transport)
 
-    session = await client.session.create(metadata={"client": "test"})
+    session = await client.session.create(
+        channel=_CHANNEL,
+        metadata={"client": "test"},
+    )
 
+    assert session.channel == _CHANNEL
     assert session.metadata == {"client": "test"}
     assert transport.calls == [
-        ("session.create", {"metadata": {"client": "test"}}),
+        (
+            "session.create",
+            {
+                "channel": {
+                    "name": "voice",
+                    "account_id": "local",
+                },
+                "metadata": {"client": "test"},
+            },
+        ),
     ]
 
 
@@ -49,9 +66,19 @@ async def test_optional_parameters_are_omitted() -> None:
     transport = FakeTransport()
     client = GatewayClient(transport)
 
-    await client.session.create()
+    await client.session.create(channel=SessionChannel(name="cli"))
 
-    assert transport.calls == [("session.create", {})]
+    assert transport.calls == [("session.create", {"channel": {"name": "cli"}})]
+
+
+@pytest.mark.asyncio
+async def test_open_calls_the_idempotent_session_method() -> None:
+    transport = FakeTransport()
+    client = GatewayClient(transport)
+
+    await client.session.open(channel=_CHANNEL)
+
+    assert transport.calls[0][0] == "session.open"
 
 
 @pytest.mark.asyncio

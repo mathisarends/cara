@@ -182,6 +182,18 @@ def test_namespace_uses_params_models_and_typed_results(
     assert "_without_none" not in source
 
 
+def test_namespace_imports_models_referenced_by_method_parameters(
+    specification: dict[str, Any],
+) -> None:
+    method = specification["methods"][0]
+    method["params"][1]["schema"] = {"$ref": "#/components/schemas/SessionChannel"}
+
+    source = render_namespace("conversation", [method])
+
+    assert "    SessionChannel," in source
+    assert "message: SessionChannel" in source
+
+
 def test_namespace_escapes_python_keyword_operation_names(
     specification: dict[str, Any],
 ) -> None:

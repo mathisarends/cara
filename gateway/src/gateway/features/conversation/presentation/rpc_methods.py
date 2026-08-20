@@ -1,8 +1,13 @@
 from gateway.features.conversation.application import ConversationService, EventBroker
-from gateway.features.conversation.presentation.mapping import session_snapshot
+from gateway.features.conversation.domain import ChannelRef
+from gateway.features.conversation.presentation.mapping import (
+    session_response,
+    session_snapshot,
+)
 from gateway.features.conversation.presentation.rpc import (
     ConversationRpcMethod,
     CreateSessionParams,
+    OpenSessionParams,
     SessionParams,
     StartTurnParams,
     SubscriptionResult,
@@ -34,12 +39,23 @@ class ConversationRpcMethods(rpc.RpcHandler):
         errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
     )
     async def create_session(self, params: CreateSessionParams) -> SessionResponse:
-        session = await self._service.create_session(params.metadata)
-        return SessionResponse(
-            id=session.id,
-            created_at=session.created_at,
-            metadata=session.metadata,
+        session = await self._service.create_session(
+            _channel_ref(params),
+            params.metadata,
         )
+        return session_response(session)
+
+    @rpc.method(
+        ConversationRpcMethod.SESSION_OPEN,
+        summary="Open the current session for a channel or create it.",
+        errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
+    )
+    async def open_session(self, params: OpenSessionParams) -> SessionResponse:
+        session = await self._service.open_session(
+            _channel_ref(params),
+            params.metadata,
+        )
+        return session_response(session)
 
     @rpc.method(
         ConversationRpcMethod.SESSION_GET,
@@ -98,3 +114,10 @@ class ConversationRpcMethods(rpc.RpcHandler):
     async def cancel_turn(self, params: SessionParams) -> TurnCommandResult:
         await self._service.cancel_turn(params.session_id)
         return TurnCommandResult(session_id=params.session_id)
+
+
+def _channel_ref(params: CreateSessionParams) -> ChannelRef:
+    return ChannelRef(
+        name=params.channel.name,
+        account_id=params.channel.account_id,
+    )

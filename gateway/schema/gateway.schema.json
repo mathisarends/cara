@@ -8,6 +8,9 @@
       "$ref": "#/$defs/CreateSessionRequest"
     },
     {
+      "$ref": "#/$defs/OpenSessionRequest"
+    },
+    {
       "$ref": "#/$defs/GetSessionRequest"
     },
     {
@@ -169,12 +172,18 @@
     "CreateSessionParams": {
       "additionalProperties": false,
       "properties": {
+        "channel": {
+          "$ref": "#/$defs/SessionChannel"
+        },
         "metadata": {
           "additionalProperties": true,
           "title": "Metadata",
           "type": "object"
         }
       },
+      "required": [
+        "channel"
+      ],
       "title": "CreateSessionParams",
       "type": "object"
     },
@@ -198,6 +207,24 @@
           "$ref": "#/$defs/ToolCallItem"
         }
       ]
+    },
+    "OpenSessionParams": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "$ref": "#/$defs/SessionChannel"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "channel"
+      ],
+      "title": "OpenSessionParams",
+      "type": "object"
     },
     "RpcErrorCode": {
       "enum": [
@@ -298,6 +325,34 @@
       "title": "RpcSuccess",
       "type": "object"
     },
+    "SessionChannel": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "account_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Id"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "SessionChannel",
+      "type": "object"
+    },
     "SessionEvent": {
       "discriminator": {
         "mapping": {
@@ -367,6 +422,9 @@
           "title": "Created At",
           "type": "string"
         },
+        "channel": {
+          "$ref": "#/$defs/SessionChannel"
+        },
         "metadata": {
           "additionalProperties": true,
           "title": "Metadata",
@@ -375,7 +433,8 @@
       },
       "required": [
         "id",
-        "created_at"
+        "created_at",
+        "channel"
       ],
       "title": "SessionResponse",
       "type": "object"
@@ -917,7 +976,45 @@
       },
       "required": [
         "jsonrpc",
-        "method"
+        "method",
+        "params"
+      ]
+    },
+    "OpenSessionRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "OpenSessionRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "session.open",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/OpenSessionParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
       ]
     },
     "GetSessionRequest": {
@@ -1138,6 +1235,18 @@
       },
       "params": {
         "$ref": "#/$defs/CreateSessionParams"
+      },
+      "result": {
+        "$ref": "#/$defs/SessionResponse"
+      }
+    },
+    {
+      "name": "session.open",
+      "request": {
+        "$ref": "#/$defs/OpenSessionRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/OpenSessionParams"
       },
       "result": {
         "$ref": "#/$defs/SessionResponse"

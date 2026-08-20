@@ -14,12 +14,14 @@ from gateway.features.conversation.domain.exceptions import (
     NoPendingToolCallSequenceError,
     PendingToolCallsError,
 )
+from gateway.features.conversation.domain.models import ChannelRef
 from gateway.shared import Aggregate
 
 
 class Session(Aggregate):
     def __init__(
         self,
+        channel: ChannelRef,
         metadata: Mapping[str, Any] | None = None,
         entries: Sequence[SessionEntry] = (),
         turn_active: bool = False,
@@ -28,13 +30,22 @@ class Session(Aggregate):
         created_at: datetime | None = None,
     ) -> None:
         super().__init__(id=id, created_at=created_at)
+        self._channel = channel
         self._metadata = dict(metadata or {})
         self._entries = list(entries)
         self._turn_active = turn_active
 
     @classmethod
-    def create(cls, metadata: Mapping[str, Any] | None = None) -> Self:
-        return cls(metadata=metadata)
+    def create(
+        cls,
+        channel: ChannelRef,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> Self:
+        return cls(channel=channel, metadata=metadata)
+
+    @property
+    def channel(self) -> ChannelRef:
+        return self._channel
 
     @property
     def metadata(self) -> dict[str, Any]:

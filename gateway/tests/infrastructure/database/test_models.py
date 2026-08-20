@@ -13,6 +13,7 @@ from gateway.infrastructure.database import (
 
 def test_session_entries_and_tool_calls_are_ordered(sqlite_engine: Engine) -> None:
     model = SessionModel(
+        channel_name="test",
         user_messages=[
             SessionUserMessageModel(position=2, content="Second"),
             SessionUserMessageModel(position=0, content="First"),
@@ -69,6 +70,7 @@ def test_deleting_session_cascades_to_its_context_entries(
     sqlite_engine: Engine,
 ) -> None:
     model = SessionModel(
+        channel_name="test",
         user_messages=[SessionUserMessageModel(position=0, content="Hello")],
         tool_call_sequences=[
             SessionToolCallSequenceModel(

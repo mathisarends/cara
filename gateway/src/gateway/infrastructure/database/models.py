@@ -16,7 +16,17 @@ class DatabaseEntity(SQLModel):
 
 class SessionModel(DatabaseEntity, table=True):
     __tablename__ = "gateway_sessions"
+    __table_args__ = (
+        Index(
+            "ix_gateway_sessions_channel",
+            "channel_name",
+            "channel_account_id",
+            "created_at",
+        ),
+    )
 
+    channel_name: str
+    channel_account_id: str | None = None
     metadata_json: dict[str, Any] = Field(
         default_factory=dict,
         sa_column=Column("metadata", JSON, nullable=False),

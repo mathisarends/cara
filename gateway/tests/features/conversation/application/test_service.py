@@ -15,6 +15,7 @@ from gateway.features.conversation.application import (
 from gateway.features.conversation.application.ports import EventPublisher
 from gateway.features.conversation.application.service import ConversationService
 from gateway.features.conversation.domain import (
+    ChannelRef,
     GatewayEvent,
     GatewayEventType,
     ToolCallSequence,
@@ -23,6 +24,8 @@ from gateway.features.conversation.domain import (
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
 )
+
+_CHANNEL = ChannelRef("test")
 
 
 class _FailingAgentRunner(AgentRunner):
@@ -67,7 +70,7 @@ async def test_failed_turn_publishes_turn_failed_event(
     publisher: _RecordingPublisher,
 ) -> None:
     service = ConversationService(session_repository, publisher, _FailingAgentRunner())
-    session = await service.create_session({})
+    session = await service.create_session(_CHANNEL, {})
 
     await service.start_turn(session.id, "hello", {})
     await _wait_for_event(publisher, GatewayEventType.TURN_FAILED)
@@ -93,7 +96,7 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     service = ConversationService(
         session_repository, publisher, _StreamingAgentRunner()
     )
-    session = await service.create_session({})
+    session = await service.create_session(_CHANNEL, {})
 
     await service.start_turn(session.id, "hello", {})
     await _wait_for_event(publisher, GatewayEventType.TURN_COMPLETED)

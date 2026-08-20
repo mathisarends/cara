@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import Select, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from gateway.features.conversation.domain import (
     AssistantMessage,
+    ChannelRef,
     Session,
     SessionRepository,
     ToolCall,
@@ -41,16 +42,23 @@ class SQLSessionRepository(
         super().__init__(session_factory, SessionModel)
 
     async def find_by_id(self, id: UUID) -> Session | None:
-        statement = (
+        statement = self._with_entries(
+            select(SessionModel).where(SessionModel.id == id)
+        )
+        async with self._session_factory() as database:
+            result = await database.execute(statement)
+            model = result.scalar_one_or_none()
+            return self._to_domain(model) if model is not None else None
+
+    async def find_latest_by_channel(self, channel: ChannelRef) -> Session | None:
+        statement = self._with_entries(
             select(SessionModel)
-            .where(SessionModel.id == id)
-            .options(
-                selectinload(SessionModel.user_messages),
-                selectinload(SessionModel.assistant_messages),
-                selectinload(SessionModel.tool_call_sequences).selectinload(
-                    SessionToolCallSequenceModel.calls
-                ),
+            .where(
+                SessionModel.channel_name == channel.name,
+                SessionModel.channel_account_id == channel.account_id,
             )
+            .order_by(SessionModel.created_at.desc(), SessionModel.id.desc())
+            .limit(1)
         )
         async with self._session_factory() as database:
             result = await database.execute(statement)
@@ -102,6 +110,10 @@ class SQLSessionRepository(
         ]
         positioned_entries.sort(key=lambda item: item[0])
         return Session(
+            channel=ChannelRef(
+                name=orm.channel_name,
+                account_id=orm.channel_account_id,
+            ),
             id=orm.id,
             created_at=_as_utc(orm.created_at),
             metadata=dict(orm.metadata_json),
@@ -113,6 +125,8 @@ class SQLSessionRepository(
         model = SessionModel(
             id=domain.id,
             created_at=domain.created_at,
+            channel_name=domain.channel.name,
+            channel_account_id=domain.channel.account_id,
             metadata_json=dict(domain.metadata),
             turn_active=domain.turn_active,
         )
@@ -162,6 +176,15 @@ class SQLSessionRepository(
             ]
             model.tool_call_sequences.append(sequence_model)
         return model
+
+    def _with_entries(self, statement: Select[tuple[SessionModel]]):
+        return statement.options(
+            selectinload(SessionModel.user_messages),
+            selectinload(SessionModel.assistant_messages),
+            selectinload(SessionModel.tool_call_sequences).selectinload(
+                SessionToolCallSequenceModel.calls
+            ),
+        )
 
 
 def _user_message_to_domain(model: SessionUserMessageModel) -> UserMessage:

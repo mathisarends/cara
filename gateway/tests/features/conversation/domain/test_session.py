@@ -2,6 +2,7 @@ import pytest
 
 from gateway.features.conversation.domain import (
     AssistantMessage,
+    ChannelRef,
     NoPendingToolCallSequenceError,
     PendingToolCallsError,
     Session,
@@ -10,9 +11,11 @@ from gateway.features.conversation.domain import (
     UserMessage,
 )
 
+_CHANNEL = ChannelRef("test")
+
 
 def test_session_owns_an_ordered_conversation() -> None:
-    session = Session.create(metadata={"channel": "terminal"})
+    session = Session.create(_CHANNEL, metadata={"source": "terminal"})
 
     user_message = session.add_user_message("How is the weather?")
     first_call = session.add_tool_call(
@@ -29,7 +32,8 @@ def test_session_owns_an_ordered_conversation() -> None:
     session.resolve_tool_call("call-2", {"temperature": 21})
     assistant_message = session.add_assistant_message("It is 21 degrees.")
 
-    assert session.metadata == {"channel": "terminal"}
+    assert session.channel == _CHANNEL
+    assert session.metadata == {"source": "terminal"}
     assert [type(entry) for entry in session.entries] == [
         UserMessage,
         ToolCallSequence,
@@ -44,21 +48,21 @@ def test_session_owns_an_ordered_conversation() -> None:
 
 
 def test_session_does_not_expose_mutable_collections() -> None:
-    metadata = {"channel": "terminal"}
+    metadata = {"source": "terminal"}
     entries = [UserMessage("Hello")]
-    session = Session(metadata=metadata, entries=entries)
+    session = Session(channel=_CHANNEL, metadata=metadata, entries=entries)
 
-    metadata["channel"] = "web"
+    metadata["source"] = "web"
     entries.append(AssistantMessage("Changed outside"))
     returned_metadata = session.metadata
-    returned_metadata["channel"] = "voice"
+    returned_metadata["source"] = "voice"
 
-    assert session.metadata == {"channel": "terminal"}
+    assert session.metadata == {"source": "terminal"}
     assert len(session.entries) == 1
 
 
 def test_session_rejects_messages_while_tool_calls_are_pending() -> None:
-    session = Session.create()
+    session = Session.create(_CHANNEL)
     session.add_user_message("Search for this")
     session.add_tool_call("call-1", "search", {"query": "Cara"})
 
@@ -70,14 +74,14 @@ def test_session_rejects_messages_while_tool_calls_are_pending() -> None:
 
 
 def test_session_rejects_tool_results_without_pending_sequence() -> None:
-    session = Session.create()
+    session = Session.create(_CHANNEL)
 
     with pytest.raises(NoPendingToolCallSequenceError):
         session.resolve_tool_call("call-1", "result")
 
 
 def test_session_can_fail_a_pending_tool_call_directly() -> None:
-    session = Session.create()
+    session = Session.create(_CHANNEL)
     session.add_user_message("Search for this")
     call = session.add_tool_call("call-1", "search", {"query": "Cara"})
 
@@ -89,7 +93,7 @@ def test_session_can_fail_a_pending_tool_call_directly() -> None:
 
 
 def test_pending_tool_call_sequence_exposes_the_open_sequence() -> None:
-    session = Session.create()
+    session = Session.create(_CHANNEL)
 
     assert session.pending_tool_call_sequence() is None
 
@@ -102,7 +106,7 @@ def test_pending_tool_call_sequence_exposes_the_open_sequence() -> None:
 
 
 def test_failing_pending_tool_calls_resolves_every_open_call() -> None:
-    session = Session.create()
+    session = Session.create(_CHANNEL)
     session.add_user_message("Search for this")
     session.add_tool_call("call-1", "search", {"query": "Cara"})
     session.add_tool_call("call-2", "weather", {"city": "Hamburg"})
@@ -116,6 +120,6 @@ def test_failing_pending_tool_calls_resolves_every_open_call() -> None:
 
 
 def test_failing_pending_tool_calls_without_a_pending_sequence_is_a_noop() -> None:
-    session = Session.create()
+    session = Session.create(_CHANNEL)
 
     assert session.fail_pending_tool_calls("cancelled") == ()

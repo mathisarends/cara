@@ -5,6 +5,12 @@ from typing import Any
 from uuid import UUID, uuid4
 
 
+@dataclass(frozen=True, slots=True)
+class ChannelRef:
+    name: str
+    account_id: str | None = None
+
+
 class GatewayEventType(StrEnum):
     TURN_STARTED = "turn.started"
     CHAT_DELTA = "chat.delta"

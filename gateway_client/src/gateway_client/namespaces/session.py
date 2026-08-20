@@ -6,7 +6,9 @@ from uuid import UUID
 
 from gateway_client.models import (
     CreateSessionParams,
+    OpenSessionParams,
     RpcMethod,
+    SessionChannel,
     SessionParams,
     SessionResponse,
     SessionSnapshotResponse,
@@ -23,13 +25,31 @@ class SessionClient:
     async def create(
         self,
         *,
+        channel: SessionChannel,
         metadata: dict[str, Any] | None = None,
     ) -> SessionResponse:
         params = CreateSessionParams(
+            channel=channel,
             metadata=metadata,
         )
         result = await self._transport.request(
             RpcMethod.SESSION_CREATE,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return SessionResponse.model_validate(result)
+
+    async def open(
+        self,
+        *,
+        channel: SessionChannel,
+        metadata: dict[str, Any] | None = None,
+    ) -> SessionResponse:
+        params = OpenSessionParams(
+            channel=channel,
+            metadata=metadata,
+        )
+        result = await self._transport.request(
+            RpcMethod.SESSION_OPEN,
             params.model_dump(mode="json", exclude_none=True),
         )
         return SessionResponse.model_validate(result)

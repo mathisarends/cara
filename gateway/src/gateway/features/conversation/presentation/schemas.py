@@ -22,9 +22,15 @@ class ToolCallStatus(StrEnum):
     FAILED = "failed"
 
 
+class SessionChannel(WireSchema):
+    name: str = Field(min_length=1)
+    account_id: str | None = Field(default=None, min_length=1)
+
+
 class SessionResponse(WireSchema):
     id: UUID
     created_at: datetime
+    channel: SessionChannel
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

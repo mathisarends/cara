@@ -3,11 +3,15 @@ from uuid import UUID
 
 from pydantic import Field
 
-from gateway.features.conversation.presentation.schemas import WireSchema
+from gateway.features.conversation.presentation.schemas import (
+    SessionChannel,
+    WireSchema,
+)
 
 
 class ConversationRpcMethod(StrEnum):
     SESSION_CREATE = "session.create"
+    SESSION_OPEN = "session.open"
     SESSION_GET = "session.get"
     SESSION_SUBSCRIBE = "session.subscribe"
     SESSION_UNSUBSCRIBE = "session.unsubscribe"
@@ -24,7 +28,12 @@ class SessionParams(WireSchema):
 
 
 class CreateSessionParams(WireSchema):
+    channel: SessionChannel
     metadata: dict[str, object] = Field(default_factory=dict)
+
+
+class OpenSessionParams(CreateSessionParams):
+    pass
 
 
 class StartTurnParams(SessionParams):

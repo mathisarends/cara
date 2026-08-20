@@ -1,5 +1,6 @@
 from gateway.features.conversation.domain import (
     AssistantMessage,
+    ChannelRef,
     GatewayEvent,
     Session,
     ToolCallSequence,
@@ -12,6 +13,7 @@ from gateway.features.conversation.presentation.events import (
 from gateway.features.conversation.presentation.schemas import (
     AssistantMessageItem,
     Item,
+    SessionChannel,
     SessionResponse,
     SessionSnapshotResponse,
     ToolCallItem,
@@ -50,13 +52,25 @@ def session_snapshot(session: Session) -> SessionSnapshotResponse:
                 for call in entry.calls
             )
     return SessionSnapshotResponse(
-        session=SessionResponse(
-            id=session.id,
-            created_at=session.created_at,
-            metadata=session.metadata,
-        ),
+        session=session_response(session),
         items=tuple(items),
         turn_active=session.turn_active,
+    )
+
+
+def session_response(session: Session) -> SessionResponse:
+    return SessionResponse(
+        id=session.id,
+        created_at=session.created_at,
+        channel=_session_channel(session.channel),
+        metadata=session.metadata,
+    )
+
+
+def _session_channel(channel: ChannelRef) -> SessionChannel:
+    return SessionChannel(
+        name=channel.name,
+        account_id=channel.account_id,
     )
 
 

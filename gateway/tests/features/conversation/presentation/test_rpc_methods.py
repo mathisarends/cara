@@ -17,6 +17,7 @@ from gateway.features.conversation.infrastructure.persistence import (
 )
 from gateway.features.conversation.presentation.rpc import (
     CreateSessionParams,
+    OpenSessionParams,
     SessionParams,
     StartTurnParams,
 )
@@ -24,8 +25,11 @@ from gateway.features.conversation.presentation.rpc_methods import (
     ConversationRpcMethods,
 )
 from gateway.features.conversation.presentation.schemas import (
+    SessionChannel,
     SessionSnapshotResponse,
 )
+
+_CHANNEL = SessionChannel(name="voice", account_id="local")
 
 
 class _NullAgentRunner(AgentRunner):
@@ -87,14 +91,64 @@ async def test_create_session_persists_metadata(
     methods: ConversationRpcMethods,
     session_repository: SQLSessionRepository,
 ) -> None:
-    response = await methods.create_session(CreateSessionParams(metadata={"c": "t"}))
+    response = await methods.create_session(
+        CreateSessionParams(channel=_CHANNEL, metadata={"c": "t"})
+    )
 
+    assert response.channel == _CHANNEL
     assert response.metadata == {"c": "t"}
     assert await session_repository.find_by_id(response.id) is not None
 
 
+async def test_create_session_always_creates_a_fresh_session(
+    methods: ConversationRpcMethods,
+) -> None:
+    first = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+    second = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+
+    assert second.id != first.id
+
+
+async def test_open_session_reuses_the_latest_session_for_the_channel(
+    methods: ConversationRpcMethods,
+) -> None:
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+
+    opened = await methods.open_session(OpenSessionParams(channel=_CHANNEL))
+
+    assert opened.id == created.id
+
+
+async def test_concurrent_open_session_calls_resolve_to_one_session(
+    methods: ConversationRpcMethods,
+) -> None:
+    first, second = await asyncio.gather(
+        methods.open_session(OpenSessionParams(channel=_CHANNEL)),
+        methods.open_session(OpenSessionParams(channel=_CHANNEL)),
+    )
+
+    assert second.id == first.id
+
+
+async def test_open_session_does_not_cross_channel_boundaries(
+    methods: ConversationRpcMethods,
+) -> None:
+    first = await methods.open_session(OpenSessionParams(channel=_CHANNEL))
+
+    second = await methods.open_session(
+        OpenSessionParams(
+            channel=SessionChannel(
+                name="voice",
+                account_id="someone-else",
+            )
+        )
+    )
+
+    assert second.id != first.id
+
+
 async def test_get_session_returns_a_snapshot(methods: ConversationRpcMethods) -> None:
-    created = await methods.create_session(CreateSessionParams())
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
 
     snapshot = await methods.get_session(SessionParams(session_id=created.id))
 
@@ -113,7 +167,7 @@ async def test_subscribe_session_registers_the_connection_with_the_broker(
     methods: ConversationRpcMethods,
     broker: InMemoryEventBroker,
 ) -> None:
-    created = await methods.create_session(CreateSessionParams())
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
     receiver = broker.connect("client-1")
 
     result = await methods.subscribe_session(SessionParams(session_id=created.id))
@@ -141,7 +195,7 @@ async def test_start_turn_runs_the_agent_and_returns_the_session_id(
     broker: InMemoryEventBroker,
 ) -> None:
     receiver = broker.connect("client-1")
-    created = await methods.create_session(CreateSessionParams())
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
     await methods.subscribe_session(SessionParams(session_id=created.id))
 
     result = await methods.start_turn(
@@ -160,7 +214,7 @@ async def test_cancel_turn_stops_an_active_turn(
     service = ConversationService(session_repository, broker, _HangingAgentRunner())
     methods = ConversationRpcMethods(service, broker, "client-1")
     receiver = broker.connect("client-1")
-    created = await methods.create_session(CreateSessionParams())
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
     await methods.subscribe_session(SessionParams(session_id=created.id))
     await methods.start_turn(StartTurnParams(session_id=created.id, message="hello"))
 

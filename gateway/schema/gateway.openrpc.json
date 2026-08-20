@@ -18,6 +18,13 @@
       "paramStructure": "by-name",
       "params": [
         {
+          "name": "channel",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/SessionChannel"
+          }
+        },
+        {
           "name": "metadata",
           "required": false,
           "schema": {
@@ -38,6 +45,51 @@
       },
       "x-cara-params-schema": {
         "$ref": "#/components/schemas/CreateSessionParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "session.open",
+      "summary": "Open the current session for a channel or create it.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "channel",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/SessionChannel"
+          }
+        },
+        {
+          "name": "metadata",
+          "required": false,
+          "schema": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/SessionResponse"
+        }
+      },
+      "x-cara-request-schema": {
+        "$ref": "#/components/schemas/OpenSessionRequest"
+      },
+      "x-cara-params-schema": {
+        "$ref": "#/components/schemas/OpenSessionParams"
       },
       "errors": [
         {
@@ -405,12 +457,18 @@
       "CreateSessionParams": {
         "additionalProperties": false,
         "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/SessionChannel"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           }
         },
+        "required": [
+          "channel"
+        ],
         "title": "CreateSessionParams",
         "type": "object"
       },
@@ -434,6 +492,24 @@
             "$ref": "#/components/schemas/ToolCallItem"
           }
         ]
+      },
+      "OpenSessionParams": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/SessionChannel"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "OpenSessionParams",
+        "type": "object"
       },
       "RpcErrorCode": {
         "enum": [
@@ -534,6 +610,34 @@
         "title": "RpcSuccess",
         "type": "object"
       },
+      "SessionChannel": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Account Id"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SessionChannel",
+        "type": "object"
+      },
       "SessionEvent": {
         "discriminator": {
           "mapping": {
@@ -603,6 +707,9 @@
             "title": "Created At",
             "type": "string"
           },
+          "channel": {
+            "$ref": "#/components/schemas/SessionChannel"
+          },
           "metadata": {
             "additionalProperties": true,
             "title": "Metadata",
@@ -611,7 +718,8 @@
         },
         "required": [
           "id",
-          "created_at"
+          "created_at",
+          "channel"
         ],
         "title": "SessionResponse",
         "type": "object"
@@ -1153,7 +1261,45 @@
         },
         "required": [
           "jsonrpc",
-          "method"
+          "method",
+          "params"
+        ]
+      },
+      "OpenSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OpenSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "session.open",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/OpenSessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
         ]
       },
       "GetSessionRequest": {

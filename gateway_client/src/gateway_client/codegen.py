@@ -16,6 +16,20 @@ def _ref_name(schema: dict[str, Any]) -> str:
     return schema["$ref"].rsplit("/", 1)[-1]
 
 
+def _referenced_models(value: Any) -> set[str]:
+    if isinstance(value, dict):
+        names = {_ref_name(value)} if "$ref" in value else set()
+        for nested in value.values():
+            names.update(_referenced_models(nested))
+        return names
+    if isinstance(value, list):
+        names: set[str] = set()
+        for nested in value:
+            names.update(_referenced_models(nested))
+        return names
+    return set()
+
+
 def _literal(value: Any) -> str:
     if isinstance(value, str):
         return json.dumps(value)
@@ -277,6 +291,12 @@ def render_namespace(namespace: str, methods: list[dict[str, Any]]) -> str:
             "RpcMethod",
             *(_result_name(method) for method in methods),
             *(_params_name(method) for method in methods),
+            *(
+                model_name
+                for method in methods
+                for parameter in method["params"]
+                for model_name in _referenced_models(parameter["schema"])
+            ),
         }
     )
     if len(model_names) == 1:
