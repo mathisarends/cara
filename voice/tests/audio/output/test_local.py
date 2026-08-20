@@ -40,7 +40,7 @@ def test_local_output_streams_volume_adjusted_pcm_and_closes() -> None:
         backend = _PyAudio()
         monkeypatch.setattr(session_module.pyaudio, "PyAudio", lambda: backend)
         output = LocalAudioOutput(trailing_silence_seconds=0)
-        await output.set_volume(0.5)
+        await output.set_volume(50)
         await output.start(sample_rate=16_000, channels=1)
         await output.play_chunk(struct.pack("<2h", 100, -100))
         await output.stop()

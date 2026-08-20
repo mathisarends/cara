@@ -6,6 +6,7 @@ from .ports import AudioInput, AudioOutput, AudioPlayback
 from .request_player import EventAudioPlayer
 from .session import PortAudioSession
 from .user_audio import UserAudioProducer
+from .volume import VolumeControl
 
 __all__ = [
     "AudioBridge",
@@ -21,4 +22,5 @@ __all__ = [
     "EventAudioPlayer",
     "PortAudioSession",
     "UserAudioProducer",
+    "VolumeControl",
 ]

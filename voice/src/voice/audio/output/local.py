@@ -7,31 +7,16 @@ import pyaudio
 
 from voice.audio.ports import AudioOutput
 from voice.audio.session import PortAudioSession
+from voice.audio.volume import VolumeControl, clamp_volume
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TRAILING_SILENCE_SECONDS = 0.2
-_DEFAULT_VOLUME = 1.0
-_MIN_VOLUME = 0.0
-_MAX_VOLUME = 1.0
+_FULL_VOLUME = 100
 _BYTES_PER_SAMPLE = 2
 
 
-def _apply_volume(chunk: bytes, volume: float) -> bytes:
-    if volume >= 1.0:
-        return chunk
-    samples = array.array("h")
-    samples.frombytes(chunk)
-    if sys.byteorder == "big":
-        samples.byteswap()
-    for index, sample in enumerate(samples):
-        samples[index] = max(-32768, min(32767, round(sample * volume)))
-    if sys.byteorder == "big":
-        samples.byteswap()
-    return samples.tobytes()
-
-
-class LocalAudioOutput(AudioOutput):
+class LocalAudioOutput(AudioOutput, VolumeControl):
     """Streams raw PCM chunks through a local PortAudio output."""
 
     def __init__(
@@ -48,7 +33,7 @@ class LocalAudioOutput(AudioOutput):
         self._stream: pyaudio.Stream | None = None
         self._sample_rate: int | None = None
         self._channels: int | None = None
-        self._volume = _DEFAULT_VOLUME
+        self._volume = _FULL_VOLUME
         self._writing = False
 
     @property
@@ -103,11 +88,11 @@ class LocalAudioOutput(AudioOutput):
     async def clear_buffer(self) -> None:
         self._writing = False
 
-    async def get_volume(self) -> float:
+    async def get_volume(self) -> int:
         return self._volume
 
-    async def set_volume(self, volume: float) -> None:
-        self._volume = max(_MIN_VOLUME, min(_MAX_VOLUME, volume))
+    async def set_volume(self, volume: int) -> None:
+        self._volume = clamp_volume(volume)
 
     def _close_stream(self) -> None:
         stream, self._stream = self._stream, None
@@ -115,3 +100,18 @@ class LocalAudioOutput(AudioOutput):
             return
         stream.stop_stream()
         stream.close()
+
+
+def _apply_volume(chunk: bytes, volume: int) -> bytes:
+    if volume >= _FULL_VOLUME:
+        return chunk
+    gain = volume / _FULL_VOLUME
+    samples = array.array("h")
+    samples.frombytes(chunk)
+    if sys.byteorder == "big":
+        samples.byteswap()
+    for index, sample in enumerate(samples):
+        samples[index] = max(-32768, min(32767, round(sample * gain)))
+    if sys.byteorder == "big":
+        samples.byteswap()
+    return samples.tobytes()

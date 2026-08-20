@@ -16,6 +16,7 @@ from sonosify import (
 from sonosify import SonosController as SonosifyController
 
 from voice.audio.ports import AudioOutput
+from voice.audio.volume import VolumeControl
 from voice.sonos import SonosSettings
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ _MIN_CLIP_DURATION_SECONDS = 1.5
 _MAX_CLIP_VOLUME = 100
 
 
-class SonosOutput(AudioOutput):
+class SonosOutput(AudioOutput, VolumeControl):
     """Buffers PCM chunks and plays each completed response as a Sonos clip."""
 
     def __init__(
@@ -141,6 +142,14 @@ class SonosOutput(AudioOutput):
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
+
+    async def get_volume(self) -> int:
+        client = await self._resolve_client()
+        return await client.get_volume()
+
+    async def set_volume(self, volume: int) -> None:
+        client = await self._resolve_client()
+        await client.set_volume(volume)
 
     async def _cancel_clip(self, clip: HostedAudioClip) -> None:
         try:
