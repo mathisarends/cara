@@ -16,8 +16,7 @@ the assistant felt, not just heard. See [Architecture](#architecture) below and 
 This is a learning project built to understand, hands-on, how an agent-gateway architecture like
 [OpenClaw's](https://github.com/openclaw/openclaw) actually works — several concepts here (session
 keys, database-first sessions, the gateway/plugin split) are deliberately adapted from it rather
-than invented from scratch. Longer term, adapters to real open-cloud backends (e.g. Hermes) are
-planned; today everything runs locally against OpenAI.
+than invented from scratch.
 
 ## Table of contents
 
@@ -79,7 +78,7 @@ session-per-channel reuse (`session.open`) for free from the gateway.
 
 All nine packages are members of one `uv` workspace (`pyproject.toml`); the graph below is their
 actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
-relationship that is *not* a package dependency: `gateway` never imports `agent` — it only
+relationship that is _not_ a package dependency: `gateway` never imports `agent` — it only
 discovers whichever plugin `gateway.toml` names, at startup, through the `cara.agent_plugins`
 entry-point group.
 
@@ -104,17 +103,17 @@ flowchart TD
 The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`, `llm`, `retrieval`,
 `scheduler`) have zero intra-workspace dependencies — each is usable and testable standalone.
 
-| Package | What it is |
-| --- | --- |
-| [`gateway`](gateway#readme) | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
-| [`agent`](agent#readme) | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
-| [`agent_plugin_api`](agent_plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin. |
-| [`gateway_client`](gateway_client#readme) | Generated, fully typed Python client for the gateway's JSON-RPC API. |
-| [`voice`](voice#readme) | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support. |
-| [`cli`](cli#readme) | Interactive terminal client (`cara-chat`) for the gateway. |
-| [`llm`](llm#readme) | Cara's Codex/OpenAI Responses model configuration, used by `agent`. |
-| [`retrieval`](retrieval#readme) | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core. |
-| [`scheduler`](scheduler#readme) | A small in-memory/SQLite async scheduler, independent of agent runtimes. |
+| Package                                       | What it is                                                                                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [`gateway`](gateway#readme)                   | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
+| [`agent`](agent#readme)                       | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
+| [`agent_plugin_api`](agent_plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                  |
+| [`gateway_client`](gateway_client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
+| [`voice`](voice#readme)                       | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
+| [`cli`](cli#readme)                           | Interactive terminal client (`cara-chat`) for the gateway.                                     |
+| [`llm`](llm#readme)                           | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
+| [`retrieval`](retrieval#readme)               | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
+| [`scheduler`](scheduler#readme)               | A small in-memory/SQLite async scheduler, independent of agent runtimes.                       |
 
 ## Run
 
@@ -192,9 +191,7 @@ Docker binds are configured separately; each entry ends in `ro` or `rw`:
         // Disabled by default. Enable only for tools that need external APIs.
         networkAccess: false,
         docker: {
-          binds: [
-            "/home/mathis/music:/music:ro",
-          ],
+          binds: ["/home/mathis/music:/music:ro"],
         },
       },
     },
