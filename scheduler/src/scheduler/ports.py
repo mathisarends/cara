@@ -4,6 +4,12 @@ from typing import Protocol
 from scheduler.models import ScheduledJob, ScheduledRun
 
 
+class Codec[ValueT](Protocol):
+    def encode(self, value: ValueT) -> str: ...
+
+    def decode(self, value: str) -> ValueT: ...
+
+
 class JobRunner[PayloadT](Protocol):
     def __call__(self, run: ScheduledRun[PayloadT]) -> Awaitable[None]: ...
 
