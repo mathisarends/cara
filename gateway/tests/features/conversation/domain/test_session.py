@@ -74,3 +74,48 @@ def test_session_rejects_tool_results_without_pending_sequence() -> None:
 
     with pytest.raises(NoPendingToolCallSequenceError):
         session.resolve_tool_call("call-1", "result")
+
+
+def test_session_can_fail_a_pending_tool_call_directly() -> None:
+    session = Session.create()
+    session.add_user_message("Search for this")
+    call = session.add_tool_call("call-1", "search", {"query": "Cara"})
+
+    failed = session.fail_tool_call("call-1", "timeout")
+
+    assert failed is call
+    assert failed.state is ToolCallState.FAILED
+    assert failed.error == "timeout"
+
+
+def test_pending_tool_call_sequence_exposes_the_open_sequence() -> None:
+    session = Session.create()
+
+    assert session.pending_tool_call_sequence() is None
+
+    session.add_user_message("Search for this")
+    session.add_tool_call("call-1", "search", {"query": "Cara"})
+
+    sequence = session.pending_tool_call_sequence()
+    assert isinstance(sequence, ToolCallSequence)
+    assert sequence.calls[0].call_id == "call-1"
+
+
+def test_failing_pending_tool_calls_resolves_every_open_call() -> None:
+    session = Session.create()
+    session.add_user_message("Search for this")
+    session.add_tool_call("call-1", "search", {"query": "Cara"})
+    session.add_tool_call("call-2", "weather", {"city": "Hamburg"})
+    session.resolve_tool_call("call-1", {"result": "ok"})
+
+    failed = session.fail_pending_tool_calls("cancelled")
+
+    assert [call.call_id for call in failed] == ["call-2"]
+    assert failed[0].state is ToolCallState.FAILED
+    assert failed[0].error == "cancelled"
+
+
+def test_failing_pending_tool_calls_without_a_pending_sequence_is_a_noop() -> None:
+    session = Session.create()
+
+    assert session.fail_pending_tool_calls("cancelled") == ()
