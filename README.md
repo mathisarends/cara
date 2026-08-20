@@ -132,9 +132,9 @@ and symlinks that resolve outside the workspace.
 The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: by default, the
 container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
 memory, process, output, and execution-time limits. The reusable tool factory defaults to a dedicated
-`LocalWorkspace` rooted at `~/.cara/workspace`. Skills live below that workspace at `skills/`; the
-repository only exposes the editable agent runtime at `/src/agent`. The project `.env`, `.git`, and the
-rest of the repository are not exposed. Other callers can
+`LocalWorkspace` rooted at `~/.cara/workspace`. Skills live below that workspace at `skills/`. No
+repository directory is exposed to the sandbox; in particular, `.env`, `.git`, and the source tree stay
+outside it. Other callers can
 provide their own `Workspace` or `Sandbox`, or opt into additional sandbox mounts, environment variables,
 and network access through `build_tools()`.
 

@@ -22,9 +22,7 @@ def test_load_default_sandbox_definition() -> None:
     assert definition.limits.memory_bytes == 256 * 1024 * 1024
     assert definition.limits.pids == 64
     assert definition.limits.cpus == 1
-    assert tuple(mount.target for mount in definition.mounts.paths) == (
-        PurePosixPath("/src/agent"),
-    )
+    assert definition.mounts.paths == ()
     assert definition.reserved_targets == {PurePosixPath("/workspace")}
 
 
