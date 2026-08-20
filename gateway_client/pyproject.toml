@@ -26,3 +26,11 @@ packages = ["src/gateway_client"]
 
 [tool.ruff]
 extend = "../pyproject.toml"
+
+[tool.coverage.run]
+omit = [
+    "*/gateway_client/client.py",
+    "*/gateway_client/models.py",
+    "*/gateway_client/namespaces/*",
+    "*/gateway_client/tests/*",
+]
