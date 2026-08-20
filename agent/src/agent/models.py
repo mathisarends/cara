@@ -21,6 +21,10 @@ class ModelSwitch:
         return self._models[self._current]
 
     @property
+    def current_name(self) -> str:
+        return self._current
+
+    @property
     def names(self) -> tuple[str, ...]:
         return tuple(self._models)
 

@@ -196,7 +196,7 @@ under the entry point name `cara` and selected via `gateway.toml`:
 plugin = "cara"
 
 [agent.config]
-model = "gpt-5.3-codex-spark"
+models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
 reasoning_effort = "low"
 sandbox_file = "sandbox.yml"
 ```
@@ -253,17 +253,33 @@ that package's README for its own store/runner model.
 ## Configuration
 
 `GatewaySettings` (`pydantic-settings`) reads, in priority order: init
-arguments, environment variables (`CARA_`-prefixed), `.env`, then
-`gateway.toml` — matching the repo root's `gateway.toml`:
+arguments, environment variables (`CARA_`-prefixed), `.env`, `gateway.toml`,
+then `gateway.yaml` or `gateway.yml` — matching the repo root's
+`gateway.toml`:
 
 ```toml
 [agent]
 plugin = "cara"
 
 [agent.config]
-model = "gpt-5.3-codex-spark"
+models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
 reasoning_effort = "low"
 sandbox_file = "sandbox.yml"
+```
+
+The first configured model drives the conversation initially. If more than one
+model is configured, the agent receives tools for listing and switching models
+at runtime. The equivalent YAML configuration is:
+
+```yaml
+agent:
+  plugin: cara
+  config:
+    models:
+      - gpt-5.3-codex-spark
+      - gpt-5.6-sol
+    reasoning_effort: low
+    sandbox_file: sandbox.yml
 ```
 
 Database connectivity defaults to a local SQLite file

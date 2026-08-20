@@ -222,13 +222,13 @@ cara = "agent.plugin:create_plugin"
 speaking only the [`agent_plugin_api`](../agent_plugin_api) contract:
 
 - `_CaraAgentPlugin.create(config, context)` validates `config` against a
-  frozen, `extra="forbid"` `_CaraAgentSettings` (`model`, `reasoning_effort`,
+  frozen, `extra="forbid"` `_CaraAgentSettings` (`models`, `reasoning_effort`,
   `workspace_root`, `sandbox_file`, `system_prompt`) — an unknown config key
   from `gateway.toml` fails fast at startup.
 - `_CaraAgentRunner.run(request)` loads prior turns via
   `AgentSessionReader.context_for_turn(...)`, replays them into `llmify`
   messages, builds a fresh `Agent` (Codex `ChatModel` via
-  [`llm`](../llm), `ModelSwitch.single`, `build_tools(...)`, and
+  [`llm`](../llm), `ModelSwitch`, `build_tools(...)`, and
   `Skills.from_dir(workspace/skills)` if present), and maps every internal
   `AgentEvent` to its `agent_plugin_api` counterpart
   (`TextDelta`→`ChatDelta`, `TurnCompleted`→`ChatCompleted`,

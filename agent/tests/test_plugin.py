@@ -8,6 +8,7 @@ import pytest
 from llmify import ChatModel, Function, Message, StreamEnd, StreamTextDelta, ToolCall
 from pydantic import ValidationError
 
+from agent.models import ModelSwitch
 from agent.plugin import create_plugin
 from agent.tools import AgentTools
 from agent_plugin_api import (
@@ -101,13 +102,19 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
 ) -> None:
     model = _Model()
     tools = _Tools()
+    model_switches: list[ModelSwitch] = []
+
+    def build_test_tools(**kwargs: Any) -> AgentTools:
+        model_switches.append(cast(ModelSwitch, kwargs["injected_dependencies"][0]))
+        return cast(AgentTools, tools)
+
     monkeypatch.setattr(
         "agent.plugin.create_codex_model",
         lambda *args, **kwargs: cast(ChatModel, model),
     )
     monkeypatch.setattr(
         "agent.plugin.build_tools",
-        lambda **kwargs: cast(AgentTools, tools),
+        build_test_tools,
     )
     context = AgentContext(
         (
@@ -138,7 +145,10 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     )
     sessions = _SessionReader(context)
     runner = create_plugin().create(
-        {"workspace_root": str(tmp_path)},
+        {
+            "models": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
+            "workspace_root": str(tmp_path),
+        },
         AgentPluginContext(sessions),
     )
     session_id = uuid4()
@@ -158,6 +168,11 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     events = asyncio.run(run())
 
     assert sessions.requests == [(session_id, input_id)]
+    assert model_switches[0].names == (
+        "gpt-5.3-codex-spark",
+        "gpt-5.6-sol",
+    )
+    assert model_switches[0].current_name == "gpt-5.3-codex-spark"
     assert [message.content for message in model.requests[0]] == [
         "",
         "Vorherige Frage",
@@ -187,6 +202,20 @@ def test_cara_plugin_rejects_unknown_configuration() -> None:
     with pytest.raises(ValidationError, match="unknown"):
         create_plugin().create(
             {"unknown": True},
+            AgentPluginContext(sessions),
+        )
+
+
+@pytest.mark.parametrize(
+    "models",
+    [[], ["gpt-5.6-sol", "gpt-5.6-sol"]],
+)
+def test_cara_plugin_rejects_invalid_model_lists(models: list[str]) -> None:
+    sessions = _SessionReader(AgentContext(()))
+
+    with pytest.raises(ValidationError, match="models"):
+        create_plugin().create(
+            {"models": models},
             AgentPluginContext(sessions),
         )
 

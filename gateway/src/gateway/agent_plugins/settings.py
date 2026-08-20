@@ -6,6 +6,7 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
     TomlConfigSettingsSource,
+    YamlConfigSettingsSource,
 )
 
 
@@ -25,6 +26,7 @@ class GatewaySettings(BaseSettings):
         env_nested_max_split=1,
         extra="ignore",
         toml_file="gateway.toml",
+        yaml_file=("gateway.yaml", "gateway.yml"),
     )
 
     agent: AgentPluginSettings = Field(default_factory=AgentPluginSettings)
@@ -43,5 +45,6 @@ class GatewaySettings(BaseSettings):
             env_settings,
             dotenv_settings,
             TomlConfigSettingsSource(settings_cls),
+            YamlConfigSettingsSource(settings_cls),
             file_secret_settings,
         )

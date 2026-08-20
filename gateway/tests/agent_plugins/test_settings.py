@@ -40,6 +40,32 @@ def test_environment_overrides_the_toml_agent_configuration(
     assert settings.agent.config == {"answer": 42}
 
 
+def test_settings_load_the_agent_section_from_yaml(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "gateway.yaml").write_text(
+        """agent:
+  plugin: cara
+  config:
+    models:
+      - gpt-5.3-codex-spark
+      - gpt-5.6-sol
+    reasoning_effort: low
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    settings = GatewaySettings(_env_file=None)
+
+    assert settings.agent.plugin == "cara"
+    assert settings.agent.config == {
+        "models": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
+        "reasoning_effort": "low",
+    }
+
+
 def test_unknown_agent_configuration_fields_are_rejected(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

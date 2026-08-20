@@ -251,7 +251,7 @@ geloggt.
 plugin = "cara"
 
 [agent.config]
-model = "gpt-5.3-codex-spark"
+models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
 workspace_root = "~/.cara/workspace"
 sandbox_file = "sandbox.yml"
 ```
@@ -260,7 +260,7 @@ Alternativ bzw. für Deployment:
 
 ```text
 CARA_AGENT_PLUGIN=cara
-CARA_AGENT_CONFIG={"model":"gpt-5.3-codex-spark"}
+CARA_AGENT_CONFIG={"models":["gpt-5.3-codex-spark","gpt-5.6-sol"]}
 OPENAI_API_KEY=...
 ```
 

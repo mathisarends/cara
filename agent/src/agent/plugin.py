@@ -14,7 +14,7 @@ from llmify import (
     ToolResultMessage,
     UserMessage,
 )
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from agent.agent import Agent
 from agent.events import TextDelta, ToolCompleted, ToolStarted, TurnCompleted
@@ -46,11 +46,24 @@ from llm import CodexModel, CodexReasoningEffort, create_codex_model
 class _CaraAgentSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    model: CodexModel = CodexModel.SPARK
+    models: tuple[CodexModel, ...] = Field(
+        default=(CodexModel.SPARK,),
+        min_length=1,
+    )
     reasoning_effort: CodexReasoningEffort = CodexReasoningEffort.LOW
     workspace_root: Path | None = None
     sandbox_file: Path | None = None
     system_prompt: str | None = None
+
+    @field_validator("models")
+    @classmethod
+    def _models_must_be_unique(
+        cls,
+        models: tuple[CodexModel, ...],
+    ) -> tuple[CodexModel, ...]:
+        if len(set(models)) != len(models):
+            raise ValueError("models must not contain duplicates")
+        return models
 
 
 type _AgentFactory = Callable[[AgentContext], Agent]
@@ -96,11 +109,15 @@ class _ConfiguredAgentFactory:
         self._skills = Skills.from_dir(skills_root) if skills_root.is_dir() else None
 
     def __call__(self, context: AgentContext) -> Agent:
-        model = create_codex_model(
-            self._settings.model,
-            reasoning_effort=self._settings.reasoning_effort,
-        )
-        models = ModelSwitch.single(model, name=self._settings.model.value)
+        configured_models = {
+            model.value: create_codex_model(
+                model,
+                reasoning_effort=self._settings.reasoning_effort,
+            )
+            for model in self._settings.models
+        }
+        default_model = self._settings.models[0].value
+        models = ModelSwitch(configured_models, default=default_model)
         tools = build_tools(
             injected_dependencies=(models,),
             skills=self._skills,
