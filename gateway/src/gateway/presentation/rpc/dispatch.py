@@ -3,12 +3,9 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from gateway.presentation.protocol import (
-    GatewayProtocol,
-    RpcMethodDefinition,
-    RpcRequestEnvelope,
-)
-from gateway.presentation.rpc_decorators import RpcHandler, decorated_methods
+from gateway.presentation.rpc.decorators import RpcHandler, decorated_methods
+from gateway.presentation.rpc.envelopes import RpcRequestEnvelope
+from gateway.presentation.rpc.protocol import GatewayProtocol, RpcMethodDefinition
 
 type BoundRpcMethod = Callable[[BaseModel], Awaitable[BaseModel | None]]
 

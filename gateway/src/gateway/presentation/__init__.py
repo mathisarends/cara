@@ -1,4 +1,4 @@
-from . import rpc_decorators as rpc
+from . import rpc
 from .feature import Feature
 from .request_logging import RequestLoggingMiddleware
 

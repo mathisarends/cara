@@ -5,34 +5,20 @@ from types import UnionType
 from typing import (
     Annotated,
     Any,
-    Literal,
     TypeAliasType,
     get_args,
     get_origin,
     get_type_hints,
 )
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
-from gateway.presentation.rpc_decorators import (
+from gateway.presentation.rpc.decorators import (
     DecoratedRpcMethod,
     RpcHandler,
     decorated_methods,
     event_metadata,
 )
-
-
-class RpcRequestEnvelope(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    jsonrpc: Literal["2.0"]
-    id: str | int | None = None
-    method: str
-    params: dict[str, Any] = Field(default_factory=dict)
-
-    @property
-    def expects_response(self) -> bool:
-        return "id" in self.model_fields_set
 
 
 @dataclass(frozen=True, slots=True)

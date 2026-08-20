@@ -7,9 +7,9 @@ from gateway.features.conversation.application import ConversationService, Event
 from gateway.features.conversation.presentation.rpc_methods import (
     ConversationRpcMethods,
 )
-from gateway.presentation.gateway_connection import GatewayConnection
-from gateway.presentation.protocol import GatewayProtocol
-from gateway.presentation.rpc_methods import GatewayRpcMethods
+from gateway.presentation.rpc.dispatch import GatewayRpcMethods
+from gateway.presentation.rpc.protocol import GatewayProtocol
+from gateway.presentation.websocket.connection import GatewayConnection
 
 
 class GatewayProvider(Provider):

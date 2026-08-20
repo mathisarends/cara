@@ -19,7 +19,7 @@ dependencies = [
 
 [project.scripts]
 cara-gateway = "gateway.main:main"
-cara-gateway-schema = "gateway.presentation.schema_export:main"
+cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
 gateway-migrate = "gateway.infrastructure.database.migrations:main"
 
 [build-system]

@@ -10,8 +10,8 @@ from gateway.features.conversation.presentation.protocol import (
 from gateway.features.conversation.presentation.rpc import CreateSessionParams
 from gateway.features.conversation.presentation.schemas import SessionResponse
 from gateway.presentation import rpc
-from gateway.presentation.protocol import GatewayProtocol, rpc_feature
-from gateway.presentation.schema_export import (
+from gateway.presentation.rpc.protocol import GatewayProtocol, rpc_feature
+from gateway.presentation.rpc.schema_export import (
     render_gateway_schema,
     render_openrpc_schema,
     write_gateway_schemas,

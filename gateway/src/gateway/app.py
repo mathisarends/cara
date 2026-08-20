@@ -5,7 +5,7 @@ from gateway.container import create_container
 from gateway.features import FEATURES
 from gateway.lifespan import lifespan
 from gateway.presentation import RequestLoggingMiddleware
-from gateway.presentation.gateway_router import gateway_router
+from gateway.presentation.websocket import gateway_router
 
 
 def create_app() -> FastAPI:

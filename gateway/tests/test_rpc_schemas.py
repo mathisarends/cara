@@ -11,7 +11,7 @@ from gateway.features.conversation.presentation.protocol import (
     CONVERSATION_PROTOCOL,
 )
 from gateway.features.conversation.presentation.rpc import StartTurnParams
-from gateway.presentation.protocol import RpcRequestEnvelope
+from gateway.presentation.rpc.envelopes import RpcRequestEnvelope
 
 
 def test_request_params_are_selected_by_decorated_method() -> None:

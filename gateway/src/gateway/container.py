@@ -1,12 +1,11 @@
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
 
-from gateway.features import FEATURES
+from gateway.features import FEATURES, gateway_protocol
 from gateway.features.conversation.application import AgentRunner
 from gateway.features.conversation.infrastructure import RuntimeAgentRunner
 from gateway.infrastructure import DatabaseProvider, SchedulerProvider
-from gateway.presentation.gateway_di import GatewayProvider
-from gateway.presentation.protocol import GatewayProtocol
+from gateway.presentation.websocket import GatewayProvider
 
 
 class _AgentProvider(Provider):
@@ -18,9 +17,6 @@ class _AgentProvider(Provider):
 
 
 def create_container() -> AsyncContainer:
-    protocol = GatewayProtocol(
-        feature.protocol for feature in FEATURES if feature.protocol is not None
-    )
     feature_providers = (
         provider() for feature in FEATURES for provider in feature.providers
     )
@@ -28,7 +24,7 @@ def create_container() -> AsyncContainer:
         _AgentProvider(),
         DatabaseProvider(),
         SchedulerProvider(),
-        GatewayProvider(protocol),
+        GatewayProvider(gateway_protocol()),
         *feature_providers,
         FastapiProvider(),
     )

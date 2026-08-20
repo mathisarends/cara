@@ -7,8 +7,8 @@ from gateway.features.conversation.application import EventBroker
 from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
 from gateway.features.conversation.presentation.mapping import session_event
 from gateway.features.conversation.presentation.rpc import RpcNotificationMethod
-from gateway.presentation.protocol import RpcMethodNotFoundError
-from gateway.presentation.rpc_envelopes import (
+from gateway.presentation.rpc.dispatch import GatewayRpcMethods, RpcInvalidParamsError
+from gateway.presentation.rpc.envelopes import (
     RpcErrorCode,
     RpcErrorData,
     RpcFailure,
@@ -16,7 +16,7 @@ from gateway.presentation.rpc_envelopes import (
     RpcSchema,
     RpcSuccess,
 )
-from gateway.presentation.rpc_methods import GatewayRpcMethods, RpcInvalidParamsError
+from gateway.presentation.rpc.protocol import RpcMethodNotFoundError
 
 
 class _GatewayProtocolError(Exception):

@@ -6,28 +6,18 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
-from gateway.features import FEATURES
-from gateway.presentation.protocol import (
+from gateway.features import gateway_protocol
+from gateway.presentation.rpc.envelopes import RpcErrorCode, RpcFailure, RpcSuccess
+from gateway.presentation.rpc.protocol import (
     GatewayProtocol,
     RpcMethodDefinition,
     RpcNotificationDefinition,
 )
-from gateway.presentation.rpc_envelopes import (
-    RpcErrorCode,
-    RpcFailure,
-    RpcSuccess,
-)
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+_REPO_ROOT = Path(__file__).resolve().parents[5]
 _DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "schema"
 _JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 _OPENRPC_VERSION = "1.3.2"
-
-
-def gateway_protocol() -> GatewayProtocol:
-    return GatewayProtocol(
-        feature.protocol for feature in FEATURES if feature.protocol is not None
-    )
 
 
 def render_gateway_schema(protocol: GatewayProtocol) -> dict[str, Any]:

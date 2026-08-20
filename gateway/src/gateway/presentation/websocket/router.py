@@ -1,7 +1,7 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter
 
-from gateway.presentation.gateway_connection import GatewayConnection
+from gateway.presentation.websocket.connection import GatewayConnection
 
 gateway_router = APIRouter(tags=["gateway"])
 

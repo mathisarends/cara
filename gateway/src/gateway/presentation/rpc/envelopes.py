@@ -1,7 +1,7 @@
 from enum import IntEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RpcErrorCode(IntEnum):
@@ -16,6 +16,19 @@ class RpcErrorCode(IntEnum):
 
 class RpcSchema(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class RpcRequestEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    jsonrpc: Literal["2.0"]
+    id: str | int | None = None
+    method: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def expects_response(self) -> bool:
+        return "id" in self.model_fields_set
 
 
 class RpcErrorData(RpcSchema):

@@ -14,7 +14,7 @@ from gateway.features.conversation.presentation.schemas import (
     SessionSnapshotResponse,
 )
 from gateway.presentation import rpc
-from gateway.presentation.rpc_envelopes import RpcErrorCode
+from gateway.presentation.rpc import RpcErrorCode
 
 
 class ConversationRpcMethods(rpc.RpcHandler):
