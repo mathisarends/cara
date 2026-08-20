@@ -102,7 +102,7 @@ def register_tools(tools: Tools) -> None:
         if params.location:
             location = await weather_client.locate(params.location)
             if location is None:
-                return f"Kein Ort namens '{params.location}' gefunden."
+                return f"No place named '{params.location}' was found."
         else:
             location = await location_client.current()
         report = await weather_client.current(location)
@@ -231,10 +231,10 @@ def _render_volume(volume: int) -> str:
 def _render_weather_report(report: WeatherReport) -> str:
     parts = [f"**{round(report.temperature_c)} °C**"]
     if abs(report.temperature_c - report.apparent_temperature_c) >= 2:
-        parts.append(f"gefühlt {round(report.apparent_temperature_c)} °C")
+        parts.append(f"feels like {round(report.apparent_temperature_c)} °C")
     parts.append(report.description)
     parts.append(f"Wind {round(report.wind_speed_kmh)} km/h")
-    summary = f"## Wetter in {report.location_name}\n\n" + ", ".join(parts) + "."
+    summary = f"## Weather in {report.location_name}\n\n" + ", ".join(parts) + "."
 
     if not report.hourly:
         return summary
@@ -245,7 +245,7 @@ def _render_weather_report(report: WeatherReport) -> str:
         for hour in report.hourly
     )
     table = "\n".join(
-        ["| Uhrzeit | Wetter | Temp | Regen |", "| --- | --- | --- | --- |", *rows]
+        ["| Time | Weather | Temp | Rain |", "| --- | --- | --- | --- |", *rows]
     )
     return f"{summary}\n\n{table}"
 

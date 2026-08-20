@@ -59,7 +59,7 @@ def _tools(client: Weather, location_client: LocationLookup):
 def test_render_weather_report_drops_apparent_temperature_when_close() -> None:
     report = _report("Berlin").model_copy(update={"apparent_temperature_c": 20.0})
 
-    assert "gefühlt" not in _render_weather_report(report)
+    assert "feels like" not in _render_weather_report(report)
 
 
 def test_render_weather_report_includes_apparent_temperature_when_it_diverges() -> None:
@@ -68,7 +68,7 @@ def test_render_weather_report_includes_apparent_temperature_when_it_diverges() 
     )
 
     assert _render_weather_report(report) == (
-        "## Wetter in Berlin\n\n**24 °C**, gefühlt 22 °C, klar, Wind 5 km/h."
+        "## Weather in Berlin\n\n**24 °C**, feels like 22 °C, klar, Wind 5 km/h."
     )
 
 
@@ -92,7 +92,7 @@ def test_render_weather_report_appends_hourly_outlook() -> None:
     rendered = _render_weather_report(report)
 
     assert rendered.endswith(
-        "| Uhrzeit | Wetter | Temp | Regen |\n"
+        "| Time | Weather | Temp | Rain |\n"
         "| --- | --- | --- | --- |\n"
         "| 14:00 | teils bewölkt | 24 °C | 10% |\n"
         "| 15:00 | leichter Regen | 25 °C | 60% |"
@@ -151,5 +151,5 @@ def test_weather_fails_when_requested_location_is_not_found() -> None:
 
     result = asyncio.run(tools.execute("weather_report", {"location": "Nirgendwo"}))
 
-    assert result == "Kein Ort namens 'Nirgendwo' gefunden."
+    assert result == "No place named 'Nirgendwo' was found."
     assert client.current_calls == []
