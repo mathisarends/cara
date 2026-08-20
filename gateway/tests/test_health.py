@@ -1,20 +1,17 @@
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
 from sqlalchemy.exc import OperationalError
 
 from gateway.app import create_app
 from gateway.features.health.infrastructure import DatabaseReadinessCheck
-from gateway.infrastructure import DatabaseSettings
 
 
-def _create_test_app():
-    return create_app(
-        DatabaseSettings(database_url=SecretStr("sqlite+aiosqlite:///:memory:"))
-    )
+def _create_test_app(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    return create_app()
 
 
-def test_health_and_readiness_are_served() -> None:
-    with TestClient(_create_test_app()) as client:
+def test_health_and_readiness_are_served(monkeypatch) -> None:
+    with TestClient(_create_test_app(monkeypatch)) as client:
         health_response = client.get("/v1/health")
         readiness_response = client.get("/v1/readiness")
 
@@ -28,7 +25,7 @@ def test_readiness_is_unavailable_when_database_check_fails(monkeypatch) -> None
 
     monkeypatch.setattr(DatabaseReadinessCheck, "check", fail_database_check)
 
-    with TestClient(_create_test_app()) as client:
+    with TestClient(_create_test_app(monkeypatch)) as client:
         response = client.get("/v1/readiness")
 
     assert response.status_code == 503

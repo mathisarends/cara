@@ -8,12 +8,10 @@ from .models import (
     SessionUserMessageModel,
 )
 from .repository import Repository
-from .settings import DatabaseSettings
 
 __all__ = [
     "DatabaseProvider",
     "DatabaseEntity",
-    "DatabaseSettings",
     "Repository",
     "SessionAssistantMessageModel",
     "SessionModel",

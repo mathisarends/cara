@@ -3,12 +3,11 @@ from fastapi import FastAPI
 
 from gateway.container import create_container
 from gateway.features import FEATURES
-from gateway.infrastructure import DatabaseSettings
 from gateway.lifespan import lifespan
 from gateway.presentation import RequestLoggingMiddleware
 
 
-def create_app(settings: DatabaseSettings) -> FastAPI:
+def create_app() -> FastAPI:
     app = FastAPI(
         title="Cara Gateway API",
         summary="JSON-RPC conversation gateway for Cara clients.",
@@ -28,10 +27,10 @@ def create_app(settings: DatabaseSettings) -> FastAPI:
         feature.install(app)
 
     setup_dishka(
-        create_container(settings),
+        create_container(),
         app=app,
     )
     return app
 
 
-app = create_app(DatabaseSettings())
+app = create_app()

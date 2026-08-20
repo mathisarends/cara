@@ -15,13 +15,9 @@ from gateway.infrastructure.database.settings import DatabaseSettings
 class DatabaseProvider(Provider):
     scope = Scope.APP
 
-    def __init__(self, settings: DatabaseSettings) -> None:
-        self._settings = settings
-        super().__init__()
-
     @provide
     def settings(self) -> DatabaseSettings:
-        return self._settings
+        return DatabaseSettings()
 
     @provide
     async def engine(
