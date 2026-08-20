@@ -1,14 +1,17 @@
 # Cara
 
-Input-agnostic conversational agent with terminal and wake-word-driven voice sessions. A central
-gateway owns conversation state, history, and turn execution over one JSON-RPC WebSocket; terminal
-and voice are both just clients of it. Voice mode wraps a client around this local audio pipeline:
+Cara is an attempt at building a Jarvis-like presence: an agent you talk to naturally, with
+low-latency, interruptible voice conversations, that follows you across machines instead of living
+inside one chat window. A central gateway owns all conversation state over one JSON-RPC WebSocket;
+a wake-word-driven voice client and a terminal client are both just thin clients of it, so a
+conversation started by voice can be picked up from the terminal and back.
 
-1. listens for the wake word
-2. records one microphone utterance (the speech-to-text provider detects end of speech)
-3. streams the transcript to the gateway over JSON-RPC
-4. the gateway's agent plugin answers via the OpenAI Responses API, streaming the reply back
-5. synthesizes the answer as audio and plays it locally
+The voice pipeline puts particular emphasis on feeling immediate rather than following the classic
+"record until silence, then transcribe, then synthesize" pattern — speech-to-text and text-to-speech
+are both streamed, and barge-in plus acoustic echo cancellation let you interrupt Cara mid-sentence.
+Ambient side effects (currently Philips Hue lighting reacting to listening/processing/speaking) make
+the assistant felt, not just heard. See [Architecture](#architecture) below and the
+[`voice`](voice#readme) package for how that's actually built.
 
 This is a learning project built to understand, hands-on, how an agent-gateway architecture like
 [OpenClaw's](https://github.com/openclaw/openclaw) actually works — several concepts here (session
