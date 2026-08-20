@@ -7,12 +7,12 @@ from agenttoolkit.builtins import (
     BindMount,
     CommandDefaults,
     CommandLimits,
-    DockerSandbox,
     SandboxLimits,
     SandboxPolicy,
 )
 
 from agent.sandbox.config import SandboxDefinition
+from agent.sandbox.managed import ManagedSandbox
 
 
 def create_sandbox(
@@ -21,12 +21,12 @@ def create_sandbox(
     *,
     environment: Mapping[str, str] | None = None,
     mounts: Sequence[BindMount] = (),
-) -> DockerSandbox:
+) -> ManagedSandbox:
     _validate_mounts(definition, mounts)
     configured_mounts = _configured_mounts(definition)
     defaults = definition.defaults
     limits = definition.limits
-    return DockerSandbox(
+    return ManagedSandbox(
         definition.image,
         defaults=CommandDefaults(
             working_directory=working_directory,
