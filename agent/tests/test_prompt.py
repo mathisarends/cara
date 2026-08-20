@@ -2,11 +2,10 @@ from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
 from agenttoolkit import Skills
 
 from agent.prompt import LocalTimePrompt, SystemPrompt
-
-CONTEXT_ROOT = Path(__file__).parents[1] / "src" / "agent" / "prompt" / "context"
 
 
 def _composer(root: Path, **kwargs: object) -> SystemPrompt:
@@ -70,8 +69,13 @@ def test_local_time_precedes_available_skills_in_the_system_prompt(
     assert rendered.index("### Local Time") < rendered.index("<available_skills>")
 
 
-def test_system_prompt_is_assembled_from_the_context_markdown_files() -> None:
-    prompt = SystemPrompt(root=CONTEXT_ROOT).render()
+def test_system_prompt_is_assembled_from_the_context_markdown_files(
+    tmp_path: Path,
+) -> None:
+    for name in ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md", "MEMORY.md"):
+        (tmp_path / name).write_text(name, encoding="utf-8")
+
+    prompt = SystemPrompt(root=tmp_path).render()
 
     assert (
         prompt.index("### AGENTS.md")
@@ -81,8 +85,13 @@ def test_system_prompt_is_assembled_from_the_context_markdown_files() -> None:
     )
 
 
-def test_system_prompt_defaults_to_the_bundled_context_files() -> None:
-    assert SystemPrompt().render() == SystemPrompt(root=CONTEXT_ROOT).render()
+def test_system_prompt_defaults_to_the_user_workspace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "AGENTS.md").write_text("Workspace rules.", encoding="utf-8")
+    monkeypatch.setenv("CARA_WORKSPACE_ROOT", str(tmp_path))
+
+    assert SystemPrompt().render() == "### AGENTS.md\n\nWorkspace rules."
 
 
 def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
@@ -113,14 +122,14 @@ def test_memory_renders_files_in_order(tmp_path: Path) -> None:
 
 
 def test_memory_includes_only_todays_daily_note(tmp_path: Path) -> None:
-    daily = tmp_path / "daily"
-    daily.mkdir()
-    (daily / "2026-08-01.md").write_text("Gestern.", encoding="utf-8")
-    (daily / "2026-08-02.md").write_text("Heute.", encoding="utf-8")
+    memory = tmp_path / "memory"
+    memory.mkdir()
+    (memory / "2026-08-01.md").write_text("Gestern.", encoding="utf-8")
+    (memory / "2026-08-02.md").write_text("Heute.", encoding="utf-8")
 
     rendered = _composer(tmp_path, today=lambda: date(2026, 8, 2)).render()
 
-    assert rendered == "System\n\n### daily/2026-08-02.md\n\nHeute."
+    assert rendered == "System\n\n### memory/2026-08-02.md\n\nHeute."
 
 
 def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
@@ -129,5 +138,7 @@ def test_memory_skips_missing_and_empty_files(tmp_path: Path) -> None:
     assert _composer(tmp_path).render() == "System"
 
 
-def test_context_memory_is_loaded() -> None:
-    assert "### MEMORY.md" in SystemPrompt(root=CONTEXT_ROOT).render()
+def test_workspace_memory_is_loaded(tmp_path: Path) -> None:
+    (tmp_path / "MEMORY.md").write_text("Remember this.", encoding="utf-8")
+
+    assert "### MEMORY.md" in SystemPrompt(root=tmp_path).render()

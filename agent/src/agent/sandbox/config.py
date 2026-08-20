@@ -4,6 +4,8 @@ from typing import Self
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
+from agent.workspace import resolve_workspace_root
+
 
 class _ConfigModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -55,7 +57,7 @@ class SandboxDefinition(_ConfigModel):
     _root: Path = PrivateAttr(default_factory=Path.cwd)
 
     def resolve_workspace_root(self) -> Path:
-        return self.resolve_path(self.workspace.root)
+        return resolve_workspace_root(self.workspace.root, relative_to=self._root)
 
     def resolve_path(self, path: Path) -> Path:
         expanded = path.expanduser()

@@ -290,13 +290,16 @@ def test_context_without_sandbox_runs_commands_on_the_host(make_tool_context) ->
     assert isinstance(context.resolve(CommandRunner), LocalShellRunner)
 
 
-def test_default_workspace_is_an_agenttoolkit_workspace(make_tool_context) -> None:
+def test_default_workspace_is_an_agenttoolkit_workspace(
+    make_tool_context, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CARA_WORKSPACE_ROOT", str(tmp_path))
     context = make_tool_context(sandbox=_project_definition())
     workspace = context.resolve(Workspace)
     sandbox = context.resolve(DockerSandbox)
 
     assert workspace is not None
-    assert workspace.root == Path.cwd()
+    assert workspace.root == tmp_path
     assert sandbox is not None
     assert sandbox.defaults.working_directory == workspace.root
     assert sandbox.policy.allows_write(workspace.root)

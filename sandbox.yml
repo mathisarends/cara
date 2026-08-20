@@ -2,7 +2,7 @@ image: cara-bash-sandbox:latest
 shell: /bin/bash
 
 workspace:
-  root: .
+  root: ~/.cara/workspace
   max_file_bytes: null
 
 defaults:

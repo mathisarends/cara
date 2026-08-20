@@ -14,7 +14,6 @@ from llm import CodexModel, create_codex_model
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _SKILLS_ROOT = _PROJECT_ROOT / "skills"
-_WORKSPACE_ROOT = _PROJECT_ROOT / "workspace"
 _AGENT_SRC = _PROJECT_ROOT / "agent" / "src" / "agent"
 _EXPERIMENTS_ROOT = _PROJECT_ROOT / "experiments"
 _SANDBOX_CONFIG = _PROJECT_ROOT / "sandbox.yml"
@@ -25,25 +24,31 @@ load_dotenv()
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
     llm = create_codex_model(CodexModel.TERRA)
+    sandbox = SandboxDefinition.from_yaml(_SANDBOX_CONFIG)
+    workspace = _create_workspace(sandbox)
 
     tools = build_tools(
         skills=skills,
-        workspace=_create_workspace(),
-        sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
+        workspace=workspace,
+        sandbox=sandbox,
     )
     agent = Agent(
         models=ModelSwitch.single(llm),
         tools=tools,
         skills=skills,
+        workspace_root=workspace.root,
     )
 
     session = TerminalSession(AgentTurnRunner(agent))
     await session.run()
 
 
-def _create_workspace() -> LocalWorkspace:
+def _create_workspace(
+    sandbox: SandboxDefinition | None = None,
+) -> LocalWorkspace:
+    definition = sandbox or SandboxDefinition.from_yaml(_SANDBOX_CONFIG)
     return LocalWorkspace(
-        _WORKSPACE_ROOT,
+        definition.resolve_workspace_root(),
         mounts={
             "/src/agent": _AGENT_SRC,
             "/experiments": _EXPERIMENTS_ROOT,

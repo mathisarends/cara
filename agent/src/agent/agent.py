@@ -3,6 +3,7 @@ import contextlib
 import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from pathlib import Path
 
 from agenttoolkit import Skills
 from llmify import (
@@ -44,11 +45,16 @@ class Agent:
         tools: AgentTools,
         skills: Skills | None = None,
         system_prompt: str | None = None,
+        workspace_root: Path | None = None,
     ) -> None:
         self._models = models
         self._tools = tools
         self._context = MessageManager(
-            SystemPrompt(system_prompt=system_prompt, skills=skills)
+            SystemPrompt(
+                root=workspace_root,
+                system_prompt=system_prompt,
+                skills=skills,
+            )
         )
         self._turn: asyncio.Task[None] | None = None
         self._tool_preparation: asyncio.Task[None] | None = None

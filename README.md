@@ -34,15 +34,34 @@ gateway as transcribed speech. Use `exit`, `quit`, `:q`, Ctrl+C, or EOF to leave
 
 ## Workspace and Docker binds
 
-Cara reads optional JSON5 configuration from `~/.cara/cara.json`. The workspace is
-used for prompt files and file tools. Docker binds are added to the Bash sandbox;
-each entry ends in `ro` or `rw`:
+Cara keeps private, persistent agent state outside the repository in
+`~/.cara/workspace`. The directory is both the source for prompt files and the
+root exposed to file and Bash tools. `CARA_WORKSPACE_ROOT` can override it.
+
+The expected layout is:
+
+```text
+~/.cara/workspace/
+├── AGENTS.md
+├── SOUL.md
+├── IDENTITY.md
+├── USER.md
+├── TOOLS.md
+├── MEMORY.md
+├── HEARTBEAT.md
+├── BOOTSTRAP.md
+├── BOOT.md
+├── memory/
+│   └── YYYY-MM-DD.md
+└── skills/
+```
+
+Docker binds are configured separately; each entry ends in `ro` or `rw`:
 
 ```json5
 {
   agents: {
     defaults: {
-      workspace: "~/.cara/workspace",
       sandbox: {
         // Disabled by default. Enable only for tools that need external APIs.
         networkAccess: false,
@@ -57,8 +76,7 @@ each entry ends in `ro` or `rw`:
 }
 ```
 
-`CARA_WORKSPACE_ROOT` overrides the workspace from this file. Container targets
-below `/workspace` remain reserved for Cara and cannot be added as binds. Treat
+Container targets below `/workspace` remain reserved for Cara and cannot be added as binds. Treat
 this file as trusted configuration: an `rw` bind gives sandbox commands write
 access to that host directory. `networkAccess` controls outbound network access
 for Bash sandbox commands and defaults to `false`. Restart the gateway after
@@ -120,9 +138,9 @@ and symlinks that resolve outside the workspace.
 The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: by default, the
 container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
 memory, process, output, and execution-time limits. The reusable tool factory defaults to a dedicated
-`LocalWorkspace` below the system temporary directory. Cara's concrete entry point explicitly uses
-`workspace/` as its root and exposes only `agent/`, `experiments/`, and `skills/` as writable mounted
-directories. The project `.env`, `.git`, and the rest of the repository are not exposed. Other callers can
+`LocalWorkspace` rooted at `~/.cara/workspace`. Cara's concrete entry point additionally exposes only
+`agent/`, `experiments/`, and `skills/` as writable mounted directories. The project `.env`, `.git`, and
+the rest of the repository are not exposed. Other callers can
 provide their own `Workspace` or `Sandbox`, or opt into additional sandbox mounts, environment variables,
 and network access through `build_tools()`.
 

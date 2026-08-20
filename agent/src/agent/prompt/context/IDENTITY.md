@@ -1,2 +1,0 @@
-- Name: Cara
-- Vibe: calm, direct, dryly humorous

@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 from agenttoolkit import Skills
+from agenttoolkit.builtins import LocalWorkspace
 from dotenv import load_dotenv
 from sonosify import SonosClient
 
@@ -34,6 +35,11 @@ _SANDBOX_CONFIG = Path(__file__).parent / "sandbox.yml"
 
 async def main() -> None:
     skills = Skills.from_dir(_SKILLS_ROOT)
+    sandbox = SandboxDefinition.from_yaml(_SANDBOX_CONFIG)
+    workspace = LocalWorkspace(
+        sandbox.resolve_workspace_root(),
+        max_file_bytes=sandbox.workspace.max_file_bytes,
+    )
     sonos_settings = SonosSettings()
     async with SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
@@ -48,12 +54,14 @@ async def main() -> None:
         tools = build_tools(
             injected_dependencies=(audio_output, models),
             skills=skills,
-            sandbox=SandboxDefinition.from_yaml(_SANDBOX_CONFIG),
+            workspace=workspace,
+            sandbox=sandbox,
         )
         agent_session = Agent(
             models=models,
             tools=tools,
             skills=skills,
+            workspace_root=workspace.root,
         )
         agent = VoiceAgent(
             agent_session=agent_session,

@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from agent.sandbox import SandboxDefinition, create_sandbox
+from agent.workspace import resolve_workspace_root
 
 _PROJECT_CONFIG = Path(__file__).resolve().parents[3] / "sandbox.yml"
 
@@ -13,7 +14,7 @@ def test_load_default_sandbox_definition() -> None:
 
     assert definition.image == "cara-bash-sandbox:latest"
     assert definition.shell == PurePosixPath("/bin/bash")
-    assert definition.resolve_workspace_root() == Path.cwd()
+    assert definition.resolve_workspace_root() == resolve_workspace_root()
     assert definition.workspace.max_file_bytes is None
     assert definition.defaults.home == PurePosixPath("/tmp")
     assert definition.defaults.timeout_seconds == 15

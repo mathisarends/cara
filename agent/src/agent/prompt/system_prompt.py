@@ -5,12 +5,12 @@ from pathlib import Path
 from agenttoolkit import Skills
 
 from agent.prompt.local_time import LocalTimePrompt
+from agent.workspace import resolve_workspace_root
 
-_CONTEXT_ROOT = Path(__file__).parent / "context"
 _BASE_FILES = ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md")
 _TOOLS_FILES = ("TOOLS.md",)
 _MEMORY_FILES = ("MEMORY.md",)
-_DAILY_DIR = "daily"
+_MEMORY_DIR = "memory"
 
 
 class SystemPrompt:
@@ -25,7 +25,7 @@ class SystemPrompt:
         local_time: LocalTimePrompt | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
-        self._root = root or _CONTEXT_ROOT
+        self._root = root or resolve_workspace_root()
         self._system_prompt = system_prompt
         self._skills = skills
         self._local_time = local_time
@@ -56,8 +56,8 @@ class SystemPrompt:
         sections = [
             _render_files(self._root, _MEMORY_FILES),
             _render_section(
-                self._root / _DAILY_DIR / daily_name,
-                heading=f"{_DAILY_DIR}/{daily_name}",
+                self._root / _MEMORY_DIR / daily_name,
+                heading=f"{_MEMORY_DIR}/{daily_name}",
             ),
         ]
         return "\n\n".join(section for section in sections if section)
