@@ -12,6 +12,15 @@ streams turns over the Cara Gateway's JSON-RPC WebSocket, the same protocol
 [`cli`](../cli) uses. `voice.llm.EchoAgentSession` exists for tests and
 examples that need a deterministic session without a running gateway.
 
+The pipeline puts special emphasis on latency compared to the traditional
+"record until silence, then transcribe, then synthesize" approach: STT and
+TTS are both streamed rather than run in one shot after the fact, and
+barge-in plus acoustic echo cancellation let a user interrupt the assistant
+mid-sentence instead of waiting it out. Ambient side effects — currently
+Philips Hue room lighting reacting to conversation state (idle, listening,
+processing, speaking) — are layered on top via the `Observer` API without
+touching the core pipeline.
+
 ## Table of contents
 
 - [Pipeline overview](#pipeline-overview)
