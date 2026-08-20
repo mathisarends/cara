@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from pathlib import Path
 
 import agenttoolkit
 from agenttoolkit import (
@@ -19,6 +18,7 @@ from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools.actions import register_tools
 from agent.tools.handler import IpLocationLookup, OpenMeteoWeather, TavilyWebSearch
 from agent.tools.middleware import ToolResultMiddleware
+from agent.workspace import resolve_workspace_root
 
 
 class AgentTools(agenttoolkit.Tools):
@@ -73,7 +73,7 @@ def _create_tool_context(
     sandbox: SandboxDefinition | None = None,
     runner: CommandRunner | None = None,
 ) -> ToolContext:
-    selected_workspace = workspace or _default_workspace(sandbox)
+    selected_workspace = workspace or _default_workspace()
     selected_runner = runner or _default_runner(sandbox, selected_workspace)
     return ToolContext(selected_workspace, selected_runner, *dependencies)
 
@@ -82,13 +82,8 @@ def _builtin_handlers() -> tuple[object, ...]:
     return (IpLocationLookup(), OpenMeteoWeather(), TavilyWebSearch())
 
 
-def _default_workspace(sandbox: SandboxDefinition | None) -> LocalWorkspace:
-    if sandbox is None:
-        return LocalWorkspace(Path.cwd())
-    return LocalWorkspace(
-        sandbox.resolve_workspace_root(),
-        max_file_bytes=sandbox.workspace.max_file_bytes,
-    )
+def _default_workspace() -> LocalWorkspace:
+    return LocalWorkspace(resolve_workspace_root())
 
 
 def _default_runner(

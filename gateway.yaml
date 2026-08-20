@@ -1,0 +1,52 @@
+# Single source of truth for the gateway and the agent plugin it loads.
+agent:
+  plugin: cara
+
+  config:
+    # First model starts the conversation; the agent can switch at runtime.
+    models:
+      - gpt-5.3-codex-spark
+      - gpt-5.6-luna
+      - gpt-5.6-terra
+      - gpt-5.6-sol
+      - gpt-5.5
+      - gpt-5.4
+
+    # Directory the agent reads and writes files in.
+    workspace:
+      root: ~/.cara/workspace
+      max_file_bytes: null
+
+    # Docker container the agent runs shell commands in.
+    sandbox:
+      image: cara-bash-sandbox:latest
+      shell: /bin/bash
+      network_access: true
+
+      defaults:
+        home: /tmp
+        timeout_seconds: 15
+        max_output_bytes: 1000000
+
+      limits:
+        memory_bytes: 268435456 # 256 MiB
+        pids: 64
+        cpus: 1
+
+      # Host CLI config directories mounted into the container.
+      mounts:
+        cli_credentials:
+          - name: huego
+            target: /tmp/.config/huego
+          - name: spoti
+            target: /tmp/.config/spoti
+          - name: withings-client
+            target: /tmp/.config/withings-client
+          - name: sonoscli
+            target: /tmp/.config/sonoscli
+          - name: fitbitctl
+            target: /tmp/.config/fitbitctl
+
+      # Mount targets the sandbox owns; configured mounts may not claim them.
+      reserved_targets:
+        - /workspace

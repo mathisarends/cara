@@ -153,7 +153,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     runner = create_plugin().create(
         {
             "models": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
-            "workspace_root": str(tmp_path),
+            "workspace": {"root": str(tmp_path)},
         },
         AgentPluginContext(sessions),
     )

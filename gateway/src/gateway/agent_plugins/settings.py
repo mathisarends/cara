@@ -5,7 +5,6 @@ from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
-    TomlConfigSettingsSource,
     YamlConfigSettingsSource,
 )
 
@@ -25,7 +24,6 @@ class GatewaySettings(BaseSettings):
         env_nested_delimiter="_",
         env_nested_max_split=1,
         extra="ignore",
-        toml_file="gateway.toml",
         yaml_file=("gateway.yaml", "gateway.yml"),
     )
 
@@ -44,7 +42,6 @@ class GatewaySettings(BaseSettings):
             init_settings,
             env_settings,
             dotenv_settings,
-            TomlConfigSettingsSource(settings_cls),
             YamlConfigSettingsSource(settings_cls),
             file_secret_settings,
         )

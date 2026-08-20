@@ -55,7 +55,7 @@ agent/src/agent/
 │   ├── system_prompt.py           renders AGENTS/IDENTITY/SOUL/USER/TOOLS/MEMORY.md, daily memory, skills
 │   └── local_time.py                renders the current date/time section
 ├── sandbox/
-│   ├── config.py                    SandboxDefinition: pydantic model for sandbox.yml
+│   ├── config.py                    SandboxDefinition: pydantic model for the sandbox config section
 │   └── factory.py                     builds an agenttoolkit DockerSandbox from a SandboxDefinition
 └── tools/
     ├── factory.py                     AgentTools (owns the DockerSandbox lifecycle) + build_tools()
@@ -145,7 +145,8 @@ memory note stay current across a long-running turn loop rather than being
 frozen at `Agent` construction.
 
 `resolve_workspace_root()` resolves the workspace directory from
-`CARA_WORKSPACE_ROOT`, defaulting to `~/.cara/workspace` — see the [repo
+`CARA_WORKSPACE_ROOT`, then the configured `agent.config.workspace.root`,
+defaulting to `~/.cara/workspace` — see the [repo
 root README](../README.md#workspace-and-docker-binds) for the expected
 layout.
 
@@ -199,10 +200,10 @@ traceback and re-raised.
 
 ## Sandbox
 
-`SandboxDefinition` (`sandbox/config.py`) is a pydantic model loaded from a
-YAML file (`sandbox.yml`) describing the Docker image, workspace root and
-file-size limit, resource limits (memory, PIDs, CPUs), network access, and
-bind mounts. `sandbox/factory.py` translates it into an
+`SandboxDefinition` (`sandbox/config.py`) is a pydantic model validated from
+the `agent.config.sandbox` section of `gateway.yaml`, describing the Docker
+image, shell, resource limits (memory, PIDs, CPUs), network access, and bind
+mounts. `sandbox/factory.py` translates it into an
 `agenttoolkit.builtins.DockerSandbox` — `agent` itself defines no sandbox
 mechanics, only configuration and translation; the actual jailing,
 capability-dropping, and resource limiting live in `mm-agenttoolkit`. See the
@@ -223,9 +224,9 @@ cara = "agent.plugin:create_plugin"
 speaking only the [`agent_plugin_api`](../agent_plugin_api) contract:
 
 - `_CaraAgentPlugin.create(config, context)` validates `config` against a
-  frozen, `extra="forbid"` `_CaraAgentSettings` (`models`,
-  `workspace_root`, `sandbox_file`, `system_prompt`) — an unknown config key
-  from `gateway.toml` fails fast at startup.
+  frozen, `extra="forbid"` `_CaraAgentSettings` (`models`, `workspace`,
+  `sandbox`, `system_prompt`) — an unknown config key from `gateway.yaml`
+  fails fast at startup.
 - `_CaraAgentRunner.run(request)` loads prior turns via
   `AgentSessionReader.context_for_turn(...)`, replays them into `llmify`
   messages, builds a fresh `Agent` (Codex `ChatModel` via

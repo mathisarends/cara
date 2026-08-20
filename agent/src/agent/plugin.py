@@ -44,6 +44,13 @@ from agent_plugin_api import (
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 
 
+class _WorkspaceSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    root: Path | None = None
+    max_file_bytes: int | None = Field(default=None, gt=0)
+
+
 class _CaraAgentSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -51,8 +58,8 @@ class _CaraAgentSettings(BaseModel):
         default=(CodexModel.SPARK,),
         min_length=1,
     )
-    workspace_root: Path | None = None
-    sandbox_file: Path | None = None
+    workspace: _WorkspaceSettings = Field(default_factory=_WorkspaceSettings)
+    sandbox: SandboxDefinition | None = None
     system_prompt: str | None = None
 
     @field_validator("models")
@@ -103,8 +110,7 @@ class _CaraAgentRunner:
 class _ConfiguredAgentFactory:
     def __init__(self, settings: _CaraAgentSettings) -> None:
         self._settings = settings
-        self._sandbox = _load_sandbox(settings.sandbox_file)
-        self._workspace = _create_workspace(settings.workspace_root, self._sandbox)
+        self._workspace = _create_workspace(settings.workspace)
         skills_root = self._workspace.root / "skills"
         self._skills = Skills.from_dir(skills_root) if skills_root.is_dir() else None
 
@@ -122,7 +128,7 @@ class _ConfiguredAgentFactory:
             injected_dependencies=(models,),
             skills=self._skills,
             workspace=self._workspace,
-            sandbox=self._sandbox,
+            sandbox=self._settings.sandbox,
         )
         return Agent(
             models=models,
@@ -146,12 +152,6 @@ class _CaraAgentPlugin:
         return _CaraAgentRunner(context.sessions, _ConfiguredAgentFactory(settings))
 
 
-def _load_sandbox(path: Path | None) -> SandboxDefinition | None:
-    if path is None:
-        return None
-    return SandboxDefinition.from_yaml(path.expanduser().resolve())
-
-
 def _codex_model_factory(
     configured_model: CodexModel,
 ) -> Callable[[str | None], ChatModel]:
@@ -166,17 +166,11 @@ def _codex_model_factory(
     return create
 
 
-def _create_workspace(
-    configured_root: Path | None,
-    sandbox: SandboxDefinition | None,
-) -> LocalWorkspace:
-    root = (
-        resolve_workspace_root(configured_root)
-        if configured_root is not None or sandbox is None
-        else sandbox.resolve_workspace_root()
+def _create_workspace(workspace: _WorkspaceSettings) -> LocalWorkspace:
+    return LocalWorkspace(
+        resolve_workspace_root(workspace.root),
+        max_file_bytes=workspace.max_file_bytes,
     )
-    max_file_bytes = sandbox.workspace.max_file_bytes if sandbox is not None else None
-    return LocalWorkspace(root, max_file_bytes=max_file_bytes)
 
 
 def _context_messages(context: AgentContext) -> list[Message]:

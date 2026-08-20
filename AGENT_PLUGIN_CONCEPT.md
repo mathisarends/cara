@@ -245,15 +245,19 @@ Die Auswahl sollte über normale Pydantic-Settings erfolgen. Geheimnisse bleiben
 in Umgebungsvariablen und werden nicht als beliebige Plugin-Konfiguration
 geloggt.
 
-```toml
-# gateway.toml
-[agent]
-plugin = "cara"
-
-[agent.config]
-models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
-workspace_root = "~/.cara/workspace"
-sandbox_file = "sandbox.yml"
+```yaml
+# gateway.yaml
+agent:
+  plugin: cara
+  config:
+    models:
+      - gpt-5.3-codex-spark
+      - gpt-5.6-sol
+    workspace:
+      root: ~/.cara/workspace
+    sandbox:
+      image: cara-bash-sandbox:latest
+      shell: /bin/bash
 ```
 
 Alternativ bzw. für Deployment:

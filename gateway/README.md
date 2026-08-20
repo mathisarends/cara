@@ -189,15 +189,15 @@ The bundled reference plugin, entry point name `echo`
 (`gateway.features.conversation.infrastructure.echo_agent:create_plugin`),
 streams the input back word-by-word — useful for exercising the protocol
 without a real model. [`agent`](../agent) is Cara's real plugin, registered
-under the entry point name `cara` and selected via `gateway.toml`:
+under the entry point name `cara` and selected via `gateway.yaml`:
 
-```toml
-[agent]
-plugin = "cara"
-
-[agent.config]
-models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
-sandbox_file = "sandbox.yml"
+```yaml
+agent:
+  plugin: cara
+  config:
+    models:
+      - gpt-5.3-codex-spark
+      - gpt-5.6-sol
 ```
 
 ## Session and turn lifecycle
@@ -252,25 +252,10 @@ that package's README for its own store/runner model.
 ## Configuration
 
 `GatewaySettings` (`pydantic-settings`) reads, in priority order: init
-arguments, environment variables (`CARA_`-prefixed), `.env`, `gateway.toml`,
-then `gateway.yaml` or `gateway.yml` — matching the repo root's
-`gateway.toml`:
-
-```toml
-[agent]
-plugin = "cara"
-
-[agent.config]
-models = ["gpt-5.3-codex-spark", "gpt-5.6-sol"]
-sandbox_file = "sandbox.yml"
-```
-
-The first configured model drives the conversation initially with the
-provider's default reasoning effort. The agent receives tools for inspecting
-and changing its model and reasoning effort at runtime. A candidate
-configuration must pass a separate model smoke test before it becomes active;
-if validation fails, the previous configuration remains active. The equivalent
-YAML configuration is:
+arguments, environment variables (`CARA_`-prefixed), `.env`, then
+`gateway.yaml` or `gateway.yml`. The repo root's `gateway.yaml` is the single
+source of truth for both the plugin selection and everything the plugin needs
+— models, workspace, and sandbox:
 
 ```yaml
 agent:
@@ -279,8 +264,34 @@ agent:
     models:
       - gpt-5.3-codex-spark
       - gpt-5.6-sol
-    sandbox_file: sandbox.yml
+    workspace:
+      root: ~/.cara/workspace
+      max_file_bytes: null
+    sandbox:
+      image: cara-bash-sandbox:latest
+      shell: /bin/bash
+      network_access: true
+      defaults:
+        home: /tmp
+        timeout_seconds: 15
+        max_output_bytes: 1000000
+      limits:
+        memory_bytes: 268435456
+        pids: 64
+        cpus: 1
+      mounts:
+        cli_credentials:
+          - name: spoti
+            target: /tmp/.config/spoti
+      reserved_targets:
+        - /workspace
 ```
+
+The first configured model drives the conversation initially with the
+provider's default reasoning effort. The agent receives tools for inspecting
+and changing its model and reasoning effort at runtime. A candidate
+configuration must pass a separate model smoke test before it becomes active;
+if validation fails, the previous configuration remains active.
 
 Database connectivity defaults to a local SQLite file
 (`sqlite+aiosqlite:///./gateway.sqlite3`) and can be overridden via

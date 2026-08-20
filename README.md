@@ -65,7 +65,7 @@ Three ideas hold this together:
   session-context reader, a streamed event union) with zero dependency on FastAPI, the database, or
   DI. [`agent`](agent#readme) implements that contract and registers itself under the Python
   entry-point group `cara.agent_plugins`; the gateway discovers, validates, and loads whichever
-  plugin `gateway.toml` names at startup, and fails fast if it's missing, mismatched, or
+  plugin `gateway.yaml` names at startup, and fails fast if it's missing, mismatched, or
   misconfigured — never mid-turn. See
   [gateway → Agent plugin system](gateway#agent-plugin-system) and
   [`AGENT_PLUGIN_CONCEPT.md`](AGENT_PLUGIN_CONCEPT.md) for the design rationale.
@@ -79,7 +79,7 @@ session-per-channel reuse (`session.open`) for free from the gateway.
 All nine packages are members of one `uv` workspace (`pyproject.toml`); the graph below is their
 actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
 relationship that is _not_ a package dependency: `gateway` never imports `agent` — it only
-discovers whichever plugin `gateway.toml` names, at startup, through the `cara.agent_plugins`
+discovers whichever plugin `gateway.yaml` names, at startup, through the `cara.agent_plugins`
 entry-point group.
 
 ```mermaid
