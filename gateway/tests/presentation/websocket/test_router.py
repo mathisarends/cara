@@ -1,6 +1,50 @@
 from fastapi.testclient import TestClient
 
 
+def test_automation_list_runs_over_gateway_socket(client: TestClient) -> None:
+    with client.websocket_connect("/v1/gateway") as socket:
+        socket.send_json(
+            {
+                "jsonrpc": "2.0",
+                "id": "automations",
+                "method": "automation.list",
+                "params": {"session_id": "090b4d71-8e4d-4b90-8981-8f38df122011"},
+            }
+        )
+        response = socket.receive_json()
+
+    assert response == {
+        "jsonrpc": "2.0",
+        "id": "automations",
+        "result": {"automations": []},
+    }
+
+
+def test_unknown_automation_yields_resource_not_found(client: TestClient) -> None:
+    with client.websocket_connect("/v1/gateway") as socket:
+        socket.send_json(
+            {
+                "jsonrpc": "2.0",
+                "id": "automation",
+                "method": "automation.get",
+                "params": {
+                    "session_id": "090b4d71-8e4d-4b90-8981-8f38df122011",
+                    "automation_id": "missing",
+                },
+            }
+        )
+        response = socket.receive_json()
+
+    assert response == {
+        "jsonrpc": "2.0",
+        "id": "automation",
+        "error": {
+            "code": -32004,
+            "message": "Not found: Automation 'missing' not found",
+        },
+    }
+
+
 def test_malformed_gateway_message_yields_json_rpc_parse_error(
     client: TestClient,
 ) -> None:

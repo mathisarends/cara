@@ -8,6 +8,7 @@ from pydantic import TypeAdapter
 
 from gateway_client.models import SessionEventNotification
 from gateway_client.namespaces import (
+    AutomationClient,
     SessionClient,
     TurnsClient,
 )
@@ -17,6 +18,7 @@ from gateway_client.transport import RpcTransport, WebSocketTransport
 class GatewayClient:
     def __init__(self, transport: RpcTransport) -> None:
         self._transport = transport
+        self.automation = AutomationClient(transport)
         self.session = SessionClient(transport)
         self.turn = TurnsClient(transport)
 

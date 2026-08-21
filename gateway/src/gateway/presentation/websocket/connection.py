@@ -3,6 +3,7 @@ import asyncio
 from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
+from gateway.features.automation.domain import AutomationNotFoundError
 from gateway.features.conversation.application import EventBroker
 from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
 from gateway.features.conversation.presentation.mapping import session_event
@@ -117,7 +118,7 @@ def _protocol_error(error: Exception) -> _GatewayProtocolError:
         return _GatewayProtocolError(RpcErrorCode.INVALID_PARAMS, error.message)
     if isinstance(error, ValidationError):
         return _request_error(error)
-    if isinstance(error, SessionNotFoundError):
+    if isinstance(error, SessionNotFoundError | AutomationNotFoundError):
         return _GatewayProtocolError(
             RpcErrorCode.RESOURCE_NOT_FOUND, f"Not found: {error}"
         )

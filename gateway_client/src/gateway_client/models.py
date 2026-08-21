@@ -29,6 +29,8 @@ class EventType(StrEnum):
 
 
 class RpcMethod(StrEnum):
+    AUTOMATION_LIST = "automation.list"
+    AUTOMATION_GET = "automation.get"
     SESSION_CREATE = "session.create"
     SESSION_OPEN = "session.open"
     SESSION_GET = "session.get"
@@ -47,6 +49,22 @@ class AssistantMessageItem(GatewayModel):
     id: UUID
     created_at: datetime
     content: str
+
+
+class AtSchedule(GatewayModel):
+    kind: Literal["at"] = "at"
+    run_at: datetime
+
+
+class AutomationResponse(GatewayModel):
+    id: str
+    name: str | None
+    created_at: datetime
+    next_run_at: datetime
+    schedule: AutomationSchedule
+    schema_version: Literal[1]
+    target: SessionAutomationTargetResponse
+    payload: ReminderAutomationPayload
 
 
 class ChatCompleted(GatewayModel):
@@ -75,9 +93,40 @@ class CreateSessionParams(GatewayModel):
     metadata: dict[str, Any] | None = None
 
 
+class CronSchedule(GatewayModel):
+    kind: Literal["cron"] = "cron"
+    expression: str
+    timezone: str
+
+
+class GetAutomationParams(GatewayModel):
+    session_id: UUID
+    automation_id: str
+
+
+class IntervalSchedule(GatewayModel):
+    kind: Literal["interval"] = "interval"
+    every_seconds: float
+    run_immediately: bool
+
+
+class ListAutomationsParams(GatewayModel):
+    session_id: UUID
+
+
+class ListAutomationsResponse(GatewayModel):
+    automations: list[AutomationResponse]
+
+
 class OpenSessionParams(GatewayModel):
     channel: SessionChannel
     metadata: dict[str, Any] | None = None
+
+
+class ReminderAutomationPayload(GatewayModel):
+    kind: Literal["reminder"]
+    message: str
+    created_from_turn_id: UUID
 
 
 class RpcErrorCode(IntEnum):
@@ -105,6 +154,11 @@ class RpcSuccess(GatewayModel):
     jsonrpc: Literal["2.0"] = "2.0"
     id: str | int | None
     result: Any
+
+
+class SessionAutomationTargetResponse(GatewayModel):
+    kind: Literal["session"]
+    session_id: UUID
 
 
 class SessionChannel(GatewayModel):
@@ -235,6 +289,20 @@ class UserMessageItem(GatewayModel):
     content: str
 
 
+class ListAutomationsRequest(GatewayModel):
+    jsonrpc: Literal["2.0"]
+    id: str | int | None = None
+    method: Literal["automation.list"]
+    params: ListAutomationsParams
+
+
+class GetAutomationRequest(GatewayModel):
+    jsonrpc: Literal["2.0"]
+    id: str | int | None = None
+    method: Literal["automation.get"]
+    params: GetAutomationParams
+
+
 class CreateSessionRequest(GatewayModel):
     jsonrpc: Literal["2.0"]
     id: str | int | None = None
@@ -290,6 +358,12 @@ class SessionEventNotification(GatewayModel):
     params: SessionEvent
 
 
+type AutomationSchedule = Annotated[
+    AtSchedule | IntervalSchedule | CronSchedule,
+    Field(discriminator="kind"),
+]
+
+
 type Item = Annotated[
     UserMessageItem | AssistantMessageItem | ToolCallItem,
     Field(discriminator="type"),
@@ -310,13 +384,22 @@ type SessionEvent = Annotated[
 
 
 AssistantMessageItem.model_rebuild()
+AtSchedule.model_rebuild()
+AutomationResponse.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
 CreateSessionParams.model_rebuild()
+CronSchedule.model_rebuild()
+GetAutomationParams.model_rebuild()
+IntervalSchedule.model_rebuild()
+ListAutomationsParams.model_rebuild()
+ListAutomationsResponse.model_rebuild()
 OpenSessionParams.model_rebuild()
+ReminderAutomationPayload.model_rebuild()
 RpcErrorData.model_rebuild()
 RpcFailure.model_rebuild()
 RpcSuccess.model_rebuild()
+SessionAutomationTargetResponse.model_rebuild()
 SessionChannel.model_rebuild()
 SessionParams.model_rebuild()
 SessionResponse.model_rebuild()
@@ -333,6 +416,8 @@ TurnFailed.model_rebuild()
 TurnStarted.model_rebuild()
 UnsubscriptionResult.model_rebuild()
 UserMessageItem.model_rebuild()
+ListAutomationsRequest.model_rebuild()
+GetAutomationRequest.model_rebuild()
 CreateSessionRequest.model_rebuild()
 OpenSessionRequest.model_rebuild()
 GetSessionRequest.model_rebuild()

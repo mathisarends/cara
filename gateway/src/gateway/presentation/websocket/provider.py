@@ -3,6 +3,8 @@ from uuid import uuid4
 from dishka import Provider, Scope, provide
 from fastapi import WebSocket
 
+from gateway.features.automation.application import AutomationService
+from gateway.features.automation.presentation import AutomationRpcMethods
 from gateway.features.conversation.application import ConversationService, EventBroker
 from gateway.features.conversation.presentation.rpc_methods import (
     ConversationRpcMethods,
@@ -21,10 +23,12 @@ class GatewayProvider(Provider):
     def connection(
         self,
         websocket: WebSocket,
+        automation_service: AutomationService,
         service: ConversationService,
         broker: EventBroker,
     ) -> GatewayConnection:
         client_id = str(uuid4())
+        automation = AutomationRpcMethods(automation_service)
         conversation = ConversationRpcMethods(service, broker, client_id)
-        methods = GatewayRpcMethods(self._protocol, (conversation,))
+        methods = GatewayRpcMethods(self._protocol, (automation, conversation))
         return GatewayConnection(websocket, broker, client_id, methods)

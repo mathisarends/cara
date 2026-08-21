@@ -194,6 +194,17 @@ def test_namespace_imports_models_referenced_by_method_parameters(
     assert "message: SessionChannel" in source
 
 
+def test_namespace_omits_unused_any_import(
+    specification: dict[str, Any],
+) -> None:
+    method = specification["methods"][0]
+    method["params"] = method["params"][:2]
+
+    source = render_namespace("conversation", [method])
+
+    assert "from typing import Any" not in source
+
+
 def test_namespace_escapes_python_keyword_operation_names(
     specification: dict[str, Any],
 ) -> None:

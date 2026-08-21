@@ -5,6 +5,12 @@
   "description": "JSON-RPC requests, responses, and notifications.",
   "oneOf": [
     {
+      "$ref": "#/$defs/ListAutomationsRequest"
+    },
+    {
+      "$ref": "#/$defs/GetAutomationRequest"
+    },
+    {
       "$ref": "#/$defs/CreateSessionRequest"
     },
     {
@@ -67,6 +73,104 @@
       ],
       "title": "AssistantMessageItem",
       "type": "object"
+    },
+    "AtSchedule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "at",
+          "default": "at",
+          "title": "Kind",
+          "type": "string"
+        },
+        "run_at": {
+          "format": "date-time",
+          "title": "Run At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_at"
+      ],
+      "title": "AtSchedule",
+      "type": "object"
+    },
+    "AutomationResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "next_run_at": {
+          "format": "date-time",
+          "title": "Next Run At",
+          "type": "string"
+        },
+        "schedule": {
+          "$ref": "#/$defs/AutomationSchedule"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "target": {
+          "$ref": "#/$defs/SessionAutomationTargetResponse"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReminderAutomationPayload"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "created_at",
+        "next_run_at",
+        "schedule",
+        "schema_version",
+        "target",
+        "payload"
+      ],
+      "title": "AutomationResponse",
+      "type": "object"
+    },
+    "AutomationSchedule": {
+      "discriminator": {
+        "mapping": {
+          "at": "#/$defs/AtSchedule",
+          "cron": "#/$defs/CronSchedule",
+          "interval": "#/$defs/IntervalSchedule"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AtSchedule"
+        },
+        {
+          "$ref": "#/$defs/IntervalSchedule"
+        },
+        {
+          "$ref": "#/$defs/CronSchedule"
+        }
+      ]
     },
     "ChatCompleted": {
       "additionalProperties": false,
@@ -187,6 +291,78 @@
       "title": "CreateSessionParams",
       "type": "object"
     },
+    "CronSchedule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "cron",
+          "default": "cron",
+          "title": "Kind",
+          "type": "string"
+        },
+        "expression": {
+          "title": "Expression",
+          "type": "string"
+        },
+        "timezone": {
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expression",
+        "timezone"
+      ],
+      "title": "CronSchedule",
+      "type": "object"
+    },
+    "GetAutomationParams": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "format": "uuid",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "automation_id": {
+          "minLength": 1,
+          "title": "Automation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "automation_id"
+      ],
+      "title": "GetAutomationParams",
+      "type": "object"
+    },
+    "IntervalSchedule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "interval",
+          "default": "interval",
+          "title": "Kind",
+          "type": "string"
+        },
+        "every_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Every Seconds",
+          "type": "number"
+        },
+        "run_immediately": {
+          "title": "Run Immediately",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "every_seconds",
+        "run_immediately"
+      ],
+      "title": "IntervalSchedule",
+      "type": "object"
+    },
     "Item": {
       "discriminator": {
         "mapping": {
@@ -208,6 +384,38 @@
         }
       ]
     },
+    "ListAutomationsParams": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "format": "uuid",
+          "title": "Session Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id"
+      ],
+      "title": "ListAutomationsParams",
+      "type": "object"
+    },
+    "ListAutomationsResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "automations": {
+          "items": {
+            "$ref": "#/$defs/AutomationResponse"
+          },
+          "title": "Automations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "automations"
+      ],
+      "title": "ListAutomationsResponse",
+      "type": "object"
+    },
     "OpenSessionParams": {
       "additionalProperties": false,
       "properties": {
@@ -224,6 +432,32 @@
         "channel"
       ],
       "title": "OpenSessionParams",
+      "type": "object"
+    },
+    "ReminderAutomationPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "reminder",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "created_from_turn_id": {
+          "format": "uuid",
+          "title": "Created From Turn Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "message",
+        "created_from_turn_id"
+      ],
+      "title": "ReminderAutomationPayload",
       "type": "object"
     },
     "RpcErrorCode": {
@@ -323,6 +557,27 @@
         "result"
       ],
       "title": "RpcSuccess",
+      "type": "object"
+    },
+    "SessionAutomationTargetResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "session",
+          "title": "Kind",
+          "type": "string"
+        },
+        "session_id": {
+          "format": "uuid",
+          "title": "Session Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "session_id"
+      ],
+      "title": "SessionAutomationTargetResponse",
       "type": "object"
     },
     "SessionChannel": {
@@ -943,6 +1198,80 @@
       "title": "UserMessageItem",
       "type": "object"
     },
+    "ListAutomationsRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "ListAutomationsRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "automation.list",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/ListAutomationsParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ]
+    },
+    "GetAutomationRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "GetAutomationRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "automation.get",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/GetAutomationParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ]
+    },
     "CreateSessionRequest": {
       "additionalProperties": false,
       "type": "object",
@@ -1228,6 +1557,30 @@
   },
   "x-cara-protocol-version": 1,
   "x-cara-methods": [
+    {
+      "name": "automation.list",
+      "request": {
+        "$ref": "#/$defs/ListAutomationsRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/ListAutomationsParams"
+      },
+      "result": {
+        "$ref": "#/$defs/ListAutomationsResponse"
+      }
+    },
+    {
+      "name": "automation.get",
+      "request": {
+        "$ref": "#/$defs/GetAutomationRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/GetAutomationParams"
+      },
+      "result": {
+        "$ref": "#/$defs/AutomationResponse"
+      }
+    },
     {
       "name": "session.create",
       "request": {

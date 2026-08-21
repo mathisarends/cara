@@ -3,6 +3,8 @@ import logging
 from dishka import Provider, Scope, provide
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from gateway.features.automation.domain import AutomationEnvelope
+from gateway.features.automation.infrastructure import AutomationEnvelopeCodec
 from scheduler import ScheduledRun, Scheduler, SqliteJobStore
 
 logger = logging.getLogger(__name__)
@@ -26,21 +28,16 @@ class SchedulerProvider(Provider):
         return SchedulerSettings()
 
     @provide
-    def scheduler(self, settings: SchedulerSettings) -> Scheduler[str]:
-        store = SqliteJobStore[str](
+    def scheduler(
+        self,
+        settings: SchedulerSettings,
+    ) -> Scheduler[AutomationEnvelope]:
+        store = SqliteJobStore[AutomationEnvelope](
             settings.scheduler_database,
-            payload_codec=_StringCodec(),
+            payload_codec=AutomationEnvelopeCodec(),
         )
         return Scheduler(runner=_log_job_run, store=store)
 
 
-class _StringCodec:
-    def encode(self, value: str) -> str:
-        return value
-
-    def decode(self, value: str) -> str:
-        return value
-
-
-async def _log_job_run(run: ScheduledRun[str]) -> None:
+async def _log_job_run(run: ScheduledRun[AutomationEnvelope]) -> None:
     logger.info("Running scheduled job %s: %s", run.job_id, run.payload)

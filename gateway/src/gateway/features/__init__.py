@@ -1,9 +1,13 @@
 from gateway.presentation import Feature
 from gateway.presentation.rpc.protocol import GatewayProtocol
 
-from . import conversation, health
+from . import automation, conversation, health
 
-FEATURES: tuple[Feature, ...] = (health.feature, conversation.feature)
+FEATURES: tuple[Feature, ...] = (
+    health.feature,
+    automation.feature,
+    conversation.feature,
+)
 
 
 def gateway_protocol() -> GatewayProtocol:
