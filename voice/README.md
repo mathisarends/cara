@@ -44,15 +44,20 @@ mic ──▶ echo-cancelled BufferedAudioInput ──▶ WakeWordListener
                                                        ▼
                                           ActivationCoordinator
                                                     │ while the session is idle
-                                                    ▼
-                                          VoiceTurnRequested
-                                                    │
-                                                    ▼
-                                    SpeechToTextBridge (STT provider
-                                    owns end-of-speech detection)
-                                                    │ final transcript
-                                                    ▼
-                                    CommandBridge → AssistantResponseRequested
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+          VoiceTurnRequested              PromptTurnRequested
+                    │                               │ (no microphone,
+                    ▼                               │  no STT)
+    SpeechToTextBridge (STT provider                │
+    owns end-of-speech detection)                   │
+                    │ final transcript              │
+                    ▼                               │
+              CommandBridge                         │
+                    │                               │
+                    └───────────────┬───────────────┘
+                                    ▼
+                          AssistantResponseRequested
                                                     │
                                                     ▼
                                     AgentBridge → AgentSession.start_turn()
@@ -95,10 +100,10 @@ voice/src/voice/
 │   └── player.py                       AudioPlayer: serializes WAV/PCM playback on one output
 │
 ├── activation/              what may start a turn
-│   ├── port.py                  Activation + ActivationSource
+│   ├── port.py                  ActivationSource + ListenActivation / PromptActivation
 │   ├── coordinator.py             ActivationCoordinator: pumps every source, gates on session state
 │   ├── wake_word.py                WakeWordActivationSource (also publishes WakeWordDetected)
-│   └── external.py                  ExternalActivationSource: buttons, hotkeys, programmatic triggers
+│   └── external.py                  ExternalActivationSource: activate() to listen, prompt() to speak
 │
 ├── wakeword/                WakeWordListener (wakewordkit) + WakeWordSettings
 ├── vad/                     VoiceActivityDetector port + SileroVoiceActivityDetector
@@ -153,23 +158,40 @@ turn-detection ends the utterance and `SpeechToTextBridge` reacts to it.
 
 The wake word is one `ActivationSource` among several, not the agent's main
 loop. `ActivationCoordinator` pumps every configured source concurrently and
-turns each `Activation` into a `VoiceTurnRequested` while the session is idle;
-an activation carries the audio `sequence` to start from (`None` means live
-audio, which is what a button press wants) and an optional
-`speech_start_timeout`. The coordinator returns — ending the session — as soon
-as the first source's stream ends, because a source that stops producing has
-lost whatever it listens on.
+starts a turn from each `Activation` while the session is idle. It returns —
+ending the session — as soon as the first source's stream ends, because a
+source that stops producing has lost whatever it listens on.
 
-`ExternalActivationSource` is the out-of-band entry point: hold a reference to
-it, pass it to the agent, and `await source.activate()` from a button handler,
-a hotkey, or any other trigger.
+An activation comes in two kinds, and they differ in what the turn starts from:
+
+| Kind | Carries | Turn starts with |
+| --- | --- | --- |
+| `ListenActivation` | `sequence` (`None` = live audio), `speech_start_timeout` | `UserTranscriptionRequested` — microphone, then STT |
+| `PromptActivation` | `prompt` | `AssistantResponseRequested` — the agent, no STT at all |
+
+Both share turn identity, cancellation and `VoiceTurnEnded`; only the entry
+point differs, so everything from the agent onwards — streaming, TTS, playback,
+barge-in, and the follow-up window — is identical. A prompt turn therefore ends
+with the user able to answer without a wake word.
+
+`ExternalActivationSource` is the out-of-band entry point for both kinds: hold
+a reference to it, pass it to the agent, and trigger it from a button handler,
+a scheduler, or anything else.
 
 ```python
-button = ExternalActivationSource()
-agent = VoiceAgent(agent_session=agent_session, activation_sources=(button,))
+trigger = ExternalActivationSource()
+agent = VoiceAgent(agent_session=agent_session, activation_sources=(trigger,))
 ...
-await button.activate()  # starts a turn at live audio, no wake word needed
+await trigger.activate()                    # listen, as a button would
+await trigger.prompt("The laundry is done") # let the agent speak, unprompted
 ```
+
+`VoiceTurnStarted` marks a claimed turn whatever its kind, and is what the
+coordinator and `AgentBridge` gate on. `UserTurnStarted` and
+`AssistantTurnStarted` stay purely semantic: a prompt turn never signals
+"listening" to observers such as the Hue lighting.
+
+See `examples/voice_activation_main.py` for a runnable version.
 
 ## Barge-in
 

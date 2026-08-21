@@ -4,11 +4,17 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
-class Activation:
-    """A request to take the floor, independent of what triggered it."""
-
+class ListenActivation:
     sequence: int | None = None
     speech_start_timeout: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PromptActivation:
+    prompt: str
+
+
+type Activation = ListenActivation | PromptActivation
 
 
 class ActivationSource(ABC):

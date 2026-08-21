@@ -147,6 +147,14 @@ Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you
 stop speaking, answers through the speakers, and briefly listens for a follow-up.
 Press Ctrl+C to stop the client. See [`voice`](voice#readme) for the full pipeline.
 
+`examples/voice_activation_main.py` is a minimal variant that additionally
+starts a turn on a timer, standing in for a button or any other out-of-band
+trigger:
+
+```powershell
+uv run python examples/voice_activation_main.py
+```
+
 For a terminal conversation against the same gateway, run:
 
 ```powershell

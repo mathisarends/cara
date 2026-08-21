@@ -8,10 +8,18 @@ from voice.activation import (
     ActivationCoordinator,
     ActivationSource,
     ExternalActivationSource,
+    ListenActivation,
+    PromptActivation,
 )
-from voice.events import SessionStarted, UserTurnStarted
+from voice.events import SessionStarted
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
+from voice.events.models import (
+    PromptTurnRequested,
+    Request,
+    VoiceTurnEnded,
+    VoiceTurnRequested,
+    VoiceTurnStarted,
+)
 
 
 class _FixedSource(ActivationSource):
@@ -35,30 +43,35 @@ class _NeverEndingSource(ActivationSource):
         yield  # unreachable, but keeps this a generator
 
 
-def _collect_requests(event_bus: EventBus) -> list[VoiceTurnRequested]:
-    requests: list[VoiceTurnRequested] = []
+def _collect_requests(event_bus: EventBus) -> list[Request]:
+    requests: list[Request] = []
 
-    async def start_turn(event: VoiceTurnRequested) -> None:
+    async def start_turn(event: Request) -> None:
         requests.append(event)
-        await event_bus.dispatch(UserTurnStarted())
+        await event_bus.dispatch(VoiceTurnStarted(turn_id=len(requests)))
 
     event_bus.on_request(VoiceTurnRequested, start_turn)
+    event_bus.on_request(PromptTurnRequested, start_turn)
     return requests
 
 
-async def _wait_for_requests(requests: list[VoiceTurnRequested], *, count: int) -> None:
+async def _wait_for_requests(requests: list[Request], *, count: int) -> None:
     async with asyncio.timeout(1.0):
         while len(requests) < count:
             await asyncio.sleep(0)
 
 
 def test_starts_no_second_turn_while_one_is_active() -> None:
-    async def run() -> list[VoiceTurnRequested]:
+    async def run() -> list[Request]:
         event_bus = EventBus()
         requests = _collect_requests(event_bus)
         coordinator = ActivationCoordinator(
             event_bus=event_bus,
-            sources=(_FixedSource(Activation(sequence=1), Activation(sequence=2)),),
+            sources=(
+                _FixedSource(
+                    ListenActivation(sequence=1), ListenActivation(sequence=2)
+                ),
+            ),
         )
 
         await event_bus.dispatch(SessionStarted())
@@ -69,7 +82,7 @@ def test_starts_no_second_turn_while_one_is_active() -> None:
 
 
 def test_starts_a_turn_again_once_the_previous_one_ended() -> None:
-    async def run() -> list[VoiceTurnRequested]:
+    async def run() -> list[Request]:
         event_bus = EventBus()
         requests = _collect_requests(event_bus)
         source = ExternalActivationSource()
@@ -96,13 +109,29 @@ def test_starts_a_turn_again_once_the_previous_one_ended() -> None:
     assert [event.speech_start_timeout for event in requests] == [None, 4.0]
 
 
-def test_ignores_activations_before_the_session_starts() -> None:
-    async def run() -> list[VoiceTurnRequested]:
+def test_turns_a_prompt_activation_into_a_prompt_turn() -> None:
+    async def run() -> list[Request]:
         event_bus = EventBus()
         requests = _collect_requests(event_bus)
         coordinator = ActivationCoordinator(
             event_bus=event_bus,
-            sources=(_FixedSource(Activation(sequence=1)),),
+            sources=(_FixedSource(PromptActivation(prompt="The laundry is done")),),
+        )
+
+        await event_bus.dispatch(SessionStarted())
+        await coordinator.run()
+        return requests
+
+    assert asyncio.run(run()) == [PromptTurnRequested(prompt="The laundry is done")]
+
+
+def test_ignores_activations_before_the_session_starts() -> None:
+    async def run() -> list[Request]:
+        event_bus = EventBus()
+        requests = _collect_requests(event_bus)
+        coordinator = ActivationCoordinator(
+            event_bus=event_bus,
+            sources=(_FixedSource(ListenActivation(sequence=1)),),
         )
 
         await coordinator.run()

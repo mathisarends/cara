@@ -58,8 +58,20 @@ class VoiceTurnRequested(Request):
     speech_start_timeout: float | None = None
 
 
+class PromptTurnRequested(Request):
+    """Requests a voice turn on given text, bypassing the user's microphone."""
+
+    prompt: str
+
+
 class VoiceResourcesClosing(Event):
     """Requests release of resources after session-end handlers have finished."""
+
+
+class VoiceTurnStarted(Event):
+    """Emitted when a voice turn is claimed, whatever kind of input drives it."""
+
+    turn_id: int
 
 
 class VoiceTurnEnded(Event):

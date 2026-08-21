@@ -1,7 +1,12 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from voice.activation.port import Activation, ActivationSource
+from voice.activation.port import (
+    Activation,
+    ActivationSource,
+    ListenActivation,
+    PromptActivation,
+)
 
 
 class ExternalActivationSource(ActivationSource):
@@ -11,10 +16,14 @@ class ExternalActivationSource(ActivationSource):
         self._activations: asyncio.Queue[Activation] = asyncio.Queue()
 
     async def activate(self, *, speech_start_timeout: float | None = None) -> None:
-        """Request a turn that starts at live audio rather than at past history."""
+        """Listen to the user, starting at live audio rather than at past history."""
         await self._activations.put(
-            Activation(speech_start_timeout=speech_start_timeout)
+            ListenActivation(speech_start_timeout=speech_start_timeout)
         )
+
+    async def prompt(self, text: str) -> None:
+        """Run a turn on `text` and speak the answer, without listening first."""
+        await self._activations.put(PromptActivation(prompt=text))
 
     async def activations(self) -> AsyncIterator[Activation]:
         while True:

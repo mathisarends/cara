@@ -1,6 +1,6 @@
 from .coordinator import ActivationCoordinator
 from .external import ExternalActivationSource
-from .port import Activation, ActivationSource
+from .port import Activation, ActivationSource, ListenActivation, PromptActivation
 from .wake_word import WakeWordActivationSource
 
 __all__ = [
@@ -8,5 +8,7 @@ __all__ = [
     "ActivationCoordinator",
     "ActivationSource",
     "ExternalActivationSource",
+    "ListenActivation",
+    "PromptActivation",
     "WakeWordActivationSource",
 ]

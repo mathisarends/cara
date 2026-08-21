@@ -8,11 +8,10 @@ from voice.events import (
     AssistantTextCompleted,
     AssistantToolCompleted,
     AssistantToolStarted,
-    UserTurnStarted,
     VoiceTurnFailed,
 )
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded
+from voice.events.models import VoiceTurnEnded, VoiceTurnStarted
 from voice.llm.events import TextDelta, ToolCompleted, ToolStarted, TurnCompleted
 from voice.llm.port import AgentSession
 
@@ -27,11 +26,11 @@ class AgentBridge:
         self._session = session
         self._preparation: asyncio.Task[None] | None = None
 
-        event_bus.on(UserTurnStarted, self._on_user_turn_started)
+        event_bus.on(VoiceTurnStarted, self._on_turn_started)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
         event_bus.on_request(AssistantResponseRequested, self._on_response_requested)
 
-    async def _on_user_turn_started(self, _: UserTurnStarted) -> None:
+    async def _on_turn_started(self, _: VoiceTurnStarted) -> None:
         self._preparation = asyncio.create_task(
             self._session.prepare_turn(),
             name="voice-agent-prepare-turn",

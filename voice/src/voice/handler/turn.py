@@ -1,11 +1,25 @@
 import asyncio
 import logging
 
-from voice.events import SessionEnded, UserTranscriptionRequested, UserTurnStarted
+from voice.events import (
+    AssistantResponseRequested,
+    AssistantTurnStarted,
+    SessionEnded,
+    UserTranscriptionRequested,
+    UserTurnStarted,
+)
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnFailed, VoiceTurnRequested
+from voice.events.models import (
+    PromptTurnRequested,
+    VoiceTurnEnded,
+    VoiceTurnFailed,
+    VoiceTurnRequested,
+    VoiceTurnStarted,
+)
 
 logger = logging.getLogger(__name__)
+
+type _TurnInput = UserTranscriptionRequested | AssistantResponseRequested
 
 
 class TurnCoordinator:
@@ -88,6 +102,7 @@ class TurnListener:
         event_bus.on(VoiceTurnFailed, self._on_voice_turn_failed)
 
         event_bus.on_request(VoiceTurnRequested, self._on_turn_requested)
+        event_bus.on_request(PromptTurnRequested, self._on_prompt_turn_requested)
 
     async def _on_session_ended(self, _: SessionEnded) -> None:
         await self._coordinator.close()
@@ -103,42 +118,63 @@ class TurnListener:
             signal.set_result(None)
 
     async def _on_turn_requested(self, event: VoiceTurnRequested) -> None:
-        if self._coordinator.is_closed:
+        turn_id = await self._claim_turn()
+        if turn_id is None:
             return
+        await self._event_bus.dispatch(UserTurnStarted())
+        await self._start_turn(
+            turn_id,
+            UserTranscriptionRequested(
+                turn_id=turn_id,
+                sequence=event.sequence,
+                pre_roll_seconds=self._pre_roll,
+                speech_start_timeout=(
+                    event.speech_start_timeout or self._speech_start_timeout
+                ),
+            ),
+        )
+
+    async def _on_prompt_turn_requested(self, event: PromptTurnRequested) -> None:
+        turn_id = await self._claim_turn()
+        if turn_id is None:
+            return
+        await self._event_bus.dispatch(AssistantTurnStarted())
+        await self._start_turn(
+            turn_id,
+            AssistantResponseRequested(turn_id=turn_id, text=event.prompt),
+        )
+
+    async def _claim_turn(self) -> int | None:
+        if self._coordinator.is_closed:
+            return None
         if self._coordinator.has_active_turn:
             logger.debug("Ignoring voice turn request while another turn is active")
-            return
+            return None
 
         turn_id = self._coordinator.start_turn()
         logger.info("Voice turn %d started", turn_id)
-        await self._event_bus.dispatch(UserTurnStarted())
+        await self._event_bus.dispatch(VoiceTurnStarted(turn_id=turn_id))
+        return turn_id
+
+    async def _start_turn(self, turn_id: int, request: _TurnInput) -> None:
         if self._coordinator.is_closed:
             self._coordinator.end_turn(turn_id)
             await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
             return
 
         task = asyncio.create_task(
-            self._run_turn(
-                UserTranscriptionRequested(
-                    turn_id=turn_id,
-                    sequence=event.sequence,
-                    pre_roll_seconds=self._pre_roll,
-                    speech_start_timeout=(
-                        event.speech_start_timeout or self._speech_start_timeout
-                    ),
-                )
-            ),
+            self._run_turn(turn_id, request),
             name=f"voice-turn-{turn_id}",
         )
         self._coordinator.set_active_task(turn_id, task)
 
-    async def _run_turn(self, request: UserTranscriptionRequested) -> None:
-        turn_id = request.turn_id
+    async def _run_turn(self, turn_id: int, request: _TurnInput) -> None:
         failure_signal = asyncio.get_running_loop().create_future()
         self._failure_signals[turn_id] = failure_signal
         try:
             await _request_until_failed(
                 self._event_bus,
+                turn_id,
                 request,
                 failure_signal,
             )
@@ -158,12 +194,13 @@ class TurnListener:
 
 async def _request_until_failed(
     event_bus: EventBus,
-    request: UserTranscriptionRequested,
+    turn_id: int,
+    request: _TurnInput,
     failure_signal: asyncio.Future[None],
 ) -> None:
     request_task = asyncio.create_task(
         event_bus.request(request),
-        name=f"voice-turn-request-{request.turn_id}",
+        name=f"voice-turn-request-{turn_id}",
     )
     try:
         done, _ = await asyncio.wait(

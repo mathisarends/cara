@@ -9,10 +9,9 @@ from voice.events import (
     AssistantTextCompleted,
     AssistantToolCompleted,
     AssistantToolStarted,
-    UserTurnStarted,
 )
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded
+from voice.events.models import VoiceTurnEnded, VoiceTurnStarted
 from voice.llm import (
     AgentBridge,
     AgentEvent,
@@ -69,7 +68,7 @@ def test_agent_bridge_translates_every_agent_event(caplog) -> None:
         event_bus.on(AssistantToolCompleted, capture)
         event_bus.on(AssistantTextCompleted, capture)
 
-        await event_bus.dispatch(UserTurnStarted())
+        await event_bus.dispatch(VoiceTurnStarted(turn_id=7))
         await event_bus.request(
             AssistantResponseRequested(turn_id=7, text="What is the weather?")
         )

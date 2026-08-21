@@ -2,9 +2,21 @@ import asyncio
 
 import pytest
 
-from voice.events import SessionEnded, UserTranscriptionRequested, UserTurnStarted
+from voice.events import (
+    AssistantResponseRequested,
+    AssistantTurnStarted,
+    SessionEnded,
+    UserTranscriptionRequested,
+    UserTurnStarted,
+)
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnFailed, VoiceTurnRequested
+from voice.events.models import (
+    PromptTurnRequested,
+    VoiceTurnEnded,
+    VoiceTurnFailed,
+    VoiceTurnRequested,
+    VoiceTurnStarted,
+)
 from voice.handler import TurnCoordinator, TurnListener
 
 
@@ -44,6 +56,7 @@ def test_turn_listener_maps_events_to_coordinator() -> None:
         async def capture_ended(event: VoiceTurnEnded) -> None:
             events.append(event)
 
+        event_bus.on(VoiceTurnStarted, capture_started)
         event_bus.on(UserTurnStarted, capture_started)
         event_bus.on_request(UserTranscriptionRequested, transcribe)
         event_bus.on(VoiceTurnEnded, capture_ended)
@@ -58,6 +71,7 @@ def test_turn_listener_maps_events_to_coordinator() -> None:
 
     assert coordinator.is_closed
     assert events == [
+        VoiceTurnStarted(turn_id=1),
         UserTurnStarted(),
         UserTranscriptionRequested(
             turn_id=1,
@@ -66,6 +80,35 @@ def test_turn_listener_maps_events_to_coordinator() -> None:
             speech_start_timeout=8.0,
         ),
         VoiceTurnEnded(turn_id=1),
+    ]
+
+
+def test_prompt_turn_reaches_the_agent_without_the_microphone() -> None:
+    async def run() -> list[object]:
+        event_bus = EventBus()
+        coordinator = TurnCoordinator()
+        TurnListener(event_bus=event_bus, coordinator=coordinator)
+        events: list[object] = []
+
+        async def capture(event: object) -> None:
+            events.append(event)
+
+        event_bus.on(VoiceTurnStarted, capture)
+        event_bus.on(UserTurnStarted, capture)
+        event_bus.on(AssistantTurnStarted, capture)
+        event_bus.on_request(UserTranscriptionRequested, capture)
+        event_bus.on_request(AssistantResponseRequested, capture)
+
+        await event_bus.request(PromptTurnRequested(prompt="The laundry is done"))
+        async with asyncio.timeout(1.0):
+            while coordinator.has_active_turn:
+                await asyncio.sleep(0)
+        return events
+
+    assert asyncio.run(run()) == [
+        VoiceTurnStarted(turn_id=1),
+        AssistantTurnStarted(),
+        AssistantResponseRequested(turn_id=1, text="The laundry is done"),
     ]
 
 

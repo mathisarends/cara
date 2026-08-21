@@ -1,4 +1,10 @@
-from .activation import Activation, ActivationSource, ExternalActivationSource
+from .activation import (
+    Activation,
+    ActivationSource,
+    ExternalActivationSource,
+    ListenActivation,
+    PromptActivation,
+)
 from .agent import VoiceAgent
 from .barge_in import (
     BargeInContext,
@@ -51,9 +57,11 @@ __all__ = [
     "HumanMessage",
     "HueObserver",
     "LightingState",
+    "ListenActivation",
     "NoBargeIn",
     "Observer",
     "ObserverContext",
+    "PromptActivation",
     "SpeechBargeIn",
     "SoundObserver",
     "SonosAudioFocusObserver",

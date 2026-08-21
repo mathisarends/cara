@@ -2,10 +2,21 @@ import asyncio
 import logging
 from collections.abc import Iterable, Sequence
 
-from voice.activation.port import ActivationSource
-from voice.events import SessionEnded, SessionStarted, UserTurnStarted
+from voice.activation.port import (
+    Activation,
+    ActivationSource,
+    ListenActivation,
+    PromptActivation,
+)
+from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
+from voice.events.models import (
+    PromptTurnRequested,
+    Request,
+    VoiceTurnEnded,
+    VoiceTurnRequested,
+    VoiceTurnStarted,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +39,7 @@ class ActivationCoordinator:
 
         event_bus.on(SessionStarted, self._on_session_started)
         event_bus.on(SessionEnded, self._on_session_ended)
-        event_bus.on(UserTurnStarted, self._on_user_turn_started)
+        event_bus.on(VoiceTurnStarted, self._on_voice_turn_started)
         event_bus.on(VoiceTurnEnded, self._on_voice_turn_ended)
 
     async def run(self) -> None:
@@ -62,7 +73,7 @@ class ActivationCoordinator:
     async def _on_session_ended(self, _: SessionEnded) -> None:
         self._session_active = False
 
-    async def _on_user_turn_started(self, _: UserTurnStarted) -> None:
+    async def _on_voice_turn_started(self, _: VoiceTurnStarted) -> None:
         self._turn_active = True
 
     async def _on_voice_turn_ended(self, _: VoiceTurnEnded) -> None:
@@ -76,12 +87,18 @@ class ActivationCoordinator:
                     type(source).__name__,
                 )
                 continue
-            await self._event_bus.request(
-                VoiceTurnRequested(
-                    sequence=activation.sequence,
-                    speech_start_timeout=activation.speech_start_timeout,
-                )
+            await self._event_bus.request(_turn_request_for(activation))
+
+
+def _turn_request_for(activation: Activation) -> Request:
+    match activation:
+        case ListenActivation():
+            return VoiceTurnRequested(
+                sequence=activation.sequence,
+                speech_start_timeout=activation.speech_start_timeout,
             )
+        case PromptActivation():
+            return PromptTurnRequested(prompt=activation.prompt)
 
 
 async def _cancel(tasks: Sequence[asyncio.Task[None]]) -> None:
