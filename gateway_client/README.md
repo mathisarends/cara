@@ -23,7 +23,7 @@ from gateway_client import GatewayClient
 
 async with await GatewayClient.connect("ws://127.0.0.1:8000/v1/gateway") as client:
     session = await client.session.open(channel={"name": "cli"}, metadata={"app": "ios"})
-    await client.session.subscribe(session_id=session.id)
+    await client.subscription.subscribe(session_id=session.id)
     await client.turn.start(session_id=session.id, message="Hallo")
 
     async for notification in client.notifications():
@@ -35,7 +35,7 @@ async with await GatewayClient.connect("ws://127.0.0.1:8000/v1/gateway") as clie
 ```
 
 Every RPC method is namespaced on the client by its method prefix
-(`client.session.*`, `client.turn.*`), takes keyword-only parameters, and
+(`client.session.*`, `client.subscription.*`, `client.turn.*`), takes keyword-only parameters, and
 returns a parsed Pydantic model — never a raw `dict`. `client.notifications()`
 streams every server-pushed event (chat deltas, tool calls, turn lifecycle) as
 a validated `SessionEventNotification`.
@@ -121,6 +121,7 @@ gateway_client/src/gateway_client/
 ├── models.py             wire models, enums, discriminated unions (generated)
 └── namespaces/
     ├── __init__.py       namespace re-exports (generated)
-    ├── session.py         SessionClient: create, open, get, subscribe, unsubscribe (generated)
+    ├── session.py         SessionClient: create, open, get (generated)
+    ├── subscription.py     SubscriptionClient: subscribe, unsubscribe (generated)
     └── turn.py             TurnsClient: start, cancel (generated)
 ```

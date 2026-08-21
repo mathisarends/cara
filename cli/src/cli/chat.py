@@ -77,12 +77,12 @@ class ChatSession:
 
     async def _attach(self, session_id: UUID) -> None:
         if self._session_id is not None:
-            await self._client.session.unsubscribe(session_id=self._session_id)
+            await self._client.subscription.unsubscribe(session_id=self._session_id)
         snapshot = await self._client.session.get(session_id=session_id)
         self._session_id = session_id
         self._console.info(f"session {session_id} on channel {self._channel.name}")
         self._replay(snapshot.items)
-        await self._client.session.subscribe(session_id=session_id)
+        await self._client.subscription.subscribe(session_id=session_id)
         self._console.info("subscribed — type a message, /help for commands")
 
     async def _prompt_loop(self) -> None:

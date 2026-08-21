@@ -147,7 +147,7 @@ independent edits.
   session) and `TURN_ALREADY_RUNNING = -32009` (a second turn while one is
   active). Domain exceptions are mapped to these centrally in
   `GatewayConnection`'s error handling, not scattered per handler.
-- **Subscriptions.** `session.subscribe` / `session.unsubscribe` register a
+- **Subscriptions.** `subscription.subscribe` / `subscription.unsubscribe` register a
   client against a session id in an in-memory `EventBroker`. Each connected
   socket owns one event queue; publishing a `GatewayEvent` only reaches
   clients subscribed to that specific session. The broker is process-local —

@@ -50,4 +50,4 @@ def test_feature_rejects_handler_without_typed_params() -> None:
             raise AssertionError
 
     with pytest.raises(TypeError, match="params must be a Pydantic model"):
-        rpc_feature("invalid", handler=InvalidRpcMethods)
+        rpc_feature("invalid", handlers=(InvalidRpcMethods,))

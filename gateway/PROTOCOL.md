@@ -11,7 +11,7 @@ connection. The connection lifecycle lives at the gateway presentation boundary;
 each feature owns its Pydantic wire models and request handling.
 
 Available methods are `session.create`, `session.open`, `session.get`,
-`session.subscribe`, `session.unsubscribe`, `turn.start`, and `turn.cancel`.
+`subscription.subscribe`, `subscription.unsubscribe`, `turn.start`, and `turn.cancel`.
 Events arrive as `session.event` notifications after an explicit subscription.
 
 `session.create` always creates a fresh session. `session.open` returns the most
@@ -23,7 +23,7 @@ Example:
 
 ```json
 {"jsonrpc":"2.0","id":1,"method":"session.open","params":{"channel":{"name":"voice","account_id":"local"}}}
-{"jsonrpc":"2.0","id":2,"method":"session.subscribe","params":{"session_id":"<uuid>"}}
+{"jsonrpc":"2.0","id":2,"method":"subscription.subscribe","params":{"session_id":"<uuid>"}}
 {"jsonrpc":"2.0","id":3,"method":"turn.start","params":{"session_id":"<uuid>","message":"Hallo"}}
 ```
 

@@ -13,8 +13,8 @@ class ConversationRpcMethod(StrEnum):
     SESSION_CREATE = "session.create"
     SESSION_OPEN = "session.open"
     SESSION_GET = "session.get"
-    SESSION_SUBSCRIBE = "session.subscribe"
-    SESSION_UNSUBSCRIBE = "session.unsubscribe"
+    SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
+    SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
     TURN_START = "turn.start"
     TURN_CANCEL = "turn.cancel"
 

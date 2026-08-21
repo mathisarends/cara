@@ -1,13 +1,19 @@
 from gateway.features.conversation.presentation.events import SessionEvent
 from gateway.features.conversation.presentation.rpc import RpcNotificationMethod
-from gateway.features.conversation.presentation.rpc_methods import (
-    ConversationRpcMethods,
+from gateway.features.conversation.presentation.session_rpc_methods import (
+    SessionRpcMethods,
+)
+from gateway.features.conversation.presentation.subscription_rpc_methods import (
+    SubscriptionRpcMethods,
+)
+from gateway.features.conversation.presentation.turn_rpc_methods import (
+    TurnRpcMethods,
 )
 from gateway.presentation.rpc import RpcNotificationDefinition, rpc_feature
 
 CONVERSATION_PROTOCOL = rpc_feature(
     "conversation",
-    handler=ConversationRpcMethods,
+    handlers=(SessionRpcMethods, SubscriptionRpcMethods, TurnRpcMethods),
     notifications=(
         RpcNotificationDefinition(
             name=RpcNotificationMethod.SESSION_EVENT,

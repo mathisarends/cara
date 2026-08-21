@@ -222,7 +222,7 @@
       ]
     },
     {
-      "name": "session.subscribe",
+      "name": "subscription.subscribe",
       "summary": "Subscribe this connection to a conversation session.",
       "paramStructure": "by-name",
       "params": [
@@ -260,7 +260,7 @@
       ]
     },
     {
-      "name": "session.unsubscribe",
+      "name": "subscription.unsubscribe",
       "summary": "Unsubscribe this connection from a conversation session.",
       "paramStructure": "by-name",
       "params": [
@@ -1767,7 +1767,7 @@
             "default": null
           },
           "method": {
-            "const": "session.subscribe",
+            "const": "subscription.subscribe",
             "type": "string"
           },
           "params": {
@@ -1804,7 +1804,7 @@
             "default": null
           },
           "method": {
-            "const": "session.unsubscribe",
+            "const": "subscription.unsubscribe",
             "type": "string"
           },
           "params": {

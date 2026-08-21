@@ -34,9 +34,9 @@ class _Transport:
                 "channel": params["channel"],
                 "metadata": params.get("metadata"),
             }
-        if method_name == RpcMethod.SESSION_SUBSCRIBE:
+        if method_name == RpcMethod.SUBSCRIPTION_SUBSCRIBE:
             return {"subscribed": str(self.session_id)}
-        if method_name == RpcMethod.SESSION_UNSUBSCRIBE:
+        if method_name == RpcMethod.SUBSCRIPTION_UNSUBSCRIBE:
             return {"unsubscribed": str(self.session_id)}
         if method_name in {RpcMethod.TURN_START, RpcMethod.TURN_CANCEL}:
             if method_name == RpcMethod.TURN_CANCEL:
@@ -132,7 +132,7 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
                 "metadata": {"client": "cara-voice"},
             },
         ),
-        ("session.subscribe", {"session_id": str(session_id)}),
+        ("subscription.subscribe", {"session_id": str(session_id)}),
         (
             "turn.start",
             {
@@ -141,7 +141,7 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
                 "metadata": {"modality": "voice"},
             },
         ),
-        ("session.unsubscribe", {"session_id": str(session_id)}),
+        ("subscription.unsubscribe", {"session_id": str(session_id)}),
     ]
 
 
@@ -157,8 +157,8 @@ def test_gateway_agent_session_can_explicitly_create_a_fresh_session() -> None:
 
     assert asyncio.run(run()) == [
         "session.create",
-        "session.subscribe",
-        "session.unsubscribe",
+        "subscription.subscribe",
+        "subscription.unsubscribe",
     ]
 
 
@@ -178,10 +178,10 @@ def test_interrupt_cancels_the_active_gateway_turn_and_drains_its_terminal() -> 
 
     assert asyncio.run(run()) == [
         "session.open",
-        "session.subscribe",
+        "subscription.subscribe",
         "turn.start",
         "turn.cancel",
-        "session.unsubscribe",
+        "subscription.unsubscribe",
     ]
 
 

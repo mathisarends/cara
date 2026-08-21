@@ -12,8 +12,6 @@ from gateway_client.models import (
     SessionParams,
     SessionResponse,
     SessionSnapshotResponse,
-    SubscriptionResult,
-    UnsubscriptionResult,
 )
 from gateway_client.transport import RpcTransport
 
@@ -67,31 +65,3 @@ class SessionClient:
             params.model_dump(mode="json", exclude_none=True),
         )
         return SessionSnapshotResponse.model_validate(result)
-
-    async def subscribe(
-        self,
-        *,
-        session_id: UUID,
-    ) -> SubscriptionResult:
-        params = SessionParams(
-            session_id=session_id,
-        )
-        result = await self._transport.request(
-            RpcMethod.SESSION_SUBSCRIBE,
-            params.model_dump(mode="json", exclude_none=True),
-        )
-        return SubscriptionResult.model_validate(result)
-
-    async def unsubscribe(
-        self,
-        *,
-        session_id: UUID,
-    ) -> UnsubscriptionResult:
-        params = SessionParams(
-            session_id=session_id,
-        )
-        result = await self._transport.request(
-            RpcMethod.SESSION_UNSUBSCRIBE,
-            params.model_dump(mode="json", exclude_none=True),
-        )
-        return UnsubscriptionResult.model_validate(result)

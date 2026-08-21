@@ -10,6 +10,7 @@ from gateway_client.models import SessionEventNotification
 from gateway_client.namespaces import (
     AutomationClient,
     SessionClient,
+    SubscriptionClient,
     TurnsClient,
 )
 from gateway_client.transport import RpcTransport, WebSocketTransport
@@ -20,6 +21,7 @@ class GatewayClient:
         self._transport = transport
         self.automation = AutomationClient(transport)
         self.session = SessionClient(transport)
+        self.subscription = SubscriptionClient(transport)
         self.turn = TurnsClient(transport)
 
     @classmethod

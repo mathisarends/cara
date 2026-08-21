@@ -6,8 +6,14 @@ from fastapi import WebSocket
 from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation import AutomationRpcMethods
 from gateway.features.conversation.application import ConversationService, EventBroker
-from gateway.features.conversation.presentation.rpc_methods import (
-    ConversationRpcMethods,
+from gateway.features.conversation.presentation.session_rpc_methods import (
+    SessionRpcMethods,
+)
+from gateway.features.conversation.presentation.subscription_rpc_methods import (
+    SubscriptionRpcMethods,
+)
+from gateway.features.conversation.presentation.turn_rpc_methods import (
+    TurnRpcMethods,
 )
 from gateway.presentation.rpc.dispatch import GatewayRpcMethods
 from gateway.presentation.rpc.protocol import GatewayProtocol
@@ -29,6 +35,10 @@ class GatewayProvider(Provider):
     ) -> GatewayConnection:
         client_id = str(uuid4())
         automation = AutomationRpcMethods(automation_service)
-        conversation = ConversationRpcMethods(service, broker, client_id)
-        methods = GatewayRpcMethods(self._protocol, (automation, conversation))
+        session = SessionRpcMethods(service)
+        subscription = SubscriptionRpcMethods(service, broker, client_id)
+        turn = TurnRpcMethods(service)
+        methods = GatewayRpcMethods(
+            self._protocol, (automation, session, subscription, turn)
+        )
         return GatewayConnection(websocket, broker, client_id, methods)

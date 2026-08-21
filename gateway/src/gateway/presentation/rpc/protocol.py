@@ -48,7 +48,7 @@ class RpcEventDefinition:
 @dataclass(frozen=True, slots=True)
 class RpcFeatureDefinition:
     name: str
-    handler: type[RpcHandler]
+    handlers: tuple[type[RpcHandler], ...]
     methods: tuple[RpcMethodDefinition, ...] = ()
     notifications: tuple[RpcNotificationDefinition, ...] = ()
     events: tuple[RpcEventDefinition, ...] = ()
@@ -101,11 +101,14 @@ class GatewayProtocol:
 def rpc_feature(
     name: str,
     *,
-    handler: type[RpcHandler],
+    handlers: Iterable[type[RpcHandler]],
     notifications: tuple[RpcNotificationDefinition, ...] = (),
 ) -> RpcFeatureDefinition:
+    handlers = tuple(handlers)
     methods = tuple(
-        _method_definition(decorated) for decorated in decorated_methods(handler)
+        _method_definition(decorated)
+        for handler in handlers
+        for decorated in decorated_methods(handler)
     )
     events = tuple(
         event
@@ -114,7 +117,7 @@ def rpc_feature(
     )
     return RpcFeatureDefinition(
         name=name,
-        handler=handler,
+        handlers=handlers,
         methods=methods,
         notifications=notifications,
         events=events,

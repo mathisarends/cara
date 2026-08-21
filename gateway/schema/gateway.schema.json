@@ -1407,7 +1407,7 @@
           "default": null
         },
         "method": {
-          "const": "session.subscribe",
+          "const": "subscription.subscribe",
           "type": "string"
         },
         "params": {
@@ -1444,7 +1444,7 @@
           "default": null
         },
         "method": {
-          "const": "session.unsubscribe",
+          "const": "subscription.unsubscribe",
           "type": "string"
         },
         "params": {
@@ -1618,7 +1618,7 @@
       }
     },
     {
-      "name": "session.subscribe",
+      "name": "subscription.subscribe",
       "request": {
         "$ref": "#/$defs/SubscribeSessionRequest"
       },
@@ -1630,7 +1630,7 @@
       }
     },
     {
-      "name": "session.unsubscribe",
+      "name": "subscription.unsubscribe",
       "request": {
         "$ref": "#/$defs/UnsubscribeSessionRequest"
       },

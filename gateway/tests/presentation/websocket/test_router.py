@@ -66,7 +66,7 @@ def test_conversation_request_runs_over_gateway_socket(client: TestClient) -> No
             {
                 "jsonrpc": "2.0",
                 "id": "unsubscribe",
-                "method": "session.unsubscribe",
+                "method": "subscription.unsubscribe",
                 "params": {"session_id": session_id},
             }
         )

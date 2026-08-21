@@ -49,7 +49,7 @@ needs comes from these flags plus an already-running Gateway.
    on disk between runs, only in memory for the current process. `/new`
    bypasses reuse and always starts a fresh session on the channel.
 3. **Attach.** The client fetches a snapshot via `client.session.get(...)`,
-   replays it into the terminal, then `client.session.subscribe(...)` to
+   replays it into the terminal, then `client.subscription.subscribe(...)` to
    start receiving live events.
 4. **Send.** Each non-command line becomes `client.turn.start(session_id=...,
    message=...)`; the prompt blocks until a `TurnCompleted` / `TurnCancelled`

@@ -24,7 +24,7 @@ class _EchoHandler(rpc.RpcHandler):
         return _EchoResult(text=params.text)
 
 
-_ECHO_FEATURE = rpc_feature("echo", handler=_EchoHandler)
+_ECHO_FEATURE = rpc_feature("echo", handlers=(_EchoHandler,))
 
 
 @pytest.fixture

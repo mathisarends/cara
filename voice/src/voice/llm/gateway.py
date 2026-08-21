@@ -106,7 +106,7 @@ class GatewayAgentSession:
                 channel=channel_ref,
                 metadata=_SESSION_METADATA,
             )
-        await client.session.subscribe(session_id=session.id)
+        await client.subscription.subscribe(session_id=session.id)
         return cls(client, session.id)
 
     @property
@@ -185,7 +185,7 @@ class GatewayAgentSession:
         self._closed = True
         try:
             await self.interrupt()
-            await self._client.session.unsubscribe(session_id=self._session_id)
+            await self._client.subscription.unsubscribe(session_id=self._session_id)
         finally:
             await self._client.close()
             await self._notifications
