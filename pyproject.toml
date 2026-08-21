@@ -22,6 +22,7 @@ members = [
     "agent_plugin_api",
     "gateway_client",
     "llm",
+    "memory",
     "retrieval",
     "scheduler",
     "voice",
@@ -34,6 +35,7 @@ gateway = { workspace = true }
 agent-plugin-api = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
+memory = { workspace = true }
 retrieval = { workspace = true }
 scheduler = { workspace = true }
 voice = { workspace = true }
@@ -62,6 +64,7 @@ known-first-party = [
     "agent_plugin_api",
     "gateway_client",
     "llm",
+    "memory",
     "retrieval",
     "scheduler",
     "voice",
