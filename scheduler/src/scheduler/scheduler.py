@@ -123,6 +123,14 @@ class Scheduler[PayloadT]:
                 task.cancel()
             return removed
 
+    async def get(self, job_id: str) -> ScheduledJob[PayloadT] | None:
+        async with self._lock:
+            return await self._store.get(job_id)
+
+    async def list(self) -> tuple[ScheduledJob[PayloadT], ...]:
+        async with self._lock:
+            return await self._store.list()
+
     async def start(self) -> None:
         async with self._lock:
             if self._running:

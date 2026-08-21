@@ -104,6 +104,25 @@ def test_registers_all_supported_trigger_types() -> None:
     asyncio.run(scenario())
 
 
+def test_scheduler_exposes_persisted_jobs_for_management() -> None:
+    async def scenario() -> None:
+        async def runner(run: ScheduledRun[str]) -> None:
+            pass
+
+        scheduler = Scheduler(runner, MemoryJobStore[str]())
+        job = await scheduler.at(
+            datetime(2026, 8, 21, 9, tzinfo=UTC),
+            payload="payload",
+            job_id="managed",
+        )
+
+        assert await scheduler.get(job.id) == job
+        assert await scheduler.list() == (job,)
+        assert await scheduler.get("missing") is None
+
+    asyncio.run(scenario())
+
+
 def test_rejects_invalid_definitions() -> None:
     async def scenario() -> None:
         async def runner(run: ScheduledRun[str]) -> None:
