@@ -1,3 +1,4 @@
+from .activation import Activation, ActivationSource, ExternalActivationSource
 from .agent import VoiceAgent
 from .barge_in import (
     BargeInContext,
@@ -31,6 +32,8 @@ from .sound import Earcon, SoundObserver
 from .wakeword import WakeWordSettings
 
 __all__ = [
+    "Activation",
+    "ActivationSource",
     "AgentResult",
     "AssistantMessage",
     "BargeInContext",
@@ -43,6 +46,7 @@ __all__ = [
     "ConversationRole",
     "ConversationTurn",
     "Earcon",
+    "ExternalActivationSource",
     "FollowUpSettings",
     "HumanMessage",
     "HueObserver",

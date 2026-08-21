@@ -2,6 +2,11 @@ import logging
 from collections.abc import Iterable
 from pathlib import Path
 
+from voice.activation import (
+    ActivationCoordinator,
+    ActivationSource,
+    WakeWordActivationSource,
+)
 from voice.audio import (
     AudioBridge,
     AudioInput,
@@ -34,7 +39,6 @@ from voice.handler import (
     SpeechResourceHandler,
     TurnCoordinator,
     TurnListener,
-    WakeWordHandler,
 )
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
@@ -47,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 class VoiceAgent:
-    """Owns and wires one wake-word-driven voice session."""
+    """Owns and wires one voice session and the sources that can activate it."""
 
     def __init__(
         self,
@@ -61,6 +65,7 @@ class VoiceAgent:
         speech_to_text: SpeechToText | None = None,
         text_to_speech: TextToSpeech | None = None,
         follow_up_settings: FollowUpSettings | None = None,
+        activation_sources: Iterable[ActivationSource] = (),
         observers: Iterable[Observer] = (),
         recording_path: str | Path | None = None,
     ) -> None:
@@ -104,6 +109,7 @@ class VoiceAgent:
             barge_in,
             strip_wake_word=wake_word_settings.strip_from_command,
             follow_up_settings=follow_up_settings,
+            activation_sources=activation_sources,
         )
         self._stopped = False
         self._setup_observers(
@@ -119,6 +125,7 @@ class VoiceAgent:
         *,
         strip_wake_word: bool,
         follow_up_settings: FollowUpSettings | None,
+        activation_sources: Iterable[ActivationSource],
     ) -> None:
         self._agent_bridge = AgentBridge(
             event_bus=self._event_bus,
@@ -144,9 +151,15 @@ class VoiceAgent:
             event_bus=self._event_bus,
             coordinator=self._turn_coordinator,
         )
-        self._wake_word_handler = WakeWordHandler(
+        self._activation_coordinator = ActivationCoordinator(
             event_bus=self._event_bus,
-            source=self._wake_word,
+            sources=(
+                WakeWordActivationSource(
+                    event_bus=self._event_bus,
+                    listener=self._wake_word,
+                ),
+                *activation_sources,
+            ),
         )
         strategy = barge_in or WakeWordBargeIn()
         strategy.set_context(
@@ -207,7 +220,7 @@ class VoiceAgent:
             started = await self._event_bus.dispatch(SessionStarted())
             started.raise_if_failed()
             logger.debug("Session started")
-            await self._wake_word_handler.run()
+            await self._activation_coordinator.run()
         finally:
             await self.stop()
         return AgentResult(

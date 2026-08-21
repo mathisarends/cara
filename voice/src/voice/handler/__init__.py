@@ -3,7 +3,6 @@ from .command import CommandBridge
 from .follow_up import FollowUpHandler, FollowUpSettings
 from .session_lifecycle import SpeechResourceHandler
 from .turn import TurnCoordinator, TurnListener
-from .wake_word import WakeWordHandler
 
 __all__ = [
     "BargeInHandler",
@@ -13,5 +12,4 @@ __all__ = [
     "SpeechResourceHandler",
     "TurnCoordinator",
     "TurnListener",
-    "WakeWordHandler",
 ]

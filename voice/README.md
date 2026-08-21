@@ -26,6 +26,7 @@ touching the core pipeline.
 - [Pipeline overview](#pipeline-overview)
 - [Module layout](#module-layout)
 - [Key ports](#key-ports)
+- [Activation](#activation)
 - [Barge-in](#barge-in)
 - [Echo cancellation](#echo-cancellation)
 - [Events](#events)
@@ -36,6 +37,13 @@ touching the core pipeline.
 ```text
 mic ──▶ echo-cancelled BufferedAudioInput ──▶ WakeWordListener
                                                     │ wake word detected
+                                                    ▼
+                            WakeWordActivationSource ──┐
+                                                       │  (any ActivationSource)
+                            ExternalActivationSource ──┤
+                                                       ▼
+                                          ActivationCoordinator
+                                                    │ while the session is idle
                                                     ▼
                                           VoiceTurnRequested
                                                     │
@@ -69,7 +77,7 @@ second turn.
 
 ```text
 voice/src/voice/
-├── agent.py                VoiceAgent: composition root, wake-word loop
+├── agent.py                VoiceAgent: composition root, activation supervisor
 ├── observer.py                Observer callback interface (wake word, turn start, interruption, ...)
 ├── sound.py                    SoundObserver: earcon playback (wake/listening/success/error/sleep)
 ├── sonos.py                     SonosSettings (SONOS_* env)
@@ -85,6 +93,12 @@ voice/src/voice/
 │   ├── user_audio.py                 UserAudioProducer: publishes UserAudioChunk events
 │   ├── bridge.py                      AudioBridge: AssistantAudio* events -> physical AudioOutput
 │   └── player.py                       AudioPlayer: serializes WAV/PCM playback on one output
+│
+├── activation/              what may start a turn
+│   ├── port.py                  Activation + ActivationSource
+│   ├── coordinator.py             ActivationCoordinator: pumps every source, gates on session state
+│   ├── wake_word.py                WakeWordActivationSource (also publishes WakeWordDetected)
+│   └── external.py                  ExternalActivationSource: buttons, hotkeys, programmatic triggers
 │
 ├── wakeword/                WakeWordListener (wakewordkit) + WakeWordSettings
 ├── vad/                     VoiceActivityDetector port + SileroVoiceActivityDetector
@@ -102,7 +116,6 @@ voice/src/voice/
 │
 ├── handler/                 orchestration on the event bus
 │   ├── turn.py                  TurnCoordinator + TurnListener
-│   ├── wake_word.py               WakeWordHandler
 │   ├── barge_in.py                 BargeInHandler
 │   ├── command.py                   CommandBridge
 │   ├── follow_up.py                  FollowUpHandler / FollowUpSettings
@@ -126,6 +139,7 @@ voice/src/voice/
 | `TextToSpeech` | `synthesize(text) -> AsyncIterator[bytes]` | Deepgram, Cartesia, Piper |
 | `AgentSession` | `start_turn`, `steer`, `interrupt` | `GatewayAgentSession`, `EchoAgentSession` |
 | `BargeInStrategy` | `signals() -> AsyncIterator[BargeInSignal]` | `WakeWordBargeIn`, `SpeechBargeIn`, `NoBargeIn` |
+| `ActivationSource` | `activations() -> AsyncIterator[Activation]` | `WakeWordActivationSource`, `ExternalActivationSource` |
 
 Injecting a `VolumeControl`-capable `AudioOutput` into the agent's tool
 context is what turns on the `get_volume`/`set_volume` tools — see the [repo
@@ -134,6 +148,28 @@ root README](../README.md#audio-outputs).
 `SpeechToText` owns end-of-speech detection: `voice` does not run a separate
 silence timer. With the default Deepgram provider, the provider's own
 turn-detection ends the utterance and `SpeechToTextBridge` reacts to it.
+
+## Activation
+
+The wake word is one `ActivationSource` among several, not the agent's main
+loop. `ActivationCoordinator` pumps every configured source concurrently and
+turns each `Activation` into a `VoiceTurnRequested` while the session is idle;
+an activation carries the audio `sequence` to start from (`None` means live
+audio, which is what a button press wants) and an optional
+`speech_start_timeout`. The coordinator returns — ending the session — as soon
+as the first source's stream ends, because a source that stops producing has
+lost whatever it listens on.
+
+`ExternalActivationSource` is the out-of-band entry point: hold a reference to
+it, pass it to the agent, and `await source.activate()` from a button handler,
+a hotkey, or any other trigger.
+
+```python
+button = ExternalActivationSource()
+agent = VoiceAgent(agent_session=agent_session, activation_sources=(button,))
+...
+await button.activate()  # starts a turn at live audio, no wake word needed
+```
 
 ## Barge-in
 
