@@ -5,6 +5,7 @@ description = "Generated, fully typed Python client for the Cara Gateway."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "pydantic>=2.7.0",
+    "rpckit",
     "websockets>=13.0",
 ]
 

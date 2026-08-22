@@ -1,18 +1,22 @@
+from rpckit.client import RpcClientError, RpcRemoteError, RpcTransportError
+
 from .client import GatewayClient
-from .errors import GatewayClientError, GatewayRpcError, GatewayTransportError
-from .models import SessionEvent, SessionEventNotification
-from .namespaces import SessionClient, TurnsClient
+from .models import RpcMethod, SessionEvent, SessionEventNotification
+from .namespaces import AutomationClient, SessionClient, SubscriptionClient, TurnClient
 from .transport import RpcTransport, WebSocketTransport
 
 __all__ = [
+    "AutomationClient",
     "GatewayClient",
-    "GatewayClientError",
-    "GatewayRpcError",
-    "GatewayTransportError",
+    "RpcClientError",
+    "RpcMethod",
+    "RpcRemoteError",
     "RpcTransport",
+    "RpcTransportError",
     "SessionClient",
     "SessionEvent",
     "SessionEventNotification",
-    "TurnsClient",
+    "SubscriptionClient",
+    "TurnClient",
     "WebSocketTransport",
 ]

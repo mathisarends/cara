@@ -1,19 +1,11 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator
-from typing import Any, Protocol, Self
+from typing import Any, Self
 
 from websockets.asyncio.client import ClientConnection, connect
 
-from gateway_client.errors import GatewayRpcError, GatewayTransportError
-
-
-class RpcTransport(Protocol):
-    async def request(self, method: str, params: dict[str, Any]) -> Any: ...
-
-    def notifications(self) -> AsyncIterator[dict[str, Any]]: ...
-
-    async def close(self) -> None: ...
+from rpckit.client import RpcRemoteError, RpcTransport, RpcTransportError
 
 
 class WebSocketTransport:
@@ -55,7 +47,7 @@ class WebSocketTransport:
         await self._reader_task
 
     async def _read_messages(self) -> None:
-        failure: GatewayTransportError | None = None
+        failure: RpcTransportError | None = None
         try:
             async for raw_message in self._connection:
                 message = json.loads(raw_message)
@@ -68,7 +60,7 @@ class WebSocketTransport:
                     continue
                 if error := message.get("error"):
                     future.set_exception(
-                        GatewayRpcError(
+                        RpcRemoteError(
                             code=error["code"],
                             message=error["message"],
                             data=error.get("data"),
@@ -77,13 +69,16 @@ class WebSocketTransport:
                 else:
                     future.set_result(message.get("result"))
         except Exception as error:
-            failure = GatewayTransportError("Gateway WebSocket connection closed")
+            failure = RpcTransportError("Gateway WebSocket connection closed")
             failure.__cause__ = error
         finally:
             if failure is None:
-                failure = GatewayTransportError("Gateway WebSocket connection closed")
+                failure = RpcTransportError("Gateway WebSocket connection closed")
             for future in self._pending.values():
                 if not future.done():
                     future.set_exception(failure)
             self._pending.clear()
             await self._notifications.put(None)
+
+
+__all__ = ["RpcTransport", "WebSocketTransport"]
