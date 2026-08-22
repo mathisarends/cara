@@ -1,5 +1,5 @@
 from gateway.presentation import Feature
-from gateway.presentation.rpc.protocol import GatewayProtocol
+from rpckit import RpcProtocol
 
 from . import automation, conversation, health
 
@@ -10,9 +10,9 @@ FEATURES: tuple[Feature, ...] = (
 )
 
 
-def gateway_protocol() -> GatewayProtocol:
-    return GatewayProtocol(
-        feature.protocol for feature in FEATURES if feature.protocol is not None
+def gateway_protocol() -> RpcProtocol:
+    return RpcProtocol(
+        *(feature.protocol for feature in FEATURES if feature.protocol is not None)
     )
 
 

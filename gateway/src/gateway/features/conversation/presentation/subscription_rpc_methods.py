@@ -6,7 +6,7 @@ from gateway.features.conversation.presentation.rpc import (
     UnsubscriptionResult,
 )
 from gateway.presentation import rpc
-from gateway.presentation.rpc import RpcErrorCode
+from gateway.presentation.rpc import ResourceNotFoundError, RpcInternalError
 
 
 class SubscriptionRpcMethods(rpc.RpcHandler):
@@ -23,7 +23,7 @@ class SubscriptionRpcMethods(rpc.RpcHandler):
     @rpc.method(
         ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE,
         summary="Subscribe this connection to a conversation session.",
-        errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
+        errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
         await self._service.get_session(params.session_id)
@@ -33,7 +33,7 @@ class SubscriptionRpcMethods(rpc.RpcHandler):
     @rpc.method(
         ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE,
         summary="Unsubscribe this connection from a conversation session.",
-        errors=(RpcErrorCode.INTERNAL_ERROR,),
+        errors=(RpcInternalError,),
     )
     async def unsubscribe_session(self, params: SessionParams) -> UnsubscriptionResult:
         self._broker.unsubscribe(self._client_id, params.session_id)

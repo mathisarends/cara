@@ -1,12 +1,26 @@
-from .decorators import RpcHandler, event, method
-from .envelopes import RpcErrorCode
-from .protocol import RpcNotificationDefinition, rpc_feature
+from rpckit import (
+    RpcErrorCode,
+    RpcHandler,
+    RpcInternalError,
+    RpcInvalidParamsError,
+    RpcNotificationDefinition,
+    event,
+    feature,
+    method,
+)
+
+from .errors import GatewayErrorCode, ResourceNotFoundError, TurnAlreadyRunningError
 
 __all__ = [
+    "GatewayErrorCode",
+    "ResourceNotFoundError",
     "RpcErrorCode",
     "RpcHandler",
+    "RpcInternalError",
+    "RpcInvalidParamsError",
     "RpcNotificationDefinition",
+    "TurnAlreadyRunningError",
     "event",
+    "feature",
     "method",
-    "rpc_feature",
 ]

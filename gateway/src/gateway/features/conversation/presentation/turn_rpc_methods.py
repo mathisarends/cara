@@ -6,7 +6,12 @@ from gateway.features.conversation.presentation.rpc import (
     TurnCommandResult,
 )
 from gateway.presentation import rpc
-from gateway.presentation.rpc import RpcErrorCode
+from gateway.presentation.rpc import (
+    ResourceNotFoundError,
+    RpcInternalError,
+    RpcInvalidParamsError,
+    TurnAlreadyRunningError,
+)
 
 
 class TurnRpcMethods(rpc.RpcHandler):
@@ -17,10 +22,10 @@ class TurnRpcMethods(rpc.RpcHandler):
         ConversationRpcMethod.TURN_START,
         summary="Start an agent turn in a conversation session.",
         errors=(
-            RpcErrorCode.INVALID_PARAMS,
-            RpcErrorCode.RESOURCE_NOT_FOUND,
-            RpcErrorCode.TURN_ALREADY_RUNNING,
-            RpcErrorCode.INTERNAL_ERROR,
+            RpcInvalidParamsError,
+            ResourceNotFoundError,
+            TurnAlreadyRunningError,
+            RpcInternalError,
         ),
     )
     async def start_turn(self, params: StartTurnParams) -> TurnCommandResult:
@@ -35,9 +40,9 @@ class TurnRpcMethods(rpc.RpcHandler):
         ConversationRpcMethod.TURN_CANCEL,
         summary="Cancel the active turn in a conversation session.",
         errors=(
-            RpcErrorCode.INVALID_PARAMS,
-            RpcErrorCode.RESOURCE_NOT_FOUND,
-            RpcErrorCode.INTERNAL_ERROR,
+            RpcInvalidParamsError,
+            ResourceNotFoundError,
+            RpcInternalError,
         ),
     )
     async def cancel_turn(self, params: SessionParams) -> TurnCommandResult:

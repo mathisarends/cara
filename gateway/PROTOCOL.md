@@ -59,16 +59,18 @@ Wire events follow the same rule. Application and domain events remain unaware
 of JSON-RPC; a presentation mapper converts them to decorated Pydantic messages:
 
 ```python
-@rpc.event("chat.delta")
+@rpc.event
 class ChatDelta(EventBase):
     type: Literal["chat.delta"] = "chat.delta"
     text: str
 ```
 
 Decorators only attach metadata. They do not mutate a global registry. Each
-feature explicitly creates its protocol definition with `rpc_feature(...)`, and
-the gateway composes those definitions. The same definitions drive runtime
-dispatch and specification generation.
+feature explicitly creates its protocol definition with `rpc.feature(...)`,
+and the gateway composes those definitions. The same definitions drive
+runtime dispatch and specification generation — all via
+[`rpckit`](../rpckit), the transport-agnostic JSON-RPC library gateway is
+built on.
 
 Generate the checked-in artifacts with:
 
@@ -80,5 +82,5 @@ Outputs:
 
 - `schema/gateway.openrpc.json` maps every method to params, result, and errors.
 - `schema/gateway.schema.json` contains the complete JSON Schema model graph.
-- `x-cara-notifications` maps notification names to their payload unions.
-- `x-cara-events` maps every decorated event name to its concrete payload.
+- `x-rpc-notifications` maps notification names to their payload unions.
+- `x-rpc-events` maps every decorated event name to its concrete payload.

@@ -9,9 +9,9 @@ from gateway.features.conversation.presentation.subscription_rpc_methods import 
 from gateway.features.conversation.presentation.turn_rpc_methods import (
     TurnRpcMethods,
 )
-from gateway.presentation.rpc import RpcNotificationDefinition, rpc_feature
+from gateway.presentation.rpc import RpcNotificationDefinition, feature
 
-CONVERSATION_PROTOCOL = rpc_feature(
+CONVERSATION_PROTOCOL = feature(
     "conversation",
     handlers=(SessionRpcMethods, SubscriptionRpcMethods, TurnRpcMethods),
     notifications=(

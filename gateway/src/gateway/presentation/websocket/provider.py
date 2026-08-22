@@ -15,13 +15,13 @@ from gateway.features.conversation.presentation.subscription_rpc_methods import 
 from gateway.features.conversation.presentation.turn_rpc_methods import (
     TurnRpcMethods,
 )
-from gateway.presentation.rpc.dispatch import GatewayRpcMethods
-from gateway.presentation.rpc.protocol import GatewayProtocol
 from gateway.presentation.websocket.connection import GatewayConnection
+from gateway.presentation.websocket.error_mapping import gateway_error_mapper
+from rpckit import RpcProtocol, RpcServer
 
 
 class GatewayProvider(Provider):
-    def __init__(self, protocol: GatewayProtocol) -> None:
+    def __init__(self, protocol: RpcProtocol) -> None:
         super().__init__()
         self._protocol = protocol
 
@@ -38,7 +38,12 @@ class GatewayProvider(Provider):
         session = SessionRpcMethods(service)
         subscription = SubscriptionRpcMethods(service, broker, client_id)
         turn = TurnRpcMethods(service)
-        methods = GatewayRpcMethods(
-            self._protocol, (automation, session, subscription, turn)
+        server = RpcServer(
+            automation,
+            session,
+            subscription,
+            turn,
+            protocol=self._protocol,
+            error_mapper=gateway_error_mapper,
         )
-        return GatewayConnection(websocket, broker, client_id, methods)
+        return GatewayConnection(websocket, broker, client_id, server)

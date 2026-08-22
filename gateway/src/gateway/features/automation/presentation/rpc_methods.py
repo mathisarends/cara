@@ -8,7 +8,7 @@ from gateway.features.automation.presentation.schemas import (
     ListAutomationsResponse,
 )
 from gateway.presentation import rpc
-from gateway.presentation.rpc import RpcErrorCode
+from gateway.presentation.rpc import ResourceNotFoundError, RpcInternalError
 
 
 class AutomationRpcMethods(rpc.RpcHandler):
@@ -17,7 +17,7 @@ class AutomationRpcMethods(rpc.RpcHandler):
 
     @rpc.method(
         AutomationRpcMethod.LIST,
-        errors=(RpcErrorCode.INTERNAL_ERROR,),
+        errors=(RpcInternalError,),
     )
     async def list_automations(
         self,
@@ -32,7 +32,7 @@ class AutomationRpcMethods(rpc.RpcHandler):
     @rpc.method(
         AutomationRpcMethod.GET,
         summary="Get an automation belonging to a conversation session.",
-        errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
+        errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def get_automation(
         self,

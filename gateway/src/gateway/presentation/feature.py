@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from dishka import Provider
 from fastapi import APIRouter, FastAPI
 
-from gateway.presentation.rpc.protocol import RpcFeatureDefinition
+from rpckit import RpcFeatureDefinition
 
 
 @dataclass(frozen=True, slots=True)

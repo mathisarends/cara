@@ -15,6 +15,11 @@
     {
       "name": "automation.list",
       "summary": "List automations belonging to a conversation session.",
+      "tags": [
+        {
+          "name": "automation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -33,10 +38,10 @@
           "$ref": "#/components/schemas/ListAutomationsResponse"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/ListAutomationsRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/ListAutomationsParams"
       },
       "errors": [
@@ -49,6 +54,11 @@
     {
       "name": "automation.get",
       "summary": "Get an automation belonging to a conversation session.",
+      "tags": [
+        {
+          "name": "automation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -76,10 +86,10 @@
           "$ref": "#/components/schemas/AutomationResponse"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/GetAutomationRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/GetAutomationParams"
       },
       "errors": [
@@ -96,6 +106,11 @@
     {
       "name": "session.create",
       "summary": "Create a conversation session.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -121,10 +136,10 @@
           "$ref": "#/components/schemas/SessionResponse"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/CreateSessionRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/CreateSessionParams"
       },
       "errors": [
@@ -141,6 +156,11 @@
     {
       "name": "session.open",
       "summary": "Open the current session for a channel or create it.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -166,10 +186,10 @@
           "$ref": "#/components/schemas/SessionResponse"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/OpenSessionRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/OpenSessionParams"
       },
       "errors": [
@@ -186,6 +206,11 @@
     {
       "name": "session.get",
       "summary": "Get a conversation session snapshot.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -204,10 +229,10 @@
           "$ref": "#/components/schemas/SessionSnapshotResponse"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/GetSessionRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/SessionParams"
       },
       "errors": [
@@ -224,6 +249,11 @@
     {
       "name": "subscription.subscribe",
       "summary": "Subscribe this connection to a conversation session.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -242,10 +272,10 @@
           "$ref": "#/components/schemas/SubscriptionResult"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/SubscribeSessionRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/SessionParams"
       },
       "errors": [
@@ -262,6 +292,11 @@
     {
       "name": "subscription.unsubscribe",
       "summary": "Unsubscribe this connection from a conversation session.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -280,10 +315,10 @@
           "$ref": "#/components/schemas/UnsubscriptionResult"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/UnsubscribeSessionRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/SessionParams"
       },
       "errors": [
@@ -296,6 +331,11 @@
     {
       "name": "turn.start",
       "summary": "Start an agent turn in a conversation session.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -332,10 +372,10 @@
           "$ref": "#/components/schemas/TurnCommandResult"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/StartTurnRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/StartTurnParams"
       },
       "errors": [
@@ -360,6 +400,11 @@
     {
       "name": "turn.cancel",
       "summary": "Cancel the active turn in a conversation session.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
       "paramStructure": "by-name",
       "params": [
         {
@@ -378,10 +423,10 @@
           "$ref": "#/components/schemas/TurnCommandResult"
         }
       },
-      "x-cara-request-schema": {
+      "x-rpc-request-schema": {
         "$ref": "#/components/schemas/CancelTurnRequest"
       },
-      "x-cara-params-schema": {
+      "x-rpc-params-schema": {
         "$ref": "#/components/schemas/SessionParams"
       },
       "errors": [
@@ -820,24 +865,12 @@
         "title": "ReminderAutomationPayload",
         "type": "object"
       },
-      "RpcErrorCode": {
-        "enum": [
-          -32700,
-          -32600,
-          -32601,
-          -32602,
-          -32603,
-          -32004,
-          -32009
-        ],
-        "title": "RpcErrorCode",
-        "type": "integer"
-      },
       "RpcErrorData": {
         "additionalProperties": false,
         "properties": {
           "code": {
-            "$ref": "#/components/schemas/RpcErrorCode"
+            "title": "Code",
+            "type": "integer"
           },
           "message": {
             "title": "Message",
@@ -861,18 +894,7 @@
             "type": "string"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "$ref": "#/components/schemas/RpcRequestId"
           },
           "error": {
             "$ref": "#/components/schemas/RpcErrorData"
@@ -885,6 +907,19 @@
         "title": "RpcFailure",
         "type": "object"
       },
+      "RpcRequestId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "RpcSuccess": {
         "additionalProperties": false,
         "properties": {
@@ -895,18 +930,7 @@
             "type": "string"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
+            "$ref": "#/components/schemas/RpcRequestId"
           },
           "result": {
             "title": "Result"
@@ -1593,7 +1617,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "List automations belonging to a conversation session."
       },
       "GetAutomationRequest": {
         "additionalProperties": false,
@@ -1630,7 +1655,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Get an automation belonging to a conversation session."
       },
       "CreateSessionRequest": {
         "additionalProperties": false,
@@ -1667,7 +1693,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Create a conversation session."
       },
       "OpenSessionRequest": {
         "additionalProperties": false,
@@ -1704,7 +1731,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Open the current session for a channel or create it."
       },
       "GetSessionRequest": {
         "additionalProperties": false,
@@ -1741,7 +1769,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Get a conversation session snapshot."
       },
       "SubscribeSessionRequest": {
         "additionalProperties": false,
@@ -1778,7 +1807,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Subscribe this connection to a conversation session."
       },
       "UnsubscribeSessionRequest": {
         "additionalProperties": false,
@@ -1815,7 +1845,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Unsubscribe this connection from a conversation session."
       },
       "StartTurnRequest": {
         "additionalProperties": false,
@@ -1852,7 +1883,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Start an agent turn in a conversation session."
       },
       "CancelTurnRequest": {
         "additionalProperties": false,
@@ -1889,7 +1921,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Cancel the active turn in a conversation session."
       },
       "SessionEventNotification": {
         "additionalProperties": false,
@@ -1912,24 +1945,25 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "Publish a subscribed conversation session event."
       }
     }
   },
-  "x-cara-protocol-version": 1,
-  "x-cara-notifications": [
+  "x-rpc-protocol-version": 1,
+  "x-rpc-notifications": [
     {
       "name": "session.event",
-      "summary": "Publish a subscribed conversation session event.",
       "payload": {
         "$ref": "#/components/schemas/SessionEvent"
       },
       "message": {
         "$ref": "#/components/schemas/SessionEventNotification"
-      }
+      },
+      "summary": "Publish a subscribed conversation session event."
     }
   ],
-  "x-cara-events": [
+  "x-rpc-events": [
     {
       "name": "turn.started",
       "payload": {

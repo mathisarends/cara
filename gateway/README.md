@@ -73,19 +73,25 @@ gateway/src/gateway/
 ## JSON-RPC / OpenRPC schema generation
 
 The RPC surface is generated *from code*, not maintained as a parallel spec —
-a decorator-based registry is the single source of truth, and dispatch is
-checked against it at construction time so the two can never drift apart.
+[`rpckit`](../rpckit) is the decorator-driven, transport-agnostic JSON-RPC
+library gateway builds its interface on; `gateway.presentation.rpc` is a thin
+gateway-flavored surface over it (adding `ResourceNotFoundError` and
+`TurnAlreadyRunningError` for gateway's own error codes). Dispatch is checked
+against the declared protocol at construction time so the two can never drift
+apart.
 
 1. **Declare a method.** A feature's RPC handler subclasses `RpcHandler` and
    decorates each method with `@rpc.method(name, summary=..., errors=(...))`.
    The single parameter and return type must be Pydantic models (or `None`);
-   the decorator inspects the live type hints to build the method's schema:
+   the decorator inspects the live type hints to build the method's schema.
+   Declared errors are `RpcError` subclasses, not bare codes, so the contract
+   and the implementation cannot drift:
 
    ```python
    @rpc.method(
        ConversationRpcMethod.SESSION_CREATE,
        summary="Create a conversation session.",
-       errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
+       errors=(RpcInvalidParamsError, RpcInternalError),
    )
    async def create_session(self, params: CreateSessionParams) -> SessionResponse:
        session = await self._service.create_session(_channel_ref(params), params.metadata)
@@ -93,19 +99,19 @@ checked against it at construction time so the two can never drift apart.
    ```
 
 2. **Declare a notification payload.** Event models are decorated with
-   `@rpc.event("event.name")`, which cross-checks the model's own
-   `type: Literal[...]` field against the declared name.
+   `@rpc.event`, which cross-checks the model's own `type: Literal[...]`
+   field and derives the event name from it.
 
-3. **Group into a feature.** `rpc_feature(name, handler=..., notifications=(...))`
-   bundles a handler class with its notification types into one
+3. **Group into a feature.** `rpc.feature(name, handlers=..., notifications=(...))`
+   bundles handler classes with their notification types into one
    `RpcFeatureDefinition`, exposed as `Feature.protocol`.
 
 4. **Merge into one protocol.** `gateway_protocol()` combines every feature's
-   protocol into a single `GatewayProtocol`, raising on any name collision.
+   protocol into a single `rpckit.RpcProtocol`, raising on any name collision.
 
-5. **Verify at startup.** `GatewayRpcMethods.__init__` asserts that the live
-   handler instances expose exactly the method names the protocol declares —
-   a structural guarantee, not a convention.
+5. **Verify at startup.** `RpcServer.__init__` (via its `RpcDispatcher`)
+   asserts that the live handler instances expose exactly the method names
+   the protocol declares — a structural guarantee, not a convention.
 
 6. **Export.** `cara-gateway-schema` (from
    `presentation/rpc/schema_export.py`) renders two files from the same
@@ -113,8 +119,8 @@ checked against it at construction time so the two can never drift apart.
 
    | File | Format |
    | --- | --- |
-   | `gateway/schema/gateway.schema.json` | Plain JSON Schema: a `oneOf` over per-method request envelopes, `RpcSuccess`/`RpcFailure`, and notification wrappers, plus `x-cara-methods`/`x-cara-notifications`/`x-cara-events` side-tables. |
-   | `gateway/schema/gateway.openrpc.json` | OpenRPC 1.3.2, with the same `x-cara-notifications`/`x-cara-events` extensions since OpenRPC has no native notification concept. |
+   | `gateway/schema/gateway.schema.json` | Plain JSON Schema: a `oneOf` over per-method request envelopes, `RpcSuccess`/`RpcFailure`, and notification wrappers, plus `x-rpc-methods`/`x-rpc-notifications`/`x-rpc-events` side-tables. |
+   | `gateway/schema/gateway.openrpc.json` | OpenRPC 1.3.2, with the same `x-rpc-notifications`/`x-rpc-events` extensions since OpenRPC has no native notification concept. |
 
    ```bash
    uv run cara-gateway-schema [--output-dir DIR]   # default: gateway/schema/

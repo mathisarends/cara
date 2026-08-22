@@ -15,7 +15,11 @@ from gateway.features.conversation.presentation.schemas import (
     SessionSnapshotResponse,
 )
 from gateway.presentation import rpc
-from gateway.presentation.rpc import RpcErrorCode
+from gateway.presentation.rpc import (
+    ResourceNotFoundError,
+    RpcInternalError,
+    RpcInvalidParamsError,
+)
 
 
 class SessionRpcMethods(rpc.RpcHandler):
@@ -25,7 +29,7 @@ class SessionRpcMethods(rpc.RpcHandler):
     @rpc.method(
         ConversationRpcMethod.SESSION_CREATE,
         summary="Create a conversation session.",
-        errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
+        errors=(RpcInvalidParamsError, RpcInternalError),
     )
     async def create_session(self, params: CreateSessionParams) -> SessionResponse:
         session = await self._service.create_session(
@@ -37,7 +41,7 @@ class SessionRpcMethods(rpc.RpcHandler):
     @rpc.method(
         ConversationRpcMethod.SESSION_OPEN,
         summary="Open the current session for a channel or create it.",
-        errors=(RpcErrorCode.INVALID_PARAMS, RpcErrorCode.INTERNAL_ERROR),
+        errors=(RpcInvalidParamsError, RpcInternalError),
     )
     async def open_session(self, params: OpenSessionParams) -> SessionResponse:
         session = await self._service.open_session(
@@ -49,7 +53,7 @@ class SessionRpcMethods(rpc.RpcHandler):
     @rpc.method(
         ConversationRpcMethod.SESSION_GET,
         summary="Get a conversation session snapshot.",
-        errors=(RpcErrorCode.RESOURCE_NOT_FOUND, RpcErrorCode.INTERNAL_ERROR),
+        errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def get_session(self, params: SessionParams) -> SessionSnapshotResponse:
         return session_snapshot(await self._service.get_session(params.session_id))
