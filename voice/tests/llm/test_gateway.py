@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from gateway_client import GatewayClient
-from gateway_client.models import EventType, RpcMethod
+from gateway_client.models import RpcMethod, SessionEventType
 from voice.llm import (
     GatewayAgentSession,
     GatewayAgentTurnFailed,
@@ -40,7 +40,7 @@ class _Transport:
             return {"unsubscribed": str(self.session_id)}
         if method_name in {RpcMethod.TURN_START, RpcMethod.TURN_CANCEL}:
             if method_name == RpcMethod.TURN_CANCEL:
-                await self.emit(EventType.TURN_CANCELLED, sequence=100)
+                await self.emit(SessionEventType.TURN_CANCELLED, sequence=100)
             return {"session_id": str(self.session_id)}
         raise AssertionError(f"Unexpected method: {method_name}")
 
@@ -53,7 +53,7 @@ class _Transport:
 
     async def emit(
         self,
-        event_type: EventType,
+        event_type: SessionEventType,
         *,
         sequence: int,
         **data: Any,
@@ -86,16 +86,16 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
             channel="voice",
             account_id="kitchen",
         )
-        await transport.emit(EventType.CHAT_DELTA, sequence=1, text="Hallo ")
+        await transport.emit(SessionEventType.CHAT_DELTA, sequence=1, text="Hallo ")
         await transport.emit(
-            EventType.TOOL_CALL_STARTED,
+            SessionEventType.TOOL_CALL_STARTED,
             sequence=2,
             call_id="call-1",
             name="weather",
             arguments={"city": "Berlin"},
         )
         await transport.emit(
-            EventType.TOOL_CALL_COMPLETED,
+            SessionEventType.TOOL_CALL_COMPLETED,
             sequence=3,
             call_id="call-1",
             name="weather",
@@ -103,12 +103,12 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
             is_error=False,
         )
         await transport.emit(
-            EventType.CHAT_COMPLETED,
+            SessionEventType.CHAT_COMPLETED,
             sequence=4,
             text="Hallo Berlin",
             finish_reason="stop",
         )
-        await transport.emit(EventType.TURN_COMPLETED, sequence=5)
+        await transport.emit(SessionEventType.TURN_COMPLETED, sequence=5)
 
         stream = await session.start_turn("Wie ist das Wetter?")
         events = [event async for event in stream]
@@ -190,7 +190,7 @@ def test_gateway_turn_failure_is_exposed_to_the_voice_bridge() -> None:
         transport = _Transport()
         session = await GatewayAgentSession.attach(GatewayClient(transport))
         await transport.emit(
-            EventType.TURN_FAILED,
+            SessionEventType.TURN_FAILED,
             sequence=1,
             code="ModelError",
             message="model unavailable",

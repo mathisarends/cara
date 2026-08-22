@@ -5,8 +5,9 @@ from uuid import UUID
 
 from cli.chat import ChatSession
 from cli.console import Console
-from gateway_client import GatewayClient, GatewayClientError
+from gateway_client import GatewayClient, WebSocketTransport
 from gateway_client.models import SessionChannel
+from rpckit.client import RpcClientError
 
 DEFAULT_URL = "ws://127.0.0.1:8000/v1/gateway"
 DEFAULT_CHANNEL = "cli"
@@ -24,7 +25,7 @@ async def _run(args: argparse.Namespace) -> None:
     console = Console(color=not args.no_color and sys.stdout.isatty())
     console.banner(args.url)
     try:
-        client = await GatewayClient.connect(args.url)
+        client = GatewayClient(await WebSocketTransport.connect(args.url))
     except OSError as error:
         console.error(f"cannot reach the gateway: {error}")
         raise SystemExit(1) from error
@@ -34,7 +35,7 @@ async def _run(args: argparse.Namespace) -> None:
         chat = ChatSession(client, console, channel, trace=args.events)
         try:
             await chat.run(args.session)
-        except GatewayClientError as error:
+        except RpcClientError as error:
             console.error(str(error))
             raise SystemExit(1) from error
 

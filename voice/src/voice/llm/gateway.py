@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from gateway_client import GatewayClient
+from gateway_client import GatewayClient, WebSocketTransport
 from gateway_client.models import (
     ChatCompleted,
     ChatDelta,
@@ -74,7 +74,7 @@ class GatewayAgentSession:
         account_id: str | None = None,
         new_session: bool = False,
     ) -> Self:
-        client = await GatewayClient.connect(url)
+        client = GatewayClient(await WebSocketTransport.connect(url))
         try:
             return await cls.attach(
                 client,
