@@ -17,13 +17,13 @@ class AutomationRpcMethods(rpc.RpcHandler):
 
     @rpc.method(
         AutomationRpcMethod.LIST,
-        summary="List automations belonging to a conversation session.",
         errors=(RpcErrorCode.INTERNAL_ERROR,),
     )
     async def list_automations(
         self,
         params: ListAutomationsParams,
     ) -> ListAutomationsResponse:
+        """List automations belonging to a conversation session."""
         jobs = await self._service.list_for_session(params.session_id)
         return ListAutomationsResponse(
             automations=tuple(automation_response(job) for job in jobs)

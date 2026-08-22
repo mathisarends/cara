@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from types import FunctionType
@@ -16,7 +17,7 @@ class RpcHandler:
 @dataclass(frozen=True, slots=True)
 class RpcMethodMetadata:
     name: str
-    summary: str
+    summary: str | None
     errors: tuple[int, ...]
 
 
@@ -35,7 +36,7 @@ class DecoratedRpcMethod:
 def method[HandlerT: Callable[..., Any]](
     name: str,
     *,
-    summary: str,
+    summary: str | None = None,
     errors: tuple[int, ...] = (),
 ) -> Callable[[HandlerT], HandlerT]:
     def decorate(handler: HandlerT) -> HandlerT:
@@ -44,7 +45,11 @@ def method[HandlerT: Callable[..., Any]](
         setattr(
             handler,
             _METHOD_METADATA_KEY,
-            RpcMethodMetadata(name=name, summary=summary, errors=errors),
+            RpcMethodMetadata(
+                name=name,
+                summary=summary or _docstring_summary(handler),
+                errors=errors,
+            ),
         )
         return handler
 
@@ -95,3 +100,9 @@ def _method_metadata(attribute: object) -> RpcMethodMetadata | None:
     if not isinstance(metadata, RpcMethodMetadata):
         raise TypeError(f"Invalid RPC method metadata on {attribute.__name__}")
     return metadata
+
+
+def _docstring_summary(handler: Callable[..., Any]) -> str | None:
+    if handler.__doc__ is None:
+        return None
+    return inspect.cleandoc(handler.__doc__).splitlines()[0].strip() or None

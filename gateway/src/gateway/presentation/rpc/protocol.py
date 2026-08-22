@@ -28,7 +28,7 @@ class RpcMethodDefinition:
     request_name: str
     params: type[BaseModel]
     result: Any
-    summary: str
+    summary: str | None
     errors: tuple[int, ...] = ()
 
 

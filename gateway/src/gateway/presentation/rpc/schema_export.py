@@ -197,7 +197,7 @@ def _openrpc_method(
     required = set(params_schema.get("required", ()))
     document: dict[str, Any] = {
         "name": method.name,
-        "summary": method.summary,
+        **({"summary": method.summary} if method.summary is not None else {}),
         "paramStructure": "by-name",
         "params": [
             {
