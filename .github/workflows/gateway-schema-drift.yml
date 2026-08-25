@@ -29,16 +29,16 @@ jobs:
         run: uv python install 3.13
 
       - name: Regenerate Gateway schema
-        run: uv run --frozen --package gateway cara-gateway-schema
+        run: uv run --frozen --package gateway-server cara-gateway-schema
 
       - name: Regenerate Python client
         run: >-
           uv run --frozen --package gateway-client cara-gateway-client-generate
-          gateway/schema/gateway.openrpc.json
+          gateway/server/schema/gateway.openrpc.json
 
       - name: Check generated artifacts for drift
         run: >-
           git diff --exit-code --
-          gateway/schema/gateway.schema.json
-          gateway/schema/gateway.openrpc.json
-          gateway_client/src/gateway_client
+          gateway/server/schema/gateway.schema.json
+          gateway/server/schema/gateway.openrpc.json
+          gateway/client/src/gateway_client

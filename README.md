@@ -51,14 +51,14 @@ Three ideas hold this together:
 - **The gateway is the only owner of conversation state.** Sessions, turns, message history, and
   tool-call records live in the gateway's database. Clients never hold history themselves — they
   send new input against a session id and receive streamed events back. See
-  [`gateway`](gateway#readme) for the session/turn lifecycle in full.
+  [`gateway-server`](gateway/server#readme) for the session/turn lifecycle in full.
 - **The wire protocol is generated from code, not hand-maintained.** RPC methods and events are
   declared once, in the gateway, via decorators; `cara-gateway-schema` renders that registry into
-  an OpenRPC document (`gateway/schema/gateway.openrpc.json`), and
-  [`gateway_client`](gateway_client#readme) generates a fully typed Python client from that same
+  an OpenRPC document (`gateway/server/schema/gateway.openrpc.json`), and
+  [`gateway_client`](gateway/client#readme) generates a fully typed Python client from that same
   document. Changing the protocol is: change a decorated method, regenerate the schema, regenerate
   the client — never edit generated files by hand. See
-  [gateway → JSON-RPC / OpenRPC schema generation](gateway#json-rpc--openrpc-schema-generation) for
+  [gateway server → JSON-RPC / OpenRPC schema generation](gateway/server#json-rpc--openrpc-schema-generation) for
   the exact mechanism.
 - **The agent runtime is a plugin, not a hardwired dependency.** The gateway defines a small,
   stable contract in [`agent_plugin_api`](agent_plugin_api#readme) (a run request, a read-only
@@ -67,16 +67,17 @@ Three ideas hold this together:
   entry-point group `cara.agent_plugins`; the gateway discovers, validates, and loads whichever
   plugin `gateway.yaml` names at startup, and fails fast if it's missing, mismatched, or
   misconfigured — never mid-turn. See
-  [gateway → Agent plugin system](gateway#agent-plugin-system) and
+  [gateway server → Agent plugin system](gateway/server#agent-plugin-system) and
   [`AGENT_PLUGIN_CONCEPT.md`](AGENT_PLUGIN_CONCEPT.md) for the design rationale.
 
 [`voice`](voice#readme) and [`cli`](cli#readme) are both thin clients built on
-[`gateway_client`](gateway_client#readme): neither talks to an LLM directly, and both get
+[`gateway_client`](gateway/client#readme): neither talks to an LLM directly, and both get
 session-per-channel reuse (`session.open`) for free from the gateway.
 
 ## Packages
 
-All nine packages are members of one `uv` workspace (`pyproject.toml`); the graph below is their
+All ten packages are members of one `uv` workspace (`pyproject.toml`). The Gateway server and
+client are grouped under `gateway/` while remaining independently installable; the graph below is their
 actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
 relationship that is _not_ a package dependency: `gateway` never imports `agent` — it only
 discovers whichever plugin `gateway.yaml` names, at startup, through the `cara.agent_plugins`
@@ -105,10 +106,10 @@ The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`, `llm`
 
 | Package                                       | What it is                                                                                     |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [`gateway`](gateway#readme)                   | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
+| [`gateway-server`](gateway/server#readme)     | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
 | [`agent`](agent#readme)                       | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
 | [`agent_plugin_api`](agent_plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                  |
-| [`gateway_client`](gateway_client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
+| [`gateway-client`](gateway/client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
 | [`voice`](voice#readme)                       | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
 | [`cli`](cli#readme)                           | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](llm#readme)                           | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
@@ -134,7 +135,7 @@ uv run cara-gateway
 Clients connect to `ws://127.0.0.1:8000/v1/gateway`. Requests, commands,
 correlated responses, and subscribed events use one JSON-RPC 2.0 WebSocket.
 The connection lifecycle belongs to the gateway presentation boundary; each
-feature owns its wire models and request handling. See [`gateway`](gateway#readme)
+feature owns its wire models and request handling. See [`gateway-server`](gateway/server#readme)
 for the full protocol and session/turn lifecycle.
 
 Connect a microphone and speakers, then run the voice client:

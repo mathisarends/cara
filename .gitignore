@@ -98,6 +98,7 @@ bandit-report.json
 /gateway.sqlite3
 /scheduler.sqlite3
 /gateway/scheduler.sqlite3
+/gateway/server/scheduler.sqlite3
 
 # Piper voice models
 /models/

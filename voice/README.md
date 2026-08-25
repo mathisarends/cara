@@ -1,7 +1,7 @@
 # voice
 
 `voice` is Cara's local audio-pipeline client: wake word detection,
-recording, speech-to-text, an agent turn (over the [`gateway`](../gateway) by
+recording, speech-to-text, an agent turn (over the [`gateway-server`](../gateway/server) by
 default), text-to-speech, and playback, wired into one event-driven
 `VoiceAgent`. It layers acoustic echo cancellation and configurable barge-in
 on top, so a user can interrupt the assistant mid-response, and supports both

@@ -18,9 +18,9 @@ environments = [
 members = [
     "agent",
     "cli",
-    "gateway",
+    "gateway/server",
     "agent_plugin_api",
-    "gateway_client",
+    "gateway/client",
     "llm",
     "memory",
     "retrieval",
@@ -31,7 +31,7 @@ members = [
 [tool.uv.sources]
 agent = { workspace = true }
 cli = { workspace = true }
-gateway = { workspace = true }
+gateway-server = { workspace = true }
 agent-plugin-api = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }

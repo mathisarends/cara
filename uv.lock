@@ -17,8 +17,8 @@ members = [
     "agent",
     "agent-plugin-api",
     "cli",
-    "gateway",
     "gateway-client",
+    "gateway-server",
     "llm",
     "memory",
     "retrieval",
@@ -216,7 +216,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gateway-client", editable = "gateway_client" },
+    { name = "gateway-client", editable = "gateway/client" },
     { name = "pyrpckit", specifier = "==0.2.0" },
 ]
 
@@ -354,9 +354,38 @@ wheels = [
 ]
 
 [[package]]
-name = "gateway"
+name = "gateway-client"
 version = "0.1.0"
-source = { editable = "gateway" }
+source = { editable = "gateway/client" }
+dependencies = [
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pytest-asyncio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "pyrpckit", specifier = "==0.2.0" },
+    { name = "websockets", specifier = ">=13.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=1.0.0" },
+]
+
+[[package]]
+name = "gateway-server"
+version = "0.1.0"
+source = { editable = "gateway/server" }
 dependencies = [
     { name = "agent-plugin-api", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -400,35 +429,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx2", specifier = ">=2.9.1" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "pytest-asyncio", specifier = ">=1.0.0" },
-]
-
-[[package]]
-name = "gateway-client"
-version = "0.1.0"
-source = { editable = "gateway_client" }
-dependencies = [
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pytest-asyncio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "pyrpckit", specifier = "==0.2.0" },
-    { name = "websockets", specifier = ">=13.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
 ]
@@ -1572,7 +1572,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gateway-client", editable = "gateway_client" },
+    { name = "gateway-client", editable = "gateway/client" },
     { name = "hueify", specifier = ">=0.9.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },

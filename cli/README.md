@@ -2,7 +2,7 @@
 
 `cli` is a small interactive terminal client for manually exercising the Cara
 Gateway during development. It connects over JSON-RPC/WebSocket via
-[`gateway_client`](../gateway_client), resolves or reuses a session on a given
+[`gateway_client`](../gateway/client), resolves or reuses a session on a given
 channel, and gives you a REPL where you type messages and watch the
 assistant's streamed reply — including tool-call events — render live.
 
@@ -42,7 +42,7 @@ needs comes from these flags plus an already-running Gateway.
    reach the Gateway exits immediately with an error.
 2. **Resolve the session.** With no `--session`, `cli` calls
    `client.session.open(channel=...)` — the same channel-scoped reuse
-   `session.open` provides to any client (see [`gateway`](../gateway)): it
+   `session.open` provides to any client (see [`gateway-server`](../gateway/server)): it
    returns the channel's existing session or creates one, so re-running
    `cara-chat` against the same `--channel`/`--account` continues the same
    conversation. This is entirely server-side — the CLI stores no session id

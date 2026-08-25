@@ -7,7 +7,7 @@ from pyrpckit.codegen import render_python_client
 from pyrpckit.codegen.python import PythonClientOptions
 from pyrpckit.codegen.writer import write_files
 
-_DEFAULT_OUTPUT = Path("gateway_client/src/gateway_client")
+_DEFAULT_OUTPUT = Path("gateway/client/src/gateway_client")
 
 
 def generate(schema_path: Path, output_directory: Path, *, check: bool = False) -> bool:

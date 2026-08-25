@@ -4,7 +4,7 @@
 tool-calling loop, system-prompt assembly from workspace markdown and skills,
 and the application-specific tool catalog (filesystem, shell/sandbox,
 weather, web search, volume, skills, model switching). It is registered as a
-`cara.agent_plugins` entry point, so [`gateway`](../gateway) can discover and
+`cara.agent_plugins` entry point, so [`gateway-server`](../gateway/server) can discover and
 drive it as a plugin without knowing anything about its internals — see
 [Gateway plugin adapter](#gateway-plugin-adapter).
 

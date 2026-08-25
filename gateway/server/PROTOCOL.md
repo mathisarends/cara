@@ -69,7 +69,7 @@ Decorators only attach metadata. They do not mutate a global registry. Each
 feature explicitly creates its protocol definition with `rpc.feature(...)`,
 and the gateway composes those definitions. The same definitions drive
 runtime dispatch and specification generation — all via
-[`rpckit`](../rpckit), the transport-agnostic JSON-RPC library gateway is
+`rpckit`, the transport-agnostic JSON-RPC library gateway is
 built on.
 
 Generate the checked-in artifacts with:

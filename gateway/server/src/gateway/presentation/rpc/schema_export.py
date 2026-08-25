@@ -8,8 +8,8 @@ from pyrpckit.schema import render_json_schema, render_openrpc
 
 from gateway.features import gateway_protocol
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
-_DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "schema"
+_REPO_ROOT = Path(__file__).resolve().parents[6]
+_DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "server" / "schema"
 
 
 def render_gateway_schema(protocol: RpcProtocol) -> dict[str, Any]:
