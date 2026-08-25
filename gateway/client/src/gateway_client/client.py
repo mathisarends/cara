@@ -8,21 +8,16 @@ from pydantic import TypeAdapter
 from pyrpckit.client import RpcTransport
 
 from gateway_client.models import SessionEventNotification
-from gateway_client.namespaces import (
-    AutomationClient,
-    SessionClient,
-    SubscriptionClient,
-    TurnClient,
-)
+from gateway_client.namespaces import Automations, Sessions, Subscriptions, Turns
 
 
 class GatewayClient:
     def __init__(self, transport: RpcTransport) -> None:
         self._transport = transport
-        self.automation = AutomationClient(transport)
-        self.session = SessionClient(transport)
-        self.subscription = SubscriptionClient(transport)
-        self.turn = TurnClient(transport)
+        self.automation = Automations(transport)
+        self.session = Sessions(transport)
+        self.subscription = Subscriptions(transport)
+        self.turn = Turns(transport)
 
     async def notifications(self) -> AsyncIterator[SessionEventNotification]:
         adapter = TypeAdapter(SessionEventNotification)

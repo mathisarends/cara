@@ -17,7 +17,7 @@ from gateway_client.models import (
 )
 
 
-class SessionClient:
+class Sessions:
     def __init__(self, transport: RpcTransport) -> None:
         self._transport = transport
 

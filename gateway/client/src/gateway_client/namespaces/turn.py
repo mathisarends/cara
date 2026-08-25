@@ -14,7 +14,7 @@ from gateway_client.models import (
 )
 
 
-class TurnClient:
+class Turns:
     def __init__(self, transport: RpcTransport) -> None:
         self._transport = transport
 

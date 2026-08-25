@@ -1,9 +1,11 @@
 import argparse
 import ast
 import json
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, PackageLoader
 from pyrpckit.codegen import render_python_client
@@ -30,6 +32,7 @@ def generate(schema_path: Path, output_directory: Path, *, check: bool = False) 
     options = PythonClientOptions(
         package="gateway_client",
         client_name="GatewayClient",
+        namespace_class_names=_namespace_class_names(document),
         source=schema_path.name,
     )
     rendered = dict(render_python_client(document, options))
@@ -43,6 +46,28 @@ def generate(schema_path: Path, output_directory: Path, *, check: bool = False) 
     }
     changed = write_files(output_directory, generated, check=check)
     return bool(changed)
+
+
+def _namespace_class_names(document: dict[str, Any]) -> dict[str, str]:
+    """Name namespace classes after their domain: 'automation.list' -> Automations."""
+    namespaces = {
+        method["name"].split(".")[0]
+        for method in document.get("methods", ())
+        if "." in method["name"]
+    }
+    return {namespace: _plural(_pascal_case(namespace)) for namespace in namespaces}
+
+
+def _pascal_case(namespace: str) -> str:
+    return "".join(part.capitalize() for part in re.split(r"[_\-]", namespace))
+
+
+def _plural(name: str) -> str:
+    if name.endswith("y") and not name.endswith(("ay", "ey", "oy", "uy")):
+        return f"{name[:-1]}ies"
+    if name.endswith(("s", "x", "z", "ch", "sh")):
+        return f"{name}es"
+    return f"{name}s"
 
 
 def _client_init(content: str, *, source: str) -> str:

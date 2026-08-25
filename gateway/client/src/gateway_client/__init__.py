@@ -11,25 +11,25 @@ from pyrpckit.client import (
 from gateway_client.client import GatewayClient
 from gateway_client.models import RpcMethod, SessionEvent, SessionEventNotification
 from gateway_client.namespaces import (
-    AutomationClient,
-    SessionClient,
-    SubscriptionClient,
-    TurnClient,
+    Automations,
+    Sessions,
+    Subscriptions,
+    Turns,
 )
 from gateway_client.transport import WebSocketTransport
 
 __all__ = [
-    "AutomationClient",
+    "Automations",
     "GatewayClient",
     "RpcClientError",
     "RpcMethod",
     "RpcRemoteError",
     "RpcTransport",
     "RpcTransportError",
-    "SessionClient",
     "SessionEvent",
     "SessionEventNotification",
-    "SubscriptionClient",
-    "TurnClient",
+    "Sessions",
+    "Subscriptions",
+    "Turns",
     "WebSocketTransport",
 ]
