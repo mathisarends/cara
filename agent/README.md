@@ -27,14 +27,24 @@ its turn loop and prompt are built.
 ## Public API
 
 ```python
-from agent import Agent, ModelSwitch, SystemPrompt
+from agent import (
+    Agent,
+    AgentFactory,
+    AgentSettings,
+    ModelSwitch,
+    SystemPrompt,
+    WorkspaceSettings,
+)
 ```
 
 | Name | Purpose |
 | --- | --- |
 | `Agent` | Runs one stateful tool-calling agent loop and streams `AgentEvent`s. |
+| `AgentFactory` | Composes configured workspaces, models, skills, command runners, and tools into an `Agent`. |
+| `AgentSettings` | Validates the model, workspace, sandbox, and system-prompt configuration. |
 | `ModelSwitch` | The swappable `ChatModel` driving the agent, addressable by name. |
 | `SystemPrompt` | Composes the system prompt from workspace markdown files, local time, memory, and skills. |
+| `WorkspaceSettings` | Configures the workspace root and file-size limit. |
 
 Subpackages are imported directly where needed rather than re-exported at the
 top level: `agent.tools`, `agent.sandbox`, `agent.events`, `agent.messages`,
@@ -44,13 +54,19 @@ top level: `agent.tools`, `agent.sandbox`, `agent.events`, `agent.messages`,
 
 ```text
 agent/src/agent/
-├── __init__.py          Agent, ModelSwitch, SystemPrompt
-├── agent.py               Agent: the stateful async tool-calling loop
+├── __init__.py              public API
+├── agent.py                 Agent: the stateful async tool-calling loop
+├── configuration.py         AgentSettings and WorkspaceSettings
+├── dependencies.py          configured dependency providers
 ├── events.py                AgentEvent union: TextDelta, ToolStarted, ToolCompleted, TurnCompleted
-├── messages.py               MessageManager: append-only history + system prompt injection
-├── models.py                  ModelSwitch: named ChatModel registry, swap-by-name
-├── plugin.py                   cara.agent_plugins entry point: adapts Agent to agent_plugin_api
-├── workspace.py                  resolve_workspace_root(): CARA_WORKSPACE_ROOT / ~/.cara/workspace
+├── factory.py               AgentFactory: configured runtime composition
+├── messages.py              MessageManager: append-only history + system prompt injection
+├── models.py                ModelSwitch: named ChatModel registry, swap-by-name
+├── plugin/
+│   ├── __init__.py          cara.agent_plugins entry point
+│   ├── runner.py            AgentRunRequest to Agent turn lifecycle
+│   └── mapping.py           history and event conversion
+├── workspace.py             resolve_workspace_root(): CARA_WORKSPACE_ROOT / ~/.cara/workspace
 ├── prompt/
 │   ├── system_prompt.py           renders AGENTS/IDENTITY/SOUL/USER/TOOLS/MEMORY.md, daily memory, skills
 │   └── local_time.py                renders the current date/time section
@@ -234,18 +250,16 @@ cara = "agent.plugin:create_plugin"
 speaking only the [`agent_plugin_api`](../gateway/plugin_api) contract:
 
 - `_CaraAgentPlugin.create(config, context)` validates `config` against a
-  frozen, `extra="forbid"` `_CaraAgentSettings` (`models`, `workspace`,
+  frozen, `extra="forbid"` `AgentSettings` (`models`, `workspace`,
   `sandbox`, `system_prompt`) — an unknown config key from `gateway.yaml`
   fails fast at startup.
-- `_CaraAgentRunner.run(request)` loads prior turns via
+- `CaraAgentRunner.run(request)` loads prior turns via
   `AgentSessionReader.context_for_turn(...)`, replays them into `llmify`
-  messages, builds a fresh `Agent` (Codex `ChatModel` via
-  [`llm`](../llm), `ModelSwitch`, `build_tools(...)`, and
-  `Skills.from_dir(workspace/skills)` if present), and maps every internal
+  messages, asks `AgentFactory` for a fresh configured `Agent`, and maps every internal
   `AgentEvent` to its `agent_plugin_api` counterpart
   (`TextDelta`→`ChatDelta`, `TurnCompleted`→`ChatCompleted`,
   `ToolStarted`→`ToolCallStarted`, `ToolCompleted`→`ToolCallCompleted`).
-- `agent.interrupt()` always runs in a `finally`, and `_CaraAgentRunner`
+- `agent.interrupt()` always runs in a `finally`, and `CaraAgentRunner`
   tracks every active `Agent` so `close()` can interrupt all of them on
   Gateway shutdown.
 

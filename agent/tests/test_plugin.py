@@ -115,11 +115,11 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         return cast(AgentTools, tools)
 
     monkeypatch.setattr(
-        "agent.plugin.create_codex_model",
+        "agent.dependencies.create_codex_model",
         create_test_model,
     )
     monkeypatch.setattr(
-        "agent.plugin.build_tools",
+        "agent.factory.build_tools",
         build_test_tools,
     )
     context = AgentContext(
