@@ -64,9 +64,10 @@ class _ScheduleParams(ToolParams):
     instruction: str = Field(
         description=(
             "Complete, self-contained instruction for the future agent run, in the "
-            "user's own intent and language. Name every action and required tool use "
-            "(e.g. playing bird sounds, controlling devices, fetching fresh info), or "
-            "just the response to give if no tool is needed — not a mere summary."
+            "user's own intent and language. Name every action, its order, target, and "
+            "relevant tool capability (e.g. play bird sounds on Sonos). Do not invent "
+            "or test exact CLI syntax now; the future run resolves it from its tools "
+            "and skills. If no tool is needed, store the response to give."
         )
     )
     name: str | None = Field(
@@ -123,7 +124,10 @@ def register_reminder_tools(tools: Tools) -> None:
             "time, repeatedly every few minutes, or on a cron expression. The future "
             "run can speak to the user and call tools. Store the complete executable "
             "instruction, including requested actions and tool use, rather than only "
-            "a reminder topic."
+            "a reminder topic. Do not execute, test, or rehearse the future task in "
+            "the current turn, and do not call other tools merely to discover command "
+            "syntax. Create exactly one reminder unless the user explicitly requests "
+            "multiple schedules."
         ),
         params=CreateReminderParams,
         available_when=available,
@@ -137,7 +141,12 @@ def register_reminder_tools(tools: Tools) -> None:
             schedule=_schedule(params),
             name=params.name,
         )
-        return f"Scheduled: {_render_reminder(reminder)}"
+        return (
+            f"Scheduled: {_render_reminder(reminder)}\n"
+            "Scheduling is complete. Do not execute or test the future task now. "
+            "Do not list, update, delete, or create another reminder for this request. "
+            "Stop using tools and confirm the scheduled time to the user."
+        )
 
     @tools.tool(
         description=(

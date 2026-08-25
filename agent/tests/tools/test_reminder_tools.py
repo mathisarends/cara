@@ -115,7 +115,9 @@ def test_create_reminder_schema_requests_an_executable_instruction(
     function = schema["function"]
     instruction = function["parameters"]["properties"]["instruction"]
     assert "future agent run" in function["description"]
-    assert "required tool use" in instruction["description"]
+    assert "Do not execute, test, or rehearse" in function["description"]
+    assert "relevant tool capability" in instruction["description"]
+    assert "future run resolves it" in instruction["description"]
     assert "message" not in function["parameters"]["properties"]
 
 
@@ -142,6 +144,7 @@ def test_create_reminder_localises_a_naive_run_at(tmp_path: Path) -> None:
         )
     ]
     assert result.startswith("Scheduled: new: 'Zahnarzt' — once at 2026-08-26 07:30")
+    assert "Stop using tools" in result
 
 
 def test_create_reminder_converts_minutes_to_seconds(tmp_path: Path) -> None:
