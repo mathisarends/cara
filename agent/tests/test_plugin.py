@@ -111,7 +111,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         return cast(ChatModel, model)
 
     def build_test_tools(**kwargs: Any) -> AgentTools:
-        model_switches.append(cast(ModelSwitch, kwargs["injected_dependencies"][0]))
+        model_switches.append(cast(ModelSwitch, kwargs["context"].resolve(ModelSwitch)))
         return cast(AgentTools, tools)
 
     monkeypatch.setattr(

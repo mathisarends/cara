@@ -14,6 +14,7 @@ from agenttoolkit.builtins import (
     LocalWorkspace,
     Workspace,
 )
+from agenttoolkit.dependency import DependencyContainer
 
 from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools.actions import register_tools
@@ -29,10 +30,12 @@ class AgentTools(agenttoolkit.Tools):
         self,
         context: ToolContext,
         *,
-        dependencies: Sequence[DependencyProvider] = (),
+        container: DependencyContainer | None = None,
+        dependencies: Sequence[DependencyProvider] | None = None,
     ) -> None:
         super().__init__(
             context=context,
+            container=container,
             dependencies=dependencies,
             middleware=(ToolResultMiddleware(),),
         )
@@ -54,16 +57,32 @@ def build_tools(
     workspace: Workspace | None = None,
     sandbox: SandboxDefinition | None = None,
     additional_tools: agenttoolkit.Tools | None = None,
+    context: ToolContext | None = None,
+    container: DependencyContainer | None = None,
 ) -> AgentTools:
-    tool_context = _create_tool_context(
-        *injected_dependencies,
-        skills,
-        workspace=workspace,
-        sandbox=sandbox,
+    if context is not None and (
+        injected_dependencies
+        or skills is not None
+        or workspace is not None
+        or sandbox is not None
+    ):
+        raise ValueError(
+            "A prebuilt context cannot be combined with context dependencies"
+        )
+    tool_context = (
+        context
+        if context is not None
+        else _create_tool_context(
+            *injected_dependencies,
+            skills,
+            workspace=workspace,
+            sandbox=sandbox,
+        )
     )
     tools = _create_tools(
         tool_context,
-        dependencies=(BuiltinDependencies(),),
+        container=container,
+        dependencies=None if container is not None else (BuiltinDependencies(),),
     )
     if additional_tools is not None:
         tools.merge(additional_tools)
@@ -73,10 +92,15 @@ def build_tools(
 def _create_tools(
     context: ToolContext | None = None,
     *,
-    dependencies: Sequence[DependencyProvider] = (),
+    container: DependencyContainer | None = None,
+    dependencies: Sequence[DependencyProvider] | None = None,
 ) -> AgentTools:
     selected_context = context if context is not None else _create_tool_context()
-    tools = AgentTools(selected_context, dependencies=dependencies)
+    tools = AgentTools(
+        selected_context,
+        container=container,
+        dependencies=dependencies,
+    )
     register_tools(tools)
     return tools
 

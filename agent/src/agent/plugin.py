@@ -1,11 +1,18 @@
 import asyncio
 import json
-from collections.abc import AsyncIterator, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from agenttoolkit import Skills
-from agenttoolkit.builtins import LocalWorkspace
+from agenttoolkit import DependencyProvider, Skills, ToolContext, provide
+from agenttoolkit.builtins import (
+    CommandDefaults,
+    CommandRunner,
+    LocalShellRunner,
+    LocalWorkspace,
+    Workspace,
+)
+from agenttoolkit.dependency import DependencyContainer
 from llmify import (
     AssistantMessage,
     ChatModel,
@@ -20,8 +27,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from agent.agent import Agent
 from agent.events import TextDelta, ToolCompleted, ToolStarted, TurnCompleted
 from agent.models import ModelSwitch
-from agent.sandbox import SandboxDefinition
+from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools import build_tools
+from agent.tools.dependency_provider import BuiltinDependencies
 from agent.workspace import resolve_workspace_root
 from agent_plugin_api import (
     AGENT_PLUGIN_API_VERSION,
@@ -73,7 +81,10 @@ class _CaraAgentSettings(BaseModel):
         return models
 
 
-type _AgentFactory = Callable[[AgentContext], Agent]
+type _ModelFactories = dict[str, Callable[[str | None], ChatModel]]
+type _AgentFactory = Callable[[AgentContext], Awaitable[Agent]]
+
+_SKILLS_DEPENDENCY = cast(type[Skills | None], Skills | None)
 
 
 class _CaraAgentRunner:
@@ -91,7 +102,7 @@ class _CaraAgentRunner:
             request.session.id,
             request.input_id,
         )
-        agent = self._agent_factory(context)
+        agent = await self._agent_factory(context)
         self._active_agents.add(agent)
         try:
             events = await agent.start_turn(request.input)
@@ -110,34 +121,86 @@ class _CaraAgentRunner:
 class _ConfiguredAgentFactory:
     def __init__(self, settings: _CaraAgentSettings) -> None:
         self._settings = settings
-        self._workspace = _create_workspace(settings.workspace)
-        skills_root = self._workspace.root / "skills"
-        self._skills = Skills.from_dir(skills_root) if skills_root.is_dir() else None
 
-    def __call__(self, context: AgentContext) -> Agent:
-        model_factories = {
-            model.value: _codex_model_factory(model) for model in self._settings.models
-        }
-        default_model = self._settings.models[0].value
-        models = ModelSwitch.configurable(
-            model_factories,
-            default=default_model,
-            reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
+    async def __call__(self, context: AgentContext) -> Agent:
+        container = DependencyContainer(
+            _ConfiguredDependencies(self._settings),
+            BuiltinDependencies(),
         )
+        settings = await container.get(_CaraAgentSettings)
+        workspace = await container.get(Workspace)
+        skills = await container.get(_SKILLS_DEPENDENCY)
+        models = await container.get(ModelSwitch)
+        tool_context = await container.get(ToolContext)
         tools = build_tools(
-            injected_dependencies=(models,),
-            skills=self._skills,
-            workspace=self._workspace,
-            sandbox=self._settings.sandbox,
+            context=tool_context,
+            container=container,
         )
         return Agent(
             models=models,
             tools=tools,
-            skills=self._skills,
-            system_prompt=self._settings.system_prompt,
-            workspace_root=self._workspace.root,
+            skills=skills,
+            system_prompt=settings.system_prompt,
+            workspace_root=workspace.root,
             messages=_context_messages(context),
         )
+
+
+class _ConfiguredDependencies(DependencyProvider):
+    def __init__(self, settings: _CaraAgentSettings) -> None:
+        self._settings = settings
+
+    @provide
+    def settings(self) -> _CaraAgentSettings:
+        return self._settings
+
+    @provide
+    def workspace(self, settings: _CaraAgentSettings) -> Workspace:
+        return LocalWorkspace(
+            resolve_workspace_root(settings.workspace.root),
+            max_file_bytes=settings.workspace.max_file_bytes,
+        )
+
+    @provide
+    def skills(self, workspace: Workspace) -> Skills | None:
+        skills_root = workspace.root / "skills"
+        return Skills.from_dir(skills_root) if skills_root.is_dir() else None
+
+    @provide
+    def command_runner(
+        self,
+        settings: _CaraAgentSettings,
+        workspace: Workspace,
+    ) -> CommandRunner:
+        if settings.sandbox is None:
+            return LocalShellRunner(CommandDefaults(working_directory=workspace.root))
+        return create_sandbox(workspace.root, settings.sandbox)
+
+    @provide
+    def model_factories(self, settings: _CaraAgentSettings) -> _ModelFactories:
+        return {model.value: _codex_model_factory(model) for model in settings.models}
+
+    @provide
+    def model_switch(
+        self,
+        settings: _CaraAgentSettings,
+        model_factories: _ModelFactories,
+    ) -> ModelSwitch:
+        return ModelSwitch.configurable(
+            model_factories,
+            default=settings.models[0].value,
+            reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
+        )
+
+    @provide
+    def tool_context(
+        self,
+        workspace: Workspace,
+        command_runner: CommandRunner,
+        skills: Skills | None,
+        model_switch: ModelSwitch,
+    ) -> ToolContext:
+        return ToolContext(workspace, command_runner, skills, model_switch)
 
 
 class _CaraAgentPlugin:
@@ -164,13 +227,6 @@ def _codex_model_factory(
         )
 
     return create
-
-
-def _create_workspace(workspace: _WorkspaceSettings) -> LocalWorkspace:
-    return LocalWorkspace(
-        resolve_workspace_root(workspace.root),
-        max_file_bytes=workspace.max_file_bytes,
-    )
 
 
 def _context_messages(context: AgentContext) -> list[Message]:

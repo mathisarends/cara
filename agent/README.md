@@ -189,11 +189,17 @@ def register_model_control_tools(tools: Tools) -> None:
 Weather, location, and search live behind ABCs in `tools/handler/ports.py`
 (`Weather`, `LocationLookup`, `WebSearch`), with default adapters
 (`OpenMeteoWeather`, `IpLocationLookup`, `TavilyWebSearch`) registered as
-`agenttoolkit.DependencyProvider`s in `tools/factory.py` and resolved lazily
+`agenttoolkit.DependencyProvider`s in `tools/dependency_provider.py` and resolved lazily
 by `Tools`'s DI container the first time a tool actually needs them — so
 building the catalog never requires `TAVILY_API_KEY` to be set. Concrete
 objects passed through `injected_dependencies` are runtime context dependencies;
 they do not replace these registered built-in providers.
+
+The plugin composition root uses a second provider for configuration-derived
+dependencies: workspace, skills, command runner or sandbox, model factories,
+model switch, and the resulting `ToolContext`. Both providers share one
+`DependencyContainer` per agent, so the agent and its tools use the same
+singleton instances.
 
 `ToolError`, raised from within a tool, is caught by `ToolResultMiddleware`
 and converted into a `ToolFailure(str)` result the model can see and react to,
