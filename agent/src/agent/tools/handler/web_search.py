@@ -20,33 +20,21 @@ class TavilyCredentials(BaseSettings):
 
 
 class TavilyWebSearch(WebSearch):
-    """Web search via the Tavily API.
-
-    Credentials are resolved lazily on the first search, not at construction,
-    so building the tool catalog doesn't require TAVILY_API_KEY to be set.
-    """
+    """Web search via the Tavily API."""
 
     def __init__(
         self,
         *,
-        credentials: TavilyCredentials | None = None,
+        credentials: TavilyCredentials,
         client: httpx.AsyncClient | None = None,
     ) -> None:
-        self._credentials = credentials
-        self._http_client = client
-        self._tavily: AsyncTavilyClient | None = None
+        self._tavily = AsyncTavilyClient(
+            api_key=credentials.api_key.get_secret_value(),
+            client=client,
+        )
 
     async def search(self, query: str, *, max_results: int = 5) -> SearchResponse:
-        data = await self._tavily_client().search(
+        data = await self._tavily.search(
             query, max_results=max_results, include_answer=True
         )
         return SearchResponse.model_validate(data)
-
-    def _tavily_client(self) -> AsyncTavilyClient:
-        if self._tavily is None:
-            credentials = self._credentials or TavilyCredentials()
-            self._tavily = AsyncTavilyClient(
-                api_key=credentials.api_key.get_secret_value(),
-                client=self._http_client,
-            )
-        return self._tavily

@@ -188,8 +188,12 @@ def register_model_control_tools(tools: Tools) -> None:
 
 Weather, location, and search live behind ABCs in `tools/handler/ports.py`
 (`Weather`, `LocationLookup`, `WebSearch`), with default adapters
-(`OpenMeteoWeather`, `IpLocationLookup`, `TavilyWebSearch`) wired in by
-`build_tools()`. Pass `injected_dependencies=(...)` to swap any of them.
+(`OpenMeteoWeather`, `IpLocationLookup`, `TavilyWebSearch`) registered as
+`agenttoolkit.DependencyProvider`s in `tools/factory.py` and resolved lazily
+by `Tools`'s DI container the first time a tool actually needs them — so
+building the catalog never requires `TAVILY_API_KEY` to be set. Concrete
+objects passed through `injected_dependencies` are runtime context dependencies;
+they do not replace these registered built-in providers.
 
 `ToolError`, raised from within a tool, is caught by `ToolResultMiddleware`
 and converted into a `ToolFailure(str)` result the model can see and react to,

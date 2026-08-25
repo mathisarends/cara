@@ -1,6 +1,9 @@
 import asyncio
 
+from agenttoolkit import DependencyProvider, provide
+
 from agent.tools import build_tools
+from agent.tools.factory import _create_tools
 from agent.tools.handler.ports import SearchResponse, SearchResult, WebSearch
 
 
@@ -14,8 +17,17 @@ class _StubClient(WebSearch):
         return self._response
 
 
+class _Dependencies(DependencyProvider):
+    def __init__(self, client: WebSearch) -> None:
+        self._client = client
+
+    @provide
+    def web_search(self) -> WebSearch:
+        return self._client
+
+
 def _tools(client: WebSearch):
-    return build_tools(injected_dependencies=(client,))
+    return _create_tools(dependencies=(_Dependencies(client),))
 
 
 def test_web_search_tool_is_registered_without_availability_checks() -> None:

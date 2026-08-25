@@ -1,8 +1,11 @@
 import asyncio
 from datetime import datetime
 
+from agenttoolkit import DependencyProvider, provide
+
 from agent.tools import build_tools
 from agent.tools.actions.weather import WeatherPeriod, _render_weather_report
+from agent.tools.factory import _create_tools
 from agent.tools.handler import LocationLookup
 from agent.tools.handler.ports import (
     DailyForecast,
@@ -63,8 +66,22 @@ class _StubLocationClient(LocationLookup):
         return self._location
 
 
+class _Dependencies(DependencyProvider):
+    def __init__(self, weather: Weather, location_lookup: LocationLookup) -> None:
+        self._weather = weather
+        self._location_lookup = location_lookup
+
+    @provide
+    def weather(self) -> Weather:
+        return self._weather
+
+    @provide
+    def location_lookup(self) -> LocationLookup:
+        return self._location_lookup
+
+
 def _tools(client: Weather, location_client: LocationLookup):
-    return build_tools(injected_dependencies=(client, location_client))
+    return _create_tools(dependencies=(_Dependencies(client, location_client),))
 
 
 def _render(report: WeatherReport) -> str:

@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 import agenttoolkit
 from agenttoolkit import (
+    DependencyProvider,
     Skills,
     ToolContext,
 )
@@ -16,7 +17,7 @@ from agenttoolkit.builtins import (
 
 from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools.actions import register_tools
-from agent.tools.handler import IpLocationLookup, OpenMeteoWeather, TavilyWebSearch
+from agent.tools.dependency_provider import BuiltinDependencies
 from agent.tools.middleware import ToolResultMiddleware
 from agent.workspace import resolve_workspace_root
 
@@ -24,9 +25,15 @@ from agent.workspace import resolve_workspace_root
 class AgentTools(agenttoolkit.Tools):
     """Agent tool catalog and the resources required to execute it."""
 
-    def __init__(self, context: ToolContext) -> None:
+    def __init__(
+        self,
+        context: ToolContext,
+        *,
+        dependencies: Sequence[DependencyProvider] = (),
+    ) -> None:
         super().__init__(
             context=context,
+            dependencies=dependencies,
             middleware=(ToolResultMiddleware(),),
         )
         self._sandbox = context.resolve(DockerSandbox)
@@ -48,21 +55,28 @@ def build_tools(
     sandbox: SandboxDefinition | None = None,
     additional_tools: agenttoolkit.Tools | None = None,
 ) -> AgentTools:
-    dependencies = (*_builtin_handlers(), *injected_dependencies, skills)
     tool_context = _create_tool_context(
-        *dependencies,
+        *injected_dependencies,
+        skills,
         workspace=workspace,
         sandbox=sandbox,
     )
-    tools = _create_tools(tool_context)
+    tools = _create_tools(
+        tool_context,
+        dependencies=(BuiltinDependencies(),),
+    )
     if additional_tools is not None:
         tools.merge(additional_tools)
     return tools
 
 
-def _create_tools(context: ToolContext | None = None) -> AgentTools:
+def _create_tools(
+    context: ToolContext | None = None,
+    *,
+    dependencies: Sequence[DependencyProvider] = (),
+) -> AgentTools:
     selected_context = context if context is not None else _create_tool_context()
-    tools = AgentTools(selected_context)
+    tools = AgentTools(selected_context, dependencies=dependencies)
     register_tools(tools)
     return tools
 
@@ -76,10 +90,6 @@ def _create_tool_context(
     selected_workspace = workspace or _default_workspace()
     selected_runner = runner or _default_runner(sandbox, selected_workspace)
     return ToolContext(selected_workspace, selected_runner, *dependencies)
-
-
-def _builtin_handlers() -> tuple[object, ...]:
-    return (IpLocationLookup(), OpenMeteoWeather(), TavilyWebSearch())
 
 
 def _default_workspace() -> LocalWorkspace:
