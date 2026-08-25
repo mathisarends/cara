@@ -62,3 +62,20 @@ async def test_reader_rejects_an_input_from_another_session(
 
     with pytest.raises(ValueError, match="does not belong"):
         await reader.context_for_turn(session.id, uuid4())
+
+
+async def test_reader_returns_full_context_for_a_server_initiated_turn(
+    session_repository: SQLSessionRepository,
+) -> None:
+    session = Session.create(ChannelRef("voice"), {"locale": "de"})
+    input_message = session.add_user_message("Wake me in twenty minutes")
+    session.add_assistant_message("Okay")
+    await session_repository.save(session)
+    reader = GatewayAgentSessionReader(session_repository)
+
+    context = await reader.context_for_turn(session.id, None)
+
+    assert context.entries == (
+        AgentUserMessage(input_message.id, "Wake me in twenty minutes"),
+        AgentAssistantMessage(session.entries[1].id, "Okay"),
+    )

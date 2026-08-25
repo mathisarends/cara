@@ -8,6 +8,7 @@ import pytest
 
 from gateway_client import GatewayClient
 from gateway_client.models import RpcMethod, SessionEventType
+from voice.activation import PromptActivation
 from voice.llm import (
     GatewayAgentSession,
     GatewayAgentTurnFailed,
@@ -157,6 +158,46 @@ def test_gateway_agent_session_can_explicitly_create_a_fresh_session() -> None:
 
     assert asyncio.run(run()) == [
         "session.create",
+        "subscription.subscribe",
+        "subscription.unsubscribe",
+    ]
+
+
+def test_server_started_turn_activates_voice_without_starting_a_second_turn() -> None:
+    async def run() -> tuple[object, list[object], list[str]]:
+        transport = _Transport()
+        session = await GatewayAgentSession.attach(GatewayClient(transport))
+        activations = session.activations()
+
+        await transport.emit(
+            SessionEventType.TURN_STARTED,
+            sequence=1,
+            metadata={"origin": "automation", "automation_kind": "reminder"},
+        )
+        activation = await anext(activations)
+        await transport.emit(
+            SessionEventType.CHAT_COMPLETED,
+            sequence=2,
+            text="Zeit aufzuwachen!",
+            finish_reason="stop",
+        )
+        await transport.emit(SessionEventType.TURN_COMPLETED, sequence=3)
+
+        stream = await session.start_turn(activation.prompt)
+        events = [event async for event in stream]
+        await activations.aclose()
+        await session.close()
+        return activation, events, [method for method, _ in transport.requests]
+
+    activation, events, methods = asyncio.run(run())
+
+    assert activation == PromptActivation(prompt="[Proactive gateway turn]")
+    assert events == [
+        TextDelta("Zeit aufzuwachen!"),
+        TurnCompleted("Zeit aufzuwachen!"),
+    ]
+    assert methods == [
+        "session.open",
         "subscription.subscribe",
         "subscription.unsubscribe",
     ]

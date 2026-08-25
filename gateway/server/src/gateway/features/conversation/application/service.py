@@ -76,7 +76,9 @@ class ConversationService:
         await self.get_session(session_id)
         if not await self._sessions.claim_turn(session_id):
             raise SessionBusyError(session_id)
-        task = asyncio.create_task(self._execute(session_id, text, metadata))
+        task = asyncio.create_task(
+            self._execute(session_id, text, metadata, persist_input=True)
+        )
         self._background_tasks[session_id] = task
         task.add_done_callback(
             lambda completed, key=session_id: self._discard_task(key, completed)
@@ -84,6 +86,18 @@ class ConversationService:
         # Let the task enter its try/finally before callers can cancel it. This
         # guarantees that the claimed turn is released during shutdown too.
         await asyncio.sleep(0)
+
+    async def run_automation_turn(
+        self,
+        session_id: UUID,
+        text: str,
+        metadata: dict[str, object],
+    ) -> None:
+        """Run a server-initiated turn without adding a synthetic user message."""
+        await self.get_session(session_id)
+        if not await self._sessions.claim_turn(session_id):
+            raise SessionBusyError(session_id)
+        await self._execute(session_id, text, metadata, persist_input=False)
 
     async def cancel_turn(self, session_id: UUID) -> None:
         await self.get_session(session_id)
@@ -105,13 +119,18 @@ class ConversationService:
         session_id: UUID,
         text: str,
         metadata: dict[str, object],
+        *,
+        persist_input: bool,
     ) -> None:
         session: Session | None = None
         turn: _TurnExecution | None = None
         try:
             session = await self.get_session(session_id)
-            input_message = session.add_user_message(text)
-            session = await self._sessions.save(session)
+            input_id: UUID | None = None
+            if persist_input:
+                input_message = session.add_user_message(text)
+                input_id = input_message.id
+                session = await self._sessions.save(session)
             turn = _TurnExecution(
                 session,
                 self._sessions,
@@ -127,7 +146,7 @@ class ConversationService:
                     ),
                 ),
                 turn_id=uuid4(),
-                input_id=input_message.id,
+                input_id=input_id,
                 input=text,
                 turn_metadata=dict(metadata),
             )

@@ -29,7 +29,7 @@ class GatewayAgentSessionReader(AgentSessionReader):
     async def context_for_turn(
         self,
         session_id: UUID,
-        input_id: UUID,
+        input_id: UUID | None,
     ) -> AgentContext:
         session = await self._sessions.find_by_id(session_id)
         if session is None:
@@ -40,6 +40,8 @@ class GatewayAgentSessionReader(AgentSessionReader):
             if entry.id == input_id:
                 return AgentContext(tuple(entries), session.metadata)
             entries.append(_context_entry(entry))
+        if input_id is None:
+            return AgentContext(tuple(entries), session.metadata)
         raise ValueError(f"Input {input_id} does not belong to session {session_id}")
 
 

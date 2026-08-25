@@ -17,6 +17,7 @@ and barge-in + echo cancellation let a user interrupt mid-sentence.
 
 ```text
 mic -> echo-cancelled input -> WakeWordListener/ExternalActivationSource
+gateway session events -> GatewayAgentSession (proactive activation)
     -> ActivationCoordinator -> STT (ListenActivation) or direct (PromptActivation)
     -> AgentBridge -> AgentSession.start_turn() -> TTS -> AudioBridge -> AudioOutput
 ```
@@ -35,11 +36,14 @@ after playback.
 | `SpeechToText` / `TextToSpeech` | Deepgram, Cartesia, (TTS also) Piper |
 | `AgentSession` | `GatewayAgentSession`, `EchoAgentSession` |
 | `BargeInStrategy` | `WakeWordBargeIn` (default), `SpeechBargeIn`, `NoBargeIn` |
-| `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource` |
+| `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource`, `GatewayAgentSession` |
 
 `SpeechToText` owns end-of-speech detection — no separate silence timer.
 `ExternalActivationSource` is the out-of-band entry point (`activate()` to
 listen, `prompt()` to speak unprompted) for buttons, schedulers, etc.
+`GatewayAgentSession` also acts as an activation source: when a subscribed
+automation starts a turn on the server, Voice consumes that existing event
+stream instead of submitting a duplicate turn and speaks the result.
 
 ## Layout
 

@@ -137,6 +137,35 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     await service.close()
 
 
+async def test_automation_turn_uses_full_context_without_a_synthetic_user_message(
+    session_repository: SQLSessionRepository,
+    publisher: _RecordingPublisher,
+) -> None:
+    runner = _StreamingAgentRunner()
+    service = ConversationService(session_repository, publisher, runner)
+    session = await service.create_session(_CHANNEL, {})
+
+    await service.run_automation_turn(
+        session.id,
+        "[Scheduled reminder] Wake the user",
+        {"origin": "automation", "automation_kind": "reminder"},
+    )
+
+    request = runner.requests[0]
+    persisted = await service.get_session(session.id)
+    assert request.input_id is None
+    assert request.input == "[Scheduled reminder] Wake the user"
+    assert request.turn_metadata == {
+        "origin": "automation",
+        "automation_kind": "reminder",
+    }
+    assert [type(entry).__name__ for entry in persisted.entries] == [
+        "ToolCallSequence",
+        "AssistantMessage",
+    ]
+    await service.close()
+
+
 async def _wait_for_event(
     publisher: _RecordingPublisher,
     event_type: GatewayEventType,

@@ -13,7 +13,7 @@ class AgentSessionReader(Protocol):
     async def context_for_turn(
         self,
         session_id: UUID,
-        input_id: UUID,
+        input_id: UUID | None,
     ) -> AgentContext: ...
 
 

@@ -14,10 +14,12 @@ from gateway_client.models import (
     ToolCallStarted,
     TurnCancelled,
     TurnFailed,
+    TurnStarted,
 )
 from gateway_client.models import (
     TurnCompleted as GatewayTurnCompleted,
 )
+from voice.activation import Activation, ActivationSource, PromptActivation
 from voice.llm.events import (
     AgentEvent,
     TextDelta,
@@ -53,12 +55,14 @@ class _GatewayDisconnected:
 type _QueuedEvent = SessionEvent | _GatewayDisconnected
 
 
-class GatewayAgentSession:
+class GatewayAgentSession(ActivationSource):
     def __init__(self, client: GatewayClient, session_id: UUID) -> None:
         self._client = client
         self._session_id = session_id
         self._turn_queue: asyncio.Queue[_QueuedEvent] | None = None
         self._turn_terminal: asyncio.Future[_QueuedEvent] | None = None
+        self._activations: asyncio.Queue[Activation | None] = asyncio.Queue()
+        self._proactive_turn_pending = False
         self._closed = False
         self._notifications = asyncio.create_task(
             self._pump_notifications(),
@@ -116,6 +120,10 @@ class GatewayAgentSession:
 
     async def prepare_turn(self) -> None:
         pass
+
+    async def activations(self) -> AsyncIterator[Activation]:
+        while (activation := await self._activations.get()) is not None:
+            yield activation
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         return self._stream_turn(text)
@@ -190,6 +198,7 @@ class GatewayAgentSession:
         finally:
             await self._client.close()
             await self._notifications
+            await self._activations.put(None)
 
     async def __aenter__(self) -> Self:
         return self
@@ -200,6 +209,11 @@ class GatewayAgentSession:
     async def _begin_turn(self, text: str) -> asyncio.Queue[_QueuedEvent]:
         if self._closed:
             raise RuntimeError("Gateway agent session is closed")
+        if self._proactive_turn_pending:
+            self._proactive_turn_pending = False
+            if self._turn_queue is None:
+                raise RuntimeError("Proactive gateway turn has no event queue")
+            return self._turn_queue
         if self._turn_terminal is not None:
             raise RuntimeError("Gateway agent session already has an active turn")
         queue: asyncio.Queue[_QueuedEvent] = asyncio.Queue()
@@ -220,7 +234,16 @@ class GatewayAgentSession:
         try:
             async for notification in self._client.notifications():
                 event = notification.params
-                if event.session_id != self._session_id or self._turn_queue is None:
+                if event.session_id != self._session_id:
+                    continue
+                if isinstance(event, TurnStarted) and self._turn_queue is None:
+                    self._turn_queue = asyncio.Queue()
+                    self._turn_terminal = asyncio.get_running_loop().create_future()
+                    self._proactive_turn_pending = True
+                    await self._activations.put(
+                        PromptActivation(prompt="[Proactive gateway turn]")
+                    )
+                if self._turn_queue is None:
                     continue
                 await self._turn_queue.put(event)
                 if isinstance(event, GatewayTurnCompleted | TurnCancelled | TurnFailed):
@@ -242,8 +265,10 @@ class GatewayAgentSession:
         terminal = self._turn_terminal
         if terminal is not None and not terminal.done():
             terminal.set_result(disconnected)
+        await self._activations.put(None)
 
     def _finish_turn(self) -> None:
+        self._proactive_turn_pending = False
         self._turn_queue = None
         terminal, self._turn_terminal = self._turn_terminal, None
         if terminal is not None and not terminal.done():

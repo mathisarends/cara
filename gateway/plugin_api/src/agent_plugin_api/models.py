@@ -20,7 +20,7 @@ class AgentSessionRef:
 class AgentRunRequest:
     session: AgentSessionRef
     turn_id: UUID
-    input_id: UUID
+    input_id: UUID | None
     input: str
     turn_metadata: dict[str, Any] = field(default_factory=dict)
 
