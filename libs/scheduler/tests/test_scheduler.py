@@ -225,3 +225,58 @@ def test_can_add_and_remove_job_while_running() -> None:
             await scheduler.stop()
 
     asyncio.run(scenario())
+
+
+def test_update_replaces_the_trigger_of_a_running_job() -> None:
+    async def scenario() -> None:
+        runs: list[ScheduledRun[str]] = []
+        called = asyncio.Event()
+
+        async def runner(run: ScheduledRun[str]) -> None:
+            runs.append(run)
+            called.set()
+
+        scheduler = Scheduler(runner, MemoryJobStore[str]())
+        await scheduler.start()
+        try:
+            job = await scheduler.interval(
+                every=timedelta(hours=1),
+                payload="original",
+                run_immediately=False,
+            )
+            updated = await scheduler.update(
+                job.id,
+                trigger=Interval(timedelta(hours=1), run_immediately=True),
+                payload="updated",
+                name="renamed",
+            )
+
+            assert updated is not None
+            assert updated.created_at == job.created_at
+            assert updated.payload == "updated"
+            assert updated.name == "renamed"
+            await asyncio.wait_for(called.wait(), timeout=1)
+            assert [run.payload for run in runs] == ["updated"]
+        finally:
+            await scheduler.stop()
+
+    asyncio.run(scenario())
+
+
+def test_update_returns_none_for_an_unknown_job() -> None:
+    async def scenario() -> None:
+        async def runner(run: ScheduledRun[str]) -> None:
+            pass
+
+        scheduler = Scheduler(runner, MemoryJobStore[str]())
+
+        assert (
+            await scheduler.update(
+                "missing",
+                trigger=At(datetime(2027, 1, 1, tzinfo=UTC)),
+                payload="payload",
+            )
+            is None
+        )
+
+    asyncio.run(scenario())

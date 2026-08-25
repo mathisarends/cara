@@ -1,14 +1,26 @@
 from gateway.features.automation.application import AutomationService
-from gateway.features.automation.presentation.mapping import automation_response
+from gateway.features.automation.presentation.mapping import (
+    automation_response,
+    automation_trigger,
+    reminder_payload,
+)
 from gateway.features.automation.presentation.rpc import AutomationRpcMethod
 from gateway.features.automation.presentation.schemas import (
     AutomationResponse,
+    CreateAutomationParams,
+    DeleteAutomationParams,
+    DeleteAutomationResponse,
     GetAutomationParams,
     ListAutomationsParams,
     ListAutomationsResponse,
+    UpdateAutomationParams,
 )
 from gateway.presentation import rpc
-from gateway.presentation.rpc import ResourceNotFoundError, RpcInternalError
+from gateway.presentation.rpc import (
+    ResourceNotFoundError,
+    RpcInternalError,
+    RpcInvalidParamsError,
+)
 
 
 class AutomationRpcMethods(rpc.RpcHandler):
@@ -43,3 +55,53 @@ class AutomationRpcMethods(rpc.RpcHandler):
             params.session_id,
         )
         return automation_response(job)
+
+    @rpc.method(
+        AutomationRpcMethod.CREATE,
+        summary="Create an automation for a conversation session.",
+        errors=(RpcInvalidParamsError, RpcInternalError),
+    )
+    async def create_automation(
+        self,
+        params: CreateAutomationParams,
+    ) -> AutomationResponse:
+        job = await self._service.create_for_session(
+            params.session_id,
+            trigger=automation_trigger(params.schedule),
+            payload=reminder_payload(params.payload),
+            name=params.name,
+        )
+        return automation_response(job)
+
+    @rpc.method(
+        AutomationRpcMethod.UPDATE,
+        summary="Replace the schedule and payload of an automation.",
+        errors=(ResourceNotFoundError, RpcInvalidParamsError, RpcInternalError),
+    )
+    async def update_automation(
+        self,
+        params: UpdateAutomationParams,
+    ) -> AutomationResponse:
+        job = await self._service.update_for_session(
+            params.automation_id,
+            params.session_id,
+            trigger=automation_trigger(params.schedule),
+            payload=reminder_payload(params.payload),
+            name=params.name,
+        )
+        return automation_response(job)
+
+    @rpc.method(
+        AutomationRpcMethod.DELETE,
+        summary="Delete an automation belonging to a conversation session.",
+        errors=(ResourceNotFoundError, RpcInternalError),
+    )
+    async def delete_automation(
+        self,
+        params: DeleteAutomationParams,
+    ) -> DeleteAutomationResponse:
+        await self._service.delete_for_session(
+            params.automation_id,
+            params.session_id,
+        )
+        return DeleteAutomationResponse(deleted=params.automation_id)

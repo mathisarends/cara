@@ -104,6 +104,217 @@
       ]
     },
     {
+      "name": "automation.create",
+      "summary": "Create an automation for a conversation session.",
+      "tags": [
+        {
+          "name": "automation"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        {
+          "name": "schedule",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          }
+        },
+        {
+          "name": "payload",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ReminderAutomationPayload"
+          }
+        },
+        {
+          "name": "name",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AutomationResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/CreateAutomationRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/CreateAutomationParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "automation.update",
+      "summary": "Replace the schedule and payload of an automation.",
+      "tags": [
+        {
+          "name": "automation"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        {
+          "name": "automation_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Automation Id",
+            "type": "string"
+          }
+        },
+        {
+          "name": "schedule",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          }
+        },
+        {
+          "name": "payload",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ReminderAutomationPayload"
+          }
+        },
+        {
+          "name": "name",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AutomationResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/UpdateAutomationRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/UpdateAutomationParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "automation.delete",
+      "summary": "Delete an automation belonging to a conversation session.",
+      "tags": [
+        {
+          "name": "automation"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        {
+          "name": "automation_id",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Automation Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DeleteAutomationResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/DeleteAutomationRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/DeleteAutomationParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
       "name": "session.create",
       "summary": "Create a conversation session.",
       "tags": [
@@ -678,6 +889,41 @@
         "title": "ChatDelta",
         "type": "object"
       },
+      "CreateAutomationParams": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ReminderAutomationPayload"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "session_id",
+          "schedule",
+          "payload"
+        ],
+        "title": "CreateAutomationParams",
+        "type": "object"
+      },
       "CreateSessionParams": {
         "additionalProperties": false,
         "properties": {
@@ -719,6 +965,41 @@
           "timezone"
         ],
         "title": "CronSchedule",
+        "type": "object"
+      },
+      "DeleteAutomationParams": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "automation_id": {
+            "minLength": 1,
+            "title": "Automation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "automation_id"
+        ],
+        "title": "DeleteAutomationParams",
+        "type": "object"
+      },
+      "DeleteAutomationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "DeleteAutomationResponse",
         "type": "object"
       },
       "GetAutomationParams": {
@@ -1550,6 +1831,47 @@
         "title": "UnsubscriptionResult",
         "type": "object"
       },
+      "UpdateAutomationParams": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "automation_id": {
+            "minLength": 1,
+            "title": "Automation Id",
+            "type": "string"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ReminderAutomationPayload"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "session_id",
+          "automation_id",
+          "schedule",
+          "payload"
+        ],
+        "title": "UpdateAutomationParams",
+        "type": "object"
+      },
       "UserMessageItem": {
         "additionalProperties": false,
         "properties": {
@@ -1657,6 +1979,120 @@
           "params"
         ],
         "description": "Get an automation belonging to a conversation session."
+      },
+      "CreateAutomationRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CreateAutomationRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "automation.create",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/CreateAutomationParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Create an automation for a conversation session."
+      },
+      "UpdateAutomationRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UpdateAutomationRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "automation.update",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/UpdateAutomationParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Replace the schedule and payload of an automation."
+      },
+      "DeleteAutomationRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DeleteAutomationRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "automation.delete",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/DeleteAutomationParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Delete an automation belonging to a conversation session."
       },
       "CreateSessionRequest": {
         "additionalProperties": false,

@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class _AutomationSchema(BaseModel):
@@ -24,6 +25,15 @@ class CronSchedule(_AutomationSchema):
     kind: Literal["cron"] = "cron"
     expression: str
     timezone: str
+
+    @field_validator("timezone")
+    @classmethod
+    def _resolvable_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (KeyError, ValueError) as error:
+            raise ValueError(f"Unknown timezone: {value!r}") from error
+        return value
 
 
 type AutomationSchedule = Annotated[
@@ -65,3 +75,27 @@ class ListAutomationsResponse(_AutomationSchema):
 class GetAutomationParams(_AutomationSchema):
     session_id: UUID
     automation_id: str = Field(min_length=1)
+
+
+class CreateAutomationParams(_AutomationSchema):
+    session_id: UUID
+    schedule: AutomationSchedule
+    payload: ReminderAutomationPayload
+    name: str | None = None
+
+
+class UpdateAutomationParams(_AutomationSchema):
+    session_id: UUID
+    automation_id: str = Field(min_length=1)
+    schedule: AutomationSchedule
+    payload: ReminderAutomationPayload
+    name: str | None = None
+
+
+class DeleteAutomationParams(_AutomationSchema):
+    session_id: UUID
+    automation_id: str = Field(min_length=1)
+
+
+class DeleteAutomationResponse(_AutomationSchema):
+    deleted: str

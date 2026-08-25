@@ -11,6 +11,15 @@
       "$ref": "#/$defs/GetAutomationRequest"
     },
     {
+      "$ref": "#/$defs/CreateAutomationRequest"
+    },
+    {
+      "$ref": "#/$defs/UpdateAutomationRequest"
+    },
+    {
+      "$ref": "#/$defs/DeleteAutomationRequest"
+    },
+    {
       "$ref": "#/$defs/CreateSessionRequest"
     },
     {
@@ -273,6 +282,41 @@
       "title": "ChatDelta",
       "type": "object"
     },
+    "CreateAutomationParams": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "format": "uuid",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "schedule": {
+          "$ref": "#/$defs/AutomationSchedule"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReminderAutomationPayload"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        }
+      },
+      "required": [
+        "session_id",
+        "schedule",
+        "payload"
+      ],
+      "title": "CreateAutomationParams",
+      "type": "object"
+    },
     "CreateSessionParams": {
       "additionalProperties": false,
       "properties": {
@@ -314,6 +358,41 @@
         "timezone"
       ],
       "title": "CronSchedule",
+      "type": "object"
+    },
+    "DeleteAutomationParams": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "format": "uuid",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "automation_id": {
+          "minLength": 1,
+          "title": "Automation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "automation_id"
+      ],
+      "title": "DeleteAutomationParams",
+      "type": "object"
+    },
+    "DeleteAutomationResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "deleted": {
+          "title": "Deleted",
+          "type": "string"
+        }
+      },
+      "required": [
+        "deleted"
+      ],
+      "title": "DeleteAutomationResponse",
       "type": "object"
     },
     "GetAutomationParams": {
@@ -1145,6 +1224,47 @@
       "title": "UnsubscriptionResult",
       "type": "object"
     },
+    "UpdateAutomationParams": {
+      "additionalProperties": false,
+      "properties": {
+        "session_id": {
+          "format": "uuid",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "automation_id": {
+          "minLength": 1,
+          "title": "Automation Id",
+          "type": "string"
+        },
+        "schedule": {
+          "$ref": "#/$defs/AutomationSchedule"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReminderAutomationPayload"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        }
+      },
+      "required": [
+        "session_id",
+        "automation_id",
+        "schedule",
+        "payload"
+      ],
+      "title": "UpdateAutomationParams",
+      "type": "object"
+    },
     "UserMessageItem": {
       "additionalProperties": false,
       "properties": {
@@ -1252,6 +1372,120 @@
         "params"
       ],
       "description": "Get an automation belonging to a conversation session."
+    },
+    "CreateAutomationRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "CreateAutomationRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "automation.create",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/CreateAutomationParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ],
+      "description": "Create an automation for a conversation session."
+    },
+    "UpdateAutomationRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "UpdateAutomationRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "automation.update",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/UpdateAutomationParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ],
+      "description": "Replace the schedule and payload of an automation."
+    },
+    "DeleteAutomationRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "DeleteAutomationRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "automation.delete",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/DeleteAutomationParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ],
+      "description": "Delete an automation belonging to a conversation session."
     },
     "CreateSessionRequest": {
       "additionalProperties": false,
@@ -1578,6 +1812,82 @@
       },
       "result": {
         "$ref": "#/$defs/AutomationResponse"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "automation.create",
+      "summary": "Create an automation for a conversation session.",
+      "feature": "automation",
+      "request": {
+        "$ref": "#/$defs/CreateAutomationRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/CreateAutomationParams"
+      },
+      "result": {
+        "$ref": "#/$defs/AutomationResponse"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "automation.update",
+      "summary": "Replace the schedule and payload of an automation.",
+      "feature": "automation",
+      "request": {
+        "$ref": "#/$defs/UpdateAutomationRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/UpdateAutomationParams"
+      },
+      "result": {
+        "$ref": "#/$defs/AutomationResponse"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "automation.delete",
+      "summary": "Delete an automation belonging to a conversation session.",
+      "feature": "automation",
+      "request": {
+        "$ref": "#/$defs/DeleteAutomationRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/DeleteAutomationParams"
+      },
+      "result": {
+        "$ref": "#/$defs/DeleteAutomationResponse"
       },
       "errors": [
         {

@@ -7,10 +7,16 @@ from pyrpckit.client import RpcTransport
 
 from gateway_client.models import (
     AutomationResponse,
+    AutomationSchedule,
+    CreateAutomationParams,
+    DeleteAutomationParams,
+    DeleteAutomationResponse,
     GetAutomationParams,
     ListAutomationsParams,
     ListAutomationsResponse,
+    ReminderAutomationPayload,
     RpcMethod,
+    UpdateAutomationParams,
 )
 
 
@@ -49,3 +55,64 @@ class AutomationClient:
             params.model_dump(mode="json", exclude_none=True),
         )
         return AutomationResponse.model_validate(result)
+
+    async def create(
+        self,
+        *,
+        session_id: UUID,
+        schedule: AutomationSchedule,
+        payload: ReminderAutomationPayload,
+        name: str | None | None = None,
+    ) -> AutomationResponse:
+        """Create an automation for a conversation session."""
+        params = CreateAutomationParams(
+            session_id=session_id,
+            schedule=schedule,
+            payload=payload,
+            name=name,
+        )
+        result = await self._transport.request(
+            RpcMethod.AUTOMATION_CREATE,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return AutomationResponse.model_validate(result)
+
+    async def update(
+        self,
+        *,
+        session_id: UUID,
+        automation_id: str,
+        schedule: AutomationSchedule,
+        payload: ReminderAutomationPayload,
+        name: str | None | None = None,
+    ) -> AutomationResponse:
+        """Replace the schedule and payload of an automation."""
+        params = UpdateAutomationParams(
+            session_id=session_id,
+            automation_id=automation_id,
+            schedule=schedule,
+            payload=payload,
+            name=name,
+        )
+        result = await self._transport.request(
+            RpcMethod.AUTOMATION_UPDATE,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return AutomationResponse.model_validate(result)
+
+    async def delete(
+        self,
+        *,
+        session_id: UUID,
+        automation_id: str,
+    ) -> DeleteAutomationResponse:
+        """Delete an automation belonging to a conversation session."""
+        params = DeleteAutomationParams(
+            session_id=session_id,
+            automation_id=automation_id,
+        )
+        result = await self._transport.request(
+            RpcMethod.AUTOMATION_DELETE,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return DeleteAutomationResponse.model_validate(result)

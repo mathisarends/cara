@@ -14,6 +14,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class RpcMethod(StrEnum):
     AUTOMATION_LIST = "automation.list"
     AUTOMATION_GET = "automation.get"
+    AUTOMATION_CREATE = "automation.create"
+    AUTOMATION_UPDATE = "automation.update"
+    AUTOMATION_DELETE = "automation.delete"
     SESSION_CREATE = "session.create"
     SESSION_OPEN = "session.open"
     SESSION_GET = "session.get"
@@ -88,6 +91,13 @@ class ChatDelta(RpcModel):
     text: str
 
 
+class CreateAutomationParams(RpcModel):
+    session_id: UUID
+    schedule: AutomationSchedule
+    payload: ReminderAutomationPayload
+    name: str | None = None
+
+
 class CreateSessionParams(RpcModel):
     channel: SessionChannel
     metadata: dict[str, Any] | None = None
@@ -97,6 +107,15 @@ class CronSchedule(RpcModel):
     kind: Literal["cron"] = "cron"
     expression: str
     timezone: str
+
+
+class DeleteAutomationParams(RpcModel):
+    session_id: UUID
+    automation_id: str
+
+
+class DeleteAutomationResponse(RpcModel):
+    deleted: str
 
 
 class GetAutomationParams(RpcModel):
@@ -259,6 +278,14 @@ class UnsubscriptionResult(RpcModel):
     unsubscribed: UUID
 
 
+class UpdateAutomationParams(RpcModel):
+    session_id: UUID
+    automation_id: str
+    schedule: AutomationSchedule
+    payload: ReminderAutomationPayload
+    name: str | None = None
+
+
 class UserMessageItem(RpcModel):
     type: Literal[ItemType.USER_MESSAGE] = ItemType.USER_MESSAGE
     id: UUID
@@ -302,8 +329,11 @@ AtSchedule.model_rebuild()
 AutomationResponse.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
+CreateAutomationParams.model_rebuild()
 CreateSessionParams.model_rebuild()
 CronSchedule.model_rebuild()
+DeleteAutomationParams.model_rebuild()
+DeleteAutomationResponse.model_rebuild()
 GetAutomationParams.model_rebuild()
 IntervalSchedule.model_rebuild()
 ListAutomationsParams.model_rebuild()
@@ -326,5 +356,6 @@ TurnCompleted.model_rebuild()
 TurnFailed.model_rebuild()
 TurnStarted.model_rebuild()
 UnsubscriptionResult.model_rebuild()
+UpdateAutomationParams.model_rebuild()
 UserMessageItem.model_rebuild()
 SessionEventNotification.model_rebuild()

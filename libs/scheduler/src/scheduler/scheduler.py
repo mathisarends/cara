@@ -115,6 +115,33 @@ class Scheduler[PayloadT]:
             name=name,
         )
 
+    async def update(
+        self,
+        job_id: str,
+        *,
+        trigger: Trigger,
+        payload: PayloadT,
+        name: str | None = None,
+    ) -> ScheduledJob[PayloadT] | None:
+        async with self._lock:
+            existing = await self._store.get(job_id)
+            if existing is None:
+                return None
+            job = replace(
+                existing,
+                trigger=trigger,
+                payload=payload,
+                name=name,
+                next_run_at=_first_run(trigger, datetime.now(UTC)),
+            )
+            await self._store.update(job)
+            task = self._tasks.pop(job_id, None)
+            if task is not None:
+                task.cancel()
+            if self._running:
+                self._start_job(job)
+            return job
+
     async def remove(self, job_id: str) -> bool:
         async with self._lock:
             removed = await self._store.remove(job_id)
