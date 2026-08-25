@@ -26,7 +26,11 @@ class CaraAgentRunner:
             request.session.id,
             request.input_id,
         )
-        agent = await self._agent_factory.create(context_messages(context))
+        agent = await self._agent_factory.create(
+            context_messages(context),
+            session_id=request.session.id,
+            turn_id=request.turn_id,
+        )
         self._active_agents.add(agent)
         try:
             events = await agent.start_turn(request.input)

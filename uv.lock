@@ -42,6 +42,7 @@ version = "0.1.0"
 source = { editable = "agent" }
 dependencies = [
     { name = "agent-plugin-api", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -59,6 +60,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "agent-plugin-api", editable = "gateway/plugin_api" },
+    { name = "gateway-client", editable = "gateway/client" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "llm", editable = "libs/llm" },
     { name = "mm-agenttoolkit", specifier = ">=0.4.0" },

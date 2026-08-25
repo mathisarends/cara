@@ -5,6 +5,7 @@ description = "Agentic core: agent loop, tools, memory, and prompt assembly."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "agent-plugin-api",
+    "gateway-client",
     "llm",
     "httpx>=0.28.0",
     "mm-agenttoolkit>=0.4.0",
