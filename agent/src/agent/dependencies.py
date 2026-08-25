@@ -1,4 +1,5 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 from agenttoolkit import DependencyProvider, Skills, ToolContext, provide
 from agenttoolkit.builtins import (
@@ -19,9 +20,22 @@ from llm import CodexModel, CodexReasoningEffort, create_codex_model
 type _ModelFactories = dict[str, Callable[[str | None], ChatModel]]
 
 
+@dataclass(frozen=True, slots=True)
+class AgentComponents:
+    workspace: Workspace
+    skills: Skills | None
+    models: ModelSwitch
+    tool_context: ToolContext
+
+
 class ConfiguredDependencies(DependencyProvider):
-    def __init__(self, settings: AgentSettings) -> None:
+    def __init__(
+        self,
+        settings: AgentSettings,
+        tool_dependencies: Sequence[object] = (),
+    ) -> None:
         self._settings = settings
+        self._tool_dependencies = tuple(tool_dependencies)
 
     @provide
     def settings(self) -> AgentSettings:
@@ -73,7 +87,28 @@ class ConfiguredDependencies(DependencyProvider):
         skills: Skills | None,
         model_switch: ModelSwitch,
     ) -> ToolContext:
-        return ToolContext(workspace, command_runner, skills, model_switch)
+        return ToolContext(
+            workspace,
+            command_runner,
+            skills,
+            model_switch,
+            *self._tool_dependencies,
+        )
+
+    @provide
+    def agent_components(
+        self,
+        workspace: Workspace,
+        skills: Skills | None,
+        model_switch: ModelSwitch,
+        tool_context: ToolContext,
+    ) -> AgentComponents:
+        return AgentComponents(
+            workspace=workspace,
+            skills=skills,
+            models=model_switch,
+            tool_context=tool_context,
+        )
 
 
 def _codex_model_factory(

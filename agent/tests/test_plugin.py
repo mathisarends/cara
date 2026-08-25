@@ -97,12 +97,18 @@ class _Tools:
         return {"temperature": 22}
 
 
+class _TurnDependency:
+    pass
+
+
 def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     model = _Model()
     tools = _Tools()
+    turn_dependency = _TurnDependency()
+    resolved_turn_dependencies: list[_TurnDependency | None] = []
     model_switches: list[ModelSwitch] = []
     model_creations: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
@@ -111,7 +117,9 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         return cast(ChatModel, model)
 
     def build_test_tools(**kwargs: Any) -> AgentTools:
-        model_switches.append(cast(ModelSwitch, kwargs["context"].resolve(ModelSwitch)))
+        tool_context = kwargs["context"]
+        model_switches.append(cast(ModelSwitch, tool_context.resolve(ModelSwitch)))
+        resolved_turn_dependencies.append(tool_context.resolve(_TurnDependency))
         return cast(AgentTools, tools)
 
     monkeypatch.setattr(
@@ -121,6 +129,10 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     monkeypatch.setattr(
         "agent.factory.build_tools",
         build_test_tools,
+    )
+    monkeypatch.setattr(
+        "agent.plugin.runner.turn_tool_dependencies",
+        lambda request: (turn_dependency,),
     )
     context = AgentContext(
         (
@@ -179,6 +191,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         "gpt-5.6-sol",
     )
     assert model_switches[0].current_name == "gpt-5.3-codex-spark"
+    assert resolved_turn_dependencies == [turn_dependency]
     assert model_creations == [((CodexModel.SPARK,), {})]
     assert [message.content for message in model.requests[0]] == [
         "",

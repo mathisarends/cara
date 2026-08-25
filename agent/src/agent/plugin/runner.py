@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 
 from agent.agent import Agent
 from agent.factory import AgentFactory
+from agent.plugin.capabilities import turn_tool_dependencies
 from agent.plugin.mapping import context_messages, plugin_event
 from agent_plugin_api import (
     AgentEvent,
@@ -28,8 +29,7 @@ class CaraAgentRunner:
         )
         agent = await self._agent_factory.create(
             context_messages(context),
-            session_id=request.session.id,
-            turn_id=request.turn_id,
+            tool_dependencies=turn_tool_dependencies(request),
         )
         self._active_agents.add(agent)
         try:

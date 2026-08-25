@@ -22,7 +22,7 @@ src/agent/
 ├── agent.py          Agent: async tool-calling loop, streams AgentEvents
 ├── factory.py         AgentFactory: composes workspace/models/skills/tools into an Agent
 ├── configuration.py   AgentSettings, WorkspaceSettings
-├── dependencies.py    configured DI providers
+├── dependencies.py    configured DI providers and resolved AgentComponents
 ├── events.py           TextDelta, ToolStarted, ToolCompleted, TurnCompleted
 ├── messages.py       MessageManager: history + system prompt injection
 ├── models.py          ModelSwitch: named ChatModel registry
