@@ -3,8 +3,7 @@ from dataclasses import dataclass
 
 from dishka import Provider
 from fastapi import APIRouter, FastAPI
-
-from rpckit import RpcFeatureDefinition
+from pyrpckit import RpcFeatureDefinition
 
 
 @dataclass(frozen=True, slots=True)

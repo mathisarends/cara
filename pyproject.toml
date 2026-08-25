@@ -24,7 +24,6 @@ members = [
     "llm",
     "memory",
     "retrieval",
-    "rpckit",
     "scheduler",
     "voice",
 ]
@@ -38,7 +37,6 @@ gateway-client = { workspace = true }
 llm = { workspace = true }
 memory = { workspace = true }
 retrieval = { workspace = true }
-rpckit = { workspace = true }
 scheduler = { workspace = true }
 voice = { workspace = true }
 
@@ -68,7 +66,6 @@ known-first-party = [
     "llm",
     "memory",
     "retrieval",
-    "rpckit",
     "scheduler",
     "voice",
 ]

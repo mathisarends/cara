@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from rpckit import RpcError
+from pyrpckit import RpcError
 
 
 class GatewayErrorCode(IntEnum):

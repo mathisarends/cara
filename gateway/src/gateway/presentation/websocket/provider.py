@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from dishka import Provider, Scope, provide
 from fastapi import WebSocket
+from pyrpckit import RpcProtocol, RpcServer
 
 from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation import AutomationRpcMethods
@@ -17,7 +18,6 @@ from gateway.features.conversation.presentation.turn_rpc_methods import (
 )
 from gateway.presentation.websocket.connection import GatewayConnection
 from gateway.presentation.websocket.error_mapping import gateway_error_mapper
-from rpckit import RpcProtocol, RpcServer
 
 
 class GatewayProvider(Provider):

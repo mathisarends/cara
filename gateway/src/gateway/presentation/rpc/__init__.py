@@ -1,4 +1,4 @@
-from rpckit import (
+from pyrpckit import (
     RpcErrorCode,
     RpcHandler,
     RpcInternalError,

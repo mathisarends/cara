@@ -1,4 +1,4 @@
-from rpckit.client import RpcClientError, RpcRemoteError, RpcTransportError
+from pyrpckit.client import RpcClientError, RpcRemoteError, RpcTransportError
 
 from .client import GatewayClient
 from .models import RpcMethod, SessionEvent, SessionEventNotification

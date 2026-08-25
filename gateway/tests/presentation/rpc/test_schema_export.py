@@ -1,12 +1,13 @@
 import json
 
+from pyrpckit import RpcProtocol
+
 from gateway.features.conversation.presentation.protocol import CONVERSATION_PROTOCOL
 from gateway.presentation.rpc.schema_export import (
     render_gateway_schema,
     render_openrpc_schema,
     write_gateway_schemas,
 )
-from rpckit import RpcProtocol
 
 
 def test_generated_openrpc_keeps_method_result_and_event_payload_links() -> None:

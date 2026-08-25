@@ -3,11 +3,12 @@ import asyncio
 import sys
 from uuid import UUID
 
+from pyrpckit.client import RpcClientError
+
 from cli.chat import ChatSession
 from cli.console import Console
 from gateway_client import GatewayClient, WebSocketTransport
 from gateway_client.models import SessionChannel
-from rpckit.client import RpcClientError
 
 DEFAULT_URL = "ws://127.0.0.1:8000/v1/gateway"
 DEFAULT_CHANNEL = "cli"

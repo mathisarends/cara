@@ -1,9 +1,9 @@
 from pydantic import ValidationError
+from pyrpckit import RpcError, RpcErrorCode
 
 from gateway.features.automation.domain import AutomationNotFoundError
 from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
 from gateway.presentation.rpc import ResourceNotFoundError, TurnAlreadyRunningError
-from rpckit import RpcError, RpcErrorCode
 
 
 def gateway_error_mapper(error: Exception) -> RpcError | None:

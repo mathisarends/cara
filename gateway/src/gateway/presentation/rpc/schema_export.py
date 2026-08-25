@@ -3,9 +3,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pyrpckit import RpcProtocol
+from pyrpckit.schema import render_json_schema, render_openrpc
+
 from gateway.features import gateway_protocol
-from rpckit import RpcProtocol
-from rpckit.schema import render_json_schema, render_openrpc
 
 _REPO_ROOT = Path(__file__).resolve().parents[5]
 _DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "schema"

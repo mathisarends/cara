@@ -5,7 +5,7 @@ description = "Interactive console client for manual Cara Gateway testing."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "gateway-client",
-    "rpckit",
+    "pyrpckit==0.2.0",
 ]
 
 [project.scripts]
@@ -20,7 +20,6 @@ packages = ["src/cli"]
 
 [tool.uv.sources]
 gateway-client = { workspace = true }
-rpckit = { workspace = true }
 
 [tool.ruff]
 extend = "../pyproject.toml"

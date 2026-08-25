@@ -1,13 +1,13 @@
 from dataclasses import replace
 
 import pytest
+from pyrpckit import ProtocolDefinitionError, RpcProtocol
 
 from gateway.features.conversation.presentation.events import ChatDelta
 from gateway.features.conversation.presentation.protocol import CONVERSATION_PROTOCOL
 from gateway.features.conversation.presentation.rpc import CreateSessionParams
 from gateway.features.conversation.presentation.schemas import SessionResponse
 from gateway.presentation import rpc
-from rpckit import ProtocolDefinitionError, RpcProtocol
 
 
 def test_protocol_derives_methods_from_decorated_handler_annotations() -> None:

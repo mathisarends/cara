@@ -3,9 +3,8 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any, Self
 
+from pyrpckit.client import RpcRemoteError, RpcTransport, RpcTransportError
 from websockets.asyncio.client import ClientConnection, connect
-
-from rpckit.client import RpcRemoteError, RpcTransport, RpcTransportError
 
 
 class WebSocketTransport:

@@ -22,7 +22,6 @@ members = [
     "llm",
     "memory",
     "retrieval",
-    "rpckit",
     "scheduler",
     "voice",
 ]
@@ -212,13 +211,13 @@ version = "0.1.0"
 source = { editable = "cli" }
 dependencies = [
     { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "rpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "gateway-client", editable = "gateway_client" },
-    { name = "rpckit", editable = "rpckit" },
+    { name = "pyrpckit", specifier = "==0.2.0" },
 ]
 
 [[package]]
@@ -366,8 +365,8 @@ dependencies = [
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "rpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "scheduler", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sqlmodel", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -390,8 +389,8 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "pyrpckit", specifier = "==0.2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rpckit", editable = "rpckit" },
     { name = "scheduler", editable = "scheduler" },
     { name = "sqlmodel", specifier = ">=0.0.31" },
     { name = "uvicorn", specifier = ">=0.30.0" },
@@ -411,7 +410,7 @@ version = "0.1.0"
 source = { editable = "gateway_client" }
 dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "rpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -424,7 +423,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "rpckit", editable = "rpckit" },
+    { name = "pyrpckit", specifier = "==0.2.0" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 
@@ -993,6 +992,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pyrpckit"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/ed/c5dc5a3b7f11fbaeeb57a58d5e79ee3b10618a2ee43113b87040e9810dff/pyrpckit-0.2.0.tar.gz", hash = "sha256:c4a82d02fbc5088f68ddd40c5a09f036177339ac386f46f8ff65ced6d0910d01", size = 79866, upload-time = "2026-08-23T09:42:40.613Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/ac/7b647fd1edd1be22c6c62cb48596e8ca7368cffb2d8780196fea01bcb729/pyrpckit-0.2.0-py3-none-any.whl", hash = "sha256:ec8e2f0a24e0df5b6dc3f2972c3de9bdfaf3a719b1a2e961369ad8c2bd06c2a8", size = 29052, upload-time = "2026-08-23T09:42:39.449Z" },
+]
+
+[[package]]
 name = "pysilero-vad"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1192,29 +1203,6 @@ provides-extras = ["openai", "sqlite"]
 dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "ruff", specifier = ">=0.14.0" },
-]
-
-[[package]]
-name = "rpckit"
-version = "0.1.0"
-source = { editable = "rpckit" }
-dependencies = [
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pytest-asyncio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.7" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "pytest-asyncio", specifier = ">=1.0.0" },
 ]
 
 [[package]]

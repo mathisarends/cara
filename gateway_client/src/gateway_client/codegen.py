@@ -3,9 +3,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from rpckit.codegen import render_python_client
-from rpckit.codegen.python import PythonClientOptions
-from rpckit.codegen.writer import write_files
+from pyrpckit.codegen import render_python_client
+from pyrpckit.codegen.python import PythonClientOptions
+from pyrpckit.codegen.writer import write_files
 
 _DEFAULT_OUTPUT = Path("gateway_client/src/gateway_client")
 

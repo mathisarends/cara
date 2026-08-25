@@ -1,5 +1,6 @@
+from pyrpckit import RpcProtocol
+
 from gateway.presentation import Feature
-from rpckit import RpcProtocol
 
 from . import automation, conversation, health
 

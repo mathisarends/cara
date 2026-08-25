@@ -1,11 +1,11 @@
 import asyncio
 
 from fastapi import WebSocket, WebSocketDisconnect
+from pyrpckit import RpcFailure, RpcNotification, RpcParseError, RpcServer, RpcSuccess
 
 from gateway.features.conversation.application import EventBroker
 from gateway.features.conversation.presentation.mapping import session_event
 from gateway.features.conversation.presentation.rpc import RpcNotificationMethod
-from rpckit import RpcFailure, RpcNotification, RpcParseError, RpcServer, RpcSuccess
 
 
 class GatewayConnection:
