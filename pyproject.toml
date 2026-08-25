@@ -21,10 +21,10 @@ members = [
     "gateway/plugin_api",
     "gateway/client",
     "gateway/codegen",
-    "llm",
+    "libs/llm",
+    "libs/retrieval",
+    "libs/scheduler",
     "memory",
-    "retrieval",
-    "scheduler",
     "voice",
 ]
 

@@ -138,7 +138,7 @@ time, name, and the same typed payload.
 Run the quickstart from the workspace root:
 
 ```shell
-uv run --package scheduler python scheduler/examples/quickstart.py
+uv run --package scheduler python libs/scheduler/examples/quickstart.py
 ```
 
 ## Behavior

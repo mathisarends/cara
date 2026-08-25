@@ -16,4 +16,4 @@ build-backend = "hatchling.build"
 packages = ["src/llm"]
 
 [tool.ruff]
-extend = "../pyproject.toml"
+extend = "../../pyproject.toml"

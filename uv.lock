@@ -60,7 +60,7 @@ dependencies = [
 requires-dist = [
     { name = "agent-plugin-api", editable = "gateway/plugin_api" },
     { name = "httpx", specifier = ">=0.28.0" },
-    { name = "llm", editable = "llm" },
+    { name = "llm", editable = "libs/llm" },
     { name = "mm-agenttoolkit", specifier = ">=0.4.0" },
     { name = "openai", specifier = ">=1.100.0" },
     { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
@@ -68,7 +68,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "retrieval", editable = "retrieval" },
+    { name = "retrieval", editable = "libs/retrieval" },
     { name = "tavily-python", specifier = ">=0.7.26" },
     { name = "tzdata", specifier = ">=2024.1" },
 ]
@@ -446,7 +446,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyrpckit", specifier = "==0.2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "scheduler", editable = "scheduler" },
+    { name = "scheduler", editable = "libs/scheduler" },
     { name = "sqlmodel", specifier = ">=0.0.31" },
     { name = "uvicorn", specifier = ">=0.30.0" },
     { name = "websockets", specifier = ">=13.0" },
@@ -680,7 +680,7 @@ wheels = [
 [[package]]
 name = "llm"
 version = "0.1.0"
-source = { editable = "llm" }
+source = { editable = "libs/llm" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1210,7 +1210,7 @@ wheels = [
 [[package]]
 name = "retrieval"
 version = "0.1.0"
-source = { editable = "retrieval" }
+source = { editable = "libs/retrieval" }
 
 [package.optional-dependencies]
 openai = [
@@ -1271,7 +1271,7 @@ wheels = [
 [[package]]
 name = "scheduler"
 version = "0.1.0"
-source = { editable = "scheduler" }
+source = { editable = "libs/scheduler" }
 dependencies = [
     { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "croniter", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },

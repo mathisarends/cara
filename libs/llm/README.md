@@ -81,7 +81,7 @@ import `llmify` directly for common handling:
 ## Module layout
 
 ```text
-llm/src/llm/
+libs/llm/src/llm/
 ├── __init__.py    public exports
 └── codex.py        CodexModel, CodexReasoningEffort, create_codex_model
 ```

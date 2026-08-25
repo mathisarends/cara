@@ -15,7 +15,7 @@ if [[ "${CARA_RELOAD:-0}" == "1" ]]; then
     exec "${gateway_run[@]}" python -m uvicorn gateway.app:app --reload \
         --reload-dir gateway/server/src \
         --reload-dir agent/src \
-        --reload-dir llm/src \
+        --reload-dir libs/llm/src \
         "$@"
 fi
 

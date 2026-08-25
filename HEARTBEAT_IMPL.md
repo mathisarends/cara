@@ -816,5 +816,5 @@ Für den angefragten Use Case ist die empfohlene V1-Antwort:
 - [OpenClaw: Automations](https://docs.openclaw.ai/automation/cron-jobs)
 - [OpenClaw: System CLI und manuelles Wake-up](https://docs.openclaw.ai/cli/system)
 - [OpenClaw-Quellcode: Heartbeat-Anweisungen im System-Prompt](https://github.com/openclaw/openclaw/blob/main/src/agents/system-prompt.ts)
-- [Cara-Scheduler-Dokumentation](scheduler/README.md)
+- [Cara-Scheduler-Dokumentation](libs/scheduler/README.md)
 - [Cara-Gateway-Protokoll](gateway/server/PROTOCOL.md)

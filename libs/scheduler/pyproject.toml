@@ -22,4 +22,4 @@ dev = [
 packages = ["src/scheduler"]
 
 [tool.ruff]
-extend = "../pyproject.toml"
+extend = "../../pyproject.toml"

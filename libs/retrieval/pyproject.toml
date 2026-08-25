@@ -30,4 +30,4 @@ build-backend = "hatchling.build"
 packages = ["src/retrieval"]
 
 [tool.ruff]
-extend = "../pyproject.toml"
+extend = "../../pyproject.toml"

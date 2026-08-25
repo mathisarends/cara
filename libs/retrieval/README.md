@@ -738,7 +738,7 @@ The OpenAI examples need `OPENAI_API_KEY`.
 
 ```bash
 uv sync --all-extras
-uv run pytest packages/retrieval/tests
+uv run pytest libs/retrieval/tests
 uv run ruff check retrieval
 uv run ruff format retrieval
 ```

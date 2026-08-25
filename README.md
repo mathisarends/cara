@@ -116,9 +116,9 @@ testable standalone.
 | [`gateway-codegen`](gateway/codegen#readme)   | Generator and Jinja2 templates for the complete Gateway client source package.                 |
 | [`voice`](voice#readme)                       | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
 | [`cli`](cli#readme)                           | Interactive terminal client (`cara-chat`) for the gateway.                                     |
-| [`llm`](llm#readme)                           | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
-| [`retrieval`](retrieval#readme)               | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
-| [`scheduler`](scheduler#readme)               | A small in-memory/SQLite async scheduler, independent of agent runtimes.                       |
+| [`llm`](libs/llm#readme)                      | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
+| [`retrieval`](libs/retrieval#readme)          | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
+| [`scheduler`](libs/scheduler#readme)          | A small in-memory/SQLite async scheduler, independent of agent runtimes.                       |
 
 ## Run
 
