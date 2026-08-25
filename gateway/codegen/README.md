@@ -1,11 +1,9 @@
-# Gateway client code generator
+# gateway-codegen
 
-`gateway-codegen` turns the Gateway server's checked-in OpenRPC schema into the
-complete `gateway_client` Python source package. Generator implementation,
-templates, and drift tests live here so the generated client package contains
-no tooling of its own.
-
-From the repository root:
+Turns the Gateway server's checked-in OpenRPC schema into the complete
+[`gateway_client`](../client) Python source package. Generator, templates,
+and drift tests live here so the generated client contains no tooling of its
+own.
 
 ```bash
 uv run --package gateway-server cara-gateway-schema
@@ -13,12 +11,10 @@ uv run --package gateway-codegen cara-gateway-client-generate \
   gateway/server/schema/gateway.openrpc.json
 ```
 
-Use `--check` to verify the checked-in client without writing files:
+`--check` verifies the checked-in client without writing files — used in CI.
 
-```bash
-uv run --package gateway-codegen cara-gateway-client-generate \
-  gateway/server/schema/gateway.openrpc.json --check
-```
+## Dependencies
 
-The default output is `gateway/client/src/gateway_client`. Every Python file in
-that directory is generated and must not be edited manually.
+- Reads [`gateway-server`](../server)'s exported `gateway.openrpc.json`.
+- Writes into [`gateway-client`](../client); every generated file there is
+  produced from this package and must not be hand-edited.
