@@ -56,15 +56,17 @@ class _AutomationRunner:
         logger.info("Running scheduled automation %s", run.job_id)
         await self._conversations.run_automation_turn(
             envelope.target.session_id,
-            _reminder_prompt(envelope.payload.message),
+            _automation_prompt(envelope.payload.instruction),
             metadata,
         )
 
 
-def _reminder_prompt(message: str) -> str:
+def _automation_prompt(instruction: str) -> str:
     return (
-        "[Scheduled reminder]\n"
-        "This reminder is now due. Proactively remind the user about the "
-        f"following message: {message}\n"
-        "Do not reschedule it unless the user explicitly asks in a later turn."
+        "[Scheduled agent run]\n"
+        "The scheduled task is now due. Execute the following instruction now:\n"
+        f"<instruction>\n{instruction}\n</instruction>\n"
+        "Use the available tools when the instruction requires actions. "
+        "Respond to the user when a spoken or written response is part of the task. "
+        "Do not schedule another automation unless the instruction explicitly says so."
     )

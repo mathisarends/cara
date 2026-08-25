@@ -14,11 +14,11 @@ from gateway.features.automation.infrastructure import AutomationEnvelopeCodec
 def test_automation_payload_codec_round_trips_versioned_reminder() -> None:
     codec = AutomationEnvelopeCodec()
     envelope = AutomationEnvelope(
-        schema_version=1,
+        schema_version=2,
         target=SessionAutomationTarget(kind="session", session_id=uuid4()),
         payload=ReminderPayload(
             kind="reminder",
-            message="Hang up the laundry",
+            instruction="Hang up the laundry",
             created_from_turn_id=uuid4(),
         ),
     )
@@ -31,9 +31,9 @@ def test_automation_payload_codec_rejects_unknown_schema_version() -> None:
 
     with pytest.raises(ValidationError):
         codec.decode(
-            '{"schema_version":2,'
+            '{"schema_version":3,'
             '"target":{"kind":"session",'
             '"session_id":"00000000-0000-0000-0000-000000000001"},'
-            '"payload":{"kind":"reminder","message":"test",'
+            '"payload":{"kind":"reminder","instruction":"test",'
             '"created_from_turn_id":"00000000-0000-0000-0000-000000000002"}}'
         )

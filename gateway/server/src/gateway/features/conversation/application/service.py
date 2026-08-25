@@ -28,6 +28,8 @@ from gateway.features.conversation.domain import (
 
 logger = logging.getLogger(__name__)
 
+_AUTOMATION_BUSY_RETRY_SECONDS = 0.25
+
 
 class ConversationService:
     def __init__(
@@ -95,8 +97,17 @@ class ConversationService:
     ) -> None:
         """Run a server-initiated turn without adding a synthetic user message."""
         await self.get_session(session_id)
-        if not await self._sessions.claim_turn(session_id):
-            raise SessionBusyError(session_id)
+        deferred = False
+        while not await self._sessions.claim_turn(session_id):
+            if not deferred:
+                logger.info(
+                    "Deferring automation for busy session %s until its turn ends",
+                    session_id,
+                )
+                deferred = True
+            await asyncio.sleep(_AUTOMATION_BUSY_RETRY_SECONDS)
+        if deferred:
+            logger.info("Resuming deferred automation for session %s", session_id)
         await self._execute(session_id, text, metadata, persist_input=False)
 
     async def cancel_turn(self, session_id: UUID) -> None:

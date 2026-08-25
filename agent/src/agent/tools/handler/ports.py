@@ -130,7 +130,7 @@ type ReminderSchedule = RemindOnce | RemindEvery | RemindOnCron
 @dataclass(frozen=True, slots=True)
 class Reminder:
     id: str
-    message: str
+    instruction: str
     schedule: ReminderSchedule
     next_run_at: datetime
     name: str | None = None
@@ -150,7 +150,7 @@ class Reminders(ABC):
     async def create(
         self,
         *,
-        message: str,
+        instruction: str,
         schedule: ReminderSchedule,
         name: str | None = None,
     ) -> Reminder: ...
@@ -160,7 +160,7 @@ class Reminders(ABC):
         self,
         reminder_id: str,
         *,
-        message: str,
+        instruction: str,
         schedule: ReminderSchedule,
         name: str | None = None,
     ) -> Reminder: ...

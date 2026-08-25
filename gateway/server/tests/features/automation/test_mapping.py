@@ -32,14 +32,14 @@ def test_automation_response_maps_schedule_types(
             id="job",
             trigger=trigger,
             payload=AutomationEnvelope(
-                schema_version=1,
+                schema_version=2,
                 target=SessionAutomationTarget(
                     kind="session",
                     session_id=uuid4(),
                 ),
                 payload=ReminderPayload(
                     kind="reminder",
-                    message="Test",
+                    instruction="Test",
                     created_from_turn_id=uuid4(),
                 ),
             ),

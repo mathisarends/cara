@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
@@ -61,8 +61,13 @@ class _ScheduleParams(ToolParams):
             "Only change this when the user is explicitly in another zone."
         ),
     )
-    message: str = Field(
-        description="What to remind the user about, in the user's language."
+    instruction: str = Field(
+        description=(
+            "Complete, self-contained instruction for the future agent run, in the "
+            "user's own intent and language. Name every action and required tool use "
+            "(e.g. playing bird sounds, controlling devices, fetching fresh info), or "
+            "just the response to give if no tool is needed — not a mere summary."
+        )
     )
     name: str | None = Field(
         default=None,
@@ -114,9 +119,11 @@ def register_reminder_tools(tools: Tools) -> None:
 
     @tools.tool(
         description=(
-            "Schedule a reminder for this conversation, once at a given time, "
-            "repeatedly every few minutes, or on a cron expression. Use this "
-            "whenever the user asks to be reminded of something later."
+            "Schedule a future agent run for this conversation, once at a given "
+            "time, repeatedly every few minutes, or on a cron expression. The future "
+            "run can speak to the user and call tools. Store the complete executable "
+            "instruction, including requested actions and tool use, rather than only "
+            "a reminder topic."
         ),
         params=CreateReminderParams,
         available_when=available,
@@ -126,7 +133,7 @@ def register_reminder_tools(tools: Tools) -> None:
         reminders: Inject[Reminders],
     ) -> str:
         reminder = await reminders.create(
-            message=params.message,
+            instruction=params.instruction,
             schedule=_schedule(params),
             name=params.name,
         )
@@ -134,8 +141,9 @@ def register_reminder_tools(tools: Tools) -> None:
 
     @tools.tool(
         description=(
-            "Replace an existing reminder. Message and schedule are both "
-            "overwritten, so pass the full new state, not only what changed."
+            "Replace an existing scheduled agent run. Instruction and schedule are "
+            "both overwritten, so pass the complete executable instruction and full "
+            "schedule, not only what changed."
         ),
         params=UpdateReminderParams,
         available_when=available,
@@ -146,7 +154,7 @@ def register_reminder_tools(tools: Tools) -> None:
     ) -> str:
         reminder = await reminders.update(
             params.reminder_id,
-            message=params.message,
+            instruction=params.instruction,
             schedule=_schedule(params),
             name=params.name,
         )
@@ -171,7 +179,15 @@ def _schedule(params: _ScheduleParams) -> ReminderSchedule:
         case ReminderScheduleKind.ONCE:
             if params.run_at is None:
                 raise ToolError("params.run_at is required for a 'once' reminder")
-            return RemindOnce(when=_localised(params.run_at, timezone))
+            when = _localised(params.run_at, timezone)
+            if when.astimezone(UTC) <= datetime.now(UTC):
+                now = datetime.now(timezone)
+                current_time = now.isoformat(timespec="seconds")
+                raise ToolError(
+                    "params.run_at must be in the future. "
+                    f"Current local time in {timezone.key} is {current_time}"
+                )
+            return RemindOnce(when=when)
         case ReminderScheduleKind.EVERY:
             if params.every_minutes is None:
                 raise ToolError(
@@ -196,7 +212,7 @@ def _localised(when: datetime, timezone: ZoneInfo) -> datetime:
 
 
 def _render_reminder(reminder: Reminder) -> str:
-    label = f"'{reminder.name}'" if reminder.name else f"'{reminder.message}'"
+    label = f"'{reminder.name}'" if reminder.name else f"'{reminder.instruction}'"
     return (
         f"{reminder.id}: {label} — {_render_schedule(reminder.schedule)}, "
         f"next {reminder.next_run_at:%Y-%m-%d %H:%M %Z}"

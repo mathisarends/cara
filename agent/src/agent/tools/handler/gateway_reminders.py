@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from uuid import UUID
 
@@ -65,7 +65,7 @@ class GatewayReminders(Reminders):
     async def create(
         self,
         *,
-        message: str,
+        instruction: str,
         schedule: ReminderSchedule,
         name: str | None = None,
     ) -> Reminder:
@@ -73,7 +73,7 @@ class GatewayReminders(Reminders):
             automation = await client.automation.create(
                 session_id=self._session_id,
                 schedule=_automation_schedule(schedule),
-                payload=self._payload(message),
+                payload=self._payload(instruction),
                 name=name,
             )
         return _reminder(automation)
@@ -82,7 +82,7 @@ class GatewayReminders(Reminders):
         self,
         reminder_id: str,
         *,
-        message: str,
+        instruction: str,
         schedule: ReminderSchedule,
         name: str | None = None,
     ) -> Reminder:
@@ -91,7 +91,7 @@ class GatewayReminders(Reminders):
                 session_id=self._session_id,
                 automation_id=reminder_id,
                 schedule=_automation_schedule(schedule),
-                payload=self._payload(message),
+                payload=self._payload(instruction),
                 name=name,
             )
         return _reminder(automation)
@@ -103,15 +103,15 @@ class GatewayReminders(Reminders):
                 automation_id=reminder_id,
             )
 
-    def _payload(self, message: str) -> ReminderAutomationPayload:
+    def _payload(self, instruction: str) -> ReminderAutomationPayload:
         return ReminderAutomationPayload(
             kind="reminder",
-            message=message,
+            instruction=instruction,
             created_from_turn_id=self._turn_id,
         )
 
     @asynccontextmanager
-    async def _client(self) -> AsyncIterator[GatewayClient]:
+    async def _client(self) -> AsyncGenerator[GatewayClient]:
         try:
             transport = await WebSocketTransport.connect(
                 self._connection.url,
@@ -129,7 +129,7 @@ class GatewayReminders(Reminders):
 def _reminder(automation: AutomationResponse) -> Reminder:
     return Reminder(
         id=automation.id,
-        message=automation.payload.message,
+        instruction=automation.payload.instruction,
         schedule=_reminder_schedule(automation.schedule),
         next_run_at=automation.next_run_at,
         name=automation.name,

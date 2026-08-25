@@ -27,11 +27,11 @@ def _automation(schedule) -> AutomationResponse:
         created_at=datetime(2026, 8, 25, tzinfo=UTC),
         next_run_at=datetime(2026, 8, 26, 5, 30, tzinfo=UTC),
         schedule=schedule,
-        schema_version=1,
+        schema_version=2,
         target=SessionAutomationTargetResponse(kind="session", session_id=_SESSION_ID),
         payload=ReminderAutomationPayload(
             kind="reminder",
-            message="Zahnarzt",
+            instruction="Zahnarzt",
             created_from_turn_id=_TURN_ID,
         ),
     )
@@ -71,14 +71,14 @@ def test_reminder_maps_every_schedule_kind_from_the_gateway() -> None:
     ).schedule == RemindOnCron(expression="0 9 * * *", timezone="Europe/Berlin")
 
 
-def test_reminder_carries_the_message_and_next_run() -> None:
+def test_reminder_carries_the_instruction_and_next_run() -> None:
     reminder = _reminder(
         _automation(IntervalSchedule(every_seconds=60, run_immediately=False))
     )
 
     assert reminder.id == "a"
     assert reminder.name == "Zahnarzt"
-    assert reminder.message == "Zahnarzt"
+    assert reminder.instruction == "Zahnarzt"
     assert reminder.next_run_at == datetime(2026, 8, 26, 5, 30, tzinfo=UTC)
 
 

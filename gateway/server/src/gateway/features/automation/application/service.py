@@ -42,7 +42,7 @@ class AutomationService:
         return await self._scheduler.schedule(
             trigger=trigger,
             payload=AutomationEnvelope(
-                schema_version=1,
+                schema_version=2,
                 target=SessionAutomationTarget(kind="session", session_id=session_id),
                 payload=payload,
             ),

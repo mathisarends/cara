@@ -30,7 +30,7 @@ def automation_response(
         ),
         payload=ReminderAutomationPayload(
             kind=job.payload.payload.kind,
-            message=job.payload.payload.message,
+            instruction=job.payload.payload.instruction,
             created_from_turn_id=job.payload.payload.created_from_turn_id,
         ),
     )
@@ -55,7 +55,7 @@ def automation_trigger(schedule: AutomationSchedule) -> Trigger:
 def reminder_payload(payload: ReminderAutomationPayload) -> ReminderPayload:
     return ReminderPayload(
         kind=payload.kind,
-        message=payload.message,
+        instruction=payload.instruction,
         created_from_turn_id=payload.created_from_turn_id,
     )
 

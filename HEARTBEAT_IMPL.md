@@ -181,7 +181,7 @@ class SessionAutomationTarget:
 @dataclass(frozen=True, slots=True)
 class ReminderPayload:
     kind: Literal["reminder"]
-    message: str
+    instruction: str
     created_from_turn_id: UUID
 
 
@@ -197,7 +197,7 @@ type AutomationPayload = ReminderPayload | HeartbeatPayload
 
 @dataclass(frozen=True, slots=True)
 class AutomationEnvelope:
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     target: SessionAutomationTarget
     payload: AutomationPayload
 ```
@@ -232,7 +232,7 @@ sequenceDiagram
     participant D as DeliveryRouter
 
     U->>A: Erinnere mich in 10 Minuten an XY
-    A->>T: delay_seconds=600, message="XY"
+    A->>T: delay_seconds=600, instruction="XY"
     T->>S: At(now + 600s), ReminderPayload(session_id, "XY")
     S-->>T: job_id, next_run_at
     T-->>A: Bestätigung mit absolutem Zeitpunkt
@@ -249,9 +249,11 @@ Der Agent erhält keinen bloßen Text „XY“, sondern einen vom Gateway gerend
 Trigger-Prompt, zum Beispiel:
 
 ```text
-[Scheduled reminder]
-This reminder is now due. Remind the user about: XY
-Do not reschedule it unless the user explicitly asks in a later turn.
+[Scheduled agent run]
+The scheduled task is now due. Execute the following instruction now:
+<instruction>XY</instruction>
+Use the available tools when the instruction requires actions.
+Do not schedule another automation unless the instruction explicitly says so.
 ```
 
 Der Benutzerinhalt wird dabei als Datenfeld behandelt und nicht als
@@ -499,7 +501,7 @@ entgegenzunehmen.
 V1-Tools:
 
 ```text
-schedule_reminder(message, delay_seconds | run_at, timezone?)
+schedule_reminder(instruction, delay_seconds | run_at, timezone?)
 list_reminders()
 cancel_reminder(job_id)
 ```

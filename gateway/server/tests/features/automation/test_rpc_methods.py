@@ -36,11 +36,11 @@ async def test_rpc_lists_and_gets_typed_automations() -> None:
         every=timedelta(minutes=30),
         run_immediately=False,
         payload=AutomationEnvelope(
-            schema_version=1,
+            schema_version=2,
             target=SessionAutomationTarget(kind="session", session_id=session_id),
             payload=ReminderPayload(
                 kind="reminder",
-                message="Drink water",
+                instruction="Drink water",
                 created_from_turn_id=uuid4(),
             ),
         ),
@@ -72,7 +72,7 @@ async def test_rpc_creates_updates_and_deletes_an_automation() -> None:
     session_id = uuid4()
     payload = ReminderAutomationPayload(
         kind="reminder",
-        message="Stand up",
+        instruction="Stand up",
         created_from_turn_id=uuid4(),
     )
 
@@ -95,7 +95,7 @@ async def test_rpc_creates_updates_and_deletes_an_automation() -> None:
             session_id=session_id,
             automation_id=created.id,
             schedule=CronSchedule(expression="0 9 * * *", timezone="Europe/Berlin"),
-            payload=payload.model_copy(update={"message": "Stand up now"}),
+            payload=payload.model_copy(update={"instruction": "Stand up now"}),
             name="Morning stand up",
         )
     )
@@ -104,7 +104,7 @@ async def test_rpc_creates_updates_and_deletes_an_automation() -> None:
         expression="0 9 * * *",
         timezone="Europe/Berlin",
     )
-    assert updated.payload.message == "Stand up now"
+    assert updated.payload.instruction == "Stand up now"
     assert updated.name == "Morning stand up"
 
     deleted = await methods.delete_automation(

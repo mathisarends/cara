@@ -49,7 +49,7 @@ class SessionAutomationTargetResponse(_AutomationSchema):
 
 class ReminderAutomationPayload(_AutomationSchema):
     kind: Literal["reminder"]
-    message: str
+    instruction: str
     created_from_turn_id: UUID
 
 
@@ -59,7 +59,7 @@ class AutomationResponse(_AutomationSchema):
     created_at: datetime
     next_run_at: datetime
     schedule: AutomationSchedule
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     target: SessionAutomationTargetResponse
     payload: ReminderAutomationPayload
 

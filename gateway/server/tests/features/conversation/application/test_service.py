@@ -59,6 +59,26 @@ class _StreamingAgentRunner(AgentRunner):
         pass
 
 
+class _BlockingFirstAgentRunner(AgentRunner):
+    def __init__(self) -> None:
+        self.requests: list[AgentRunRequest] = []
+        self.first_started = asyncio.Event()
+        self.release_first = asyncio.Event()
+
+    async def run(
+        self,
+        request: AgentRunRequest,
+    ) -> AsyncIterator[AgentEvent]:
+        self.requests.append(request)
+        if len(self.requests) == 1:
+            self.first_started.set()
+            await self.release_first.wait()
+        yield ChatCompleted("Done", finish_reason="stop")
+
+    async def close(self) -> None:
+        pass
+
+
 class _RecordingPublisher(EventPublisher):
     def __init__(self) -> None:
         self.events: list[GatewayEvent] = []
@@ -147,14 +167,14 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
 
     await service.run_automation_turn(
         session.id,
-        "[Scheduled reminder] Wake the user",
+        "[Scheduled agent run] Play bird sounds and wake the user",
         {"origin": "automation", "automation_kind": "reminder"},
     )
 
     request = runner.requests[0]
     persisted = await service.get_session(session.id)
     assert request.input_id is None
-    assert request.input == "[Scheduled reminder] Wake the user"
+    assert request.input == "[Scheduled agent run] Play bird sounds and wake the user"
     assert request.turn_metadata == {
         "origin": "automation",
         "automation_kind": "reminder",
@@ -163,6 +183,35 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
         "ToolCallSequence",
         "AssistantMessage",
     ]
+    await service.close()
+
+
+async def test_automation_turn_waits_for_an_active_interactive_turn(
+    session_repository: SQLSessionRepository,
+    publisher: _RecordingPublisher,
+) -> None:
+    runner = _BlockingFirstAgentRunner()
+    service = ConversationService(session_repository, publisher, runner)
+    session = await service.create_session(_CHANNEL, {})
+    await service.start_turn(session.id, "Schedule this", {})
+    await asyncio.wait_for(runner.first_started.wait(), timeout=1)
+
+    automation = asyncio.create_task(
+        service.run_automation_turn(
+            session.id,
+            "[Scheduled agent run] Execute this",
+            {"origin": "automation"},
+        )
+    )
+    await asyncio.sleep(0.3)
+    assert not automation.done()
+
+    runner.release_first.set()
+    await asyncio.wait_for(automation, timeout=2)
+
+    assert len(runner.requests) == 2
+    assert runner.requests[1].input_id is None
+    assert runner.requests[1].turn_metadata == {"origin": "automation"}
     await service.close()
 
 

@@ -12,12 +12,12 @@ class SessionAutomationTarget:
 @dataclass(frozen=True, slots=True)
 class ReminderPayload:
     kind: Literal["reminder"]
-    message: str
+    instruction: str
     created_from_turn_id: UUID
 
 
 @dataclass(frozen=True, slots=True)
 class AutomationEnvelope:
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     target: SessionAutomationTarget
     payload: ReminderPayload

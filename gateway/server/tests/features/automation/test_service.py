@@ -17,13 +17,13 @@ async def _runner(run: ScheduledRun[AutomationEnvelope]) -> None:
     pass
 
 
-def _reminder(session_id: UUID, message: str) -> AutomationEnvelope:
+def _reminder(session_id: UUID, instruction: str) -> AutomationEnvelope:
     return AutomationEnvelope(
-        schema_version=1,
+        schema_version=2,
         target=SessionAutomationTarget(kind="session", session_id=session_id),
         payload=ReminderPayload(
             kind="reminder",
-            message=message,
+            instruction=instruction,
             created_from_turn_id=uuid4(),
         ),
     )
@@ -74,7 +74,7 @@ async def test_service_creates_updates_and_deletes_session_automations() -> None
     assert updated.id == created.id
     assert updated.created_at == created.created_at
     assert updated.trigger == Interval(every=timedelta(hours=1), run_immediately=False)
-    assert updated.payload.payload.message == "Stretch more"
+    assert updated.payload.payload.instruction == "Stretch more"
     assert updated.payload.target == created.payload.target
 
     await service.delete_for_session(created.id, session_id)

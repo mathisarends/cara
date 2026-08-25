@@ -136,7 +136,7 @@
           "$ref": "#/$defs/AutomationSchedule"
         },
         "schema_version": {
-          "const": 1,
+          "const": 2,
           "title": "Schema Version",
           "type": "integer"
         },
@@ -521,8 +521,8 @@
           "title": "Kind",
           "type": "string"
         },
-        "message": {
-          "title": "Message",
+        "instruction": {
+          "title": "Instruction",
           "type": "string"
         },
         "created_from_turn_id": {
@@ -533,7 +533,7 @@
       },
       "required": [
         "kind",
-        "message",
+        "instruction",
         "created_from_turn_id"
       ],
       "title": "ReminderAutomationPayload",
