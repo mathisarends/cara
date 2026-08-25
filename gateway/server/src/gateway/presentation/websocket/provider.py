@@ -16,6 +16,10 @@ from gateway.features.conversation.presentation.subscription_rpc_methods import 
 from gateway.features.conversation.presentation.turn_rpc_methods import (
     TurnRpcMethods,
 )
+from gateway.presentation.websocket.authentication import (
+    GatewayAuthenticator,
+    GatewayAuthSettings,
+)
 from gateway.presentation.websocket.connection import GatewayConnection
 from gateway.presentation.websocket.error_mapping import gateway_error_mapper
 
@@ -25,14 +29,27 @@ class GatewayProvider(Provider):
         super().__init__()
         self._protocol = protocol
 
+    @provide(scope=Scope.APP)
+    def auth_settings(self) -> GatewayAuthSettings:
+        return GatewayAuthSettings()
+
+    @provide(scope=Scope.APP)
+    def authenticator(
+        self,
+        settings: GatewayAuthSettings,
+    ) -> GatewayAuthenticator:
+        return GatewayAuthenticator(settings)
+
     @provide(scope=Scope.SESSION)
     def connection(
         self,
         websocket: WebSocket,
+        authenticator: GatewayAuthenticator,
         automation_service: AutomationService,
         service: ConversationService,
         broker: EventBroker,
     ) -> GatewayConnection:
+        authenticator.authenticate(websocket)
         client_id = str(uuid4())
         automation = AutomationRpcMethods(automation_service)
         session = SessionRpcMethods(service)

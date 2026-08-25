@@ -20,9 +20,14 @@ this package alone.
 ## Quickstart
 
 ```python
+import os
+
 from gateway_client import GatewayClient, WebSocketTransport
 
-transport = await WebSocketTransport.connect("ws://127.0.0.1:8000/v1/gateway")
+transport = await WebSocketTransport.connect(
+    "ws://127.0.0.1:8000/v1/gateway",
+    token=os.environ["CARA_GATEWAY_TOKEN"],
+)
 async with GatewayClient(transport) as client:
     session = await client.session.open(channel={"name": "cli"}, metadata={"app": "ios"})
     await client.subscription.subscribe(session_id=session.id)

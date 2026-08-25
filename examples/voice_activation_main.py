@@ -33,6 +33,7 @@ _GATEWAY_URL = os.environ.get(
     "CARA_GATEWAY_URL",
     "ws://127.0.0.1:8000/v1/gateway",
 )
+_GATEWAY_TOKEN = os.environ["CARA_GATEWAY_TOKEN"]
 _INTERVAL_SECONDS = float(os.environ.get("CARA_VOICE_ACTIVATION_INTERVAL", "30"))
 _HEARTBEAT_PROMPT = (
     "This is a heartbeat turn. Briefly tell the user what time it is "
@@ -45,7 +46,10 @@ _LISTEN_SECONDS = 5.0
 
 async def main() -> None:
     activation = ExternalActivationSource()
-    gateway_session = await GatewayAgentSession.connect(_GATEWAY_URL)
+    gateway_session = await GatewayAgentSession.connect(
+        _GATEWAY_URL,
+        token=_GATEWAY_TOKEN,
+    )
     async with gateway_session:
         agent = VoiceAgent(
             agent_session=gateway_session,

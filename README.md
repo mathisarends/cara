@@ -123,7 +123,8 @@ testable standalone.
 ## Run
 
 The gateway runs directly on the host; Docker is not part of its runtime. Set
-`OPENAI_API_KEY`, then start it from Git Bash (or WSL/macOS/Linux):
+`OPENAI_API_KEY` and a random `CARA_GATEWAY_TOKEN` with at least 32 characters,
+then start it from Git Bash (or WSL/macOS/Linux):
 
 ```bash
 bash scripts/start_gateway.sh

@@ -254,11 +254,15 @@ way.
 ## Wiring an agent
 
 ```python
+import os
+
 from voice import VoiceAgent
 from voice.llm import GatewayAgentSession
 
 agent_session = await GatewayAgentSession.connect(
-    "ws://127.0.0.1:8000/v1/gateway", channel="voice",
+    "ws://127.0.0.1:8000/v1/gateway",
+    token=os.environ["CARA_GATEWAY_TOKEN"],
+    channel="voice",
 )
 async with agent_session:
     agent = VoiceAgent(agent_session=agent_session)

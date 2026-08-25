@@ -15,6 +15,9 @@ assistant's streamed reply — including tool-call events — render live.
 
 ## Running it
 
+Set `CARA_GATEWAY_TOKEN` to the same shared token as the Gateway. The CLI sends
+it as a Bearer credential during the WebSocket handshake.
+
 ```bash
 uv run cara-chat
 ```

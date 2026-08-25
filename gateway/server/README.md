@@ -37,6 +37,12 @@ agent, models, tools, skills
 
 ## Running the gateway
 
+Set a random shared token of at least 32 characters before starting the Gateway:
+
+```powershell
+$env:CARA_GATEWAY_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
 ```bash
 uv run cara-gateway          # applies pending Alembic migrations, serves on 127.0.0.1:8000
 uv run gateway-migrate        # run migrations standalone
@@ -46,6 +52,10 @@ uv run cara-gateway-schema     # regenerate gateway/server/schema/*.json from th
 Clients connect to `ws://127.0.0.1:8000/v1/gateway`. See the [repo root
 README](../../README.md#run) for the full startup sequence, including the
 `scripts/start_gateway.sh` convenience wrapper.
+
+The WebSocket endpoint requires `Authorization: Bearer <token>` during the
+handshake. Startup fails when `CARA_GATEWAY_TOKEN` is missing or shorter than
+32 characters. The health and readiness HTTP endpoints remain unauthenticated.
 
 ## Architecture
 
@@ -256,6 +266,10 @@ The [`scheduler`](../../scheduler) package is wired in the same way
 that package's README for its own store/runner model.
 
 ## Configuration
+
+`CARA_GATEWAY_TOKEN` is the mandatory shared secret used to authenticate every
+WebSocket client. Store it in the environment or `.env`; do not pass it as a
+command-line argument. All clients must use the same value.
 
 `GatewaySettings` (`pydantic-settings`) reads, in priority order: init
 arguments, environment variables (`CARA_`-prefixed), `.env`, then

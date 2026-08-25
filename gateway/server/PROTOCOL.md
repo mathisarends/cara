@@ -6,6 +6,15 @@ Cara exposes one long-lived JSON-RPC 2.0 WebSocket:
 ws://127.0.0.1:8000/v1/gateway
 ```
 
+The WebSocket upgrade must include the shared Gateway credential:
+
+```http
+Authorization: Bearer <CARA_GATEWAY_TOKEN>
+```
+
+The Gateway rejects missing or invalid credentials before accepting the
+protocol connection.
+
 Commands, correlated responses, and subscribed session events share that
 connection. The connection lifecycle lives at the gateway presentation boundary;
 each feature owns its Pydantic wire models and request handling.

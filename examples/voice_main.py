@@ -28,6 +28,7 @@ _GATEWAY_URL = os.environ.get(
     "CARA_GATEWAY_URL",
     "ws://127.0.0.1:8000/v1/gateway",
 )
+_GATEWAY_TOKEN = os.environ["CARA_GATEWAY_TOKEN"]
 _VOICE_CHANNEL = os.environ.get("CARA_VOICE_CHANNEL", "voice")
 _VOICE_ACCOUNT_ID = os.environ.get("CARA_VOICE_ACCOUNT_ID")
 _NEW_VOICE_SESSION = os.environ.get("CARA_VOICE_NEW_SESSION", "false").lower() in {
@@ -41,6 +42,7 @@ async def main() -> None:
     sonos_settings = SonosSettings()
     gateway_session = await GatewayAgentSession.connect(
         _GATEWAY_URL,
+        token=_GATEWAY_TOKEN,
         channel=_VOICE_CHANNEL,
         account_id=_VOICE_ACCOUNT_ID,
         new_session=_NEW_VOICE_SESSION,

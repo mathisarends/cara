@@ -23,6 +23,7 @@ class _TestAgentPlugin:
 @pytest.fixture
 def app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    monkeypatch.setenv("CARA_GATEWAY_TOKEN", "test-gateway-token-with-32-characters")
     monkeypatch.setattr(
         "gateway.agent_plugins.di.load_agent_plugin",
         lambda _: _TestAgentPlugin(),

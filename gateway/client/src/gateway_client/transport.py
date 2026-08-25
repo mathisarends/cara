@@ -19,8 +19,13 @@ class WebSocketTransport:
         self._reader_task = asyncio.create_task(self._read_messages())
 
     @classmethod
-    async def connect(cls, url: str) -> Self:
-        return cls(await connect(url))
+    async def connect(cls, url: str, *, token: str) -> Self:
+        return cls(
+            await connect(
+                url,
+                additional_headers={"Authorization": f"Bearer {token}"},
+            )
+        )
 
     async def request(self, method: str, params: dict[str, Any]) -> Any:
         self._next_id += 1

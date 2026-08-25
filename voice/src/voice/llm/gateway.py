@@ -70,11 +70,12 @@ class GatewayAgentSession:
         cls,
         url: str,
         *,
+        token: str,
         channel: str = "voice",
         account_id: str | None = None,
         new_session: bool = False,
     ) -> Self:
-        client = GatewayClient(await WebSocketTransport.connect(url))
+        client = GatewayClient(await WebSocketTransport.connect(url, token=token))
         try:
             return await cls.attach(
                 client,

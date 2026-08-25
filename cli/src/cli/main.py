@@ -1,8 +1,10 @@
 import argparse
 import asyncio
+import os
 import sys
 from uuid import UUID
 
+from dotenv import load_dotenv
 from pyrpckit.client import RpcClientError
 
 from cli.chat import ChatSession
@@ -15,6 +17,7 @@ DEFAULT_CHANNEL = "cli"
 
 
 def main() -> None:
+    load_dotenv()
     args = _parse_args()
     try:
         asyncio.run(_run(args))
@@ -25,8 +28,12 @@ def main() -> None:
 async def _run(args: argparse.Namespace) -> None:
     console = Console(color=not args.no_color and sys.stdout.isatty())
     console.banner(args.url)
+    token = os.environ.get("CARA_GATEWAY_TOKEN")
+    if not token:
+        console.error("CARA_GATEWAY_TOKEN is not set")
+        raise SystemExit(1)
     try:
-        client = GatewayClient(await WebSocketTransport.connect(args.url))
+        client = GatewayClient(await WebSocketTransport.connect(args.url, token=token))
     except OSError as error:
         console.error(f"cannot reach the gateway: {error}")
         raise SystemExit(1) from error
