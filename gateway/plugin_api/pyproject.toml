@@ -19,4 +19,4 @@ dev = [
 packages = ["src/agent_plugin_api"]
 
 [tool.ruff]
-extend = "../pyproject.toml"
+extend = "../../pyproject.toml"

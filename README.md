@@ -61,7 +61,7 @@ Three ideas hold this together:
   [gateway server → JSON-RPC / OpenRPC schema generation](gateway/server#json-rpc--openrpc-schema-generation) for
   the exact mechanism.
 - **The agent runtime is a plugin, not a hardwired dependency.** The gateway defines a small,
-  stable contract in [`agent_plugin_api`](agent_plugin_api#readme) (a run request, a read-only
+  stable contract in [`agent_plugin_api`](gateway/plugin_api#readme) (a run request, a read-only
   session-context reader, a streamed event union) with zero dependency on FastAPI, the database, or
   DI. [`agent`](agent#readme) implements that contract and registers itself under the Python
   entry-point group `cara.agent_plugins`; the gateway discovers, validates, and loads whichever
@@ -76,8 +76,9 @@ session-per-channel reuse (`session.open`) for free from the gateway.
 
 ## Packages
 
-All ten packages are members of one `uv` workspace (`pyproject.toml`). The Gateway server and
-client are grouped under `gateway/` while remaining independently installable; the graph below is their
+All eleven packages are members of one `uv` workspace (`pyproject.toml`). The Gateway server,
+client, and code generator are grouped under `gateway/` while remaining independently installable;
+the graph below is their
 actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
 relationship that is _not_ a package dependency: `gateway` never imports `agent` — it only
 discovers whichever plugin `gateway.yaml` names, at startup, through the `cara.agent_plugins`
@@ -95,21 +96,24 @@ flowchart TD
     gateway -.->|"entry point:<br/>cara.agent_plugins"| agent
 
     gateway_client
+    gateway_codegen
     agent_plugin_api
     scheduler
     llm
     retrieval
 ```
 
-The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`, `llm`, `retrieval`,
-`scheduler`) have zero intra-workspace dependencies — each is usable and testable standalone.
+The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`, `gateway_codegen`,
+`llm`, `retrieval`, `scheduler`) have zero intra-workspace dependencies — each is usable and
+testable standalone.
 
 | Package                                       | What it is                                                                                     |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | [`gateway-server`](gateway/server#readme)     | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
 | [`agent`](agent#readme)                       | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
-| [`agent_plugin_api`](agent_plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                  |
+| [`agent_plugin_api`](gateway/plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                |
 | [`gateway-client`](gateway/client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
+| [`gateway-codegen`](gateway/codegen#readme)   | Generator and Jinja2 templates for the complete Gateway client source package.                 |
 | [`voice`](voice#readme)                       | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
 | [`cli`](cli#readme)                           | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](llm#readme)                           | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |

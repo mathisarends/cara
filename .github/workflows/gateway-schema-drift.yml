@@ -33,7 +33,7 @@ jobs:
 
       - name: Regenerate Python client
         run: >-
-          uv run --frozen --package gateway-client cara-gateway-client-generate
+          uv run --frozen --package gateway-codegen cara-gateway-client-generate
           gateway/server/schema/gateway.openrpc.json
 
       - name: Check generated artifacts for drift

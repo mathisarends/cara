@@ -6,7 +6,6 @@ dev = [
     "pyyaml>=6.0.3",
     "ruff>=0.14.0",
 ]
-
 [tool.uv]
 environments = [
     "sys_platform == 'win32'",
@@ -19,8 +18,9 @@ members = [
     "agent",
     "cli",
     "gateway/server",
-    "agent_plugin_api",
+    "gateway/plugin_api",
     "gateway/client",
+    "gateway/codegen",
     "llm",
     "memory",
     "retrieval",
@@ -34,6 +34,7 @@ cli = { workspace = true }
 gateway-server = { workspace = true }
 agent-plugin-api = { workspace = true }
 gateway-client = { workspace = true }
+gateway-codegen = { workspace = true }
 llm = { workspace = true }
 memory = { workspace = true }
 retrieval = { workspace = true }
@@ -63,6 +64,7 @@ known-first-party = [
     "gateway",
     "agent_plugin_api",
     "gateway_client",
+    "gateway_codegen",
     "llm",
     "memory",
     "retrieval",

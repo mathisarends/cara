@@ -127,7 +127,7 @@ apart.
    ```
 
 `gateway.openrpc.json` is in turn the input to
-[`gateway_client`](../client)'s code generator — regenerating the
+[`gateway-codegen`](../codegen) generator — regenerating the
 schema and regenerating the client are always two steps of one change, never
 independent edits.
 
@@ -168,7 +168,7 @@ independent edits.
 
 The Gateway hosts exactly one active `AgentRunner` per process, discovered by
 Python entry point and driven only through the contract defined in
-[`agent_plugin_api`](../../agent_plugin_api) — see that package for the full
+[`agent_plugin_api`](../plugin_api) — see that package for the full
 `AgentRunner`/`AgentPlugin`/`AgentSessionReader` contract.
 
 1. **Discovery.** `load_agent_plugin(name)` looks up

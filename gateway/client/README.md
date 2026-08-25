@@ -49,20 +49,23 @@ client together, from the workspace root:
 
 ```bash
 uv run cara-gateway-schema
-uv run cara-gateway-client-generate gateway/server/schema/gateway.openrpc.json
+uv run --package gateway-codegen cara-gateway-client-generate \
+  gateway/server/schema/gateway.openrpc.json
 ```
 
 The first command introspects the Gateway's RPC method registry and writes
 `gateway/server/schema/gateway.openrpc.json` (see [`gateway-server`](../server) for how
 that introspection works, via `rpckit.schema`). The second reads that file
-and regenerates every generated file under `gateway/client/src/gateway_client/`
-listed below, formatting each with the repo's `ruff` settings.
+and regenerates the complete source package under
+`gateway/client/src/gateway_client/`. Generator implementation and templates
+live separately in [`gateway/codegen`](../codegen).
 
 Run the generator with `--check` in CI to fail the build when the checked-in
 client has drifted from the schema:
 
 ```bash
-uv run cara-gateway-client-generate gateway/server/schema/gateway.openrpc.json --check
+uv run --package gateway-codegen cara-gateway-client-generate \
+  gateway/server/schema/gateway.openrpc.json --check
 ```
 
 `--check` writes nothing; it exits non-zero the moment any generated file
@@ -71,11 +74,9 @@ change that was never followed by a regeneration.
 
 ## What gets generated
 
-`gateway/client/src/gateway_client/codegen.py` is a thin wrapper around
-`rpckit.codegen.render_python_client`, configured with this package's name
-(`gateway_client`) and client class name (`GatewayClient`). It turns one
-OpenRPC document into the following, all carrying the same "do not edit"
-header:
+The separate [`gateway-codegen`](../codegen) package combines
+`rpckit.codegen.render_python_client` with Gateway-specific Jinja2 templates.
+It produces every Python file below with a "do not edit" header:
 
 | Output | Generated from |
 | --- | --- |
@@ -83,15 +84,11 @@ header:
 | `client.py` | The top-level `GatewayClient`: one attribute per namespace, `notifications()` (a `TypeAdapter(SessionEventNotification)`-validated stream), and `close()`/async context-manager support. |
 | `namespaces/<name>.py` | One class per method-name prefix (`session.*` → `SessionClient`, `turn.*` → `TurnClient`). Each RPC method becomes one `async def` that builds its params model, calls `RpcTransport.request()`, and validates the result. |
 | `namespaces/__init__.py` | Re-exports every namespace class. |
+| `transport.py` | The Gateway WebSocket implementation of `RpcTransport`, rendered from a Jinja2 template. |
+| `__init__.py` | The public API, combining generated RPC types with transport and error exports. |
 
-`rpckit`'s generator always renders a package `__init__.py` too, but this
-package's own `__init__.py` is hand-written (it also exports `WebSocketTransport`
-and the `rpckit.client` error types), so the generator drops that one file
-before writing.
-
-Because models and namespace clients are both derived mechanically from the
-same schema, adding a Gateway RPC method or changing a wire model never
-requires touching this package by hand — only running the two commands above.
+Adding a Gateway RPC method or changing a wire model never requires touching
+the client source package by hand — only running the two commands above.
 
 ## Transport and error handling
 
@@ -101,8 +98,9 @@ from gateway_client import RpcClientError, RpcRemoteError, RpcTransport, RpcTran
 
 `RpcTransport` and the client error types (`RpcClientError`, `RpcRemoteError`,
 `RpcTransportError`) come straight from `rpckit.client` — this package only
-re-exports them. `WebSocketTransport` is the one hand-written seam: a concrete
-implementation of `RpcTransport` over `websockets`. Every namespace method
+re-exports them. `WebSocketTransport` is generated from the codegen package's
+Jinja2 template as a concrete implementation of `RpcTransport` over
+`websockets`. Every namespace method
 calls through the transport, so a test can swap in a fake one without
 touching generated code.
 
@@ -126,9 +124,8 @@ instead of hanging.
 
 ```text
 gateway/client/src/gateway_client/
-├── __init__.py       public exports (hand-written)
-├── transport.py       RpcTransport re-export + WebSocketTransport (hand-written)
-├── codegen.py           thin wrapper around rpckit.codegen (hand-written)
+├── __init__.py       generated public exports
+├── transport.py       generated WebSocket transport
 ├── client.py             GatewayClient (generated)
 ├── models.py             wire models, enums, discriminated unions (generated)
 └── namespaces/

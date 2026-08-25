@@ -125,7 +125,7 @@ All frozen dataclasses:
 
 `type AgentEvent = TextDelta \| TurnCompleted \| ToolStarted \| ToolCompleted`.
 These are the agent's *internal* event model — `agent.plugin` translates them
-1:1 into the [`agent_plugin_api`](../agent_plugin_api) event model the Gateway
+1:1 into the [`agent_plugin_api`](../gateway/plugin_api) event model the Gateway
 persists and forwards to clients.
 
 ## System prompt
@@ -231,7 +231,7 @@ cara = "agent.plugin:create_plugin"
 ```
 
 `agent.plugin` is the sole integration point with the outer Gateway process,
-speaking only the [`agent_plugin_api`](../agent_plugin_api) contract:
+speaking only the [`agent_plugin_api`](../gateway/plugin_api) contract:
 
 - `_CaraAgentPlugin.create(config, context)` validates `config` against a
   frozen, `extra="forbid"` `_CaraAgentSettings` (`models`, `workspace`,

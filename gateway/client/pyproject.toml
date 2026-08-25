@@ -9,9 +9,6 @@ dependencies = [
     "websockets>=13.0",
 ]
 
-[project.scripts]
-cara-gateway-client-generate = "gateway_client.codegen:main"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -30,8 +27,6 @@ extend = "../../pyproject.toml"
 
 [tool.coverage.run]
 omit = [
-    "*/gateway_client/client.py",
-    "*/gateway_client/models.py",
-    "*/gateway_client/namespaces/*",
+    "*/gateway_client/*",
     "*/gateway_client/tests/*",
 ]
