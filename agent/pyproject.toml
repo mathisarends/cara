@@ -7,7 +7,7 @@ dependencies = [
     "agent-plugin-api",
     "llm",
     "httpx>=0.28.0",
-    "mm-agenttoolkit>=0.2.0",
+    "mm-agenttoolkit>=0.4.0",
     "openai>=1.100.0",
     "py-llmify[openai]>=0.10.0",
     "pydantic>=2.7.0",

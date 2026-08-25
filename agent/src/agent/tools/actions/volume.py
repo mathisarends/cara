@@ -12,7 +12,7 @@ class VolumeParams(ToolParams):
 
 
 def register_volume_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description=(
             "Read the current playback volume in percent. Call this before a "
             "relative change such as 'a bit quieter'."
@@ -22,7 +22,7 @@ def register_volume_tools(tools: Tools) -> None:
     async def get_volume(control: Inject[VolumeControl]) -> str:
         return _render_volume(await control.get_volume())
 
-    @tools.action(
+    @tools.tool(
         description="Set the playback volume to a percentage.",
         params=VolumeParams,
         available_when=provided(VolumeControl),

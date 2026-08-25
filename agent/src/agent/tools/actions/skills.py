@@ -10,7 +10,7 @@ class LoadSkillParams(ToolParams):
 
 
 def register_skill_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description=(
             "Load a skill's full instructions into context before carrying "
             "out a task it covers. Call this first whenever a request matches "

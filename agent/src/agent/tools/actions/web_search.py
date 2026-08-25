@@ -16,7 +16,7 @@ class WebSearchParams(ToolParams):
 
 
 def register_web_search_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description="Search the web for current information, news, or facts.",
         params=WebSearchParams,
     )

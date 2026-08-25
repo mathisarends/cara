@@ -20,7 +20,7 @@ class RecallParams(ToolParams):
 
 
 def register_memory_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description="Search long-term memory for previously remembered facts.",
         params=RecallParams,
         available_when=_DISABLED,

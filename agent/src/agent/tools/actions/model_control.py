@@ -42,7 +42,7 @@ def register_model_control_tools(tools: Tools) -> None:
         ),
     )
 
-    @tools.action(
+    @tools.tool(
         description=(
             "Get the model and reasoning effort currently driving this conversation."
         ),
@@ -52,7 +52,7 @@ def register_model_control_tools(tools: Tools) -> None:
         effort = models.current_reasoning_effort or "default"
         return f"Model: {models.current_name}. Reasoning effort: {effort}."
 
-    @tools.action(
+    @tools.tool(
         description=(
             "List the models and reasoning efforts available for runtime selection."
         ),
@@ -63,7 +63,7 @@ def register_model_control_tools(tools: Tools) -> None:
         efforts = ", ".join(("default", *models.reasoning_efforts))
         return f"Models: {names}. Reasoning efforts: {efforts}."
 
-    @tools.action(
+    @tools.tool(
         description=(
             "Smoke-test and then switch the model driving this conversation. "
             "The current model remains active if validation fails."
@@ -90,7 +90,7 @@ def register_model_control_tools(tools: Tools) -> None:
             f"with reasoning effort {effort}."
         )
 
-    @tools.action(
+    @tools.tool(
         description=(
             "Smoke-test and then change the active model's reasoning effort. "
             "The current configuration remains active if validation fails."

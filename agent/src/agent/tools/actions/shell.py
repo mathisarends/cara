@@ -12,7 +12,7 @@ class ShellParams(ToolParams):
 
 
 def register_shell_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description="Execute a shell command in the isolated workspace sandbox.",
         params=ShellParams,
     )

@@ -60,7 +60,7 @@ requires-dist = [
     { name = "agent-plugin-api", editable = "agent_plugin_api" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "llm", editable = "llm" },
-    { name = "mm-agenttoolkit", specifier = ">=0.2.0" },
+    { name = "mm-agenttoolkit", specifier = ">=0.4.0" },
     { name = "openai", specifier = ">=1.100.0" },
     { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
@@ -713,15 +713,15 @@ dev = [{ name = "pytest", specifier = ">=8.0.0" }]
 
 [[package]]
 name = "mm-agenttoolkit"
-version = "0.2.0"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/5c/b3c34332934ab78dc2807509377bb77a4554a0d35d78dd2b58d3e296aca9/mm_agenttoolkit-0.2.0.tar.gz", hash = "sha256:d30453cbf325dc662bfcf01c048e942e247a3fd8177c325c61cc1fbfab3ef345", size = 103860, upload-time = "2026-08-02T19:32:37.276Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/83/da28d656288f17318f0cf48235581999a35bbd827d764449832f63e29583/mm_agenttoolkit-0.4.0.tar.gz", hash = "sha256:41424530f89d993a332b4d27688a0fb7e6c4226c04d91f5195844850b926b089", size = 115723, upload-time = "2026-08-25T08:15:43.556Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/64/4f6fe9da73330c22bc694106d6601072ed6d9bf9ece514a94c290ba53dcb/mm_agenttoolkit-0.2.0-py3-none-any.whl", hash = "sha256:9de907ee63c2e602506ad2f70265ea81f4d5998b96d398f64ec079628185a86d", size = 46326, upload-time = "2026-08-02T19:32:35.892Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/89/5d0b20356209b4f8014097f6e1c3b801c959ff686917f77c200e135f6e86/mm_agenttoolkit-0.4.0-py3-none-any.whl", hash = "sha256:91ac6b41badb893e523bbb0e42231c1fa2fef4c5ccd59b635d5ca7d88955c013", size = 54422, upload-time = "2026-08-25T08:15:42.306Z" },
 ]
 
 [[package]]

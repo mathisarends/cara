@@ -153,7 +153,7 @@ layout.
 ## Tools
 
 Tools are registered on an `agenttoolkit.Tools` instance via
-`@tools.action(description=..., params=...)`. Dependencies are declared as
+`@tools.tool(description=..., params=...)`. Dependencies are declared as
 `Inject[SomeType]` parameters and resolved by `agenttoolkit`'s DI container;
 `available_when=...` predicates conditionally expose a tool to the model —
 for example, model-switch tools only appear when alternatives are configured,
@@ -169,7 +169,7 @@ class SwitchModelParams(ToolParams):
     name: str = Field(description="Name of the model to switch to, exactly as listed.")
 
 def register_model_control_tools(tools: Tools) -> None:
-    @tools.action(description="Validate and switch the active model.", params=SwitchModelParams)
+    @tools.tool(description="Validate and switch the active model.", params=SwitchModelParams)
     async def switch_model(params: SwitchModelParams, models: Inject[ModelSwitch]) -> str:
         await models.switch(params.name)
         return f"Smoke test passed. Switched to {params.name}."

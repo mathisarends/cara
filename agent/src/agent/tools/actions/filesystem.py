@@ -83,7 +83,7 @@ class EditFileParams(ToolParams):
 
 
 def register_filesystem_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description=(
             "List files and directories under a workspace path. Directories "
             "end with a slash. Paths are relative to the workspace root; use "
@@ -95,7 +95,7 @@ def register_filesystem_tools(tools: Tools) -> None:
         entries = await workspace.list_dir(params.path)
         return _render_entries(entries, empty="(empty)")
 
-    @tools.action(
+    @tools.tool(
         description=(
             "Find workspace files and directories whose paths match a glob pattern."
         ),
@@ -105,7 +105,7 @@ def register_filesystem_tools(tools: Tools) -> None:
         entries = await workspace.glob(params.pattern)
         return _render_entries(entries[: params.max_results], empty="(no matches)")
 
-    @tools.action(
+    @tools.tool(
         description="Search workspace file contents with a regular expression.",
         params=GrepParams,
     )
@@ -135,13 +135,11 @@ def register_filesystem_tools(tools: Tools) -> None:
             )
         return "\n".join(rendered) if rendered else "(no matches)"
 
-    @tools.action(
-        description="Read a text file's full contents.", params=ReadFileParams
-    )
+    @tools.tool(description="Read a text file's full contents.", params=ReadFileParams)
     async def read_file(params: ReadFileParams, workspace: Inject[Workspace]) -> str:
         return await workspace.read_file(params.path)
 
-    @tools.action(
+    @tools.tool(
         description="Create a file or overwrite it entirely with new content.",
         params=WriteFileParams,
     )
@@ -149,7 +147,7 @@ def register_filesystem_tools(tools: Tools) -> None:
         await workspace.write_file(params.path, params.content)
         return f"Wrote {params.path}."
 
-    @tools.action(
+    @tools.tool(
         description=(
             "Replace an exact snippet in an existing file. "
             "old_text must occur exactly once."

@@ -21,7 +21,7 @@ from agent.tools import build_tools
 def test_custom_action_uses_agenttoolkit_execution() -> None:
     tools = Tools()
 
-    @tools.action(description="Echo a message.")
+    @tools.tool(description="Echo a message.")
     async def echo(message: str) -> str:
         return message
 
@@ -33,7 +33,7 @@ def test_custom_action_uses_agenttoolkit_execution() -> None:
 def test_build_tools_registers_core_and_additional_tools(tmp_path: Path) -> None:
     additional_tools = Tools()
 
-    @additional_tools.action(description="Echo a message.")
+    @additional_tools.tool(description="Echo a message.")
     async def echo(message: str) -> str:
         return message
 
@@ -202,7 +202,7 @@ def test_invalid_tool_input_is_returned_and_logged_on_one_line(caplog) -> None:
 def test_unexpected_tool_exception_is_logged_and_propagated(caplog) -> None:
     additional_tools = Tools()
 
-    @additional_tools.action(description="Crash unexpectedly.")
+    @additional_tools.tool(description="Crash unexpectedly.")
     def explode() -> str:
         raise RuntimeError("broken implementation")
 
@@ -227,7 +227,7 @@ def test_unexpected_tool_exception_is_logged_and_propagated(caplog) -> None:
 def test_successful_tool_output_is_truncated_on_debug(caplog) -> None:
     additional_tools = Tools()
 
-    @additional_tools.action(description="Return a long result.")
+    @additional_tools.tool(description="Return a long result.")
     def long_result() -> str:
         return "x" * 400
 

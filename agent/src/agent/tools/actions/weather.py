@@ -52,7 +52,7 @@ class WeatherParams(ToolParams):
 
 
 def register_weather_tools(tools: Tools) -> None:
-    @tools.action(
+    @tools.tool(
         description=(
             "Look up the weather for the current location or a given place, "
             "either right now, for a whole day, or as a multi-day outlook. "
