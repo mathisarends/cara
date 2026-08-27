@@ -33,7 +33,7 @@ after playback.
 | --- | --- |
 | `AudioInput` / `AudioOutput` | `MicrophoneAudioInput`; `LocalAudioOutput`, `SonosOutput` |
 | `VoiceActivityDetector` | `SileroVoiceActivityDetector` |
-| `SpeechToText` / `TextToSpeech` | Deepgram, Cartesia, (TTS also) Piper |
+| `SpeechToText` / `TextToSpeech` | Deepgram |
 | `AgentSession` | `GatewayAgentSession`, `EchoAgentSession` |
 | `BargeInStrategy` | `WakeWordBargeIn` (default), `SpeechBargeIn`, `NoBargeIn` |
 | `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource`, `GatewayAgentSession` |
