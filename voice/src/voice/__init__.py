@@ -14,6 +14,7 @@ from .barge_in import (
     WakeWordBargeIn,
 )
 from .channel import VoiceChannel
+from .config import VoiceChannelConfig
 from .conversation import (
     AssistantMessage,
     ConversationAudioMixer,
@@ -69,6 +70,7 @@ __all__ = [
     "SonosDuckingPolicy",
     "SonosPausePolicy",
     "VoiceChannel",
+    "VoiceChannelConfig",
     "WakeWord",
     "WakeWordBargeIn",
     "WakeWordSettings",

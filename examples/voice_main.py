@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 
 from dotenv import load_dotenv
 from sonosify import SonosClient
@@ -12,6 +11,7 @@ from voice import (
     SoundObserver,
     SpeechBargeIn,
     VoiceChannel,
+    VoiceChannelConfig,
     WakeWord,
     WakeWordSettings,
 )
@@ -26,28 +26,16 @@ logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
 
 load_dotenv(override=True)
 
-_GATEWAY_URL = os.environ.get(
-    "CARA_GATEWAY_URL",
-    "ws://127.0.0.1:8000/v1/gateway",
-)
-_GATEWAY_TOKEN = os.environ["CARA_GATEWAY_TOKEN"]
-_VOICE_CHANNEL = os.environ.get("CARA_VOICE_CHANNEL", "voice")
-_VOICE_ACCOUNT_ID = os.environ.get("CARA_VOICE_ACCOUNT_ID")
-_NEW_VOICE_SESSION = os.environ.get("CARA_VOICE_NEW_SESSION", "false").lower() in {
-    "1",
-    "true",
-    "yes",
-}
-
 
 async def main() -> None:
     sonos_settings = SonosSettings()
+    config = VoiceChannelConfig.from_yaml()
     gateway_session = await GatewayAgentSession.connect(
-        _GATEWAY_URL,
-        token=_GATEWAY_TOKEN,
-        channel=_VOICE_CHANNEL,
-        account_id=_VOICE_ACCOUNT_ID,
-        new_session=_NEW_VOICE_SESSION,
+        config.gateway.url,
+        token=config.gateway.token,
+        channel=config.voice.channel,
+        account_id=config.voice.account_id,
+        new_session=config.voice.new_session,
     )
     async with gateway_session, SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
