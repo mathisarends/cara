@@ -18,18 +18,14 @@ from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
 from voice.barge_in import BargeInContext, BargeInStrategy, WakeWordBargeIn
-from voice.conversation import (
-    ConversationAudioMixer,
-    ConversationAudioRecorder,
-    ConversationHistory,
-)
+from voice.conversation import ConversationAudioMixer, ConversationAudioRecorder
 from voice.echo_cancellation import (
     EchoCancellationSettings,
     wrap_with_echo_cancellation,
 )
 from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
-from voice.events.listener import LoggingListener, TranscriptListener
+from voice.events.listener import LoggingListener
 from voice.events.models import VoiceResourcesClosing
 from voice.handler import (
     BargeInHandler,
@@ -70,7 +66,6 @@ class VoiceChannel:
         recording_path: str | Path | None = None,
     ) -> None:
         self._event_bus = EventBus()
-        self._conversation_history = ConversationHistory()
         self._recording_path = Path(recording_path) if recording_path else None
         self._audio_session = (
             PortAudioSession() if audio_input is None or audio_output is None else None
@@ -193,9 +188,6 @@ class VoiceChannel:
         self._logging_listener = LoggingListener(
             self._event_bus, wake_word_phrase=wake_word_phrase
         )
-        self._transcript_listener = TranscriptListener(
-            self._event_bus, self._conversation_history
-        )
         self._observer_bridge = _ObserverBridge(
             event_bus=self._event_bus,
             observers=observers,
@@ -223,10 +215,7 @@ class VoiceChannel:
             await self._activation_coordinator.run()
         finally:
             await self.stop()
-        return AgentResult(
-            recording_path=self._recording_path,
-            conversation_history=self._conversation_history.turns,
-        )
+        return AgentResult(recording_path=self._recording_path)
 
     async def stop(self) -> None:
         if self._stopped:

@@ -15,16 +15,7 @@ from .barge_in import (
 )
 from .channel import VoiceChannel
 from .config import VoiceChannelConfig
-from .conversation import (
-    AssistantMessage,
-    ConversationAudioMixer,
-    ConversationAudioRecorder,
-    ConversationHistory,
-    ConversationMessage,
-    ConversationRole,
-    ConversationTurn,
-    HumanMessage,
-)
+from .conversation import ConversationAudioMixer, ConversationAudioRecorder
 from .handler import FollowUpSettings
 from .lights import HueObserver, LightingState
 from .models import AgentResult
@@ -42,20 +33,14 @@ __all__ = [
     "Activation",
     "ActivationSource",
     "AgentResult",
-    "AssistantMessage",
     "BargeInContext",
     "BargeInSignal",
     "BargeInStrategy",
     "ConversationAudioMixer",
     "ConversationAudioRecorder",
-    "ConversationHistory",
-    "ConversationMessage",
-    "ConversationRole",
-    "ConversationTurn",
     "Earcon",
     "ExternalActivationSource",
     "FollowUpSettings",
-    "HumanMessage",
     "HueObserver",
     "LightingState",
     "ListenActivation",

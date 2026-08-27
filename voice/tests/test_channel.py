@@ -88,7 +88,6 @@ def test_runs_and_closes_an_injected_voice_stack(
     asyncio.run(voice_channel.stop())
 
     assert result.recording_path == recording_path
-    assert result.conversation_history == ()
     assert not recording_path.exists()
     assert _stoppable(audio_input).stopped
     assert _stoppable(audio_output).stopped
