@@ -26,25 +26,25 @@ from voice.events.bus import EventBus
 
 @dataclass(frozen=True, slots=True)
 class ObserverContext:
-    """Dependencies made available to voice-agent observers."""
+    """Dependencies made available to voice-channel observers."""
 
     audio_player: AudioPlayback
 
 
 class Observer:
-    """Callback interface for :class:`VoiceAgent` events.
+    """Callback interface for :class:`VoiceChannel` events.
 
-    Subclass this class and pass instances to ``VoiceAgent(observers=...)``.
+    Subclass this class and pass instances to ``VoiceChannel(observers=...)``.
     Every callback is an async no-op by default, so subclasses only need to
     override the events they are interested in.
     """
 
     async def prepare(self, context: ObserverContext) -> None:
-        """Prepare resources before the agent starts its wake-word cycle."""
+        """Prepare resources before the channel starts its wake-word cycle."""
 
-    async def on_agent_starting(self) -> None: ...
+    async def on_channel_starting(self) -> None: ...
 
-    async def on_agent_stopped(self) -> None: ...
+    async def on_channel_stopped(self) -> None: ...
 
     async def on_wake_word_detected(
         self, name: str, score: float, sequence: int
@@ -98,10 +98,11 @@ class _ObserverBridge:
         for observer in self._observers:
             bus.on(
                 SessionStarted,
-                lambda _, observer=observer: observer.on_agent_starting(),
+                lambda _, observer=observer: observer.on_channel_starting(),
             )
             bus.on(
-                SessionEnded, lambda _, observer=observer: observer.on_agent_stopped()
+                SessionEnded,
+                lambda _, observer=observer: observer.on_channel_stopped(),
             )
             bus.on(
                 WakeWordDetected,

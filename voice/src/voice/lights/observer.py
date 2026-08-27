@@ -62,7 +62,7 @@ class HueObserver(Observer):
     async def on_voice_turn_timed_out(self, turn_id: int) -> None:
         self._submit_state(LightingState.IDLE)
 
-    async def on_agent_stopped(self) -> None:
+    async def on_channel_stopped(self) -> None:
         if not self._lighting.is_prepared:
             return
         self._submit_state(LightingState.IDLE)

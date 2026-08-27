@@ -50,8 +50,8 @@ from voice.wakeword import WakeWordListener, WakeWordSettings
 logger = logging.getLogger(__name__)
 
 
-class VoiceAgent:
-    """Owns and wires one voice session and the sources that can activate it."""
+class VoiceChannel:
+    """Keeps a voice channel open and coordinates the sources that activate it."""
 
     def __init__(
         self,
@@ -218,7 +218,7 @@ class VoiceAgent:
 
     async def start(self) -> AgentResult:
         if self._stopped:
-            raise RuntimeError("Voice agent is stopped.")
+            raise RuntimeError("Voice channel is stopped.")
 
         try:
             await self._observer_bridge.prepare()

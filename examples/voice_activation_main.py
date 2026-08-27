@@ -1,4 +1,4 @@
-"""Voice agent activated by a timer as well as by the wake word.
+"""Voice channel activated by a timer as well as by the wake word.
 
 The timer stands in for any out-of-band trigger — a hardware button, a hotkey,
 or a gateway push once the session can receive server-initiated turns. It shows
@@ -19,7 +19,7 @@ import os
 
 from dotenv import load_dotenv
 
-from voice import ExternalActivationSource, VoiceAgent
+from voice import ExternalActivationSource, VoiceChannel
 from voice.llm import GatewayAgentSession
 
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +51,7 @@ async def main() -> None:
         token=_GATEWAY_TOKEN,
     )
     async with gateway_session:
-        agent = VoiceAgent(
+        voice_channel = VoiceChannel(
             agent_session=gateway_session,
             activation_sources=(activation,),
         )
@@ -60,7 +60,7 @@ async def main() -> None:
             name="example-heartbeat",
         )
         try:
-            await agent.start()
+            await voice_channel.start()
         finally:
             heartbeat.cancel()
 

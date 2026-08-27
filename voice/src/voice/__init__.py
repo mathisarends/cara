@@ -5,7 +5,6 @@ from .activation import (
     ListenActivation,
     PromptActivation,
 )
-from .agent import VoiceAgent
 from .barge_in import (
     BargeInContext,
     BargeInSignal,
@@ -14,6 +13,7 @@ from .barge_in import (
     SpeechBargeIn,
     WakeWordBargeIn,
 )
+from .channel import VoiceChannel
 from .conversation import (
     AssistantMessage,
     ConversationAudioMixer,
@@ -68,7 +68,7 @@ __all__ = [
     "SonosAudioFocusPolicy",
     "SonosDuckingPolicy",
     "SonosPausePolicy",
-    "VoiceAgent",
+    "VoiceChannel",
     "WakeWord",
     "WakeWordBargeIn",
     "WakeWordSettings",

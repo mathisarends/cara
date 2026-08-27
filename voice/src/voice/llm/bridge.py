@@ -33,7 +33,7 @@ class AgentBridge:
     async def _on_turn_started(self, _: VoiceTurnStarted) -> None:
         self._preparation = asyncio.create_task(
             self._session.prepare_turn(),
-            name="voice-agent-prepare-turn",
+            name="voice-channel-prepare-turn",
         )
 
     async def _on_turn_ended(self, _: VoiceTurnEnded) -> None:

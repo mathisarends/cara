@@ -3,7 +3,7 @@
 Cara's local audio-pipeline client: wake word detection, recording,
 speech-to-text, an agent turn (over [`gateway-server`](../gateway/server) by
 default), text-to-speech, and playback, wired into one event-driven
-`VoiceAgent`. Layers acoustic echo cancellation and configurable barge-in on
+`VoiceChannel`. Layers acoustic echo cancellation and configurable barge-in on
 top, so a user can interrupt the assistant mid-response; supports local
 playback and Sonos speakers.
 
@@ -49,7 +49,7 @@ stream instead of submitting a duplicate turn and speaks the result.
 
 ```text
 voice/src/voice/
-├── agent.py            VoiceAgent: composition root, activation supervisor
+├── channel.py          VoiceChannel: persistent activation channel
 ├── audio/                physical I/O, buffering, volume
 ├── activation/            what may start a turn
 ├── wakeword/, vad/, stt/, tts/     provider adapters + bridges
@@ -65,7 +65,7 @@ voice/src/voice/
 ```python
 agent_session = await GatewayAgentSession.connect(url, token=token, channel="voice")
 async with agent_session:
-    await VoiceAgent(agent_session=agent_session).start()
+    await VoiceChannel(agent_session=agent_session).start()
 ```
 
 ## Dependencies

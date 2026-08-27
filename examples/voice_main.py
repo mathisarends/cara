@@ -11,7 +11,7 @@ from voice import (
     SonosDuckingPolicy,
     SoundObserver,
     SpeechBargeIn,
-    VoiceAgent,
+    VoiceChannel,
     WakeWord,
     WakeWordSettings,
 )
@@ -51,7 +51,7 @@ async def main() -> None:
     )
     async with gateway_session, SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
-        agent = VoiceAgent(
+        voice_channel = VoiceChannel(
             agent_session=gateway_session,
             audio_output=audio_output,
             text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
@@ -63,7 +63,7 @@ async def main() -> None:
                 SonosAudioFocusObserver(policy=SonosDuckingPolicy(client=sonos_client)),
             ),
         )
-        await agent.start()
+        await voice_channel.start()
 
 
 if __name__ == "__main__":

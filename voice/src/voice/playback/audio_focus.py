@@ -32,5 +32,5 @@ class SonosAudioFocusObserver(Observer):
     async def on_voice_turn_timed_out(self, turn_id: int) -> None:
         await self._policy.deactivate(reason=f"voice turn {turn_id} timed out")
 
-    async def on_agent_stopped(self) -> None:
-        await self._policy.deactivate(reason="voice agent stopped")
+    async def on_channel_stopped(self) -> None:
+        await self._policy.deactivate(reason="voice channel stopped")

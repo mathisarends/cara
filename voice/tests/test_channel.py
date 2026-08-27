@@ -5,8 +5,8 @@ from typing import Protocol, cast
 
 import pytest
 
-import voice.agent as agent_module
-from voice import FollowUpSettings, Observer, ObserverContext, VoiceAgent
+import voice.channel as channel_module
+from voice import FollowUpSettings, Observer, ObserverContext, VoiceChannel
 from voice.audio import AudioInput, AudioOutput
 from voice.llm import AgentSession
 from voice.stt import SpeechToText
@@ -40,10 +40,10 @@ class _LifecycleObserver(Observer):
     async def prepare(self, context: ObserverContext) -> None:
         self.events.append("prepared")
 
-    async def on_agent_starting(self) -> None:
+    async def on_channel_starting(self) -> None:
         self.events.append("started")
 
-    async def on_agent_stopped(self) -> None:
+    async def on_channel_stopped(self) -> None:
         self.events.append("stopped")
 
 
@@ -58,8 +58,8 @@ def test_runs_and_closes_an_injected_voice_stack(
 ) -> None:
     recording_path = tmp_path / "conversation.wav"
     observer = _LifecycleObserver()
-    monkeypatch.setattr(agent_module, "WakeWordListener", _WakeWordListener)
-    agent = VoiceAgent(
+    monkeypatch.setattr(channel_module, "WakeWordListener", _WakeWordListener)
+    voice_channel = VoiceChannel(
         agent_session=agent_session,
         audio_input=audio_input,
         audio_output=audio_output,
@@ -69,8 +69,8 @@ def test_runs_and_closes_an_injected_voice_stack(
         recording_path=recording_path,
     )
 
-    result = asyncio.run(agent.start())
-    asyncio.run(agent.stop())
+    result = asyncio.run(voice_channel.start())
+    asyncio.run(voice_channel.stop())
 
     assert result.recording_path == recording_path
     assert result.conversation_history == ()
@@ -81,8 +81,8 @@ def test_runs_and_closes_an_injected_voice_stack(
     assert _closable(text_to_speech).closed
     assert observer.events == ["prepared", "started", "stopped"]
 
-    with pytest.raises(RuntimeError, match="Voice agent is stopped"):
-        asyncio.run(agent.start())
+    with pytest.raises(RuntimeError, match="Voice channel is stopped"):
+        asyncio.run(voice_channel.start())
 
 
 def test_configures_follow_up_timeout(
@@ -94,7 +94,7 @@ def test_configures_follow_up_timeout(
     text_to_speech: TextToSpeech,
 ) -> None:
     configured_settings: FollowUpSettings | None = None
-    follow_up_handler = agent_module.FollowUpHandler
+    follow_up_handler = channel_module.FollowUpHandler
 
     def create_follow_up_handler(*, event_bus, settings):
         nonlocal configured_settings
@@ -104,14 +104,14 @@ def test_configures_follow_up_timeout(
             settings=settings,
         )
 
-    monkeypatch.setattr(agent_module, "WakeWordListener", _WakeWordListener)
+    monkeypatch.setattr(channel_module, "WakeWordListener", _WakeWordListener)
     monkeypatch.setattr(
-        agent_module,
+        channel_module,
         "FollowUpHandler",
         create_follow_up_handler,
     )
 
-    agent = VoiceAgent(
+    voice_channel = VoiceChannel(
         agent_session=agent_session,
         audio_input=audio_input,
         audio_output=audio_output,
@@ -122,7 +122,7 @@ def test_configures_follow_up_timeout(
             countdown_seconds=2,
         ),
     )
-    asyncio.run(agent.stop())
+    asyncio.run(voice_channel.stop())
 
     assert configured_settings == FollowUpSettings(
         window_seconds=7.5,

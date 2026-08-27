@@ -38,7 +38,7 @@ class SoundObserver(Observer):
     async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
         await self._play(Earcon.SLEEP)
 
-    async def on_agent_stopped(self) -> None:
+    async def on_channel_stopped(self) -> None:
         await self._play(Earcon.SLEEP)
 
     async def _play(self, earcon: Earcon) -> None:

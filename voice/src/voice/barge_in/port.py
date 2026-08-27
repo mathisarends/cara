@@ -30,7 +30,7 @@ class BargeInStrategy(ABC):
     def set_context(self, context: BargeInContext) -> None:
         """Bind to the session.
 
-        The voice agent calls this while wiring itself up, so a strategy is
+        The voice channel calls this while wiring itself up, so a strategy is
         constructed like any other collaborator and learns about the session
         afterwards.
         """
