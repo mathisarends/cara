@@ -35,7 +35,7 @@ from .playback import (
     SonosPausePolicy,
 )
 from .sound import Earcon, SoundObserver
-from .wakeword import WakeWordSettings
+from .wakeword import WakeWord, WakeWordSettings
 
 __all__ = [
     "Activation",
@@ -69,6 +69,7 @@ __all__ = [
     "SonosDuckingPolicy",
     "SonosPausePolicy",
     "VoiceAgent",
+    "WakeWord",
     "WakeWordBargeIn",
     "WakeWordSettings",
 ]

@@ -12,6 +12,8 @@ from voice import (
     SoundObserver,
     SpeechBargeIn,
     VoiceAgent,
+    WakeWord,
+    WakeWordSettings,
 )
 from voice.audio.output.sonos import SonosOutput
 from voice.llm import GatewayAgentSession
@@ -54,6 +56,7 @@ async def main() -> None:
             audio_output=audio_output,
             text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
             barge_in=SpeechBargeIn(),
+            wake_word_settings=WakeWordSettings(wake_word=WakeWord.HEY_JARVIS),
             observers=(
                 SoundObserver(),
                 HueObserver(),
