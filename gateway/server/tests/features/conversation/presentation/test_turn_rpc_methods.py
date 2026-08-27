@@ -1,7 +1,12 @@
 import asyncio
 from collections.abc import AsyncIterator
 
-from agent_plugin_api import AgentEvent, AgentRunner, AgentRunRequest
+from agent_plugin_api import (
+    AgentEvent,
+    AgentRunner,
+    AgentRunRequest,
+    AgentSessionRef,
+)
 from gateway.features.conversation.application.service import ConversationService
 from gateway.features.conversation.domain import GatewayEvent, GatewayEventType
 from gateway.features.conversation.infrastructure.memory import InMemoryEventBroker
@@ -28,6 +33,12 @@ _CHANNEL = SessionChannel(name="voice", account_id="local")
 
 
 class _NullAgentRunner(AgentRunner):
+    def __init__(self) -> None:
+        self.lifecycle: list[tuple[str, AgentSessionRef]] = []
+
+    async def prepare(self, session: AgentSessionRef) -> None:
+        self.lifecycle.append(("prepare", session))
+
     async def run(
         self,
         request: AgentRunRequest,
@@ -35,6 +46,9 @@ class _NullAgentRunner(AgentRunner):
         del request
         return
         yield
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        self.lifecycle.append(("finish", session))
 
     async def close(self) -> None:
         pass
@@ -86,6 +100,27 @@ async def test_start_turn_runs_the_agent_and_returns_the_session_id(
     assert result.session_id == created.id
     await _wait_for_event(receiver, GatewayEventType.TURN_COMPLETED)
     await service.close()
+
+
+async def test_prepare_and_finish_turn_forward_the_session(
+    session_repository: SQLSessionRepository,
+) -> None:
+    broker = InMemoryEventBroker()
+    runner = _NullAgentRunner()
+    service = ConversationService(session_repository, broker, runner)
+    session_methods = SessionRpcMethods(service)
+    turn_methods = TurnRpcMethods(service)
+    created = await session_methods.create_session(
+        CreateSessionParams(channel=_CHANNEL)
+    )
+
+    prepared = await turn_methods.prepare_turn(SessionParams(session_id=created.id))
+    finished = await turn_methods.finish_turn(SessionParams(session_id=created.id))
+
+    assert prepared.session_id == created.id
+    assert finished.session_id == created.id
+    assert [event for event, _ in runner.lifecycle] == ["prepare", "finish"]
+    assert all(session.id == created.id for _, session in runner.lifecycle)
 
 
 async def test_cancel_turn_stops_an_active_turn(

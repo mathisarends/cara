@@ -94,6 +94,21 @@ async def test_params_model_serializes_uuid_for_transport() -> None:
 
 
 @pytest.mark.asyncio
+async def test_turn_preparation_and_finish_use_session_commands() -> None:
+    transport = FakeTransport()
+    client = GatewayClient(transport)
+    session_id = uuid4()
+
+    await client.turn.prepare(session_id=session_id)
+    await client.turn.finish(session_id=session_id)
+
+    assert transport.calls == [
+        ("turn.prepare", {"session_id": str(session_id)}),
+        ("turn.finish", {"session_id": str(session_id)}),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_notification_is_parsed_as_concrete_event() -> None:
     transport = FakeTransport()
     session_id = uuid4()

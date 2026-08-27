@@ -1,11 +1,16 @@
 import asyncio
 from collections.abc import Awaitable, Callable
-from typing import Self
+from typing import Protocol, Self, runtime_checkable
 
 from llmify import ChatModel, UserMessage
 
 type _ModelFactory = Callable[[str | None], ChatModel]
 type _ModelSmokeTest = Callable[[ChatModel], Awaitable[None]]
+
+
+@runtime_checkable
+class _AsyncCloseable(Protocol):
+    async def aclose(self) -> None: ...
 
 
 class ModelSwitch:
@@ -39,12 +44,13 @@ class ModelSwitch:
         *,
         default: str,
         reasoning_efforts: tuple[str, ...],
+        initial_model: ChatModel | None = None,
         smoke_test: _ModelSmokeTest | None = None,
     ) -> Self:
         if default not in factories:
             raise ValueError(f"Unknown default model '{default}'.")
         instance = cls(
-            {default: factories[default](None)},
+            {default: initial_model or factories[default](None)},
             default=default,
             smoke_test=smoke_test,
         )
@@ -95,6 +101,14 @@ class ModelSwitch:
     async def set_reasoning_effort(self, reasoning_effort: str | None) -> None:
         await self._activate(self._current_name, reasoning_effort)
 
+    async def aclose(self) -> None:
+        closed: set[int] = set()
+        for model in self._models.values():
+            if id(model) in closed:
+                continue
+            closed.add(id(model))
+            await _close_model(model)
+
     async def _activate(
         self,
         name: str,
@@ -102,16 +116,21 @@ class ModelSwitch:
     ) -> None:
         async with self._switch_lock:
             self._validate_configuration(name, reasoning_effort)
+            candidate: ChatModel | None = None
             try:
                 candidate = self._create_candidate(name, reasoning_effort)
                 await self._smoke_test(candidate)
             except Exception as error:
+                await _close_model(candidate)
                 raise RuntimeError(
                     f"Model '{name}' failed its smoke test: {error}"
                 ) from error
+            replaced = self._models.get(name)
             self._models[name] = candidate
             self._current_name = name
             self._current_reasoning_effort = reasoning_effort
+            if replaced is not candidate:
+                await _close_model(replaced)
 
     def _validate_configuration(
         self,
@@ -153,3 +172,8 @@ async def _smoke_test_model(model: ChatModel) -> None:
         received_event = True
     if not received_event:
         raise RuntimeError("the model returned no events")
+
+
+async def _close_model(model: ChatModel | None) -> None:
+    if isinstance(model, _AsyncCloseable):
+        await model.aclose()

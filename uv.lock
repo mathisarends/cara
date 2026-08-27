@@ -65,7 +65,7 @@ requires-dist = [
     { name = "llm", editable = "libs/llm" },
     { name = "mm-agenttoolkit", specifier = ">=0.4.0" },
     { name = "openai", specifier = ">=1.100.0" },
-    { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
+    { name = "py-llmify", extras = ["openai"], specifier = ">=0.11.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -665,13 +665,13 @@ version = "0.1.0"
 source = { editable = "libs/llm" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "py-llmify", extra = ["openai"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "py-llmify", extra = ["openai", "websocket"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
-    { name = "py-llmify", extras = ["openai"], specifier = ">=0.10.0" },
+    { name = "py-llmify", extras = ["openai", "websocket"], specifier = ">=0.11.0" },
 ]
 
 [[package]]
@@ -820,6 +820,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ea/7b/206238ebcb50b235942b1c66dba4974776f2057402a8d91c399be587d66a/openai-2.46.0-py3-none-any.whl", hash = "sha256:672381db55efb3a1e2610f29304c130cccdd0b319bace4d492b2443cb64c1e7c", size = 1637556, upload-time = "2026-07-17T02:48:03.695Z" },
 ]
 
+[package.optional-dependencies]
+realtime = [
+    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
 [[package]]
 name = "openwakeword"
 version = "0.4.0"
@@ -895,20 +900,23 @@ wheels = [
 
 [[package]]
 name = "py-llmify"
-version = "0.10.0"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/8c/2c7c375f5d9c5e1f6ae183b2be9dc6af0b90c5ea3a42ea6915ff944aec88/py_llmify-0.10.0.tar.gz", hash = "sha256:18d69e607d6dd9cffc834832ab21f2c52a11dd6e9184f3e31f4a64b8c6920a82", size = 50931, upload-time = "2026-08-04T10:35:27.322Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/8e/eb0e14ea1ac729e65fe6d084d77baa232e04e0896a4e8e53fa7cdd7643e2/py_llmify-0.11.0.tar.gz", hash = "sha256:502b370eab1df37eb0f061a1c60883e5a0f378d6e28bc855f8a98d0bffac373b", size = 54225, upload-time = "2026-08-27T20:53:50.601Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/60/88/8a19768d695e20c57f1365f8a162669b8edd0f88133a4dd92535e0cfe96e/py_llmify-0.10.0-py3-none-any.whl", hash = "sha256:3932e45260148dc5b3557ac96163e78d99aa2c8bc0d9f82041ec81ecf3343000", size = 51759, upload-time = "2026-08-04T10:35:26.182Z" },
+    { url = "https://files.pythonhosted.org/packages/27/46/9f40a98b48336e6f196eeb4caae8d299587d62f5add8c5cc04763e51e701/py_llmify-0.11.0-py3-none-any.whl", hash = "sha256:d8efaa351106dc27715fc6ea43ac3edba296cb1f2295384cb21efd7c1451c950", size = 56366, upload-time = "2026-08-27T20:53:49.395Z" },
 ]
 
 [package.optional-dependencies]
 openai = [
     { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+websocket = [
+    { name = "openai", extra = ["realtime"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [[package]]

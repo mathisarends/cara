@@ -4,9 +4,9 @@ from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
 from agent_plugin_api.events import AgentEvent
-from agent_plugin_api.models import AgentContext, AgentRunRequest
+from agent_plugin_api.models import AgentContext, AgentRunRequest, AgentSessionRef
 
-AGENT_PLUGIN_API_VERSION = 1
+AGENT_PLUGIN_API_VERSION = 2
 
 
 class AgentSessionReader(Protocol):
@@ -24,7 +24,11 @@ class AgentPluginContext:
 
 @runtime_checkable
 class AgentRunner(Protocol):
+    async def prepare(self, session: AgentSessionRef) -> None: ...
+
     def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]: ...
+
+    async def finish(self, session: AgentSessionRef) -> None: ...
 
     async def close(self) -> None: ...
 

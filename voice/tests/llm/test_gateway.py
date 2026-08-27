@@ -39,7 +39,12 @@ class _Transport:
             return {"subscribed": str(self.session_id)}
         if method_name == RpcMethod.SUBSCRIPTION_UNSUBSCRIBE:
             return {"unsubscribed": str(self.session_id)}
-        if method_name in {RpcMethod.TURN_START, RpcMethod.TURN_CANCEL}:
+        if method_name in {
+            RpcMethod.TURN_PREPARE,
+            RpcMethod.TURN_START,
+            RpcMethod.TURN_FINISH,
+            RpcMethod.TURN_CANCEL,
+        }:
             if method_name == RpcMethod.TURN_CANCEL:
                 await self.emit(SessionEventType.TURN_CANCELLED, sequence=100)
             return {"session_id": str(self.session_id)}
@@ -111,8 +116,10 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
         )
         await transport.emit(SessionEventType.TURN_COMPLETED, sequence=5)
 
+        await session.prepare_turn()
         stream = await session.start_turn("Wie ist das Wetter?")
         events = [event async for event in stream]
+        await session.finish_turn()
         session_id = session.session_id
         await session.close()
         return session_id, events, transport.requests
@@ -134,6 +141,7 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
             },
         ),
         ("subscription.subscribe", {"session_id": str(session_id)}),
+        ("turn.prepare", {"session_id": str(session_id)}),
         (
             "turn.start",
             {
@@ -142,6 +150,7 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
                 "metadata": {"modality": "voice"},
             },
         ),
+        ("turn.finish", {"session_id": str(session_id)}),
         ("subscription.unsubscribe", {"session_id": str(session_id)}),
     ]
 

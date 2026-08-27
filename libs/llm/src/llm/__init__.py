@@ -6,7 +6,7 @@ from llmify import (
     StreamTextDelta,
     StreamToolCall,
 )
-from llmify.providers.openai_responses_types import OpenAIResponsesStreamEvent
+from llmify.providers.openai_responses import OpenAIResponsesStreamEvent
 
 from .codex import CodexModel, CodexReasoningEffort, create_codex_model
 

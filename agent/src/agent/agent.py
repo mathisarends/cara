@@ -95,6 +95,10 @@ class Agent:
         await self._cancel_turn()
         await self.finish_turn()
 
+    async def aclose(self) -> None:
+        await self.interrupt()
+        await self._models.aclose()
+
     async def _stream_turn(self) -> AsyncIterator[AgentEvent]:
         events: _EventQueue = asyncio.Queue()
         self._turn = asyncio.create_task(self._run_turn(events))

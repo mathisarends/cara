@@ -69,6 +69,14 @@ class ConversationService:
             raise SessionNotFoundError(session_id)
         return session
 
+    async def prepare_turn(self, session_id: UUID) -> None:
+        session = await self.get_session(session_id)
+        await self._agent.prepare(_agent_session_ref(session))
+
+    async def finish_turn(self, session_id: UUID) -> None:
+        session = await self.get_session(session_id)
+        await self._agent.finish(_agent_session_ref(session))
+
     async def start_turn(
         self,
         session_id: UUID,
@@ -149,13 +157,7 @@ class ConversationService:
             )
             await turn.publish(GatewayEventType.TURN_STARTED, {})
             request = AgentRunRequest(
-                session=AgentSessionRef(
-                    id=session.id,
-                    channel=AgentChannelRef(
-                        name=session.channel.name,
-                        account_id=session.channel.account_id,
-                    ),
-                ),
+                session=_agent_session_ref(session),
                 turn_id=uuid4(),
                 input_id=input_id,
                 input=text,
@@ -314,6 +316,16 @@ class _TurnExecution:
 
 def _message(error: Exception) -> str:
     return str(error) or type(error).__name__
+
+
+def _agent_session_ref(session: Session) -> AgentSessionRef:
+    return AgentSessionRef(
+        id=session.id,
+        channel=AgentChannelRef(
+            name=session.channel.name,
+            account_id=session.channel.account_id,
+        ),
+    )
 
 
 def _render_tool_value(value: Any) -> str:

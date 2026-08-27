@@ -17,6 +17,7 @@ and barge-in + echo cancellation let a user interrupt mid-sentence.
 
 ```text
 mic -> echo-cancelled input -> WakeWordListener/ExternalActivationSource
+voice turn started -> Gateway turn.prepare -> ChatCodex.prewarm()
 gateway session events -> GatewayAgentSession (proactive activation)
     -> ActivationCoordinator -> STT (ListenActivation) or direct (PromptActivation)
     -> AgentBridge -> AgentSession.start_turn() -> TTS -> AudioBridge -> AudioOutput

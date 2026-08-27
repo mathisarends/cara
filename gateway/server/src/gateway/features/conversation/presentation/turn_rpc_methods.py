@@ -19,6 +19,15 @@ class TurnRpcMethods(rpc.RpcHandler):
         self._service = service
 
     @rpc.method(
+        ConversationRpcMethod.TURN_PREPARE,
+        summary="Prepare latency-sensitive resources for an upcoming turn.",
+        errors=(ResourceNotFoundError, RpcInternalError),
+    )
+    async def prepare_turn(self, params: SessionParams) -> TurnCommandResult:
+        await self._service.prepare_turn(params.session_id)
+        return TurnCommandResult(session_id=params.session_id)
+
+    @rpc.method(
         ConversationRpcMethod.TURN_START,
         summary="Start an agent turn in a conversation session.",
         errors=(
@@ -34,6 +43,15 @@ class TurnRpcMethods(rpc.RpcHandler):
             params.message,
             params.metadata,
         )
+        return TurnCommandResult(session_id=params.session_id)
+
+    @rpc.method(
+        ConversationRpcMethod.TURN_FINISH,
+        summary="Release resources prepared for a turn that is finished.",
+        errors=(ResourceNotFoundError, RpcInternalError),
+    )
+    async def finish_turn(self, params: SessionParams) -> TurnCommandResult:
+        await self._service.finish_turn(params.session_id)
         return TurnCommandResult(session_id=params.session_id)
 
     @rpc.method(

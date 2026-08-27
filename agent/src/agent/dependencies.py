@@ -33,9 +33,11 @@ class ConfiguredDependencies(DependencyProvider):
         self,
         settings: AgentSettings,
         tool_dependencies: Sequence[object] = (),
+        initial_model: ChatModel | None = None,
     ) -> None:
         self._settings = settings
         self._tool_dependencies = tuple(tool_dependencies)
+        self._initial_model = initial_model
 
     @provide
     def settings(self) -> AgentSettings:
@@ -77,6 +79,7 @@ class ConfiguredDependencies(DependencyProvider):
             model_factories,
             default=settings.models[0].value,
             reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
+            initial_model=self._initial_model,
         )
 
     @provide

@@ -35,7 +35,13 @@
       "$ref": "#/$defs/UnsubscribeSessionRequest"
     },
     {
+      "$ref": "#/$defs/PrepareTurnRequest"
+    },
+    {
       "$ref": "#/$defs/StartTurnRequest"
+    },
+    {
+      "$ref": "#/$defs/FinishTurnRequest"
     },
     {
       "$ref": "#/$defs/CancelTurnRequest"
@@ -1677,6 +1683,44 @@
       ],
       "description": "Unsubscribe this connection from a conversation session."
     },
+    "PrepareTurnRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "PrepareTurnRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "turn.prepare",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/SessionParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ],
+      "description": "Prepare latency-sensitive resources for an upcoming turn."
+    },
     "StartTurnRequest": {
       "additionalProperties": false,
       "type": "object",
@@ -1714,6 +1758,44 @@
         "params"
       ],
       "description": "Start an agent turn in a conversation session."
+    },
+    "FinishTurnRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "FinishTurnRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "turn.finish",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/SessionParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ],
+      "description": "Release resources prepared for a turn that is finished."
     },
     "CancelTurnRequest": {
       "additionalProperties": false,
@@ -2017,6 +2099,30 @@
       ]
     },
     {
+      "name": "turn.prepare",
+      "summary": "Prepare latency-sensitive resources for an upcoming turn.",
+      "feature": "conversation",
+      "request": {
+        "$ref": "#/$defs/PrepareTurnRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/SessionParams"
+      },
+      "result": {
+        "$ref": "#/$defs/TurnCommandResult"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
       "name": "turn.start",
       "summary": "Start an agent turn in a conversation session.",
       "feature": "conversation",
@@ -2041,6 +2147,30 @@
         {
           "code": -32009,
           "message": "Turn already running"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "turn.finish",
+      "summary": "Release resources prepared for a turn that is finished.",
+      "feature": "conversation",
+      "request": {
+        "$ref": "#/$defs/FinishTurnRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/SessionParams"
+      },
+      "result": {
+        "$ref": "#/$defs/TurnCommandResult"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
         },
         {
           "code": -32603,

@@ -540,6 +540,49 @@
       ]
     },
     {
+      "name": "turn.prepare",
+      "summary": "Prepare latency-sensitive resources for an upcoming turn.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/TurnCommandResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/PrepareTurnRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
       "name": "turn.start",
       "summary": "Start an agent turn in a conversation session.",
       "tags": [
@@ -601,6 +644,49 @@
         {
           "code": -32009,
           "message": "Turn already running"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "turn.finish",
+      "summary": "Release resources prepared for a turn that is finished.",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/TurnCommandResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/FinishTurnRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
         },
         {
           "code": -32603,
@@ -2284,6 +2370,44 @@
         ],
         "description": "Unsubscribe this connection from a conversation session."
       },
+      "PrepareTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PrepareTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "turn.prepare",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Prepare latency-sensitive resources for an upcoming turn."
+      },
       "StartTurnRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -2321,6 +2445,44 @@
           "params"
         ],
         "description": "Start an agent turn in a conversation session."
+      },
+      "FinishTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "FinishTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "turn.finish",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Release resources prepared for a turn that is finished."
       },
       "CancelTurnRequest": {
         "additionalProperties": false,

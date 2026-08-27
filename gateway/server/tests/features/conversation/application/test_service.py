@@ -4,9 +4,11 @@ from collections.abc import AsyncIterator
 import pytest
 
 from agent_plugin_api import (
+    AgentChannelRef,
     AgentEvent,
     AgentRunner,
     AgentRunRequest,
+    AgentSessionRef,
     ChatCompleted,
     ChatDelta,
     ToolCallCompleted,
@@ -44,6 +46,11 @@ class _FailingAgentRunner(AgentRunner):
 class _StreamingAgentRunner(AgentRunner):
     def __init__(self) -> None:
         self.requests: list[AgentRunRequest] = []
+        self.prepared: list[AgentSessionRef] = []
+        self.finished: list[AgentSessionRef] = []
+
+    async def prepare(self, session: AgentSessionRef) -> None:
+        self.prepared.append(session)
 
     async def run(
         self,
@@ -54,6 +61,9 @@ class _StreamingAgentRunner(AgentRunner):
         yield ToolCallStarted("call-1", "lookup", {"query": "Cara"})
         yield ToolCallCompleted("call-1", "lookup", {"answer": 42})
         yield ChatCompleted("Hello", finish_reason="stop")
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        self.finished.append(session)
 
     async def close(self) -> None:
         pass
@@ -90,6 +100,23 @@ class _RecordingPublisher(EventPublisher):
 @pytest.fixture
 def publisher() -> _RecordingPublisher:
     return _RecordingPublisher()
+
+
+async def test_prepare_and_finish_forward_the_session_to_the_agent(
+    session_repository: SQLSessionRepository,
+    publisher: _RecordingPublisher,
+) -> None:
+    runner = _StreamingAgentRunner()
+    service = ConversationService(session_repository, publisher, runner)
+    session = await service.create_session(ChannelRef("voice", "kitchen"), {})
+
+    await service.prepare_turn(session.id)
+    await service.finish_turn(session.id)
+
+    assert runner.prepared == [
+        AgentSessionRef(session.id, AgentChannelRef("voice", "kitchen"))
+    ]
+    assert runner.finished == runner.prepared
 
 
 async def test_failed_turn_publishes_turn_failed_event(

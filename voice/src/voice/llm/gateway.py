@@ -119,7 +119,7 @@ class GatewayAgentSession(ActivationSource):
         return self._session_id
 
     async def prepare_turn(self) -> None:
-        pass
+        await self._client.turn.prepare(session_id=self._session_id)
 
     async def activations(self) -> AsyncIterator[Activation]:
         while (activation := await self._activations.get()) is not None:
@@ -172,7 +172,7 @@ class GatewayAgentSession(ActivationSource):
                     raise GatewayAgentTurnFailed(event.code, event.message)
 
     async def finish_turn(self) -> None:
-        pass
+        await self._client.turn.finish(session_id=self._session_id)
 
     async def steer(self, text: str) -> None:
         del text

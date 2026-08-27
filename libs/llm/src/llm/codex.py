@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from llmify import ChatCodex
+from llmify import ChatCodex, WebSocketResponsesTransport
 
 
 class CodexModel(StrEnum):
@@ -29,8 +29,12 @@ def create_codex_model(
 ) -> ChatCodex:
     """Create a Codex client from Cara's configured model options."""
     if reasoning_effort is None:
-        return ChatCodex.from_cli(model=model.value)
+        return ChatCodex.from_cli(
+            model=model.value,
+            transport=WebSocketResponsesTransport(),
+        )
     return ChatCodex.from_cli(
         model=model.value,
         reasoning_effort=reasoning_effort.value,
+        transport=WebSocketResponsesTransport(),
     )

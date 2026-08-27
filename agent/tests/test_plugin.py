@@ -48,6 +48,14 @@ class _Model:
     def __init__(self) -> None:
         self.requests: list[list[Message]] = []
         self._turn = 0
+        self.prewarm_calls = 0
+        self.close_calls = 0
+
+    async def prewarm(self) -> None:
+        self.prewarm_calls += 1
+
+    async def aclose(self) -> None:
+        self.close_calls += 1
 
     async def stream(
         self,
@@ -123,7 +131,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         return cast(AgentTools, tools)
 
     monkeypatch.setattr(
-        "agent.dependencies.create_codex_model",
+        "agent.factory.create_codex_model",
         create_test_model,
     )
     monkeypatch.setattr(
@@ -179,7 +187,9 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     )
 
     async def run() -> list[object]:
+        await runner.prepare(request.session)
         events = [event async for event in runner.run(request)]
+        await runner.finish(request.session)
         await runner.close()
         return events
 
@@ -193,6 +203,8 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     assert model_switches[0].current_name == "gpt-5.3-codex-spark"
     assert resolved_turn_dependencies == [turn_dependency]
     assert model_creations == [((CodexModel.SPARK,), {})]
+    assert model.prewarm_calls == 1
+    assert model.close_calls == 1
     assert [message.content for message in model.requests[0]] == [
         "",
         "Vorherige Frage",

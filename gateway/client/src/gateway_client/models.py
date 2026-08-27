@@ -22,7 +22,9 @@ class RpcMethod(StrEnum):
     SESSION_GET = "session.get"
     SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
     SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
+    TURN_PREPARE = "turn.prepare"
     TURN_START = "turn.start"
+    TURN_FINISH = "turn.finish"
     TURN_CANCEL = "turn.cancel"
 
 

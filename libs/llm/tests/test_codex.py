@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from llmify import ChatCodex
+from llmify import ChatCodex, WebSocketResponsesTransport
 
 from llm.codex import (
     CodexModel,
@@ -19,6 +19,10 @@ def test_create_codex_model_passes_configured_options() -> None:
     from_cli.assert_called_once_with(
         model="gpt-5.6-luna",
         reasoning_effort="high",
+        transport=from_cli.call_args.kwargs["transport"],
+    )
+    assert isinstance(
+        from_cli.call_args.kwargs["transport"], WebSocketResponsesTransport
     )
 
 
@@ -26,7 +30,13 @@ def test_create_codex_model_omits_unconfigured_options() -> None:
     with patch.object(ChatCodex, "from_cli", return_value=object()) as from_cli:
         create_codex_model(CodexModel.SPARK)
 
-    from_cli.assert_called_once_with(model="gpt-5.3-codex-spark")
+    from_cli.assert_called_once_with(
+        model="gpt-5.3-codex-spark",
+        transport=from_cli.call_args.kwargs["transport"],
+    )
+    assert isinstance(
+        from_cli.call_args.kwargs["transport"], WebSocketResponsesTransport
+    )
 
 
 def test_codex_enums_expose_the_supported_configuration_values() -> None:

@@ -10,6 +10,7 @@ from agent_plugin_api import (
     AgentPluginContext,
     AgentRunner,
     AgentRunRequest,
+    AgentSessionRef,
     ChatCompleted,
     ChatDelta,
     ToolCallCompleted,
@@ -27,6 +28,9 @@ class EchoAgentRunner(AgentRunner):
 
     def __init__(self, delta_delay: float = 0.05) -> None:
         self._delta_delay = delta_delay
+
+    async def prepare(self, session: AgentSessionRef) -> None:
+        pass
 
     async def run(
         self,
@@ -49,6 +53,9 @@ class EchoAgentRunner(AgentRunner):
             await asyncio.sleep(self._delta_delay)
             yield ChatDelta(chunk)
         yield ChatCompleted(reply)
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        pass
 
     async def close(self) -> None:
         pass

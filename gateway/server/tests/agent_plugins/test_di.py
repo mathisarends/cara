@@ -11,6 +11,7 @@ from agent_plugin_api import (
     AgentRunner,
     AgentRunRequest,
     AgentSessionReader,
+    AgentSessionRef,
 )
 from gateway.agent_plugins import AgentPluginProvider
 
@@ -25,10 +26,16 @@ class _Runner:
     def __init__(self) -> None:
         self.closed = False
 
+    async def prepare(self, session: AgentSessionRef) -> None:
+        pass
+
     async def run(self, request: AgentRunRequest) -> AsyncIterator:
         del request
         return
         yield
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        pass
 
     async def close(self) -> None:
         self.closed = True

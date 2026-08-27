@@ -18,6 +18,21 @@ class Turns:
     def __init__(self, transport: RpcTransport) -> None:
         self._transport = transport
 
+    async def prepare(
+        self,
+        *,
+        session_id: UUID,
+    ) -> TurnCommandResult:
+        """Prepare latency-sensitive resources for an upcoming turn."""
+        params = SessionParams(
+            session_id=session_id,
+        )
+        result = await self._transport.request(
+            RpcMethod.TURN_PREPARE,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return TurnCommandResult.model_validate(result)
+
     async def start(
         self,
         *,
@@ -33,6 +48,21 @@ class Turns:
         )
         result = await self._transport.request(
             RpcMethod.TURN_START,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return TurnCommandResult.model_validate(result)
+
+    async def finish(
+        self,
+        *,
+        session_id: UUID,
+    ) -> TurnCommandResult:
+        """Release resources prepared for a turn that is finished."""
+        params = SessionParams(
+            session_id=session_id,
+        )
+        result = await self._transport.request(
+            RpcMethod.TURN_FINISH,
             params.model_dump(mode="json", exclude_none=True),
         )
         return TurnCommandResult.model_validate(result)
