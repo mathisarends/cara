@@ -1,4 +1,4 @@
-# Connection settings for the voice channel.
+# Connection and component settings for the voice channel.
 # Every value can be overridden by an env var, e.g. CARA_GATEWAY_URL.
 # The gateway token is a secret and stays in .env (CARA_GATEWAY_TOKEN).
 gateway:
@@ -8,3 +8,28 @@ voice:
   channel: voice
   account_id: null
   new_session: false
+
+text_to_speech:
+  voice: aura-2-athena-en
+  sample_rate: 24000
+  segment_idle_seconds: 0.5
+  reconnect_attempts: 1
+
+speech_to_text:
+  sample_rate: 16000
+  # Deepgram's own default of 5s is a phone-system timeout, not a
+  # conversational one.
+  eot_timeout_ms: 2000
+
+# mode: speech | wake_word | none
+barge_in:
+  mode: speech
+  min_level_dbfs: -45.0
+  min_speech_probability: 0.6
+  min_speech_seconds: 0.35
+
+wake_word:
+  wake_word: hey_jarvis
+  sensitivity: 0.5
+  cooldown: 1.5
+  strip_from_command: true

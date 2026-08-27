@@ -9,22 +9,20 @@ from voice import (
     SonosAudioFocusObserver,
     SonosDuckingPolicy,
     SoundObserver,
-    SpeechBargeIn,
     VoiceChannel,
     VoiceChannelConfig,
-    WakeWord,
-    WakeWordSettings,
 )
 from voice.audio.output.sonos import SonosOutput
+from voice.config import (
+    build_barge_in,
+    build_speech_to_text,
+    build_text_to_speech,
+)
 from voice.llm import GatewayAgentSession
 from voice.sonos import SonosSettings
-from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
 logging.basicConfig(level=logging.INFO)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("voice.wakeword.listener").setLevel(logging.DEBUG)
-
-load_dotenv(override=True)
+load_dotenv()
 
 
 async def main() -> None:
@@ -42,9 +40,10 @@ async def main() -> None:
         voice_channel = VoiceChannel(
             agent_session=gateway_session,
             audio_output=audio_output,
-            text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
-            barge_in=SpeechBargeIn(),
-            wake_word_settings=WakeWordSettings(wake_word=WakeWord.HEY_JARVIS),
+            text_to_speech=build_text_to_speech(config.text_to_speech),
+            speech_to_text=build_speech_to_text(config.speech_to_text),
+            barge_in=build_barge_in(config.barge_in),
+            wake_word_settings=config.wake_word,
             observers=(
                 SoundObserver(),
                 HueObserver(),
