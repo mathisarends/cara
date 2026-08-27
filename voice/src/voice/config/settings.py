@@ -9,11 +9,6 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from voice.config.barge_in import BargeInConfig, WakeWordBargeInConfig
-from voice.config.stt import SpeechToTextConfig
-from voice.config.tts import TextToSpeechConfig
-from voice.wakeword import WakeWordSettings
-
 DEFAULT_CONFIG_FILE = Path("voice.yaml")
 
 
@@ -48,10 +43,6 @@ class VoiceChannelConfig(BaseSettings):
 
     gateway: GatewayConfig
     voice: SessionConfig = Field(default_factory=SessionConfig)
-    text_to_speech: TextToSpeechConfig = Field(default_factory=TextToSpeechConfig)
-    speech_to_text: SpeechToTextConfig = Field(default_factory=SpeechToTextConfig)
-    barge_in: BargeInConfig = Field(default_factory=WakeWordBargeInConfig)
-    wake_word: WakeWordSettings = Field(default_factory=WakeWordSettings)
 
     @classmethod
     def from_yaml(cls, path: str | Path = DEFAULT_CONFIG_FILE) -> Self:
