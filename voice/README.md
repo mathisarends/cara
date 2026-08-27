@@ -41,9 +41,10 @@ after playback.
 `SpeechToText` owns end-of-speech detection — no separate silence timer.
 `ExternalActivationSource` is the out-of-band entry point (`activate()` to
 listen, `prompt()` to speak unprompted) for buttons, schedulers, etc.
-`GatewayAgentSession` also acts as an activation source: when a subscribed
-automation starts a turn on the server, Voice consumes that existing event
-stream instead of submitting a duplicate turn and speaks the result.
+`GatewayAgentSession` also acts as an activation source. Pass it explicitly in
+`activation_sources` so that when a subscribed automation starts a turn on the
+server, Voice consumes that existing event stream instead of submitting a
+duplicate turn and speaks the result.
 
 ## Layout
 
@@ -65,7 +66,10 @@ voice/src/voice/
 ```python
 agent_session = await GatewayAgentSession.connect(url, token=token, channel="voice")
 async with agent_session:
-    await VoiceChannel(agent_session=agent_session).start()
+    await VoiceChannel(
+        agent_session=agent_session,
+        activation_sources=(agent_session,),
+    ).start()
 ```
 
 ## Dependencies

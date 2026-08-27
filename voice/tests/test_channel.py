@@ -6,9 +6,18 @@ from typing import Protocol, cast
 import pytest
 
 import voice.channel as channel_module
-from voice import FollowUpSettings, Observer, ObserverContext, VoiceChannel
+from voice import (
+    Activation,
+    ActivationSource,
+    ExternalActivationSource,
+    FollowUpSettings,
+    ListenActivation,
+    Observer,
+    ObserverContext,
+    VoiceChannel,
+)
 from voice.audio import AudioInput, AudioOutput
-from voice.llm import AgentSession
+from voice.llm import AgentSession, EchoAgentSession
 from voice.stt import SpeechToText
 from voice.tts import TextToSpeech
 from voice.wakeword import WakeWordDetection
@@ -31,6 +40,12 @@ class _WakeWordListener:
     async def detections(self) -> AsyncIterator[WakeWordDetection]:
         if False:
             yield WakeWordDetection(sequence=0, score=0, name="")
+
+
+class _ActivatingAgentSession(EchoAgentSession, ActivationSource):
+    async def activations(self) -> AsyncIterator[Activation]:
+        if False:
+            yield ListenActivation()
 
 
 class _LifecycleObserver(Observer):
@@ -128,6 +143,44 @@ def test_configures_follow_up_timeout(
         window_seconds=7.5,
         countdown_seconds=2,
     )
+
+
+def test_configures_only_explicit_activation_sources(
+    monkeypatch,
+    audio_input: AudioInput,
+    audio_output: AudioOutput,
+    speech_to_text: SpeechToText,
+    text_to_speech: TextToSpeech,
+) -> None:
+    configured_sources: tuple[ActivationSource, ...] = ()
+    activation_coordinator = channel_module.ActivationCoordinator
+
+    def create_activation_coordinator(*, event_bus, sources):
+        nonlocal configured_sources
+        configured_sources = tuple(sources)
+        return activation_coordinator(event_bus=event_bus, sources=configured_sources)
+
+    monkeypatch.setattr(channel_module, "WakeWordListener", _WakeWordListener)
+    monkeypatch.setattr(
+        channel_module,
+        "ActivationCoordinator",
+        create_activation_coordinator,
+    )
+    agent_session = _ActivatingAgentSession()
+    external_activation = ExternalActivationSource()
+
+    voice_channel = VoiceChannel(
+        agent_session=agent_session,
+        activation_sources=(external_activation,),
+        audio_input=audio_input,
+        audio_output=audio_output,
+        speech_to_text=speech_to_text,
+        text_to_speech=text_to_speech,
+    )
+    asyncio.run(voice_channel.stop())
+
+    assert agent_session not in configured_sources
+    assert configured_sources[1:] == (external_activation,)
 
 
 def _closable(value: object) -> _Closable:

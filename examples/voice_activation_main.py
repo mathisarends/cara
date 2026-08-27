@@ -53,7 +53,7 @@ async def main() -> None:
     async with gateway_session:
         voice_channel = VoiceChannel(
             agent_session=gateway_session,
-            activation_sources=(activation,),
+            activation_sources=(gateway_session, activation),
         )
         heartbeat = asyncio.create_task(
             _trigger_periodically(activation),

@@ -158,11 +158,6 @@ class VoiceChannel:
                     event_bus=self._event_bus,
                     listener=self._wake_word,
                 ),
-                *(
-                    (agent_session,)
-                    if isinstance(agent_session, ActivationSource)
-                    else ()
-                ),
                 *activation_sources,
             ),
         )

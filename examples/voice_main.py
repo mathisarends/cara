@@ -39,6 +39,7 @@ async def main() -> None:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
         voice_channel = VoiceChannel(
             agent_session=gateway_session,
+            activation_sources=(gateway_session,),
             audio_output=audio_output,
             text_to_speech=build_text_to_speech(config.text_to_speech),
             speech_to_text=build_speech_to_text(config.speech_to_text),
