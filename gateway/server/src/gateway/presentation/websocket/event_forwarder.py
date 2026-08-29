@@ -1,6 +1,6 @@
 from collections.abc import Awaitable, Callable
 
-from pyrpckit import RpcNotification
+import pyrpckit as rpc
 
 from gateway.features.conversation.presentation.rpc.mapping import session_event
 from gateway.features.conversation.presentation.rpc.schemas import (
@@ -13,7 +13,7 @@ class EventForwarder:
     def __init__(
         self,
         receiver: EventReceiver,
-        send: Callable[[RpcNotification], Awaitable[None]],
+        send: Callable[[rpc.RpcNotification], Awaitable[None]],
     ) -> None:
         self._receiver = receiver
         self._send = send
@@ -22,7 +22,7 @@ class EventForwarder:
         while True:
             event = await self._receiver.receive()
             await self._send(
-                RpcNotification(
+                rpc.RpcNotification(
                     method=RpcNotificationMethod.SESSION_EVENT,
                     params=session_event(event),
                 )

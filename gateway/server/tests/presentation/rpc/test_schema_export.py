@@ -1,8 +1,8 @@
 import json
 
-from pyrpckit import RpcProtocol
+import pyrpckit as rpc
 
-from gateway.features.conversation.presentation.protocol import CONVERSATION_PROTOCOL
+from gateway.features.conversation.presentation import CONVERSATION_PROTOCOL
 from gateway.presentation.rpc.schema_export import (
     render_gateway_schema,
     render_openrpc_schema,
@@ -11,7 +11,7 @@ from gateway.presentation.rpc.schema_export import (
 
 
 def test_generated_openrpc_keeps_method_result_and_event_payload_links() -> None:
-    protocol = RpcProtocol(CONVERSATION_PROTOCOL)
+    protocol = rpc.RpcProtocol(CONVERSATION_PROTOCOL)
 
     document = render_openrpc_schema(protocol)
     methods = {method["name"]: method for method in document["methods"]}
@@ -30,7 +30,7 @@ def test_generated_openrpc_keeps_method_result_and_event_payload_links() -> None
 
 
 def test_schema_writer_creates_reproducible_documents(tmp_path) -> None:
-    protocol = RpcProtocol(CONVERSATION_PROTOCOL)
+    protocol = rpc.RpcProtocol(CONVERSATION_PROTOCOL)
 
     gateway_path, openrpc_path = write_gateway_schemas(tmp_path, protocol)
 

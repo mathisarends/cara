@@ -2,7 +2,7 @@ import asyncio
 from collections import defaultdict
 from uuid import UUID
 
-from pyrpckit import RpcHandler, RpcInternalError, feature, method
+import pyrpckit as rpc
 
 from gateway.features.conversation.application import (
     ConversationEvent,
@@ -57,7 +57,7 @@ class InMemoryEventStream(EventPublisher):
                 await receiver.put(event)
 
 
-class EventStreamRpcMethods(RpcHandler):
+class EventStreamRpcMethods(rpc.RpcHandler):
     def __init__(
         self,
         sessions: SessionService,
@@ -68,18 +68,18 @@ class EventStreamRpcMethods(RpcHandler):
         self._stream = stream
         self._client_id = client_id
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE,
-        errors=(ResourceNotFoundError, RpcInternalError),
+        errors=(ResourceNotFoundError, rpc.RpcInternalError),
     )
     async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
         await self._sessions.get(params.session_id)
         self._stream.subscribe(self._client_id, params.session_id)
         return SubscriptionResult(subscribed=params.session_id)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE,
-        errors=(RpcInternalError,),
+        errors=(rpc.RpcInternalError,),
     )
     async def unsubscribe_session(
         self,
@@ -89,7 +89,7 @@ class EventStreamRpcMethods(RpcHandler):
         return UnsubscriptionResult(unsubscribed=params.session_id)
 
 
-EVENT_STREAM_PROTOCOL = feature(
+EVENT_STREAM_PROTOCOL = rpc.feature(
     "event_stream",
     handlers=(EventStreamRpcMethods,),
 )

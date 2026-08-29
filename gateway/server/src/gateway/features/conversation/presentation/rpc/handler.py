@@ -1,4 +1,4 @@
-from pyrpckit import RpcHandler, RpcInternalError, RpcInvalidParamsError, method
+import pyrpckit as rpc
 
 from gateway.features.conversation.application import SessionService, TurnService
 from gateway.features.conversation.domain import ChannelRef
@@ -19,7 +19,7 @@ from gateway.features.conversation.presentation.rpc.schemas import (
 from gateway.presentation.rpc import ResourceNotFoundError, TurnAlreadyRunningError
 
 
-class ConversationRpcMethods(RpcHandler):
+class ConversationRpcMethods(rpc.RpcHandler):
     def __init__(
         self,
         sessions: SessionService,
@@ -28,9 +28,9 @@ class ConversationRpcMethods(RpcHandler):
         self._sessions = sessions
         self._turns = turns
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.SESSION_CREATE,
-        errors=(RpcInvalidParamsError, RpcInternalError),
+        errors=(rpc.RpcInvalidParamsError, rpc.RpcInternalError),
     )
     async def create_session(self, params: CreateSessionParams) -> SessionResponse:
         session = await self._sessions.create(
@@ -39,9 +39,9 @@ class ConversationRpcMethods(RpcHandler):
         )
         return session_response(session)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.SESSION_OPEN,
-        errors=(RpcInvalidParamsError, RpcInternalError),
+        errors=(rpc.RpcInvalidParamsError, rpc.RpcInternalError),
     )
     async def open_session(self, params: OpenSessionParams) -> SessionResponse:
         session = await self._sessions.open(
@@ -50,29 +50,29 @@ class ConversationRpcMethods(RpcHandler):
         )
         return session_response(session)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.SESSION_GET,
-        errors=(ResourceNotFoundError, RpcInternalError),
+        errors=(ResourceNotFoundError, rpc.RpcInternalError),
     )
     async def get_session(self, params: SessionParams) -> SessionSnapshotResponse:
         session = await self._sessions.get(params.session_id)
         return session_snapshot(session)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.TURN_PREPARE,
-        errors=(ResourceNotFoundError, RpcInternalError),
+        errors=(ResourceNotFoundError, rpc.RpcInternalError),
     )
     async def prepare_turn(self, params: SessionParams) -> TurnCommandResult:
         await self._turns.prepare(params.session_id)
         return TurnCommandResult(session_id=params.session_id)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.TURN_START,
         errors=(
-            RpcInvalidParamsError,
+            rpc.RpcInvalidParamsError,
             ResourceNotFoundError,
             TurnAlreadyRunningError,
-            RpcInternalError,
+            rpc.RpcInternalError,
         ),
     )
     async def start_turn(self, params: StartTurnParams) -> TurnCommandResult:
@@ -83,17 +83,21 @@ class ConversationRpcMethods(RpcHandler):
         )
         return TurnCommandResult(session_id=params.session_id)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.TURN_FINISH,
-        errors=(ResourceNotFoundError, RpcInternalError),
+        errors=(ResourceNotFoundError, rpc.RpcInternalError),
     )
     async def finish_turn(self, params: SessionParams) -> TurnCommandResult:
         await self._turns.finish(params.session_id)
         return TurnCommandResult(session_id=params.session_id)
 
-    @method(
+    @rpc.method(
         ConversationRpcMethod.TURN_CANCEL,
-        errors=(RpcInvalidParamsError, ResourceNotFoundError, RpcInternalError),
+        errors=(
+            rpc.RpcInvalidParamsError,
+            ResourceNotFoundError,
+            rpc.RpcInternalError,
+        ),
     )
     async def cancel_turn(self, params: SessionParams) -> TurnCommandResult:
         await self._turns.cancel(params.session_id)

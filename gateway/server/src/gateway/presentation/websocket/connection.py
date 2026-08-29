@@ -1,7 +1,7 @@
 import asyncio
 
+import pyrpckit as rpc
 from fastapi import WebSocket, WebSocketDisconnect
-from pyrpckit import RpcFailure, RpcNotification, RpcParseError, RpcServer, RpcSuccess
 
 from gateway.presentation.websocket.event_forwarder import EventForwarder
 from gateway.presentation.websocket.subscriptions import InMemoryEventStream
@@ -15,7 +15,7 @@ class GatewayConnection:
         socket: WebSocket,
         stream: InMemoryEventStream,
         client_id: str,
-        server: RpcServer,
+        server: rpc.RpcServer,
     ) -> None:
         self._socket = socket
         self._stream = stream
@@ -33,7 +33,7 @@ class GatewayConnection:
                 try:
                     raw_request = await self._socket.receive_json()
                 except ValueError:
-                    await self._send(self._server.failure(None, RpcParseError()))
+                    await self._send(self._server.failure(None, rpc.RpcParseError()))
                     continue
                 await self._handle(raw_request)
         except WebSocketDisconnect:
@@ -48,9 +48,12 @@ class GatewayConnection:
         if response is not None:
             await self._send(response)
 
-    async def _send_notification(self, notification: RpcNotification) -> None:
+    async def _send_notification(self, notification: rpc.RpcNotification) -> None:
         await self._send(notification)
 
-    async def _send(self, message: RpcSuccess | RpcFailure | RpcNotification) -> None:
+    async def _send(
+        self,
+        message: rpc.RpcSuccess | rpc.RpcFailure | rpc.RpcNotification,
+    ) -> None:
         async with self._send_lock:
             await self._socket.send_json(message.model_dump(mode="json"))

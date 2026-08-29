@@ -3,8 +3,8 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
+import pyrpckit as rpc
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
-from pyrpckit import event
 
 
 class WireSchema(BaseModel):
@@ -137,25 +137,25 @@ class EventBase(WireSchema):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-@event
+@rpc.event
 class TurnStarted(EventBase):
     type: Literal[SessionEventType.TURN_STARTED] = SessionEventType.TURN_STARTED
 
 
-@event
+@rpc.event
 class ChatDelta(EventBase):
     type: Literal[SessionEventType.CHAT_DELTA] = SessionEventType.CHAT_DELTA
     text: str
 
 
-@event
+@rpc.event
 class ChatCompleted(EventBase):
     type: Literal[SessionEventType.CHAT_COMPLETED] = SessionEventType.CHAT_COMPLETED
     text: str
     finish_reason: str
 
 
-@event
+@rpc.event
 class ToolCallStarted(EventBase):
     type: Literal[SessionEventType.TOOL_CALL_STARTED] = (
         SessionEventType.TOOL_CALL_STARTED
@@ -165,7 +165,7 @@ class ToolCallStarted(EventBase):
     arguments: dict[str, Any]
 
 
-@event
+@rpc.event
 class ToolCallCompleted(EventBase):
     type: Literal[SessionEventType.TOOL_CALL_COMPLETED] = (
         SessionEventType.TOOL_CALL_COMPLETED
@@ -176,17 +176,17 @@ class ToolCallCompleted(EventBase):
     is_error: bool
 
 
-@event
+@rpc.event
 class TurnCompleted(EventBase):
     type: Literal[SessionEventType.TURN_COMPLETED] = SessionEventType.TURN_COMPLETED
 
 
-@event
+@rpc.event
 class TurnCancelled(EventBase):
     type: Literal[SessionEventType.TURN_CANCELLED] = SessionEventType.TURN_CANCELLED
 
 
-@event
+@rpc.event
 class TurnFailed(EventBase):
     type: Literal[SessionEventType.TURN_FAILED] = SessionEventType.TURN_FAILED
     code: str

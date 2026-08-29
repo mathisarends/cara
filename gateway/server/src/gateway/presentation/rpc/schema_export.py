@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pyrpckit import RpcProtocol
+import pyrpckit as rpc
 from pyrpckit.schema import render_json_schema, render_openrpc
 
 from gateway.features import gateway_protocol
@@ -12,7 +12,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[6]
 _DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "server" / "schema"
 
 
-def render_gateway_schema(protocol: RpcProtocol) -> dict[str, Any]:
+def render_gateway_schema(protocol: rpc.RpcProtocol) -> dict[str, Any]:
     return render_json_schema(
         protocol,
         title="Cara Gateway Protocol",
@@ -21,7 +21,7 @@ def render_gateway_schema(protocol: RpcProtocol) -> dict[str, Any]:
     )
 
 
-def render_openrpc_schema(protocol: RpcProtocol) -> dict[str, Any]:
+def render_openrpc_schema(protocol: rpc.RpcProtocol) -> dict[str, Any]:
     return render_openrpc(
         protocol,
         title="Cara Gateway",
@@ -32,7 +32,7 @@ def render_openrpc_schema(protocol: RpcProtocol) -> dict[str, Any]:
 
 def write_gateway_schemas(
     output_dir: Path,
-    protocol: RpcProtocol | None = None,
+    protocol: rpc.RpcProtocol | None = None,
 ) -> tuple[Path, Path]:
     selected_protocol = protocol or gateway_protocol()
     output_dir.mkdir(parents=True, exist_ok=True)

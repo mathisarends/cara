@@ -1,8 +1,8 @@
 from uuid import uuid4
 
+import pyrpckit as rpc
 from dishka import Provider, Scope, provide
 from fastapi import WebSocket
-from pyrpckit import RpcProtocol, RpcServer
 
 from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation import AutomationRpcMethods
@@ -25,7 +25,7 @@ from gateway.presentation.websocket.subscriptions import (
 
 
 class GatewayProvider(Provider):
-    def __init__(self, protocol: RpcProtocol) -> None:
+    def __init__(self, protocol: rpc.RpcProtocol) -> None:
         super().__init__()
         self._protocol = protocol
 
@@ -60,7 +60,7 @@ class GatewayProvider(Provider):
     ) -> GatewayConnection:
         authenticator.authenticate(websocket)
         client_id = str(uuid4())
-        server = RpcServer(
+        server = rpc.RpcServer(
             AutomationRpcMethods(automation_service),
             ConversationRpcMethods(sessions, turns),
             EventStreamRpcMethods(sessions, stream, client_id),

@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import pyrpckit as rpc
 from dishka import Provider
 from fastapi import APIRouter, FastAPI
-from pyrpckit import RpcFeatureDefinition
 
 
 @dataclass(frozen=True, slots=True)
@@ -11,7 +11,7 @@ class Feature:
     name: str
     routers: Sequence[APIRouter] = ()
     providers: Sequence[type[Provider]] = ()
-    protocol: RpcFeatureDefinition | None = None
+    protocol: rpc.RpcFeatureDefinition | None = None
 
     def install(self, app: FastAPI) -> None:
         for router in self.routers:

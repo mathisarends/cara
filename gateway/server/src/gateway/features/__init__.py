@@ -1,4 +1,4 @@
-from pyrpckit import RpcProtocol
+import pyrpckit as rpc
 
 from gateway.presentation import Feature
 from gateway.presentation.websocket.subscriptions import EVENT_STREAM_PROTOCOL
@@ -12,8 +12,8 @@ FEATURES: tuple[Feature, ...] = (
 )
 
 
-def gateway_protocol() -> RpcProtocol:
-    return RpcProtocol(
+def gateway_protocol() -> rpc.RpcProtocol:
+    return rpc.RpcProtocol(
         *(feature.protocol for feature in FEATURES if feature.protocol is not None),
         EVENT_STREAM_PROTOCOL,
     )
