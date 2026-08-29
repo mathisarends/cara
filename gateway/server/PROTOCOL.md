@@ -52,7 +52,9 @@ RPC metadata belongs exclusively to presentation handlers. Parameter and result
 types are derived from their annotations:
 
 ```python
-@rpc.method(
+from pyrpckit import method
+
+@method(
     "session.get",
     summary="Get a conversation session snapshot.",
     errors=(RpcErrorCode.RESOURCE_NOT_FOUND,),
@@ -68,17 +70,19 @@ Wire events follow the same rule. Application and domain events remain unaware
 of JSON-RPC; a presentation mapper converts them to decorated Pydantic messages:
 
 ```python
-@rpc.event
+from pyrpckit import event
+
+@event
 class ChatDelta(EventBase):
     type: Literal["chat.delta"] = "chat.delta"
     text: str
 ```
 
 Decorators only attach metadata. They do not mutate a global registry. Each
-feature explicitly creates its protocol definition with `rpc.feature(...)`,
+feature explicitly creates its protocol definition with `pyrpckit.feature(...)`,
 and the gateway composes those definitions. The same definitions drive
 runtime dispatch and specification generation — all via
-`rpckit`, the transport-agnostic JSON-RPC library gateway is
+`pyrpckit`, the transport-agnostic JSON-RPC library gateway is
 built on.
 
 Generate the checked-in artifacts with:

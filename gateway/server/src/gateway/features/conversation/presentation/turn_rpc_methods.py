@@ -1,3 +1,5 @@
+from pyrpckit import RpcHandler, RpcInternalError, RpcInvalidParamsError, method
+
 from gateway.features.conversation.application import ConversationService
 from gateway.features.conversation.presentation.rpc import (
     ConversationRpcMethod,
@@ -5,20 +7,17 @@ from gateway.features.conversation.presentation.rpc import (
     StartTurnParams,
     TurnCommandResult,
 )
-from gateway.presentation import rpc
 from gateway.presentation.rpc import (
     ResourceNotFoundError,
-    RpcInternalError,
-    RpcInvalidParamsError,
     TurnAlreadyRunningError,
 )
 
 
-class TurnRpcMethods(rpc.RpcHandler):
+class TurnRpcMethods(RpcHandler):
     def __init__(self, service: ConversationService) -> None:
         self._service = service
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.TURN_PREPARE,
         summary="Prepare latency-sensitive resources for an upcoming turn.",
         errors=(ResourceNotFoundError, RpcInternalError),
@@ -27,7 +26,7 @@ class TurnRpcMethods(rpc.RpcHandler):
         await self._service.prepare_turn(params.session_id)
         return TurnCommandResult(session_id=params.session_id)
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.TURN_START,
         summary="Start an agent turn in a conversation session.",
         errors=(
@@ -45,7 +44,7 @@ class TurnRpcMethods(rpc.RpcHandler):
         )
         return TurnCommandResult(session_id=params.session_id)
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.TURN_FINISH,
         summary="Release resources prepared for a turn that is finished.",
         errors=(ResourceNotFoundError, RpcInternalError),
@@ -54,7 +53,7 @@ class TurnRpcMethods(rpc.RpcHandler):
         await self._service.finish_turn(params.session_id)
         return TurnCommandResult(session_id=params.session_id)
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.TURN_CANCEL,
         summary="Cancel the active turn in a conversation session.",
         errors=(

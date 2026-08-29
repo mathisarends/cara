@@ -1,3 +1,5 @@
+from pyrpckit import RpcHandler, RpcInternalError, RpcInvalidParamsError, method
+
 from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation.mapping import (
     automation_response,
@@ -15,19 +17,14 @@ from gateway.features.automation.presentation.schemas import (
     ListAutomationsResponse,
     UpdateAutomationParams,
 )
-from gateway.presentation import rpc
-from gateway.presentation.rpc import (
-    ResourceNotFoundError,
-    RpcInternalError,
-    RpcInvalidParamsError,
-)
+from gateway.presentation.rpc import ResourceNotFoundError
 
 
-class AutomationRpcMethods(rpc.RpcHandler):
+class AutomationRpcMethods(RpcHandler):
     def __init__(self, service: AutomationService) -> None:
         self._service = service
 
-    @rpc.method(
+    @method(
         AutomationRpcMethod.LIST,
         errors=(RpcInternalError,),
     )
@@ -41,7 +38,7 @@ class AutomationRpcMethods(rpc.RpcHandler):
             automations=tuple(automation_response(job) for job in jobs)
         )
 
-    @rpc.method(
+    @method(
         AutomationRpcMethod.GET,
         summary="Get an automation belonging to a conversation session.",
         errors=(ResourceNotFoundError, RpcInternalError),
@@ -56,7 +53,7 @@ class AutomationRpcMethods(rpc.RpcHandler):
         )
         return automation_response(job)
 
-    @rpc.method(
+    @method(
         AutomationRpcMethod.CREATE,
         summary="Create an automation for a conversation session.",
         errors=(RpcInvalidParamsError, RpcInternalError),
@@ -73,7 +70,7 @@ class AutomationRpcMethods(rpc.RpcHandler):
         )
         return automation_response(job)
 
-    @rpc.method(
+    @method(
         AutomationRpcMethod.UPDATE,
         summary="Replace the schedule and payload of an automation.",
         errors=(ResourceNotFoundError, RpcInvalidParamsError, RpcInternalError),
@@ -91,7 +88,7 @@ class AutomationRpcMethods(rpc.RpcHandler):
         )
         return automation_response(job)
 
-    @rpc.method(
+    @method(
         AutomationRpcMethod.DELETE,
         summary="Delete an automation belonging to a conversation session.",
         errors=(ResourceNotFoundError, RpcInternalError),

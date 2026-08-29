@@ -1,3 +1,5 @@
+from pyrpckit import RpcHandler, RpcInternalError, RpcInvalidParamsError, method
+
 from gateway.features.conversation.application import ConversationService
 from gateway.features.conversation.domain import ChannelRef
 from gateway.features.conversation.presentation.mapping import (
@@ -14,19 +16,14 @@ from gateway.features.conversation.presentation.schemas import (
     SessionResponse,
     SessionSnapshotResponse,
 )
-from gateway.presentation import rpc
-from gateway.presentation.rpc import (
-    ResourceNotFoundError,
-    RpcInternalError,
-    RpcInvalidParamsError,
-)
+from gateway.presentation.rpc import ResourceNotFoundError
 
 
-class SessionRpcMethods(rpc.RpcHandler):
+class SessionRpcMethods(RpcHandler):
     def __init__(self, service: ConversationService) -> None:
         self._service = service
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.SESSION_CREATE,
         summary="Create a conversation session.",
         errors=(RpcInvalidParamsError, RpcInternalError),
@@ -38,7 +35,7 @@ class SessionRpcMethods(rpc.RpcHandler):
         )
         return session_response(session)
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.SESSION_OPEN,
         summary="Open the current session for a channel or create it.",
         errors=(RpcInvalidParamsError, RpcInternalError),
@@ -50,7 +47,7 @@ class SessionRpcMethods(rpc.RpcHandler):
         )
         return session_response(session)
 
-    @rpc.method(
+    @method(
         ConversationRpcMethod.SESSION_GET,
         summary="Get a conversation session snapshot.",
         errors=(ResourceNotFoundError, RpcInternalError),

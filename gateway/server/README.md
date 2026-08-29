@@ -45,9 +45,9 @@ gateway/server/src/gateway/
 
 ## RPC surface
 
-Generated from code via `rpckit`, not maintained as a parallel spec — a
-handler declares methods with `@rpc.method(...)`, event models with
-`@rpc.event`, grouped into a `Feature.protocol`; `RpcServer` asserts at
+Generated from code via `pyrpckit`, not maintained as a parallel spec — a
+handler declares methods with `@method(...)`, event models with
+`@event`, grouped into a `Feature.protocol`; `RpcServer` asserts at
 startup that handlers match the declared protocol exactly.
 `cara-gateway-schema` exports `gateway.schema.json` and
 `gateway.openrpc.json`, which feed [`gateway-codegen`](../codegen) —
