@@ -1,30 +1,17 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from gateway.features.conversation.domain import (
-    GatewayEvent,
-)
+from gateway.features.conversation.application.events import ConversationEvent
 
 
 class EventPublisher(ABC):
     @abstractmethod
-    async def publish(self, event: GatewayEvent) -> None: ...
+    async def publish(self, event: ConversationEvent) -> None: ...
 
 
-class EventReceiver(ABC):
+class TurnLease(ABC):
     @abstractmethod
-    async def receive(self) -> GatewayEvent: ...
-
-
-class EventBroker(EventPublisher):
-    @abstractmethod
-    def connect(self, client_id: str) -> EventReceiver: ...
+    async def acquire(self, session_id: UUID) -> bool: ...
 
     @abstractmethod
-    def disconnect(self, client_id: str) -> None: ...
-
-    @abstractmethod
-    def subscribe(self, client_id: str, session_id: UUID) -> None: ...
-
-    @abstractmethod
-    def unsubscribe(self, client_id: str, session_id: UUID) -> None: ...
+    async def release(self, session_id: UUID) -> None: ...
