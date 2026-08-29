@@ -5,20 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from agent_plugin_api import AgentRunner, AgentSessionReader
 from gateway.features.conversation.application import (
-    ConversationService,
-    EventBroker,
     EventPublisher,
+    SessionService,
+    TurnLease,
+    TurnService,
 )
 from gateway.features.conversation.domain import SessionRepository
-from gateway.features.conversation.infrastructure.agent_sessions import (
+from gateway.features.conversation.infrastructure.agent_adapter import (
     GatewayAgentSessionReader,
-)
-from gateway.features.conversation.infrastructure.memory import (
-    InMemoryEventBroker,
 )
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
 )
+from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
 
 
 class ConversationProvider(Provider):
@@ -45,26 +44,27 @@ class ConversationProvider(Provider):
     ) -> AgentSessionReader:
         return reader
 
-    @provide(scope=Scope.APP)
-    def event_broker(self) -> InMemoryEventBroker:
-        return InMemoryEventBroker()
-
-    @provide(scope=Scope.APP)
-    def broker_port(self, broker: InMemoryEventBroker) -> EventBroker:
-        return broker
-
-    @provide(scope=Scope.APP)
-    def event_publisher(self, broker: InMemoryEventBroker) -> EventPublisher:
-        return broker
+    @provide
+    def session_service(self, sessions: SessionRepository) -> SessionService:
+        return SessionService(sessions)
 
     @provide
-    async def service(
+    def turn_lease(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> TurnLease:
+        return SQLTurnLease(session_factory)
+
+    @provide
+    async def turn_service(
         self,
         sessions: SessionRepository,
+        session_service: SessionService,
+        lease: TurnLease,
         events: EventPublisher,
         agent: AgentRunner,
-    ) -> AsyncIterator[ConversationService]:
-        service = ConversationService(sessions, events, agent)
+    ) -> AsyncIterator[TurnService]:
+        service = TurnService(sessions, session_service, lease, events, agent)
         try:
             yield service
         finally:

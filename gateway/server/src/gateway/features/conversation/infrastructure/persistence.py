@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import Select, select, update
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
@@ -73,25 +73,6 @@ class SQLSessionRepository(
         if restored is None:
             raise RuntimeError(f"Saved session {domain.id} could not be reloaded")
         return restored
-
-    async def claim_turn(self, id: UUID) -> bool:
-        statement = (
-            update(SessionModel)
-            .where(SessionModel.id == id, SessionModel.turn_active.is_(False))
-            .values(turn_active=True)
-        )
-        async with self._session_factory() as database:
-            result = await database.execute(statement)
-            await database.commit()
-            return result.rowcount == 1
-
-    async def release_turn(self, id: UUID) -> None:
-        statement = (
-            update(SessionModel).where(SessionModel.id == id).values(turn_active=False)
-        )
-        async with self._session_factory() as database:
-            await database.execute(statement)
-            await database.commit()
 
     def _to_domain(self, orm: SessionModel) -> Session:
         positioned_entries = [
