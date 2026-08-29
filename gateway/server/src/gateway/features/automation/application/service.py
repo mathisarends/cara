@@ -1,79 +1,69 @@
-from dataclasses import replace
 from uuid import UUID
 
+from gateway.features.automation.application.ports import AutomationTargetResolver
 from gateway.features.automation.domain import (
-    AutomationEnvelope,
+    Automation,
     AutomationNotFoundError,
-    ReminderPayload,
-    SessionAutomationTarget,
+    AutomationOrigin,
+    AutomationRepository,
+    AutomationSchedule,
+    PromptAction,
+    SessionTarget,
 )
-from scheduler import ScheduledJob, Scheduler, Trigger
 
 
-class AutomationService:
-    def __init__(self, scheduler: Scheduler[AutomationEnvelope]) -> None:
-        self._scheduler = scheduler
-
-    async def list_for_session(
+class SessionAutomationService:
+    def __init__(
         self,
-        session_id: UUID,
-    ) -> tuple[ScheduledJob[AutomationEnvelope], ...]:
-        jobs = await self._scheduler.list()
-        return tuple(job for job in jobs if job.payload.target.session_id == session_id)
-
-    async def get_for_session(
-        self,
-        automation_id: str,
-        session_id: UUID,
-    ) -> ScheduledJob[AutomationEnvelope]:
-        job = await self._scheduler.get(automation_id)
-        if job is None or job.payload.target.session_id != session_id:
-            raise AutomationNotFoundError(automation_id)
-        return job
-
-    async def create_for_session(
-        self,
-        session_id: UUID,
-        *,
-        trigger: Trigger,
-        payload: ReminderPayload,
-        name: str | None = None,
-    ) -> ScheduledJob[AutomationEnvelope]:
-        return await self._scheduler.schedule(
-            trigger=trigger,
-            payload=AutomationEnvelope(
-                schema_version=2,
-                target=SessionAutomationTarget(kind="session", session_id=session_id),
-                payload=payload,
-            ),
-            name=name,
-        )
-
-    async def update_for_session(
-        self,
-        automation_id: str,
-        session_id: UUID,
-        *,
-        trigger: Trigger,
-        payload: ReminderPayload,
-        name: str | None = None,
-    ) -> ScheduledJob[AutomationEnvelope]:
-        existing = await self.get_for_session(automation_id, session_id)
-        job = await self._scheduler.update(
-            automation_id,
-            trigger=trigger,
-            payload=replace(existing.payload, payload=payload),
-            name=name,
-        )
-        if job is None:
-            raise AutomationNotFoundError(automation_id)
-        return job
-
-    async def delete_for_session(
-        self,
-        automation_id: str,
-        session_id: UUID,
+        repository: AutomationRepository,
+        targets: AutomationTargetResolver,
     ) -> None:
-        await self.get_for_session(automation_id, session_id)
-        if not await self._scheduler.remove(automation_id):
+        self._repository = repository
+        self._targets = targets
+
+    async def list(self, session_id: UUID) -> tuple[Automation, ...]:
+        await self._targets.require_session(session_id)
+        return await self._repository.list_for_session(session_id)
+
+    async def get(self, automation_id: str, session_id: UUID) -> Automation:
+        automation = await self._repository.get(automation_id)
+        if automation is None:
             raise AutomationNotFoundError(automation_id)
+        automation.require_session(session_id)
+        return automation
+
+    async def create(
+        self,
+        session_id: UUID,
+        *,
+        schedule: AutomationSchedule,
+        action: PromptAction,
+        origin: AutomationOrigin,
+        name: str | None = None,
+    ) -> Automation:
+        await self._targets.require_session(session_id)
+        automation = Automation.create_for_session(
+            target=SessionTarget(session_id),
+            schedule=schedule,
+            action=action,
+            origin=origin,
+            name=name,
+        )
+        return await self._repository.save(automation)
+
+    async def update(
+        self,
+        automation_id: str,
+        session_id: UUID,
+        *,
+        schedule: AutomationSchedule,
+        action: PromptAction,
+        name: str | None = None,
+    ) -> Automation:
+        automation = await self.get(automation_id, session_id)
+        automation.update(schedule=schedule, action=action, name=name)
+        return await self._repository.save(automation)
+
+    async def delete(self, automation_id: str, session_id: UUID) -> None:
+        automation = await self.get(automation_id, session_id)
+        await self._repository.remove(automation)
