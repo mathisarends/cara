@@ -1,19 +1,17 @@
+from gateway.features.conversation.application import ConversationEvent
 from gateway.features.conversation.domain import (
     AssistantMessage,
     ChannelRef,
-    GatewayEvent,
     Session,
     ToolCallSequence,
     UserMessage,
 )
-from gateway.features.conversation.presentation.events import (
+from gateway.features.conversation.presentation.rpc.schemas import (
     SESSION_EVENT_ADAPTER,
-    SessionEvent,
-)
-from gateway.features.conversation.presentation.schemas import (
     AssistantMessageItem,
     Item,
     SessionChannel,
+    SessionEvent,
     SessionResponse,
     SessionSnapshotResponse,
     ToolCallItem,
@@ -74,7 +72,7 @@ def _session_channel(channel: ChannelRef) -> SessionChannel:
     )
 
 
-def session_event(event: GatewayEvent) -> SessionEvent:
+def session_event(event: ConversationEvent) -> SessionEvent:
     message = {
         "type": event.type,
         "event_id": event.event_id,
