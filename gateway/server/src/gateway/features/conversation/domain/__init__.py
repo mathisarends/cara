@@ -1,4 +1,4 @@
-from .entities import (
+from .entries import (
     AssistantMessage,
     SessionEntry,
     ToolCall,
@@ -17,21 +17,15 @@ from .exceptions import (
     ToolCallAlreadyResolvedError,
     ToolCallNotFoundError,
 )
-from .models import (
-    ChannelRef,
-    GatewayEvent,
-    GatewayEventType,
-)
 from .repositories import SessionRepository
 from .session import Session
+from .values import ChannelRef
 
 __all__ = [
     "ConversationError",
     "ConversationInvariantError",
     "ChannelRef",
     "DuplicateToolCallError",
-    "GatewayEvent",
-    "GatewayEventType",
     "NoPendingToolCallSequenceError",
     "PendingToolCallsError",
     "Session",

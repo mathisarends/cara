@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from gateway.features.conversation.domain.models import ChannelRef
 from gateway.features.conversation.domain.session import Session
+from gateway.features.conversation.domain.values import ChannelRef
 
 
 class SessionRepository(ABC):
@@ -14,9 +14,3 @@ class SessionRepository(ABC):
 
     @abstractmethod
     async def save(self, domain: Session) -> Session: ...
-
-    @abstractmethod
-    async def claim_turn(self, id: UUID) -> bool: ...
-
-    @abstractmethod
-    async def release_turn(self, id: UUID) -> None: ...

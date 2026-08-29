@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Self
 from uuid import UUID
 
-from gateway.features.conversation.domain.entities import (
+from gateway.features.conversation.domain.entries import (
     AssistantMessage,
     SessionEntry,
     ToolCall,
@@ -14,7 +14,7 @@ from gateway.features.conversation.domain.exceptions import (
     NoPendingToolCallSequenceError,
     PendingToolCallsError,
 )
-from gateway.features.conversation.domain.models import ChannelRef
+from gateway.features.conversation.domain.values import ChannelRef
 from gateway.shared import Aggregate
 
 
