@@ -1376,8 +1376,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Get an automation belonging to a conversation session."
+      ]
     },
     "CreateAutomationRequest": {
       "additionalProperties": false,
@@ -1414,8 +1413,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Create an automation for a conversation session."
+      ]
     },
     "UpdateAutomationRequest": {
       "additionalProperties": false,
@@ -1452,8 +1450,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Replace the schedule and payload of an automation."
+      ]
     },
     "DeleteAutomationRequest": {
       "additionalProperties": false,
@@ -1490,8 +1487,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Delete an automation belonging to a conversation session."
+      ]
     },
     "CreateSessionRequest": {
       "additionalProperties": false,
@@ -1528,8 +1524,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Create a conversation session."
+      ]
     },
     "OpenSessionRequest": {
       "additionalProperties": false,
@@ -1566,8 +1561,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Open the current session for a channel or create it."
+      ]
     },
     "GetSessionRequest": {
       "additionalProperties": false,
@@ -1604,8 +1598,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Get a conversation session snapshot."
+      ]
     },
     "SubscribeSessionRequest": {
       "additionalProperties": false,
@@ -1642,8 +1635,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Subscribe this connection to a conversation session."
+      ]
     },
     "UnsubscribeSessionRequest": {
       "additionalProperties": false,
@@ -1680,8 +1672,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Unsubscribe this connection from a conversation session."
+      ]
     },
     "PrepareTurnRequest": {
       "additionalProperties": false,
@@ -1718,8 +1709,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Prepare latency-sensitive resources for an upcoming turn."
+      ]
     },
     "StartTurnRequest": {
       "additionalProperties": false,
@@ -1756,8 +1746,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Start an agent turn in a conversation session."
+      ]
     },
     "FinishTurnRequest": {
       "additionalProperties": false,
@@ -1794,8 +1783,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Release resources prepared for a turn that is finished."
+      ]
     },
     "CancelTurnRequest": {
       "additionalProperties": false,
@@ -1832,8 +1820,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Cancel the active turn in a conversation session."
+      ]
     },
     "SessionEventNotification": {
       "additionalProperties": false,
@@ -1856,8 +1843,7 @@
         "jsonrpc",
         "method",
         "params"
-      ],
-      "description": "Publish a subscribed conversation session event."
+      ]
     }
   },
   "x-rpc-protocol-version": 1,
@@ -1884,7 +1870,6 @@
     },
     {
       "name": "automation.get",
-      "summary": "Get an automation belonging to a conversation session.",
       "feature": "automation",
       "request": {
         "$ref": "#/$defs/GetAutomationRequest"
@@ -1908,7 +1893,6 @@
     },
     {
       "name": "automation.create",
-      "summary": "Create an automation for a conversation session.",
       "feature": "automation",
       "request": {
         "$ref": "#/$defs/CreateAutomationRequest"
@@ -1932,7 +1916,6 @@
     },
     {
       "name": "automation.update",
-      "summary": "Replace the schedule and payload of an automation.",
       "feature": "automation",
       "request": {
         "$ref": "#/$defs/UpdateAutomationRequest"
@@ -1960,7 +1943,6 @@
     },
     {
       "name": "automation.delete",
-      "summary": "Delete an automation belonging to a conversation session.",
       "feature": "automation",
       "request": {
         "$ref": "#/$defs/DeleteAutomationRequest"
@@ -1984,7 +1966,6 @@
     },
     {
       "name": "session.create",
-      "summary": "Create a conversation session.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/CreateSessionRequest"
@@ -2008,7 +1989,6 @@
     },
     {
       "name": "session.open",
-      "summary": "Open the current session for a channel or create it.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/OpenSessionRequest"
@@ -2032,7 +2012,6 @@
     },
     {
       "name": "session.get",
-      "summary": "Get a conversation session snapshot.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/GetSessionRequest"
@@ -2056,7 +2035,6 @@
     },
     {
       "name": "subscription.subscribe",
-      "summary": "Subscribe this connection to a conversation session.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/SubscribeSessionRequest"
@@ -2080,7 +2058,6 @@
     },
     {
       "name": "subscription.unsubscribe",
-      "summary": "Unsubscribe this connection from a conversation session.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/UnsubscribeSessionRequest"
@@ -2100,7 +2077,6 @@
     },
     {
       "name": "turn.prepare",
-      "summary": "Prepare latency-sensitive resources for an upcoming turn.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/PrepareTurnRequest"
@@ -2124,7 +2100,6 @@
     },
     {
       "name": "turn.start",
-      "summary": "Start an agent turn in a conversation session.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/StartTurnRequest"
@@ -2156,7 +2131,6 @@
     },
     {
       "name": "turn.finish",
-      "summary": "Release resources prepared for a turn that is finished.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/FinishTurnRequest"
@@ -2180,7 +2154,6 @@
     },
     {
       "name": "turn.cancel",
-      "summary": "Cancel the active turn in a conversation session.",
       "feature": "conversation",
       "request": {
         "$ref": "#/$defs/CancelTurnRequest"
@@ -2215,8 +2188,7 @@
       },
       "message": {
         "$ref": "#/$defs/SessionEventNotification"
-      },
-      "summary": "Publish a subscribed conversation session event."
+      }
     }
   ],
   "x-rpc-events": [

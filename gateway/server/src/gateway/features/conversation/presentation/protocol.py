@@ -19,7 +19,6 @@ CONVERSATION_PROTOCOL = feature(
         RpcNotificationDefinition(
             name=RpcNotificationMethod.SESSION_EVENT,
             payload=SessionEvent,
-            summary="Publish a subscribed conversation session event.",
         ),
     ),
 )

@@ -25,7 +25,6 @@ class SessionRpcMethods(RpcHandler):
 
     @method(
         ConversationRpcMethod.SESSION_CREATE,
-        summary="Create a conversation session.",
         errors=(RpcInvalidParamsError, RpcInternalError),
     )
     async def create_session(self, params: CreateSessionParams) -> SessionResponse:
@@ -37,7 +36,6 @@ class SessionRpcMethods(RpcHandler):
 
     @method(
         ConversationRpcMethod.SESSION_OPEN,
-        summary="Open the current session for a channel or create it.",
         errors=(RpcInvalidParamsError, RpcInternalError),
     )
     async def open_session(self, params: OpenSessionParams) -> SessionResponse:
@@ -49,7 +47,6 @@ class SessionRpcMethods(RpcHandler):
 
     @method(
         ConversationRpcMethod.SESSION_GET,
-        summary="Get a conversation session snapshot.",
         errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def get_session(self, params: SessionParams) -> SessionSnapshotResponse:

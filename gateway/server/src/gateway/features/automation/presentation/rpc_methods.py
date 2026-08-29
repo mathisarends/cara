@@ -40,7 +40,6 @@ class AutomationRpcMethods(RpcHandler):
 
     @method(
         AutomationRpcMethod.GET,
-        summary="Get an automation belonging to a conversation session.",
         errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def get_automation(
@@ -55,7 +54,6 @@ class AutomationRpcMethods(RpcHandler):
 
     @method(
         AutomationRpcMethod.CREATE,
-        summary="Create an automation for a conversation session.",
         errors=(RpcInvalidParamsError, RpcInternalError),
     )
     async def create_automation(
@@ -72,7 +70,6 @@ class AutomationRpcMethods(RpcHandler):
 
     @method(
         AutomationRpcMethod.UPDATE,
-        summary="Replace the schedule and payload of an automation.",
         errors=(ResourceNotFoundError, RpcInvalidParamsError, RpcInternalError),
     )
     async def update_automation(
@@ -90,7 +87,6 @@ class AutomationRpcMethods(RpcHandler):
 
     @method(
         AutomationRpcMethod.DELETE,
-        summary="Delete an automation belonging to a conversation session.",
         errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def delete_automation(

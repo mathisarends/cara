@@ -23,7 +23,6 @@ class SubscriptionRpcMethods(RpcHandler):
 
     @method(
         ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE,
-        summary="Subscribe this connection to a conversation session.",
         errors=(ResourceNotFoundError, RpcInternalError),
     )
     async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
@@ -33,7 +32,6 @@ class SubscriptionRpcMethods(RpcHandler):
 
     @method(
         ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE,
-        summary="Unsubscribe this connection from a conversation session.",
         errors=(RpcInternalError,),
     )
     async def unsubscribe_session(self, params: SessionParams) -> UnsubscriptionResult:

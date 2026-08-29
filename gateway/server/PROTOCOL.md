@@ -56,7 +56,6 @@ from pyrpckit import method
 
 @method(
     "session.get",
-    summary="Get a conversation session snapshot.",
     errors=(RpcErrorCode.RESOURCE_NOT_FOUND,),
 )
 async def get_session(
