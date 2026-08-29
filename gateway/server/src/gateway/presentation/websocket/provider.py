@@ -6,22 +6,22 @@ from pyrpckit import RpcProtocol, RpcServer
 
 from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation import AutomationRpcMethods
-from gateway.features.conversation.application import ConversationService, EventBroker
-from gateway.features.conversation.presentation.session_rpc_methods import (
-    SessionRpcMethods,
+from gateway.features.conversation.application import (
+    EventPublisher,
+    SessionService,
+    TurnService,
 )
-from gateway.features.conversation.presentation.subscription_rpc_methods import (
-    SubscriptionRpcMethods,
-)
-from gateway.features.conversation.presentation.turn_rpc_methods import (
-    TurnRpcMethods,
-)
+from gateway.features.conversation.presentation import ConversationRpcMethods
 from gateway.presentation.websocket.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
 )
 from gateway.presentation.websocket.connection import GatewayConnection
 from gateway.presentation.websocket.error_mapping import gateway_error_mapper
+from gateway.presentation.websocket.subscriptions import (
+    EventStreamRpcMethods,
+    InMemoryEventStream,
+)
 
 
 class GatewayProvider(Provider):
@@ -40,27 +40,31 @@ class GatewayProvider(Provider):
     ) -> GatewayAuthenticator:
         return GatewayAuthenticator(settings)
 
+    @provide(scope=Scope.APP)
+    def event_stream(self) -> InMemoryEventStream:
+        return InMemoryEventStream()
+
+    @provide(scope=Scope.APP)
+    def event_publisher(self, stream: InMemoryEventStream) -> EventPublisher:
+        return stream
+
     @provide(scope=Scope.SESSION)
     def connection(
         self,
         websocket: WebSocket,
         authenticator: GatewayAuthenticator,
         automation_service: AutomationService,
-        service: ConversationService,
-        broker: EventBroker,
+        sessions: SessionService,
+        turns: TurnService,
+        stream: InMemoryEventStream,
     ) -> GatewayConnection:
         authenticator.authenticate(websocket)
         client_id = str(uuid4())
-        automation = AutomationRpcMethods(automation_service)
-        session = SessionRpcMethods(service)
-        subscription = SubscriptionRpcMethods(service, broker, client_id)
-        turn = TurnRpcMethods(service)
         server = RpcServer(
-            automation,
-            session,
-            subscription,
-            turn,
+            AutomationRpcMethods(automation_service),
+            ConversationRpcMethods(sessions, turns),
+            EventStreamRpcMethods(sessions, stream, client_id),
             protocol=self._protocol,
             error_mapper=gateway_error_mapper,
         )
-        return GatewayConnection(websocket, broker, client_id, server)
+        return GatewayConnection(websocket, stream, client_id, server)
