@@ -14,4 +14,9 @@ class AutomationExecution:
         *,
         scheduled_for: datetime,
     ) -> None:
-        await self._executor.execute(automation, scheduled_for)
+        await self._executor.execute(
+            automation.id,
+            automation.target,
+            automation.action,
+            scheduled_for,
+        )
