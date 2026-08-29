@@ -4,7 +4,7 @@ from dishka.integrations.fastapi import FastapiProvider
 from gateway.agent_plugins import AgentPluginProvider
 from gateway.features import FEATURES, gateway_protocol
 from gateway.infrastructure import DatabaseProvider, SchedulerProvider
-from gateway.presentation.websocket import GatewayProvider
+from gateway.presentation.websocket.provider import GatewayProvider
 
 
 def create_container() -> AsyncContainer:

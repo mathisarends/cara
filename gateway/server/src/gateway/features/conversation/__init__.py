@@ -1,12 +1,3 @@
-from gateway.presentation import Feature
-
-from .infrastructure import ConversationProvider
-from .presentation.protocol import CONVERSATION_PROTOCOL
-
-feature = Feature(
-    name="conversation",
-    providers=[ConversationProvider],
-    protocol=CONVERSATION_PROTOCOL,
-)
+from .feature import feature
 
 __all__ = ["feature"]

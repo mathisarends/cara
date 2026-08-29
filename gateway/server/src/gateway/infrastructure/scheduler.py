@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from gateway.features.automation.domain import AutomationEnvelope
 from gateway.features.automation.infrastructure import AutomationEnvelopeCodec
-from gateway.features.conversation.application import ConversationService
+from gateway.features.conversation.application import TurnService
 from scheduler import ScheduledRun, Scheduler, SqliteJobStore
 
 logger = logging.getLogger(__name__)
@@ -32,18 +32,18 @@ class SchedulerProvider(Provider):
     def scheduler(
         self,
         settings: SchedulerSettings,
-        conversations: ConversationService,
+        turns: TurnService,
     ) -> Scheduler[AutomationEnvelope]:
         store = SqliteJobStore[AutomationEnvelope](
             settings.scheduler_database,
             payload_codec=AutomationEnvelopeCodec(),
         )
-        return Scheduler(runner=_AutomationRunner(conversations), store=store)
+        return Scheduler(runner=_AutomationRunner(turns), store=store)
 
 
 class _AutomationRunner:
-    def __init__(self, conversations: ConversationService) -> None:
-        self._conversations = conversations
+    def __init__(self, turns: TurnService) -> None:
+        self._turns = turns
 
     async def __call__(self, run: ScheduledRun[AutomationEnvelope]) -> None:
         envelope = run.payload
@@ -54,10 +54,10 @@ class _AutomationRunner:
             "scheduled_for": run.scheduled_for.isoformat(),
         }
         logger.info("Running scheduled automation %s", run.job_id)
-        await self._conversations.run_automation_turn(
-            envelope.target.session_id,
-            _automation_prompt(envelope.payload.instruction),
-            metadata,
+        await self._turns.start_scheduled(
+            session_id=envelope.target.session_id,
+            text=_automation_prompt(envelope.payload.instruction),
+            metadata=metadata,
         )
 
 
