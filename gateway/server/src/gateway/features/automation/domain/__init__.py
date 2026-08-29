@@ -1,9 +1,23 @@
+from .action import AutomationOrigin, PromptAction, SessionTarget
+from .automation import Automation
 from .exceptions import AutomationNotFoundError
-from .models import AutomationEnvelope, ReminderPayload, SessionAutomationTarget
+from .repository import AutomationRepository
+from .schedule import (
+    AtSchedule,
+    AutomationSchedule,
+    CronSchedule,
+    IntervalSchedule,
+)
 
 __all__ = [
-    "AutomationEnvelope",
+    "AtSchedule",
+    "Automation",
     "AutomationNotFoundError",
-    "ReminderPayload",
-    "SessionAutomationTarget",
+    "AutomationOrigin",
+    "AutomationRepository",
+    "AutomationSchedule",
+    "CronSchedule",
+    "IntervalSchedule",
+    "PromptAction",
+    "SessionTarget",
 ]
