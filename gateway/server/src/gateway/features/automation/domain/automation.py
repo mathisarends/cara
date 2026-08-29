@@ -98,9 +98,11 @@ class Automation:
         *,
         schedule: AutomationSchedule,
         action: PromptAction,
+        origin: AutomationOrigin,
         name: str | None,
     ) -> Self:
         self._schedule = schedule
         self._action = action
+        self._origin = origin
         self._name = name
         return self

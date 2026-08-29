@@ -58,10 +58,16 @@ class SessionAutomationService:
         *,
         schedule: AutomationSchedule,
         action: PromptAction,
+        origin: AutomationOrigin,
         name: str | None = None,
     ) -> Automation:
         automation = await self.get(automation_id, session_id)
-        automation.update(schedule=schedule, action=action, name=name)
+        automation.update(
+            schedule=schedule,
+            action=action,
+            origin=origin,
+            name=name,
+        )
         return await self._repository.save(automation)
 
     async def delete(self, automation_id: str, session_id: UUID) -> None:
