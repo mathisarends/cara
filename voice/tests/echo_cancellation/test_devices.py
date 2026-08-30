@@ -10,7 +10,7 @@ from voice.echo_cancellation import PlaybackReference, ReferenceTapOutput
 from voice.events import WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
-from voice.observer import _ObserverBridge
+from voice.observer import ObserverBridge
 
 _SAMPLE_RATE = 16_000
 _FRAMES = 160
@@ -62,7 +62,7 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
         output_device=output_device,
     )
     observer = SoundObserver(sounds_dir=tmp_path)
-    observer_bridge = _ObserverBridge(
+    observer_bridge = ObserverBridge(
         event_bus=event_bus,
         observers=(observer,),
     )

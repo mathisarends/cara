@@ -17,7 +17,7 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import Event
-from voice.observer import _ObserverBridge
+from voice.observer import ObserverBridge
 
 _ROOM_ID = UUID("00000000-0000-0000-0000-000000000001")
 _GROUPED_LIGHT_ID = UUID("00000000-0000-0000-0000-000000000002")
@@ -104,7 +104,7 @@ def test_hue_observer_reflects_voice_turn_and_tool_lifecycle() -> None:
         event_bus = EventBus()
         hue = _RecordingHue()
         observer = HueObserver(room_name="Test room", hue=hue)
-        bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
         await bridge.prepare()
 
@@ -166,7 +166,7 @@ def test_hue_observer_preserves_external_changes_in_its_baseline() -> None:
         event_bus = EventBus()
         hue = _RecordingHue()
         observer = HueObserver(room_name="Test room", hue=hue)
-        bridge = _ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
         bridge.setup()
         await bridge.prepare()
 

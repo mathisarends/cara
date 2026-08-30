@@ -7,6 +7,7 @@ from voice.events import (
     AssistantPlaybackCompleted,
     AssistantResponseStarted,
     AssistantSpeechStarted,
+    AssistantTextChunk,
     AssistantToolCompleted,
     AssistantToolStarted,
     AssistantTurnStarted,
@@ -23,6 +24,7 @@ from voice.events import (
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
+from voice.events.models import VoiceTurnEnded
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +59,8 @@ class Observer:
 
     async def on_assistant_response_started(self, turn_id: int) -> None: ...
 
+    async def on_assistant_text_chunk(self, turn_id: int, chunk: str) -> None: ...
+
     async def on_assistant_tool_started(self, name: str) -> None: ...
 
     async def on_assistant_tool_completed(self, name: str) -> None: ...
@@ -79,8 +83,10 @@ class Observer:
 
     async def on_assistant_interrupted(self, turn_id: int) -> None: ...
 
+    async def on_voice_turn_ended(self, turn_id: int) -> None: ...
 
-class _ObserverBridge:
+
+class ObserverBridge:
     def __init__(
         self,
         *,
@@ -125,6 +131,12 @@ class _ObserverBridge:
                 AssistantResponseStarted,
                 lambda event, observer=observer: observer.on_assistant_response_started(
                     event.turn_id
+                ),
+            )
+            bus.on(
+                AssistantTextChunk,
+                lambda event, observer=observer: observer.on_assistant_text_chunk(
+                    event.turn_id, event.chunk
                 ),
             )
             bus.on(
@@ -182,6 +194,12 @@ class _ObserverBridge:
             bus.on(
                 VoiceTurnInterrupted,
                 lambda event, observer=observer: observer.on_assistant_interrupted(
+                    event.turn_id
+                ),
+            )
+            bus.on(
+                VoiceTurnEnded,
+                lambda event, observer=observer: observer.on_voice_turn_ended(
                     event.turn_id
                 ),
             )

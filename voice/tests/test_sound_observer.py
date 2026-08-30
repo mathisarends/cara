@@ -7,7 +7,7 @@ from voice.events import (
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
-from voice.observer import _ObserverBridge
+from voice.observer import ObserverBridge
 from voice.sound import _DEFAULT_SOUNDS_DIR, Earcon, SoundObserver
 
 
@@ -21,7 +21,7 @@ def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> Non
 
         event_bus.on_request(AudioPlaybackRequested, capture)
         observer = SoundObserver()
-        bridge = _ObserverBridge(
+        bridge = ObserverBridge(
             event_bus=event_bus,
             observers=(observer,),
         )
@@ -47,7 +47,7 @@ def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
 
         event_bus.on_request(AudioPlaybackRequested, capture)
         observer = SoundObserver()
-        bridge = _ObserverBridge(
+        bridge = ObserverBridge(
             event_bus=event_bus,
             observers=(observer,),
         )
@@ -71,7 +71,7 @@ def test_assistant_response_started_plays_success_earcon() -> None:
 
         event_bus.on_request(AudioPlaybackRequested, capture)
         observer = SoundObserver()
-        bridge = _ObserverBridge(
+        bridge = ObserverBridge(
             event_bus=event_bus,
             observers=(observer,),
         )

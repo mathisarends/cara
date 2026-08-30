@@ -4,6 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from voice.acknowledgement import (
+    TOOL_ACKNOWLEDGEMENTS,
+    ToolAcknowledgementObserver,
+)
 from voice.events import (
     AssistantResponseStarted,
     AssistantTextChunk,
@@ -12,10 +16,9 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import VoiceTurnEnded
-from voice.handler import ToolAcknowledgementListener
-from voice.handler.tool_acknowledgement import TOOL_ACKNOWLEDGEMENTS
+from voice.observer import ObserverBridge
 
-_ACKNOWLEDGEMENTS_DIR = Path(__file__).parents[2] / "static" / "acknowledgements"
+_ACKNOWLEDGEMENTS_DIR = Path(__file__).parents[1] / "static" / "acknowledgements"
 
 
 def _write_acknowledgements(directory: Path) -> dict[str, bytes]:
@@ -25,6 +28,13 @@ def _write_acknowledgements(directory: Path) -> dict[str, bytes]:
     for name, audio in acknowledgements.items():
         (directory / f"{name}.wav").write_bytes(audio)
     return acknowledgements
+
+
+async def _prepare_observer(event_bus: EventBus, directory: Path) -> None:
+    observer = ToolAcknowledgementObserver(acknowledgements_dir=directory)
+    bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+    bridge.setup()
+    await bridge.prepare()
 
 
 @pytest.mark.parametrize("name,phrase", TOOL_ACKNOWLEDGEMENTS)
@@ -49,16 +59,13 @@ def test_plays_cached_ack_when_tool_call_follows_silence(
 
     async def run() -> list[bytes]:
         event_bus = EventBus()
-        ToolAcknowledgementListener(
-            event_bus=event_bus,
-            acknowledgements_dir=tmp_path,
-        )
         requested: list[bytes] = []
 
         async def capture(event: AudioPlaybackRequested) -> None:
             requested.append(event.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
+        await _prepare_observer(event_bus, tmp_path)
 
         await event_bus.dispatch(AssistantResponseStarted(turn_id=3))
         await event_bus.dispatch(AssistantToolStarted(turn_id=3, name="weather"))
@@ -66,7 +73,7 @@ def test_plays_cached_ack_when_tool_call_follows_silence(
         return requested
 
     monkeypatch.setattr(
-        "voice.handler.tool_acknowledgement.random.choice",
+        "voice.acknowledgement.random.choice",
         lambda choices: choices[0],
     )
 
@@ -78,16 +85,13 @@ def test_stays_silent_when_assistant_already_spoke(tmp_path: Path) -> None:
 
     async def run() -> list[bytes]:
         event_bus = EventBus()
-        ToolAcknowledgementListener(
-            event_bus=event_bus,
-            acknowledgements_dir=tmp_path,
-        )
         requested: list[bytes] = []
 
         async def capture(event: AudioPlaybackRequested) -> None:
             requested.append(event.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
+        await _prepare_observer(event_bus, tmp_path)
 
         await event_bus.dispatch(AssistantResponseStarted(turn_id=4))
         await event_bus.dispatch(AssistantTextChunk(turn_id=4, chunk="I'll check."))
@@ -104,16 +108,13 @@ def test_resets_state_and_avoids_repeating_the_last_ack(
 
     async def run() -> list[bytes]:
         event_bus = EventBus()
-        ToolAcknowledgementListener(
-            event_bus=event_bus,
-            acknowledgements_dir=tmp_path,
-        )
         requested: list[bytes] = []
 
         async def capture(event: AudioPlaybackRequested) -> None:
             requested.append(event.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
+        await _prepare_observer(event_bus, tmp_path)
 
         for turn_id in (5, 6):
             await event_bus.dispatch(AssistantResponseStarted(turn_id=turn_id))
@@ -124,7 +125,7 @@ def test_resets_state_and_avoids_repeating_the_last_ack(
         return requested
 
     monkeypatch.setattr(
-        "voice.handler.tool_acknowledgement.random.choice",
+        "voice.acknowledgement.random.choice",
         lambda choices: choices[0],
     )
 

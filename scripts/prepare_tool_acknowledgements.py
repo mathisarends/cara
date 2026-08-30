@@ -10,7 +10,7 @@ from vocalbin.deepgram.tts import (
     TextToSpeechModel,
 )
 
-from voice.handler.tool_acknowledgement import TOOL_ACKNOWLEDGEMENTS
+from voice.acknowledgement import TOOL_ACKNOWLEDGEMENTS
 
 _PROJECT_ROOT = Path(__file__).parents[1]
 _DEFAULT_OUTPUT_DIR = _PROJECT_ROOT / "voice" / "static" / "acknowledgements"

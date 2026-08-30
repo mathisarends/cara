@@ -4,7 +4,7 @@ import inspect
 from voice import VoiceChannel
 from voice.events import FollowUpCountdown, SessionStarted
 from voice.events.bus import EventBus
-from voice.observer import Observer, ObserverContext, _ObserverBridge
+from voice.observer import Observer, ObserverBridge, ObserverContext
 
 
 class _RecordingObserver(Observer):
@@ -26,7 +26,7 @@ def test_bridge_notifies_all_voice_channel_observers() -> None:
         event_bus = EventBus()
         first = _RecordingObserver()
         second = _RecordingObserver()
-        bridge = _ObserverBridge(
+        bridge = ObserverBridge(
             event_bus=event_bus,
             observers=(first, second),
         )

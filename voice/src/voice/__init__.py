@@ -1,3 +1,4 @@
+from .acknowledgement import ToolAcknowledgementObserver
 from .activation import (
     Activation,
     ActivationSource,
@@ -19,7 +20,7 @@ from .conversation import ConversationAudioMixer, ConversationAudioRecorder
 from .handler import FollowUpSettings
 from .lights import HueObserver, LightingState
 from .models import AgentResult
-from .observer import Observer, ObserverContext
+from .observer import Observer, ObserverBridge, ObserverContext
 from .playback import (
     SonosAudioFocusObserver,
     SonosAudioFocusPolicy,
@@ -46,6 +47,7 @@ __all__ = [
     "ListenActivation",
     "NoBargeIn",
     "Observer",
+    "ObserverBridge",
     "ObserverContext",
     "PromptActivation",
     "SpeechBargeIn",
@@ -54,6 +56,7 @@ __all__ = [
     "SonosAudioFocusPolicy",
     "SonosDuckingPolicy",
     "SonosPausePolicy",
+    "ToolAcknowledgementObserver",
     "VoiceChannel",
     "VoiceChannelConfig",
     "WakeWord",

@@ -2,6 +2,7 @@ import logging
 from collections.abc import Iterable
 from pathlib import Path
 
+from voice.acknowledgement import ToolAcknowledgementObserver
 from voice.activation import (
     ActivationCoordinator,
     ActivationSource,
@@ -33,13 +34,12 @@ from voice.handler import (
     FollowUpHandler,
     FollowUpSettings,
     SpeechResourceHandler,
-    ToolAcknowledgementListener,
     TurnCoordinator,
     TurnListener,
 )
 from voice.llm import AgentBridge, AgentSession
 from voice.models import AgentResult
-from voice.observer import Observer, _ObserverBridge
+from voice.observer import Observer, ObserverBridge
 from voice.stt import DeepgramSpeechToText, SpeechToText, SpeechToTextBridge
 from voice.tts import DeepgramTextToSpeech, TextToSpeech, TextToSpeechBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
@@ -129,9 +129,6 @@ class VoiceChannel:
             event_bus=self._event_bus,
             session=agent_session,
         )
-        self._tool_acknowledgement_listener = ToolAcknowledgementListener(
-            event_bus=self._event_bus,
-        )
         self._text_to_speech_bridge = TextToSpeechBridge(
             event_bus=self._event_bus,
             text_to_speech=self._text_to_speech,
@@ -195,9 +192,9 @@ class VoiceChannel:
         self._logging_listener = LoggingListener(
             self._event_bus, wake_word_phrase=wake_word_phrase
         )
-        self._observer_bridge = _ObserverBridge(
+        self._observer_bridge = ObserverBridge(
             event_bus=self._event_bus,
-            observers=observers,
+            observers=(*observers, ToolAcknowledgementObserver()),
         )
         self._observer_bridge.setup()
         if recording_path is not None:
