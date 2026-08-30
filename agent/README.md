@@ -27,7 +27,7 @@ src/agent/
 ├── messages.py       MessageManager: history + system prompt injection
 ├── models.py          ModelSwitch: named ChatModel registry
 ├── plugin/             cara.agent_plugins entry point (Gateway adapter)
-├── prompt/              system prompt + local-time rendering
+├── prompt/              system prompt composition
 ├── sandbox/             SandboxDefinition -> agenttoolkit DockerSandbox
 └── tools/                tool catalog (actions/, handler/ ports+adapters)
 ```

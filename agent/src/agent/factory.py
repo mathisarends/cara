@@ -41,6 +41,7 @@ class AgentFactory:
             models=components.models,
             tools=tools,
             skills=components.skills,
+            clock=components.clock,
             system_prompt=self._settings.system_prompt,
             workspace_root=components.workspace.root,
             messages=messages,

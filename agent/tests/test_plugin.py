@@ -8,6 +8,7 @@ import pytest
 from llmify import ChatModel, Function, Message, StreamEnd, StreamTextDelta, ToolCall
 from pydantic import ValidationError
 
+from agent.clock import LocalClock
 from agent.models import ModelSwitch
 from agent.plugin import create_plugin
 from agent.tools import AgentTools
@@ -121,6 +122,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     tools = _Tools()
     turn_dependency = _TurnDependency()
     resolved_turn_dependencies: list[_TurnDependency | None] = []
+    resolved_timezones: list[str] = []
     model_switches: list[ModelSwitch] = []
     model_creations: list[tuple[tuple[object, ...], dict[str, object]]] = []
 
@@ -131,6 +133,9 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     def build_test_tools(**kwargs: Any) -> AgentTools:
         tool_context = kwargs["context"]
         model_switches.append(cast(ModelSwitch, tool_context.resolve(ModelSwitch)))
+        resolved_timezones.append(
+            cast(LocalClock, tool_context.resolve(LocalClock)).timezone
+        )
         resolved_turn_dependencies.append(tool_context.resolve(_TurnDependency))
         return cast(AgentTools, tools)
 
@@ -206,6 +211,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     )
     assert model_switches[0].current_name == "gpt-5.3-codex-spark"
     assert resolved_turn_dependencies == [turn_dependency]
+    assert resolved_timezones == ["Europe/Berlin"]
     assert model_creations == [((CodexModel.SPARK,), {})]
     assert model.prewarm_calls == 1
     assert model.close_calls == 1
@@ -290,6 +296,16 @@ def test_cara_plugin_rejects_unknown_configuration() -> None:
     with pytest.raises(ValidationError, match="unknown"):
         create_plugin().create(
             {"unknown": True},
+            AgentPluginContext(sessions),
+        )
+
+
+def test_cara_plugin_rejects_unknown_timezone() -> None:
+    sessions = _SessionReader(AgentContext(()))
+
+    with pytest.raises(ValidationError, match="Unknown timezone"):
+        create_plugin().create(
+            {"timezone": "Mars/Olympus_Mons"},
             AgentPluginContext(sessions),
         )
 

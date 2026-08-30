@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from agenttoolkit import Inject, Tools, provided
 from pydantic import Field
 
+from agent.clock import LocalClock
 from agent.tools.handler import (
     Reminder,
     Reminders,
@@ -15,8 +16,6 @@ from agent.tools.handler import (
 )
 from agent.tools.middleware import ToolError
 from agent.tools.params import ToolParams
-
-_DEFAULT_TIMEZONE = "Europe/Berlin"
 
 
 class ReminderScheduleKind(StrEnum):
@@ -54,11 +53,11 @@ class _ScheduleParams(ToolParams):
             "params.schedule is 'cron'."
         ),
     )
-    timezone: str = Field(
-        default=_DEFAULT_TIMEZONE,
+    timezone: str | None = Field(
+        default=None,
         description=(
             "IANA timezone the times are meant in, e.g. 'Europe/Berlin'. "
-            "Only change this when the user is explicitly in another zone."
+            "Leave unset to use the agent's configured local timezone."
         ),
     )
     instruction: str = Field(
@@ -135,10 +134,11 @@ def register_reminder_tools(tools: Tools) -> None:
     async def create_reminder(
         params: CreateReminderParams,
         reminders: Inject[Reminders],
+        clock: Inject[LocalClock],
     ) -> str:
         reminder = await reminders.create(
             instruction=params.instruction,
-            schedule=_schedule(params),
+            schedule=_schedule(params, clock=clock),
             name=params.name,
         )
         return (
@@ -160,11 +160,12 @@ def register_reminder_tools(tools: Tools) -> None:
     async def update_reminder(
         params: UpdateReminderParams,
         reminders: Inject[Reminders],
+        clock: Inject[LocalClock],
     ) -> str:
         reminder = await reminders.update(
             params.reminder_id,
             instruction=params.instruction,
-            schedule=_schedule(params),
+            schedule=_schedule(params, clock=clock),
             name=params.name,
         )
         return f"Updated: {_render_reminder(reminder)}"
@@ -182,16 +183,17 @@ def register_reminder_tools(tools: Tools) -> None:
         return f"Deleted reminder {params.reminder_id}."
 
 
-def _schedule(params: _ScheduleParams) -> ReminderSchedule:
-    timezone = _timezone(params.timezone)
+def _schedule(params: _ScheduleParams, *, clock: LocalClock) -> ReminderSchedule:
+    timezone_name = params.timezone or clock.timezone
+    timezone = _timezone(timezone_name)
     match params.schedule:
         case ReminderScheduleKind.ONCE:
             if params.run_at is None:
                 raise ToolError("params.run_at is required for a 'once' reminder")
             when = _localised(params.run_at, timezone)
-            if when.astimezone(UTC) <= datetime.now(UTC):
-                now = datetime.now(timezone)
-                current_time = now.isoformat(timespec="seconds")
+            now = clock.now()
+            if when.astimezone(UTC) <= now.astimezone(UTC):
+                current_time = now.astimezone(timezone).isoformat(timespec="seconds")
                 raise ToolError(
                     "params.run_at must be in the future. "
                     f"Current local time in {timezone.key} is {current_time}"
@@ -206,7 +208,7 @@ def _schedule(params: _ScheduleParams) -> ReminderSchedule:
         case ReminderScheduleKind.CRON:
             if params.cron is None:
                 raise ToolError("params.cron is required for a 'cron' reminder")
-            return RemindOnCron(expression=params.cron, timezone=params.timezone)
+            return RemindOnCron(expression=params.cron, timezone=timezone_name)
 
 
 def _timezone(name: str) -> ZoneInfo:

@@ -20,6 +20,7 @@ from llmify import (
     Tool as LLMTool,
 )
 
+from agent.clock import LocalClock
 from agent.events import (
     AgentEvent,
     SteeringApplied,
@@ -49,17 +50,20 @@ class Agent:
         models: ModelSwitch,
         tools: AgentTools,
         skills: Skills | None = None,
+        clock: LocalClock | None = None,
         system_prompt: str | None = None,
         workspace_root: Path | None = None,
         messages: Sequence[Message] = (),
     ) -> None:
         self._models = models
         self._tools = tools
+        selected_clock = clock or LocalClock()
         self._context = MessageManager(
             SystemPrompt(
                 root=workspace_root,
                 system_prompt=system_prompt,
                 skills=skills,
+                today=selected_clock.today,
             ),
             messages,
         )

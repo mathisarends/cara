@@ -3,6 +3,9 @@ agent:
   plugin: cara
 
   config:
+    # Local timezone used for current-time lookups and daily memory selection.
+    timezone: Europe/Berlin
+
     # First model starts the conversation; the agent can switch at runtime.
     models:
       - gpt-5.3-codex-spark

@@ -16,6 +16,7 @@ from agenttoolkit.builtins import (
 )
 from agenttoolkit.dependency import DependencyContainer
 
+from agent.clock import LocalClock
 from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools.actions import register_tools
 from agent.tools.dependency_provider import BuiltinDependencies
@@ -110,10 +111,16 @@ def _create_tool_context(
     workspace: Workspace | None = None,
     sandbox: SandboxDefinition | None = None,
     runner: CommandRunner | None = None,
+    clock: LocalClock | None = None,
 ) -> ToolContext:
     selected_workspace = workspace or _default_workspace()
     selected_runner = runner or _default_runner(sandbox, selected_workspace)
-    return ToolContext(selected_workspace, selected_runner, *dependencies)
+    return ToolContext(
+        selected_workspace,
+        selected_runner,
+        clock or LocalClock(),
+        *dependencies,
+    )
 
 
 def _default_workspace() -> LocalWorkspace:

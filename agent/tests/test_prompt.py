@@ -1,22 +1,14 @@
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import pytest
 from agenttoolkit import Skills
 
-from agent.prompt import LocalTimePrompt, SystemPrompt
+from agent.prompt import SystemPrompt
 
 
 def _composer(root: Path, **kwargs: object) -> SystemPrompt:
     return SystemPrompt(root=root, system_prompt="System", **kwargs)
-
-
-def _fixed_local_time() -> LocalTimePrompt:
-    return LocalTimePrompt(
-        timezone="Europe/Berlin",
-        clock=lambda: datetime(2026, 7, 21, 14, 30, tzinfo=ZoneInfo("Europe/Berlin")),
-    )
 
 
 def _skills(root: Path, name: str = "pdf", description: str = "Read PDFs.") -> Skills:
@@ -43,30 +35,6 @@ def test_empty_skills_leaves_the_system_prompt_untouched(tmp_path: Path) -> None
     composer = _composer(tmp_path, skills=Skills.from_dir(tmp_path))
 
     assert composer.render() == "System"
-
-
-def test_local_time_prompt_renders_weekday_date_and_time() -> None:
-    assert _fixed_local_time().render() == "Dienstag, 21. Juli 2026, 14:30 Uhr"
-
-
-def test_local_time_is_rendered_as_its_own_section(tmp_path: Path) -> None:
-    rendered = _composer(tmp_path, local_time=_fixed_local_time()).render()
-
-    assert rendered == "System\n\n### Local Time\n\nDienstag, 21. Juli 2026, 14:30 Uhr"
-
-
-def test_local_time_precedes_available_skills_in_the_system_prompt(
-    tmp_path: Path,
-) -> None:
-    composer = _composer(
-        tmp_path,
-        skills=_skills(tmp_path, "weather", "Wetter ansagen."),
-        local_time=_fixed_local_time(),
-    )
-
-    rendered = composer.render()
-
-    assert rendered.index("### Local Time") < rendered.index("<available_skills>")
 
 
 def test_system_prompt_is_assembled_from_the_context_markdown_files(
@@ -119,6 +87,16 @@ def test_memory_renders_files_in_order(tmp_path: Path) -> None:
     rendered = _composer(tmp_path).render()
 
     assert rendered == "System\n\n### MEMORY.md\n\nHalbmarathon im Oktober."
+
+
+def test_dynamic_memory_follows_static_tools_and_skills(tmp_path: Path) -> None:
+    (tmp_path / "TOOLS.md").write_text("Tool facts.", encoding="utf-8")
+    (tmp_path / "MEMORY.md").write_text("Current memory.", encoding="utf-8")
+
+    rendered = _composer(tmp_path, skills=_skills(tmp_path)).render()
+
+    assert rendered.index("### TOOLS.md") < rendered.index("<available_skills>")
+    assert rendered.index("<available_skills>") < rendered.index("### MEMORY.md")
 
 
 def test_memory_includes_only_todays_daily_note(tmp_path: Path) -> None:

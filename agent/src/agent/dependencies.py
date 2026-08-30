@@ -11,6 +11,7 @@ from agenttoolkit.builtins import (
 )
 from llmify import ChatModel
 
+from agent.clock import LocalClock
 from agent.configuration import AgentSettings
 from agent.models import ModelSwitch
 from agent.sandbox import create_sandbox
@@ -25,6 +26,7 @@ class AgentComponents:
     workspace: Workspace
     skills: Skills | None
     models: ModelSwitch
+    clock: LocalClock
     tool_context: ToolContext
 
 
@@ -66,6 +68,10 @@ class ConfiguredDependencies(DependencyProvider):
         return create_sandbox(workspace.root, settings.sandbox)
 
     @provide
+    def clock(self, settings: AgentSettings) -> LocalClock:
+        return LocalClock(settings.timezone)
+
+    @provide
     def model_factories(self, settings: AgentSettings) -> _ModelFactories:
         return {model.value: _codex_model_factory(model) for model in settings.models}
 
@@ -89,12 +95,14 @@ class ConfiguredDependencies(DependencyProvider):
         command_runner: CommandRunner,
         skills: Skills | None,
         model_switch: ModelSwitch,
+        clock: LocalClock,
     ) -> ToolContext:
         return ToolContext(
             workspace,
             command_runner,
             skills,
             model_switch,
+            clock,
             *self._tool_dependencies,
         )
 
@@ -104,12 +112,14 @@ class ConfiguredDependencies(DependencyProvider):
         workspace: Workspace,
         skills: Skills | None,
         model_switch: ModelSwitch,
+        clock: LocalClock,
         tool_context: ToolContext,
     ) -> AgentComponents:
         return AgentComponents(
             workspace=workspace,
             skills=skills,
             models=model_switch,
+            clock=clock,
             tool_context=tool_context,
         )
 

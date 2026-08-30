@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from agenttoolkit import ToolContext
 
+from agent.clock import LocalClock
 from agent.tools.factory import _create_tool_context, _create_tools
 from agent.tools.handler import (
     Reminder,
@@ -18,6 +19,10 @@ from agent.tools.handler import (
 from agent.tools.middleware import ToolFailure
 
 _BERLIN = ZoneInfo("Europe/Berlin")
+_CLOCK = LocalClock(
+    "Europe/Berlin",
+    clock=lambda: datetime(2026, 8, 25, 12, tzinfo=UTC),
+)
 
 
 class _StubReminders(Reminders):
@@ -73,7 +78,11 @@ def _reminder(
 def _context(reminders: Reminders | None, tmp_path: Path) -> ToolContext:
     from agenttoolkit.builtins import LocalWorkspace
 
-    return _create_tool_context(reminders, workspace=LocalWorkspace(tmp_path))
+    return _create_tool_context(
+        reminders,
+        workspace=LocalWorkspace(tmp_path),
+        clock=_CLOCK,
+    )
 
 
 def _run(reminders: Reminders | None, tmp_path: Path, name: str, arguments: dict):

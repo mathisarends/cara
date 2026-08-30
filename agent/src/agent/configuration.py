@@ -1,7 +1,9 @@
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from agent.clock import DEFAULT_TIMEZONE
 from agent.sandbox import SandboxDefinition
 from llm import CodexModel
 
@@ -23,6 +25,7 @@ class AgentSettings(BaseModel):
     workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     sandbox: SandboxDefinition | None = None
     system_prompt: str | None = None
+    timezone: str = DEFAULT_TIMEZONE
 
     @field_validator("models")
     @classmethod
@@ -33,3 +36,12 @@ class AgentSettings(BaseModel):
         if len(set(models)) != len(models):
             raise ValueError("models must not contain duplicates")
         return models
+
+    @field_validator("timezone")
+    @classmethod
+    def _timezone_must_be_resolvable(cls, timezone: str) -> str:
+        try:
+            ZoneInfo(timezone)
+        except (KeyError, ValueError) as error:
+            raise ValueError(f"Unknown timezone: {timezone!r}") from error
+        return timezone

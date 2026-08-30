@@ -4,7 +4,6 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 
-from agent.prompt.local_time import LocalTimePrompt
 from agent.workspace import resolve_workspace_root
 
 _BASE_FILES = ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md")
@@ -22,25 +21,21 @@ class SystemPrompt:
         root: Path | None = None,
         system_prompt: str | None = None,
         skills: Skills | None = None,
-        local_time: LocalTimePrompt | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
         self._root = root or resolve_workspace_root()
         self._system_prompt = system_prompt
         self._skills = skills
-        self._local_time = local_time
         self._today = today or date.today
 
     def render(self) -> str:
         sections = [self._render_base_prompt()]
-        if self._local_time is not None:
-            sections.append(f"### Local Time\n\n{self._local_time.render()}")
-        if memory := self._render_memory():
-            sections.append(memory)
         if tools := _render_files(self._root, _TOOLS_FILES):
             sections.append(tools)
         if self._skills is not None and (catalog := self._skills.render_prompt()):
             sections.append(catalog)
+        if memory := self._render_memory():
+            sections.append(memory)
         return "\n\n".join(section for section in sections if section)
 
     def __str__(self) -> str:
