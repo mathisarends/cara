@@ -35,6 +35,9 @@ class SoundObserver(Observer):
     ) -> None:
         await self._play(Earcon.WAKE)
 
+    async def on_assistant_response_started(self, turn_id: int) -> None:
+        await self._play(Earcon.SUCCESS)
+
     async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
         await self._play(Earcon.SLEEP)
 

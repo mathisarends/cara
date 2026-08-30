@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from voice.audio import AudioPlayback, EventAudioPlayer
 from voice.events import (
     AssistantPlaybackCompleted,
+    AssistantResponseStarted,
     AssistantSpeechStarted,
     AssistantToolCompleted,
     AssistantToolStarted,
@@ -53,6 +54,8 @@ class Observer:
     async def on_user_turn_started(self) -> None: ...
 
     async def on_assistant_turn_started(self) -> None: ...
+
+    async def on_assistant_response_started(self, turn_id: int) -> None: ...
 
     async def on_assistant_tool_started(self, name: str) -> None: ...
 
@@ -117,6 +120,12 @@ class _ObserverBridge:
             bus.on(
                 AssistantTurnStarted,
                 lambda _, observer=observer: observer.on_assistant_turn_started(),
+            )
+            bus.on(
+                AssistantResponseStarted,
+                lambda event, observer=observer: observer.on_assistant_response_started(
+                    event.turn_id
+                ),
             )
             bus.on(
                 AssistantToolStarted,

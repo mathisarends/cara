@@ -48,10 +48,12 @@ class AgentBridge:
         logger.info("LLM input: %s", event.text)
         if self._preparation is not None:
             await self._preparation
-        await self._event_bus.dispatch(AssistantResponseStarted(turn_id=event.turn_id))
         chunks: list[str] = []
         try:
             events = await self._session.start_turn(event.text)
+            await self._event_bus.dispatch(
+                AssistantResponseStarted(turn_id=event.turn_id)
+            )
             async for agent_event in events:
                 match agent_event:
                     case TextDelta(text=text) if text:
