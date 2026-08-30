@@ -1,5 +1,5 @@
 from .di import DatabaseProvider
-from .models import (
+from .orm import (
     DatabaseEntity,
     SessionAssistantMessageModel,
     SessionModel,

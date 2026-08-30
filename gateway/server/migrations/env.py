@@ -6,7 +6,7 @@ from sqlalchemy import Connection, pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
-from gateway.infrastructure.database.models import (  # noqa: F401
+from gateway.infrastructure.database.orm import (  # noqa: F401
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,
