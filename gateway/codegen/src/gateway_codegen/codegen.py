@@ -13,6 +13,7 @@ from pyrpckit.codegen.python import PythonClientOptions
 from pyrpckit.codegen.writer import write_files
 
 _DEFAULT_OUTPUT = Path("gateway/client/src/gateway_client")
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
 _TEMPLATES = Environment(
     loader=PackageLoader("gateway_codegen"),
     autoescape=False,
@@ -122,6 +123,7 @@ def _ruff_format(filename: str, content: str) -> str:
     """Apply the repo's ruff import sorting and formatting to generated code."""
     sorted_content = subprocess.run(
         ["ruff", "check", "--fix-only", "--stdin-filename", filename, "-"],
+        cwd=_PROJECT_ROOT,
         input=content,
         capture_output=True,
         text=True,
@@ -129,6 +131,7 @@ def _ruff_format(filename: str, content: str) -> str:
     ).stdout
     return subprocess.run(
         ["ruff", "format", "--stdin-filename", filename, "-"],
+        cwd=_PROJECT_ROOT,
         input=sorted_content,
         capture_output=True,
         text=True,

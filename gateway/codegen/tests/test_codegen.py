@@ -1,11 +1,16 @@
 from pathlib import Path
 
+import pytest
+
 from gateway_codegen import generate
 from gateway_codegen.codegen import _namespace_class_names
 
 
-def test_checked_in_client_matches_schema() -> None:
+def test_checked_in_client_matches_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     package_root = Path(__file__).parents[3]
+    monkeypatch.chdir(package_root / "gateway")
 
     changed = generate(
         package_root / "gateway" / "server" / "schema" / "gateway.openrpc.json",

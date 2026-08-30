@@ -22,7 +22,6 @@ class SessionAutomationService:
         self._targets = targets
 
     async def list(self, session_id: UUID) -> tuple[Automation, ...]:
-        await self._targets.require_session(session_id)
         return await self._repository.list_for_session(session_id)
 
     async def get(self, automation_id: str, session_id: UUID) -> Automation:
