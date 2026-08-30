@@ -97,7 +97,7 @@ class _Tools:
     async def aclose(self) -> None:
         self.closed = True
 
-    def get_schema(self, provider: str) -> list[object]:
+    def get_schema(self, provider: str = "native") -> list[object]:
         del provider
         return []
 

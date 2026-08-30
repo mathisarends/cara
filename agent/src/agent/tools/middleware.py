@@ -15,6 +15,10 @@ class ToolError(Exception):
     """An expected tool failure that should be returned to the model."""
 
 
+class FatalToolError(Exception):
+    """A tool failure that makes it unsafe to continue the current turn."""
+
+
 class ToolFailure(str):
     """A model-visible tool result that is also identifiable as a failure."""
 
