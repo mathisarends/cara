@@ -3,7 +3,6 @@ import contextlib
 import json
 from collections import deque
 from collections.abc import AsyncIterator, Sequence
-from dataclasses import dataclass
 from pathlib import Path
 
 from agenttoolkit import Skills
@@ -32,12 +31,13 @@ from agent.events import (
 from agent.messages import MessageManager
 from agent.models import ModelSwitch
 from agent.prompt import SystemPrompt
+from agent.runtime import TurnFailure
 from agent.tools import AgentTools, FatalToolError
 from agent.tools.middleware import ToolFailure
 
 _EVENT_QUEUE_SIZE = 64
 
-type _EventQueue = asyncio.Queue[AgentEvent | _Failure]
+type _EventQueue = asyncio.Queue[AgentEvent | TurnFailure]
 
 
 class Agent:
@@ -137,7 +137,7 @@ class Agent:
         try:
             while True:
                 event = await events.get()
-                if isinstance(event, _Failure):
+                if isinstance(event, TurnFailure):
                     raise event.error
                 yield event
                 if isinstance(event, TurnCompleted):
@@ -149,7 +149,7 @@ class Agent:
         try:
             await self._run_loop(events)
         except Exception as error:
-            await events.put(_Failure(error))
+            await events.put(TurnFailure(error))
 
     async def _cancel_turn(self, expected: asyncio.Task[None] | None = None) -> None:
         turn = self._turn
@@ -282,8 +282,3 @@ def _error_content(error: Exception) -> str:
     if message:
         return f"{type(error).__name__}: {message}"
     return type(error).__name__
-
-
-@dataclass(frozen=True, slots=True)
-class _Failure:
-    error: Exception
