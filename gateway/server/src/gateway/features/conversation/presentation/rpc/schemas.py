@@ -4,11 +4,9 @@ from typing import Annotated, Any, Literal
 from uuid import UUID
 
 import pyrpckit as rpc
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import Field, TypeAdapter
 
-
-class WireSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+from gateway.presentation.rpc import WireSchema
 
 
 class ItemType(StrEnum):

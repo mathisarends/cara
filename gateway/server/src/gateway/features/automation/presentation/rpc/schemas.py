@@ -4,11 +4,9 @@ from typing import Annotated, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import Field, field_validator
 
-
-class _AutomationSchema(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+from gateway.presentation.rpc import WireSchema
 
 
 class AutomationRpcMethod(StrEnum):
@@ -25,18 +23,18 @@ class ScheduleKind(StrEnum):
     CRON = "cron"
 
 
-class AtSchedule(_AutomationSchema):
+class AtSchedule(WireSchema):
     kind: Literal[ScheduleKind.AT] = ScheduleKind.AT
     run_at: datetime
 
 
-class IntervalSchedule(_AutomationSchema):
+class IntervalSchedule(WireSchema):
     kind: Literal[ScheduleKind.INTERVAL] = ScheduleKind.INTERVAL
     every_seconds: float = Field(gt=0)
     run_immediately: bool
 
 
-class CronSchedule(_AutomationSchema):
+class CronSchedule(WireSchema):
     kind: Literal[ScheduleKind.CRON] = ScheduleKind.CRON
     expression: str
     timezone: str
@@ -57,18 +55,18 @@ type AutomationSchedule = Annotated[
 ]
 
 
-class SessionAutomationTargetResponse(_AutomationSchema):
+class SessionAutomationTargetResponse(WireSchema):
     kind: Literal["session"]
     session_id: UUID
 
 
-class ReminderAutomationPayload(_AutomationSchema):
+class ReminderAutomationPayload(WireSchema):
     kind: Literal["reminder"]
     instruction: str
     created_from_turn_id: UUID
 
 
-class AutomationResponse(_AutomationSchema):
+class AutomationResponse(WireSchema):
     id: str
     name: str | None
     created_at: datetime
@@ -78,27 +76,27 @@ class AutomationResponse(_AutomationSchema):
     payload: ReminderAutomationPayload
 
 
-class ListAutomationsParams(_AutomationSchema):
+class ListAutomationsParams(WireSchema):
     session_id: UUID
 
 
-class ListAutomationsResponse(_AutomationSchema):
+class ListAutomationsResponse(WireSchema):
     automations: tuple[AutomationResponse, ...]
 
 
-class GetAutomationParams(_AutomationSchema):
+class GetAutomationParams(WireSchema):
     session_id: UUID
     automation_id: str = Field(min_length=1)
 
 
-class CreateAutomationParams(_AutomationSchema):
+class CreateAutomationParams(WireSchema):
     session_id: UUID
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None
 
 
-class UpdateAutomationParams(_AutomationSchema):
+class UpdateAutomationParams(WireSchema):
     session_id: UUID
     automation_id: str = Field(min_length=1)
     schedule: AutomationSchedule
@@ -106,10 +104,10 @@ class UpdateAutomationParams(_AutomationSchema):
     name: str | None = None
 
 
-class DeleteAutomationParams(_AutomationSchema):
+class DeleteAutomationParams(WireSchema):
     session_id: UUID
     automation_id: str = Field(min_length=1)
 
 
-class DeleteAutomationResponse(_AutomationSchema):
+class DeleteAutomationResponse(WireSchema):
     deleted: str
