@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import json
+from collections import deque
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +20,7 @@ from llmify import (
 
 from agent.events import (
     AgentEvent,
+    SteeringApplied,
     TextDelta,
     ToolCompleted,
     ToolStarted,
@@ -57,6 +59,7 @@ class Agent:
             messages,
         )
         self._turn: asyncio.Task[None] | None = None
+        self._steering: deque[str] = deque()
         self._tool_preparation: asyncio.Task[None] | None = None
         self._tool_lifecycle = asyncio.Lock()
 
@@ -89,7 +92,13 @@ class Agent:
         return self._stream_turn()
 
     async def steer(self, text: str) -> None:
-        self._context.add_user(text)
+        """Queue text for the running turn.
+
+        The loop picks it up at the next tool-call boundary, so the model sees it
+        before deciding on its next step. Text that arrives after the last
+        boundary of a turn stays queued and never reaches the model.
+        """
+        self._steering.append(text)
 
     async def interrupt(self) -> None:
         await self._cancel_turn()
@@ -147,6 +156,13 @@ class Agent:
 
             tool_results = await self._execute_tools(end.tool_calls, events)
             self._context.add_tool_round(completion, end.tool_calls, tool_results)
+            await self._apply_steering(events)
+
+    async def _apply_steering(self, events: _EventQueue) -> None:
+        while self._steering:
+            text = self._steering.popleft()
+            self._context.add_user(text)
+            await events.put(SteeringApplied(text))
 
     async def _stream_completion(
         self, events: _EventQueue

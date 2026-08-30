@@ -78,6 +78,7 @@ class ConversationRpcMethod(StrEnum):
     SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
     TURN_PREPARE = "turn.prepare"
     TURN_START = "turn.start"
+    TURN_STEER = "turn.steer"
     TURN_FINISH = "turn.finish"
     TURN_CANCEL = "turn.cancel"
 
@@ -104,6 +105,10 @@ class StartTurnParams(SessionParams):
     metadata: dict[str, object] = Field(default_factory=dict)
 
 
+class SteerTurnParams(SessionParams):
+    message: str = Field(min_length=1)
+
+
 class SubscriptionResult(WireSchema):
     subscribed: UUID
 
@@ -120,6 +125,7 @@ class SessionEventType(StrEnum):
     TURN_STARTED = "turn.started"
     CHAT_DELTA = "chat.delta"
     CHAT_COMPLETED = "chat.completed"
+    TURN_STEERED = "turn.steered"
     TOOL_CALL_STARTED = "tool_call.started"
     TOOL_CALL_COMPLETED = "tool_call.completed"
     TURN_COMPLETED = "turn.completed"
@@ -151,6 +157,12 @@ class ChatCompleted(EventBase):
     type: Literal[SessionEventType.CHAT_COMPLETED] = SessionEventType.CHAT_COMPLETED
     text: str
     finish_reason: str
+
+
+@rpc.event
+class TurnSteered(EventBase):
+    type: Literal[SessionEventType.TURN_STEERED] = SessionEventType.TURN_STEERED
+    text: str
 
 
 @rpc.event
@@ -195,6 +207,7 @@ type SessionEvent = Annotated[
     TurnStarted
     | ChatDelta
     | ChatCompleted
+    | TurnSteered
     | ToolCallStarted
     | ToolCallCompleted
     | TurnCompleted

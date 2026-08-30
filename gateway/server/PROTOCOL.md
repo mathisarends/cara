@@ -20,8 +20,15 @@ connection. The connection lifecycle lives at the gateway presentation boundary;
 each feature owns its Pydantic wire models and request handling.
 
 Available methods are `session.create`, `session.open`, `session.get`,
-`subscription.subscribe`, `subscription.unsubscribe`, `turn.start`, and `turn.cancel`.
+`subscription.subscribe`, `subscription.unsubscribe`, `turn.start`,
+`turn.steer`, and `turn.cancel`.
 Events arrive as `session.event` notifications after an explicit subscription.
+
+`turn.steer` hands a message to the turn that is already running. The agent
+picks it up at its next tool-call boundary and only then does it enter the
+transcript, announced by a `turn.steered` event; a message that arrives after
+the last boundary of a turn never reaches the model, so a client that wants it
+delivered has to resend it as a new turn.
 
 `session.create` always creates a fresh session. `session.open` returns the most
 recent session with the same channel identity or creates one when none exists.
@@ -43,6 +50,7 @@ envelope. The turn lifecycle is:
 turn.started
 chat.delta* / chat.completed
 tool_call.started / tool_call.completed
+turn.steered
 turn.completed | turn.failed | turn.cancelled
 ```
 

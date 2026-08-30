@@ -14,6 +14,7 @@ Gateway persists them.
 ```python
 class AgentRunner(Protocol):
     def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]: ...
+    async def steer(self, session: AgentSessionRef, text: str) -> None: ...
     async def close(self) -> None: ...
 
 class AgentPlugin(Protocol):
@@ -29,7 +30,13 @@ sequence.
 
 Key types: `AgentChannelRef`, `AgentSessionRef`, `AgentRunRequest`,
 `AgentContext`/`AgentContextEntry`, `AgentToolCall(Sequence)`; events
-`ChatDelta`, `ChatCompleted`, `ToolCallStarted`, `ToolCallCompleted`.
+`ChatDelta`, `ChatCompleted`, `ToolCallStarted`, `ToolCallCompleted`,
+`TurnSteered`.
+
+`steer` queues text for a turn that is still running; the runner decides where
+it is safe to apply and reports that back as `TurnSteered`, which is the point
+at which the Gateway writes the message into the transcript. A steer for a
+turn that has already ended is dropped, not an error.
 
 ## Dependencies
 

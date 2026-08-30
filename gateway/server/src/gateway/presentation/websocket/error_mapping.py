@@ -2,8 +2,18 @@ import pyrpckit as rpc
 from pydantic import ValidationError
 
 from gateway.features.automation.domain import AutomationNotFoundError
-from gateway.features.conversation.domain import SessionBusyError, SessionNotFoundError
-from gateway.presentation.rpc import ResourceNotFoundError, TurnAlreadyRunningError
+from gateway.features.conversation.domain import (
+    NoActiveTurnError,
+    SessionBusyError,
+    SessionNotFoundError,
+)
+from gateway.presentation.rpc import (
+    NoActiveTurnError as NoActiveTurnRpcError,
+)
+from gateway.presentation.rpc import (
+    ResourceNotFoundError,
+    TurnAlreadyRunningError,
+)
 
 
 def gateway_error_mapper(error: Exception) -> rpc.RpcError | None:
@@ -11,6 +21,8 @@ def gateway_error_mapper(error: Exception) -> rpc.RpcError | None:
         return ResourceNotFoundError(f"Not found: {error}")
     if isinstance(error, SessionBusyError):
         return TurnAlreadyRunningError(f"Turn already running: {error}")
+    if isinstance(error, NoActiveTurnError):
+        return NoActiveTurnRpcError(str(error))
     if isinstance(error, ValidationError):
         return None
     if isinstance(error, ValueError):

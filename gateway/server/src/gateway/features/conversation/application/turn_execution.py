@@ -7,6 +7,7 @@ from agent_plugin_api import (
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnSteered,
 )
 from gateway.features.conversation.application.events import (
     ConversationEvent,
@@ -47,6 +48,14 @@ class TurnExecution:
                 await self.publish(
                     ConversationEventType.CHAT_COMPLETED,
                     {"text": event.text, "finish_reason": event.finish_reason},
+                    event.metadata,
+                )
+            case TurnSteered():
+                self._session.add_user_message(event.text)
+                await self._save_session()
+                await self.publish(
+                    ConversationEventType.TURN_STEERED,
+                    {"text": event.text},
                     event.metadata,
                 )
             case ToolCallStarted():

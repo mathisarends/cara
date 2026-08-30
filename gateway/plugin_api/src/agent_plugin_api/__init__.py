@@ -4,6 +4,7 @@ from .events import (
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnSteered,
 )
 from .models import (
     AgentAssistantMessage,
@@ -48,4 +49,5 @@ __all__ = [
     "ChatDelta",
     "ToolCallCompleted",
     "ToolCallStarted",
+    "TurnSteered",
 ]

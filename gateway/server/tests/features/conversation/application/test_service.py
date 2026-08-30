@@ -14,6 +14,7 @@ from agent_plugin_api import (
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnSteered,
 )
 from gateway.features.conversation.application import (
     ConversationEvent,
@@ -24,8 +25,10 @@ from gateway.features.conversation.application import (
 )
 from gateway.features.conversation.domain import (
     ChannelRef,
+    NoActiveTurnError,
     ToolCallSequence,
     ToolCallState,
+    UserMessage,
 )
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
@@ -89,6 +92,31 @@ class _BlockingFirstAgentRunner(AgentRunner):
             self.first_started.set()
             await self.release_first.wait()
         yield ChatCompleted("Done", finish_reason="stop")
+
+    async def close(self) -> None:
+        pass
+
+
+class _SteerableAgentRunner(AgentRunner):
+    def __init__(self) -> None:
+        self.tool_started = asyncio.Event()
+        self._steering: asyncio.Queue[str] = asyncio.Queue()
+
+    async def run(
+        self,
+        request: AgentRunRequest,
+    ) -> AsyncIterator[AgentEvent]:
+        del request
+        yield ToolCallStarted("call-1", "lookup", {"query": "Cara"})
+        self.tool_started.set()
+        steered = await self._steering.get()
+        yield ToolCallCompleted("call-1", "lookup", {"answer": 42})
+        yield TurnSteered(steered)
+        yield ChatCompleted("Hello", finish_reason="stop")
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        del session
+        await self._steering.put(text)
 
     async def close(self) -> None:
         pass
@@ -198,6 +226,60 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     assert sequence.calls[0].result == {"answer": 42}
 
     await turns.close()
+
+
+async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
+    session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
+    publisher: _RecordingPublisher,
+) -> None:
+    runner = _SteerableAgentRunner()
+    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    session = await sessions.create(channel=_CHANNEL, metadata={})
+    await turns.start(session_id=session.id, text="hello", metadata={})
+    await asyncio.wait_for(runner.tool_started.wait(), timeout=1)
+
+    await turns.steer(session_id=session.id, text="also check Hamburg")
+    await _wait_for_event(publisher, ConversationEventType.TURN_COMPLETED)
+
+    assert [event.type for event in publisher.events] == [
+        ConversationEventType.TURN_STARTED,
+        ConversationEventType.TOOL_CALL_STARTED,
+        ConversationEventType.TOOL_CALL_COMPLETED,
+        ConversationEventType.TURN_STEERED,
+        ConversationEventType.CHAT_COMPLETED,
+        ConversationEventType.TURN_COMPLETED,
+    ]
+    assert publisher.events[3].data == {"text": "also check Hamburg"}
+
+    persisted = await sessions.get(session.id)
+    assert [type(entry).__name__ for entry in persisted.entries] == [
+        "UserMessage",
+        "ToolCallSequence",
+        "UserMessage",
+        "AssistantMessage",
+    ]
+    assert [
+        entry.content for entry in persisted.entries if isinstance(entry, UserMessage)
+    ] == ["hello", "also check Hamburg"]
+    await turns.close()
+
+
+async def test_steering_without_an_active_turn_is_rejected(
+    session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
+    publisher: _RecordingPublisher,
+) -> None:
+    sessions, turns = _services(
+        session_repository,
+        session_factory,
+        publisher,
+        _SteerableAgentRunner(),
+    )
+    session = await sessions.create(channel=_CHANNEL, metadata={})
+
+    with pytest.raises(NoActiveTurnError):
+        await turns.steer(session_id=session.id, text="anybody there?")
 
 
 async def test_automation_turn_uses_full_context_without_a_synthetic_user_message(

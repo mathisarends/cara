@@ -24,7 +24,7 @@ class CaraAgentRunner:
     ) -> None:
         self._sessions = sessions
         self._agent_factory = agent_factory
-        self._active_agents: set[Agent] = set()
+        self._active_agents: dict[UUID, Agent] = {}
         self._preparations: dict[UUID, asyncio.Task[ChatCodex]] = {}
         self._preparation_lock = asyncio.Lock()
 
@@ -62,14 +62,21 @@ class CaraAgentRunner:
             if initial_model is not None:
                 await initial_model.aclose()
             raise
-        self._active_agents.add(agent)
+        self._active_agents[request.session.id] = agent
         try:
             events = await agent.start_turn(request.input)
             async for event in events:
                 yield plugin_event(event)
         finally:
-            self._active_agents.discard(agent)
+            if self._active_agents.get(request.session.id) is agent:
+                del self._active_agents[request.session.id]
             await agent.aclose()
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        agent = self._active_agents.get(session.id)
+        if agent is None:
+            return
+        await agent.steer(text)
 
     async def finish(self, session: AgentSessionRef) -> None:
         preparation = await self._take_preparation(session.id)
@@ -90,7 +97,7 @@ class CaraAgentRunner:
                 if isinstance(model, ChatCodex)
             )
         )
-        agents = tuple(self._active_agents)
+        agents = tuple(self._active_agents.values())
         if agents:
             await asyncio.gather(*(agent.aclose() for agent in agents))
 

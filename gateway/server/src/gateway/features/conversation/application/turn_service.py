@@ -17,6 +17,7 @@ from gateway.features.conversation.application.ports import EventPublisher, Turn
 from gateway.features.conversation.application.session_service import SessionService
 from gateway.features.conversation.application.turn_execution import TurnExecution
 from gateway.features.conversation.domain import (
+    NoActiveTurnError,
     Session,
     SessionBusyError,
     SessionRepository,
@@ -91,11 +92,17 @@ class TurnService:
             logger.info("Resuming deferred automation for session %s", session_id)
         await self._execute(session_id, text, metadata, persist_input=False)
 
+    async def steer(self, *, session_id: UUID, text: str) -> None:
+        session = await self._session_service.get(session_id)
+        if not session.turn_active:
+            raise NoActiveTurnError(session_id)
+        await self._agent.steer(_agent_session_ref(session), text)
+
     async def cancel(self, session_id: UUID) -> None:
         await self._session_service.get(session_id)
         task = self._background_tasks.get(session_id)
         if task is None or task.done():
-            raise ValueError(f"Session {session_id} has no active turn")
+            raise NoActiveTurnError(session_id)
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
 
@@ -116,6 +123,8 @@ class TurnService:
     ) -> None:
         session: Session | None = None
         turn: TurnExecution | None = None
+        terminal_type = ConversationEventType.TURN_COMPLETED
+        terminal_data: dict[str, Any] = {}
         try:
             session = await self._session_service.get(session_id)
             input_id: UUID | None = None
@@ -134,28 +143,30 @@ class TurnService:
             )
             async for event in self._agent.run(request):
                 await turn.handle(event)
-            await turn.publish(ConversationEventType.TURN_COMPLETED, {})
         except asyncio.CancelledError:
             current_session = turn.session if turn else session
             await self._fail_pending_tool_calls(current_session, "Turn cancelled")
-            await self._publish_terminal(
-                session_id,
-                turn,
-                ConversationEventType.TURN_CANCELLED,
-                {},
-            )
+            terminal_type = ConversationEventType.TURN_CANCELLED
         except Exception as error:
             logger.exception("Conversation turn failed for session %s", session_id)
             current_session = turn.session if turn else session
             await self._fail_pending_tool_calls(current_session, _message(error))
+            terminal_type = ConversationEventType.TURN_FAILED
+            terminal_data = {
+                "code": type(error).__name__,
+                "message": _message(error),
+            }
+        # The lease is released first so that a client may start the next turn
+        # as soon as it sees the terminal event.
+        try:
+            await self._lease.release(session_id)
+        finally:
             await self._publish_terminal(
                 session_id,
                 turn,
-                ConversationEventType.TURN_FAILED,
-                {"code": type(error).__name__, "message": _message(error)},
+                terminal_type,
+                terminal_data,
             )
-        finally:
-            await self._lease.release(session_id)
 
     def _discard_task(self, session_id: UUID, completed: asyncio.Task[None]) -> None:
         if self._background_tasks.get(session_id) is completed:

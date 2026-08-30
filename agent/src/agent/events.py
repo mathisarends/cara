@@ -14,6 +14,11 @@ class TurnCompleted:
 
 
 @dataclass(frozen=True, slots=True)
+class SteeringApplied:
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
 class ToolStarted:
     name: str
     call_id: str
@@ -28,4 +33,6 @@ class ToolCompleted:
     is_error: bool = False
 
 
-type AgentEvent = TextDelta | TurnCompleted | ToolStarted | ToolCompleted
+type AgentEvent = (
+    TextDelta | TurnCompleted | SteeringApplied | ToolStarted | ToolCompleted
+)

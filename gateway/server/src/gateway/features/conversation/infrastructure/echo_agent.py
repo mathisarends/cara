@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from agent_plugin_api import (
     AGENT_PLUGIN_API_VERSION,
@@ -15,19 +15,24 @@ from agent_plugin_api import (
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnSteered,
 )
 
 _TOOL_KEYWORD = "tool"
+# The demo tool runs far longer than a delta so there is a window to steer in.
+_TOOL_DELAY_FACTOR = 60
 
 
 class EchoAgentRunner(AgentRunner):
     """Streams the last user message back, so clients can be tested without an LLM.
 
-    A message containing "tool" also emits a demo tool call round trip.
+    A message containing "tool" also emits a demo tool call round trip, whose
+    deliberately slow run is the window in which steering can be exercised.
     """
 
     def __init__(self, delta_delay: float = 0.05) -> None:
         self._delta_delay = delta_delay
+        self._steering: dict[UUID, list[str]] = {}
 
     async def prepare(self, session: AgentSessionRef) -> None:
         pass
@@ -45,8 +50,11 @@ class EchoAgentRunner(AgentRunner):
                 "echo_clock",
                 {"session": str(request.session.id)},
             )
-            await asyncio.sleep(self._delta_delay)
+            await asyncio.sleep(self._delta_delay * _TOOL_DELAY_FACTOR)
             yield ToolCallCompleted(call_id, "echo_clock", {"ticks": len(message)})
+            for steered in self._steering.pop(request.session.id, []):
+                yield TurnSteered(steered)
+                message = f"{message} + {steered}"
 
         reply = f"echo: {message}"
         for chunk in _chunks(reply):
@@ -54,8 +62,11 @@ class EchoAgentRunner(AgentRunner):
             yield ChatDelta(chunk)
         yield ChatCompleted(reply)
 
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        self._steering.setdefault(session.id, []).append(text)
+
     async def finish(self, session: AgentSessionRef) -> None:
-        pass
+        self._steering.pop(session.id, None)
 
     async def close(self) -> None:
         pass

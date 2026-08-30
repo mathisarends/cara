@@ -9,6 +9,7 @@ class ConversationEventType(StrEnum):
     TURN_STARTED = "turn.started"
     CHAT_DELTA = "chat.delta"
     CHAT_COMPLETED = "chat.completed"
+    TURN_STEERED = "turn.steered"
     TOOL_CALL_STARTED = "tool_call.started"
     TOOL_CALL_COMPLETED = "tool_call.completed"
     TURN_FAILED = "turn.failed"

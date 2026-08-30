@@ -6,7 +6,7 @@ from uuid import UUID
 from agent_plugin_api.events import AgentEvent
 from agent_plugin_api.models import AgentContext, AgentRunRequest, AgentSessionRef
 
-AGENT_PLUGIN_API_VERSION = 2
+AGENT_PLUGIN_API_VERSION = 3
 
 
 class AgentSessionReader(Protocol):
@@ -27,6 +27,10 @@ class AgentRunner(Protocol):
     async def prepare(self, session: AgentSessionRef) -> None: ...
 
     def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]: ...
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        """Queue text for the running turn; ignored when that turn already ended."""
+        ...
 
     async def finish(self, session: AgentSessionRef) -> None: ...
 

@@ -9,7 +9,13 @@ from llmify import (
     UserMessage,
 )
 
-from agent.events import TextDelta, ToolCompleted, ToolStarted, TurnCompleted
+from agent.events import (
+    SteeringApplied,
+    TextDelta,
+    ToolCompleted,
+    ToolStarted,
+    TurnCompleted,
+)
 from agent_plugin_api import (
     AgentAssistantMessage,
     AgentContext,
@@ -22,6 +28,7 @@ from agent_plugin_api import (
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnSteered,
 )
 
 
@@ -68,6 +75,8 @@ def plugin_event(event: object) -> AgentEvent:
             return ChatDelta(event.text)
         case TurnCompleted():
             return ChatCompleted(event.text, event.finish_reason)
+        case SteeringApplied():
+            return TurnSteered(event.text)
         case ToolStarted():
             return ToolCallStarted(event.call_id, event.name, event.arguments)
         case ToolCompleted():

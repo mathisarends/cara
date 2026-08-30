@@ -24,4 +24,4 @@ def test_run_request_keeps_turn_and_input_identity_separate() -> None:
     assert request.turn_id == turn_id
     assert request.input_id == input_id
     assert request.input == "Hello"
-    assert AGENT_PLUGIN_API_VERSION == 2
+    assert AGENT_PLUGIN_API_VERSION == 3

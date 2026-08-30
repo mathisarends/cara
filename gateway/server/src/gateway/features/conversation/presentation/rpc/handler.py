@@ -14,9 +14,14 @@ from gateway.features.conversation.presentation.rpc.schemas import (
     SessionResponse,
     SessionSnapshotResponse,
     StartTurnParams,
+    SteerTurnParams,
     TurnCommandResult,
 )
-from gateway.presentation.rpc import ResourceNotFoundError, TurnAlreadyRunningError
+from gateway.presentation.rpc import (
+    NoActiveTurnError,
+    ResourceNotFoundError,
+    TurnAlreadyRunningError,
+)
 
 
 class ConversationRpcMethods(rpc.RpcHandler):
@@ -84,6 +89,22 @@ class ConversationRpcMethods(rpc.RpcHandler):
         return TurnCommandResult(session_id=params.session_id)
 
     @rpc.method(
+        ConversationRpcMethod.TURN_STEER,
+        errors=(
+            rpc.RpcInvalidParamsError,
+            ResourceNotFoundError,
+            NoActiveTurnError,
+            rpc.RpcInternalError,
+        ),
+    )
+    async def steer_turn(self, params: SteerTurnParams) -> TurnCommandResult:
+        await self._turns.steer(
+            session_id=params.session_id,
+            text=params.message,
+        )
+        return TurnCommandResult(session_id=params.session_id)
+
+    @rpc.method(
         ConversationRpcMethod.TURN_FINISH,
         errors=(ResourceNotFoundError, rpc.RpcInternalError),
     )
@@ -94,8 +115,8 @@ class ConversationRpcMethods(rpc.RpcHandler):
     @rpc.method(
         ConversationRpcMethod.TURN_CANCEL,
         errors=(
-            rpc.RpcInvalidParamsError,
             ResourceNotFoundError,
+            NoActiveTurnError,
             rpc.RpcInternalError,
         ),
     )

@@ -10,6 +10,7 @@ from gateway_client.models import (
     RpcMethod,
     SessionParams,
     StartTurnParams,
+    SteerTurnParams,
     TurnCommandResult,
 )
 
@@ -46,6 +47,22 @@ class Turns:
         )
         result = await self._transport.request(
             RpcMethod.TURN_START,
+            params.model_dump(mode="json", exclude_none=True),
+        )
+        return TurnCommandResult.model_validate(result)
+
+    async def steer(
+        self,
+        *,
+        session_id: UUID,
+        message: str,
+    ) -> TurnCommandResult:
+        params = SteerTurnParams(
+            session_id=session_id,
+            message=message,
+        )
+        result = await self._transport.request(
+            RpcMethod.TURN_STEER,
             params.model_dump(mode="json", exclude_none=True),
         )
         return TurnCommandResult.model_validate(result)

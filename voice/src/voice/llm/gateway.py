@@ -175,8 +175,7 @@ class GatewayAgentSession(ActivationSource):
         await self._client.turn.finish(session_id=self._session_id)
 
     async def steer(self, text: str) -> None:
-        del text
-        raise NotImplementedError("Gateway agent sessions do not support steering")
+        await self._client.turn.steer(session_id=self._session_id, message=text)
 
     async def interrupt(self) -> None:
         terminal = self._turn_terminal

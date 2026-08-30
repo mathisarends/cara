@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
@@ -26,6 +26,7 @@ from agent_plugin_api import (
     ChatDelta,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnSteered,
 )
 from llm import CodexModel
 
@@ -86,8 +87,9 @@ class _Model:
 
 
 class _Tools:
-    def __init__(self) -> None:
+    def __init__(self, on_execute: Callable[[], Awaitable[None]] | None = None) -> None:
         self.closed = False
+        self._on_execute = on_execute
 
     async def prepare(self) -> None:
         pass
@@ -102,6 +104,8 @@ class _Tools:
     async def execute(self, name: str, arguments: dict[str, Any]) -> object:
         assert name == "weather"
         assert arguments == {"city": "Berlin"}
+        if self._on_execute is not None:
+            await self._on_execute()
         return {"temperature": 22}
 
 
@@ -226,6 +230,58 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         ChatCompleted("Ich prüfe. Sonnig"),
     ]
     assert tools.closed
+
+
+def test_cara_plugin_delivers_steering_at_the_next_tool_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _Model()
+    request = AgentRunRequest(
+        session=AgentSessionRef(uuid4(), AgentChannelRef("test")),
+        turn_id=uuid4(),
+        input_id=uuid4(),
+        input="Wie ist das Wetter?",
+    )
+    runners: list[Any] = []
+
+    async def steer_while_the_tool_runs() -> None:
+        await runners[0].steer(request.session, "Und in Hamburg?")
+
+    tools = _Tools(steer_while_the_tool_runs)
+    monkeypatch.setattr(
+        "agent.factory.create_codex_model",
+        lambda *args, **kwargs: cast(ChatModel, model),
+    )
+    monkeypatch.setattr(
+        "agent.factory.build_tools",
+        lambda **kwargs: cast(AgentTools, tools),
+    )
+    runners.append(
+        create_plugin().create(
+            {"workspace": {"root": str(tmp_path)}},
+            AgentPluginContext(_SessionReader(AgentContext(()))),
+        )
+    )
+
+    async def run() -> list[object]:
+        await runners[0].prepare(request.session)
+        events = [event async for event in runners[0].run(request)]
+        await runners[0].close()
+        return events
+
+    events = asyncio.run(run())
+
+    assert TurnSteered("Und in Hamburg?") in events
+    assert (
+        events.index(TurnSteered("Und in Hamburg?"))
+        == events.index(
+            ToolCallCompleted("call-weather", "weather", {"temperature": 22})
+        )
+        + 1
+    )
+    # The steering reaches the model only in the request that follows the tool round.
+    assert [message.content for message in model.requests[1]][-1] == "Und in Hamburg?"
 
 
 def test_cara_plugin_rejects_unknown_configuration() -> None:

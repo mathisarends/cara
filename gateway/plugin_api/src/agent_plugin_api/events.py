@@ -16,6 +16,12 @@ class ChatCompleted:
 
 
 @dataclass(frozen=True, slots=True)
+class TurnSteered:
+    text: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
 class ToolCallStarted:
     call_id: str
     name: str
@@ -32,4 +38,6 @@ class ToolCallCompleted:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-type AgentEvent = ChatDelta | ChatCompleted | ToolCallStarted | ToolCallCompleted
+type AgentEvent = (
+    ChatDelta | ChatCompleted | TurnSteered | ToolCallStarted | ToolCallCompleted
+)

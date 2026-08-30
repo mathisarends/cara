@@ -22,6 +22,7 @@ class RpcMethod(StrEnum):
     SESSION_GET = "session.get"
     TURN_PREPARE = "turn.prepare"
     TURN_START = "turn.start"
+    TURN_STEER = "turn.steer"
     TURN_FINISH = "turn.finish"
     TURN_CANCEL = "turn.cancel"
     SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
@@ -47,6 +48,7 @@ class SessionEventType(StrEnum):
     TURN_COMPLETED = "turn.completed"
     TURN_FAILED = "turn.failed"
     TURN_STARTED = "turn.started"
+    TURN_STEERED = "turn.steered"
 
 
 class AssistantMessageItem(RpcModel):
@@ -182,6 +184,11 @@ class StartTurnParams(RpcModel):
     metadata: dict[str, Any] | None = None
 
 
+class SteerTurnParams(RpcModel):
+    session_id: UUID
+    message: str
+
+
 class SubscriptionResult(RpcModel):
     subscribed: UUID
 
@@ -275,6 +282,16 @@ class TurnStarted(RpcModel):
     metadata: dict[str, Any] | None = None
 
 
+class TurnSteered(RpcModel):
+    type: Literal[SessionEventType.TURN_STEERED] = SessionEventType.TURN_STEERED
+    event_id: UUID
+    timestamp: datetime
+    session_id: UUID
+    sequence: int
+    metadata: dict[str, Any] | None = None
+    text: str
+
+
 class UnsubscriptionResult(RpcModel):
     unsubscribed: UUID
 
@@ -316,6 +333,7 @@ type SessionEvent = Annotated[
     TurnStarted
     | ChatDelta
     | ChatCompleted
+    | TurnSteered
     | ToolCallStarted
     | ToolCallCompleted
     | TurnCompleted
@@ -347,6 +365,7 @@ SessionParams.model_rebuild()
 SessionResponse.model_rebuild()
 SessionSnapshotResponse.model_rebuild()
 StartTurnParams.model_rebuild()
+SteerTurnParams.model_rebuild()
 SubscriptionResult.model_rebuild()
 ToolCallCompleted.model_rebuild()
 ToolCallItem.model_rebuild()
@@ -356,6 +375,7 @@ TurnCommandResult.model_rebuild()
 TurnCompleted.model_rebuild()
 TurnFailed.model_rebuild()
 TurnStarted.model_rebuild()
+TurnSteered.model_rebuild()
 UnsubscriptionResult.model_rebuild()
 UpdateAutomationParams.model_rebuild()
 UserMessageItem.model_rebuild()

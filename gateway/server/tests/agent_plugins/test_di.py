@@ -34,6 +34,9 @@ class _Runner:
         return
         yield
 
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        pass
+
     async def finish(self, session: AgentSessionRef) -> None:
         pass
 

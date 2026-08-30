@@ -561,6 +561,65 @@
       ]
     },
     {
+      "name": "turn.steer",
+      "tags": [
+        {
+          "name": "conversation"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        {
+          "name": "message",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/TurnCommandResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/SteerTurnRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SteerTurnParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params"
+        },
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32010,
+          "message": "No active turn"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
       "name": "turn.finish",
       "tags": [
         {
@@ -635,12 +694,12 @@
       },
       "errors": [
         {
-          "code": -32602,
-          "message": "Invalid params"
-        },
-        {
           "code": -32004,
           "message": "Resource not found"
+        },
+        {
+          "code": -32010,
+          "message": "No active turn"
         },
         {
           "code": -32603,
@@ -1350,7 +1409,8 @@
             "turn.cancelled": "#/components/schemas/TurnCancelled",
             "turn.completed": "#/components/schemas/TurnCompleted",
             "turn.failed": "#/components/schemas/TurnFailed",
-            "turn.started": "#/components/schemas/TurnStarted"
+            "turn.started": "#/components/schemas/TurnStarted",
+            "turn.steered": "#/components/schemas/TurnSteered"
           },
           "propertyName": "type"
         },
@@ -1363,6 +1423,9 @@
           },
           {
             "$ref": "#/components/schemas/ChatCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/TurnSteered"
           },
           {
             "$ref": "#/components/schemas/ToolCallStarted"
@@ -1476,6 +1539,27 @@
           "message"
         ],
         "title": "StartTurnParams",
+        "type": "object"
+      },
+      "SteerTurnParams": {
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "message"
+        ],
+        "title": "SteerTurnParams",
         "type": "object"
       },
       "SubscriptionResult": {
@@ -1881,6 +1965,54 @@
           "sequence"
         ],
         "title": "TurnStarted",
+        "type": "object"
+      },
+      "TurnSteered": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "type": {
+            "const": "turn.steered",
+            "default": "turn.steered",
+            "title": "Type",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "session_id",
+          "sequence",
+          "text"
+        ],
+        "title": "TurnSteered",
         "type": "object"
       },
       "UnsubscriptionResult": {
@@ -2342,6 +2474,43 @@
           "params"
         ]
       },
+      "SteerTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SteerTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "turn.steer",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SteerTurnParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
       "FinishTurnRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -2544,6 +2713,12 @@
       "name": "chat.completed",
       "payload": {
         "$ref": "#/components/schemas/ChatCompleted"
+      }
+    },
+    {
+      "name": "turn.steered",
+      "payload": {
+        "$ref": "#/components/schemas/TurnSteered"
       }
     },
     {
