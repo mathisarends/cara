@@ -6,7 +6,10 @@ agent:
     # Local timezone used for current-time lookups and daily memory selection.
     timezone: Europe/Berlin
 
-    # First model starts the conversation; the agent can switch at runtime.
+    # Model used when a conversation starts.
+    default_model: gpt-5.3-codex-spark
+
+    # Models available for runtime switching, including the default model.
     models:
       - gpt-5.3-codex-spark
       - gpt-5.6-luna

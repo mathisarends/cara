@@ -1,7 +1,8 @@
 from pathlib import Path
+from typing import Self
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from agent.clock import DEFAULT_TIMEZONE
 from agent.sandbox import SandboxDefinition
@@ -22,6 +23,7 @@ class AgentSettings(BaseModel):
         default=(CodexModel.SPARK,),
         min_length=1,
     )
+    default_model: CodexModel = CodexModel.SPARK
     workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     sandbox: SandboxDefinition | None = None
     system_prompt: str | None = None
@@ -45,3 +47,9 @@ class AgentSettings(BaseModel):
         except (KeyError, ValueError) as error:
             raise ValueError(f"Unknown timezone: {timezone!r}") from error
         return timezone
+
+    @model_validator(mode="after")
+    def _default_model_must_be_available(self) -> Self:
+        if self.default_model not in self.models:
+            raise ValueError("default_model must be included in models")
+        return self

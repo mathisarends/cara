@@ -182,6 +182,7 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     runner = create_plugin().create(
         {
             "models": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
+            "default_model": "gpt-5.6-sol",
             "workspace": {"root": str(tmp_path)},
         },
         AgentPluginContext(sessions),
@@ -209,10 +210,10 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
         "gpt-5.3-codex-spark",
         "gpt-5.6-sol",
     )
-    assert model_switches[0].current_name == "gpt-5.3-codex-spark"
+    assert model_switches[0].current_name == "gpt-5.6-sol"
     assert resolved_turn_dependencies == [turn_dependency]
     assert resolved_timezones == ["Europe/Berlin"]
-    assert model_creations == [((CodexModel.SPARK,), {})]
+    assert model_creations == [((CodexModel.SOL,), {})]
     assert model.prewarm_calls == 1
     assert model.close_calls == 1
     assert [message.content for message in model.requests[0]] == [
@@ -306,6 +307,19 @@ def test_cara_plugin_rejects_unknown_timezone() -> None:
     with pytest.raises(ValidationError, match="Unknown timezone"):
         create_plugin().create(
             {"timezone": "Mars/Olympus_Mons"},
+            AgentPluginContext(sessions),
+        )
+
+
+def test_cara_plugin_rejects_unavailable_default_model() -> None:
+    sessions = _SessionReader(AgentContext(()))
+
+    with pytest.raises(ValidationError, match="default_model must be included"):
+        create_plugin().create(
+            {
+                "models": ["gpt-5.6-sol"],
+                "default_model": "gpt-5.4",
+            },
             AgentPluginContext(sessions),
         )
 

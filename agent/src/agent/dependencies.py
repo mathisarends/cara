@@ -83,7 +83,7 @@ class ConfiguredDependencies(DependencyProvider):
     ) -> ModelSwitch:
         return ModelSwitch.configurable(
             model_factories,
-            default=settings.models[0].value,
+            default=settings.default_model.value,
             reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
             initial_model=self._initial_model,
         )
