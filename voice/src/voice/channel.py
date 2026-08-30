@@ -75,10 +75,12 @@ class VoiceChannel:
             session=self._audio_session
         )
         physical_output = audio_output or LocalAudioOutput(session=self._audio_session)
-        echo_cancelled_input, echo_referenced_output = wrap_with_echo_cancellation(
-            physical_input,
-            physical_output,
-            settings=echo_cancellation_settings or EchoCancellationSettings(),
+        echo_cancelled_input, echo_referenced_output, self._echo_presence = (
+            wrap_with_echo_cancellation(
+                physical_input,
+                physical_output,
+                settings=echo_cancellation_settings or EchoCancellationSettings(),
+            )
         )
 
         self._buffered_audio_input = BufferedAudioInput(echo_cancelled_input)
@@ -161,6 +163,7 @@ class VoiceChannel:
             BargeInContext(
                 event_bus=self._event_bus,
                 audio_format=self._buffered_audio_input.format,
+                echo_presence=self._echo_presence,
             )
         )
         self._barge_in_handler = BargeInHandler(

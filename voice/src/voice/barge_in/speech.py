@@ -9,6 +9,7 @@ from voice.barge_in.port import (
     BargeInStrategy,
     PendingSignal,
 )
+from voice.echo_cancellation import EchoPresence
 from voice.events import UserAudioChunk
 from voice.vad import SileroVoiceActivityDetector, VoiceActivityDetector
 
@@ -19,9 +20,10 @@ _FULL_SCALE = 32_768.0
 class SpeechBargeIn(BargeInStrategy):
     """Interrupts once the user speaks over the assistant for long enough.
 
-    Frames arrive echo-cancelled, so the assistant's own playback is mostly
-    gone from them. A level gate keeps silent windows away from the detector,
-    which then decides whether the remaining audio is speech rather than noise.
+    Frames arrive echo-cancelled, but only the room decides how well that
+    worked, so leaked playback can still look like speech. A run of voiced
+    windows therefore only counts while the assistant's own sound is not
+    what the microphone is hearing.
     """
 
     def __init__(
@@ -31,6 +33,7 @@ class SpeechBargeIn(BargeInStrategy):
         min_level_dbfs: float = -45.0,
         min_speech_probability: float = 0.6,
         min_speech_seconds: float = 0.35,
+        max_echo_confidence: float = 0.5,
     ) -> None:
         if min_level_dbfs > 0.0:
             raise ValueError("min_level_dbfs must not exceed full scale")
@@ -38,11 +41,15 @@ class SpeechBargeIn(BargeInStrategy):
             raise ValueError("min_speech_probability must be within (0, 1]")
         if min_speech_seconds <= 0:
             raise ValueError("min_speech_seconds must be positive")
+        if not 0.0 < max_echo_confidence <= 1.0:
+            raise ValueError("max_echo_confidence must be within (0, 1]")
 
         self._detector = detector or SileroVoiceActivityDetector()
         self._min_level_dbfs = min_level_dbfs
         self._min_speech_probability = min_speech_probability
         self._min_speech_seconds = min_speech_seconds
+        self._max_echo_confidence = max_echo_confidence
+        self._echo_presence: EchoPresence | None = None
         self._samples_required = 0
         self._pending = PendingSignal()
         self._buffer = np.zeros(0, dtype=np.int16)
@@ -61,6 +68,7 @@ class SpeechBargeIn(BargeInStrategy):
         self._samples_required = math.ceil(
             self._min_speech_seconds * audio_format.sample_rate
         )
+        self._echo_presence = context.echo_presence
         context.event_bus.on(UserAudioChunk, self._on_audio_chunk)
 
     def signals(self) -> AsyncIterator[BargeInSignal]:
@@ -77,6 +85,11 @@ class SpeechBargeIn(BargeInStrategy):
             self._score_window(window, event.sequence)
 
     def _score_window(self, window: np.ndarray, sequence: int) -> None:
+        if self._hears_own_playback():
+            # Whatever the detector would make of this window, the assistant
+            # is not allowed to take its own voice for an interruption.
+            self._end_speech()
+            return
         if not self._is_speech(window):
             self._end_speech()
             return
@@ -90,6 +103,11 @@ class SpeechBargeIn(BargeInStrategy):
         speech_start = self._speech_start
         self._end_speech()
         self._pending.put(speech_start)
+
+    def _hears_own_playback(self) -> bool:
+        if self._echo_presence is None:
+            return False
+        return self._echo_presence.echo_confidence >= self._max_echo_confidence
 
     def _is_speech(self, window: np.ndarray) -> bool:
         if _level_dbfs(window) < self._min_level_dbfs:

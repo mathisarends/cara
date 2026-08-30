@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from voice.audio.models import AudioFormat
+from voice.echo_cancellation import EchoPresence
 from voice.events.bus import EventBus
 
 
@@ -21,6 +22,7 @@ class BargeInContext:
 
     event_bus: EventBus
     audio_format: AudioFormat
+    echo_presence: EchoPresence
 
 
 class BargeInStrategy(ABC):

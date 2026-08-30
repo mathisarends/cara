@@ -83,6 +83,101 @@ def test_new_playback_invalidates_the_previous_alignment(
     assert not aligner.is_aligned
 
 
+def test_reports_playback_that_dominates_the_microphone(
+    pcm: Callable[..., bytes],
+) -> None:
+    rng = np.random.default_rng(29)
+    playback = rng.integers(-12_000, 12_001, 3 * _SAMPLE_RATE, dtype=np.int16)
+    aligner = _aligner(_reference(playback))
+    heard_start = 9_600
+
+    for start in range(heard_start, heard_start + 3 * _CHUNK_SAMPLES, _CHUNK_SAMPLES):
+        aligner.read(pcm(*playback[start : start + _CHUNK_SAMPLES]))
+
+    assert aligner.echo_confidence > 0.9
+
+
+def test_playback_shares_the_microphone_with_a_speaking_user(
+    pcm: Callable[..., bytes],
+) -> None:
+    rng = np.random.default_rng(31)
+    playback = rng.integers(-12_000, 12_001, 3 * _SAMPLE_RATE, dtype=np.int16)
+    aligner = _aligner(_reference(playback))
+    heard_start = 9_600
+
+    confidences = []
+    for start in range(heard_start, heard_start + 3 * _CHUNK_SAMPLES, _CHUNK_SAMPLES):
+        echo = playback[start : start + _CHUNK_SAMPLES].astype(np.int64)
+        user = rng.integers(-12_000, 12_001, _CHUNK_SAMPLES, dtype=np.int64)
+        heard = np.clip(echo + user, -32_768, 32_767).astype(np.int16)
+        aligner.read(pcm(*heard))
+        confidences.append(aligner.echo_confidence)
+
+    # The echo is still found, but no longer explains the whole window.
+    assert aligner.is_aligned
+    assert 0.5 < max(confidences) < 0.9
+
+
+def test_recovers_from_an_alignment_that_stopped_matching(
+    pcm: Callable[..., bytes],
+) -> None:
+    rng = np.random.default_rng(37)
+    playback = rng.integers(-12_000, 12_001, 6 * _SAMPLE_RATE, dtype=np.int16)
+    aligner = _aligner(_reference(playback))
+
+    for start in range(0, 3 * _CHUNK_SAMPLES, _CHUNK_SAMPLES):
+        aligner.read(pcm(*playback[start : start + _CHUNK_SAMPLES]))
+    assert aligner.is_aligned
+
+    # Playback jumps far beyond the tracking window, as a buffering network
+    # speaker does. The old lock can never explain these samples again.
+    jumped = 4 * _SAMPLE_RATE
+    references = []
+    for start in range(jumped, jumped + 5 * _CHUNK_SAMPLES, _CHUNK_SAMPLES):
+        references.append(aligner.read(pcm(*playback[start : start + _CHUNK_SAMPLES])))
+
+    assert aligner.echo_confidence > 0.9
+    assert references[-1] == pcm(
+        *playback[jumped + 4 * _CHUNK_SAMPLES : jumped + 5 * _CHUNK_SAMPLES]
+    )
+
+
+def test_keeps_the_alignment_across_a_pause_in_the_playback(
+    pcm: Callable[..., bytes],
+) -> None:
+    rng = np.random.default_rng(43)
+    playback = rng.integers(-12_000, 12_001, 6 * _SAMPLE_RATE, dtype=np.int16)
+    silence = 2 * _SAMPLE_RATE
+    playback[silence : silence + _SAMPLE_RATE] = 0
+    aligner = _aligner(_reference(playback))
+
+    confidences = []
+    for start in range(0, 6 * _SAMPLE_RATE - _CHUNK_SAMPLES, _CHUNK_SAMPLES):
+        aligner.read(pcm(*playback[start : start + _CHUNK_SAMPLES]))
+        confidences.append(aligner.echo_confidence)
+        assert aligner.is_aligned or start < _CHUNK_SAMPLES
+
+    # The pause is reported as no echo without costing the alignment.
+    assert min(confidences) == 0.0
+    assert aligner.echo_confidence > 0.9
+
+
+def test_reports_no_playback_while_the_room_is_on_its_own(
+    pcm: Callable[..., bytes],
+) -> None:
+    rng = np.random.default_rng(41)
+    reference = _reference(
+        rng.integers(-12_000, 12_001, 3 * _SAMPLE_RATE, dtype=np.int16)
+    )
+    aligner = _aligner(reference)
+    unrelated = rng.integers(-12_000, 12_001, 3 * _CHUNK_SAMPLES, dtype=np.int16)
+
+    for start in range(0, 3 * _CHUNK_SAMPLES, _CHUNK_SAMPLES):
+        aligner.read(pcm(*unrelated[start : start + _CHUNK_SAMPLES]))
+
+    assert aligner.echo_confidence < 0.5
+
+
 def _reference(samples: np.ndarray) -> PlaybackReference:
     reference = PlaybackReference(_SAMPLE_RATE)
     reference.start_playback()

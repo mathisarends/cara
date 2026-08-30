@@ -3,7 +3,7 @@ from voice.echo_cancellation.alignment import ReferenceAligner
 from voice.echo_cancellation.cancellers import NlmsEchoCanceller
 from voice.echo_cancellation.devices import EchoCancellingInput, ReferenceTapOutput
 from voice.echo_cancellation.models import EchoCancellationSettings
-from voice.echo_cancellation.ports import EchoCanceller
+from voice.echo_cancellation.ports import EchoCanceller, EchoPresence
 from voice.echo_cancellation.reference import PlaybackReference
 
 
@@ -13,7 +13,7 @@ def wrap_with_echo_cancellation(
     canceller: EchoCanceller | None = None,
     *,
     settings: EchoCancellationSettings | None = None,
-) -> tuple[AudioInput, AudioOutput]:
+) -> tuple[AudioInput, AudioOutput, EchoPresence]:
     settings = settings or EchoCancellationSettings()
     if input_device.channels != 1:
         raise ValueError("Echo cancellation requires mono microphone input.")
@@ -45,4 +45,5 @@ def wrap_with_echo_cancellation(
             canceller or NlmsEchoCanceller(sample_rate),
         ),
         ReferenceTapOutput(output_device, reference),
+        aligner,
     )

@@ -13,6 +13,7 @@ from voice.barge_in import (
     SpeechBargeIn,
     WakeWordBargeIn,
 )
+from voice.echo_cancellation import EchoPresence
 from voice.events import (
     AssistantTurnStarted,
     SessionEnded,
@@ -81,6 +82,37 @@ def test_speech_strategy_ignores_speech_below_the_minimum_duration() -> None:
         return await _drain(strategy)
 
     assert asyncio.run(run()) == []
+
+
+def test_speech_strategy_never_interrupts_on_the_assistants_own_voice() -> None:
+    async def run() -> list[BargeInSignal]:
+        event_bus = EventBus()
+        # Loud, and speech by every measure the detector has - but it is the
+        # assistant's own playback leaking through an imperfect canceller.
+        echo = _Echo(confidence=0.8)
+        strategy = _speech_strategy(event_bus, _AlwaysSpeech(), echo)
+
+        for sequence in (1, 2, 3, 4):
+            await _publish(event_bus, sequence, _pcm(dbfs=-20.0, samples=1_024))
+        return await _drain(strategy)
+
+    assert asyncio.run(run()) == []
+
+
+def test_speech_strategy_interrupts_once_the_room_is_no_longer_just_playback() -> None:
+    async def run() -> list[BargeInSignal]:
+        event_bus = EventBus()
+        echo = _Echo(confidence=0.8)
+        strategy = _speech_strategy(event_bus, _AlwaysSpeech(), echo)
+
+        await _publish(event_bus, 1, _pcm(dbfs=-20.0, samples=1_024))
+        # The user speaks up, so the playback no longer explains the window.
+        echo.confidence = 0.2
+        await _publish(event_bus, 2, _pcm(dbfs=-20.0, samples=1_024))
+        await _publish(event_bus, 3, _pcm(dbfs=-20.0, samples=1_024))
+        return await _drain(strategy)
+
+    assert asyncio.run(run()) == [BargeInSignal(sequence=2)]
 
 
 def test_speech_strategy_keeps_loud_non_speech_from_interrupting() -> None:
@@ -210,19 +242,34 @@ class _NeverSpeech(_AlwaysSpeech):
         return 0.0
 
 
-def _context(event_bus: EventBus) -> BargeInContext:
-    return BargeInContext(event_bus=event_bus, audio_format=_FORMAT)
+class _Echo(EchoPresence):
+    def __init__(self, confidence: float = 0.0) -> None:
+        self.confidence = confidence
+
+    @property
+    def echo_confidence(self) -> float:
+        return self.confidence
+
+
+def _context(event_bus: EventBus, echo: EchoPresence | None = None) -> BargeInContext:
+    return BargeInContext(
+        event_bus=event_bus,
+        audio_format=_FORMAT,
+        echo_presence=echo or _Echo(),
+    )
 
 
 def _speech_strategy(
-    event_bus: EventBus, detector: VoiceActivityDetector
+    event_bus: EventBus,
+    detector: VoiceActivityDetector,
+    echo: EchoPresence | None = None,
 ) -> SpeechBargeIn:
     strategy = SpeechBargeIn(
         detector=detector,
         min_level_dbfs=-40.0,
         min_speech_seconds=0.096,
     )
-    strategy.set_context(_context(event_bus))
+    strategy.set_context(_context(event_bus, echo))
     return strategy
 
 
