@@ -28,6 +28,9 @@ members = [
     "voice",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.uv.sources]
 agent = { workspace = true }
 cli = { workspace = true }
