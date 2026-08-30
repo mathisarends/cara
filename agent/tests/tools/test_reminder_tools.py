@@ -111,9 +111,7 @@ def test_reminder_tools_appear_once_reminders_are_provided(tmp_path: Path) -> No
     assert {"list_reminders", "create_reminder", "delete_reminder"} <= names
 
 
-def test_create_reminder_schema_requests_an_executable_instruction(
-    tmp_path: Path,
-) -> None:
+def test_create_reminder_schema_is_one_time_only(tmp_path: Path) -> None:
     tools = _create_tools(_context(_StubReminders(), tmp_path))
     schema = next(
         item
@@ -122,12 +120,12 @@ def test_create_reminder_schema_requests_an_executable_instruction(
     )
 
     function = schema["function"]
-    instruction = function["parameters"]["properties"]["instruction"]
-    assert "future agent run" in function["description"]
-    assert "Do not execute, test, or rehearse" in function["description"]
-    assert "relevant tool capability" in instruction["description"]
-    assert "future run resolves it" in instruction["description"]
-    assert "message" not in function["parameters"]["properties"]
+    properties = function["parameters"]["properties"]
+    assert "run_at" in function["parameters"]["required"]
+    assert "message" not in properties
+    assert "schedule" not in properties
+    assert "every_minutes" not in properties
+    assert "cron" not in properties
 
 
 def test_create_reminder_localises_a_naive_run_at(tmp_path: Path) -> None:
@@ -138,7 +136,6 @@ def test_create_reminder_localises_a_naive_run_at(tmp_path: Path) -> None:
         tmp_path,
         "create_reminder",
         {
-            "schedule": "once",
             "run_at": "2026-08-26T07:30:00",
             "instruction": "Zahnarzt",
             "name": "Zahnarzt",
@@ -153,24 +150,6 @@ def test_create_reminder_localises_a_naive_run_at(tmp_path: Path) -> None:
         )
     ]
     assert result.startswith("Scheduled: new: 'Zahnarzt' — once at 2026-08-26 07:30")
-    assert "Stop using tools" in result
-
-
-def test_create_reminder_converts_minutes_to_seconds(tmp_path: Path) -> None:
-    stub = _StubReminders()
-
-    _run(
-        stub,
-        tmp_path,
-        "create_reminder",
-        {
-            "schedule": "every",
-            "every_minutes": 90,
-            "instruction": "Wasser trinken",
-        },
-    )
-
-    assert stub.created == [("Wasser trinken", RemindEvery(seconds=5400.0), None)]
 
 
 def test_create_reminder_rejects_a_past_local_time(tmp_path: Path) -> None:
@@ -179,7 +158,6 @@ def test_create_reminder_rejects_a_past_local_time(tmp_path: Path) -> None:
         tmp_path,
         "create_reminder",
         {
-            "schedule": "once",
             "run_at": "2000-01-01T12:00:00",
             "timezone": "Europe/Berlin",
             "instruction": "Wake the user",
@@ -191,26 +169,13 @@ def test_create_reminder_rejects_a_past_local_time(tmp_path: Path) -> None:
     assert "Current local time in Europe/Berlin" in result
 
 
-def test_create_reminder_reports_a_missing_schedule_field(tmp_path: Path) -> None:
-    result = _run(
-        _StubReminders(),
-        tmp_path,
-        "create_reminder",
-        {"schedule": "cron", "instruction": "Standup"},
-    )
-
-    assert isinstance(result, ToolFailure)
-    assert "params.cron is required" in result
-
-
 def test_create_reminder_reports_an_unknown_timezone(tmp_path: Path) -> None:
     result = _run(
         _StubReminders(),
         tmp_path,
         "create_reminder",
         {
-            "schedule": "cron",
-            "cron": "0 9 * * *",
+            "run_at": "2026-08-26T07:30:00",
             "timezone": "Mars/Olympus_Mons",
             "instruction": "Standup",
         },
@@ -253,15 +218,18 @@ def test_update_and_delete_reach_the_gateway_port(tmp_path: Path) -> None:
         "update_reminder",
         {
             "reminder_id": "a",
-            "schedule": "cron",
-            "cron": "0 9 * * 1-5",
+            "run_at": "2026-08-26T07:30:00",
             "instruction": "Standup",
         },
     )
     deleted = _run(stub, tmp_path, "delete_reminder", {"reminder_id": "a"})
 
     assert stub.updated == [
-        ("a", "Standup", RemindOnCron("0 9 * * 1-5", "Europe/Berlin"))
+        (
+            "a",
+            "Standup",
+            RemindOnce(when=datetime(2026, 8, 26, 7, 30, tzinfo=_BERLIN)),
+        )
     ]
     assert stub.deleted == ["a"]
     assert deleted == "Deleted reminder a."
