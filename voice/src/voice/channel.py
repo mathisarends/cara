@@ -33,6 +33,7 @@ from voice.handler import (
     FollowUpHandler,
     FollowUpSettings,
     SpeechResourceHandler,
+    ToolAcknowledgementListener,
     TurnCoordinator,
     TurnListener,
 )
@@ -127,6 +128,9 @@ class VoiceChannel:
         self._agent_bridge = AgentBridge(
             event_bus=self._event_bus,
             session=agent_session,
+        )
+        self._tool_acknowledgement_listener = ToolAcknowledgementListener(
+            event_bus=self._event_bus,
         )
         self._text_to_speech_bridge = TextToSpeechBridge(
             event_bus=self._event_bus,
