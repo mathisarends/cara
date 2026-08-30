@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from agent_plugin_api import (
     AgentChannelRef,
@@ -14,18 +15,22 @@ from agent_plugin_api import (
     ToolCallCompleted,
     ToolCallStarted,
 )
-from gateway.features.conversation.application.ports import EventPublisher
-from gateway.features.conversation.application.service import ConversationService
+from gateway.features.conversation.application import (
+    ConversationEvent,
+    ConversationEventType,
+    EventPublisher,
+    SessionService,
+    TurnService,
+)
 from gateway.features.conversation.domain import (
     ChannelRef,
-    GatewayEvent,
-    GatewayEventType,
     ToolCallSequence,
     ToolCallState,
 )
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
 )
+from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
 
 _CHANNEL = ChannelRef("test")
 
@@ -91,9 +96,9 @@ class _BlockingFirstAgentRunner(AgentRunner):
 
 class _RecordingPublisher(EventPublisher):
     def __init__(self) -> None:
-        self.events: list[GatewayEvent] = []
+        self.events: list[ConversationEvent] = []
 
-    async def publish(self, event: GatewayEvent) -> None:
+    async def publish(self, event: ConversationEvent) -> None:
         self.events.append(event)
 
 
@@ -104,14 +109,18 @@ def publisher() -> _RecordingPublisher:
 
 async def test_prepare_and_finish_forward_the_session_to_the_agent(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _StreamingAgentRunner()
-    service = ConversationService(session_repository, publisher, runner)
-    session = await service.create_session(ChannelRef("voice", "kitchen"), {})
+    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    session = await sessions.create(
+        channel=ChannelRef("voice", "kitchen"),
+        metadata={},
+    )
 
-    await service.prepare_turn(session.id)
-    await service.finish_turn(session.id)
+    await turns.prepare(session.id)
+    await turns.finish(session.id)
 
     assert runner.prepared == [
         AgentSessionRef(session.id, AgentChannelRef("voice", "kitchen"))
@@ -121,18 +130,24 @@ async def test_prepare_and_finish_forward_the_session_to_the_agent(
 
 async def test_failed_turn_publishes_turn_failed_event(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
-    service = ConversationService(session_repository, publisher, _FailingAgentRunner())
-    session = await service.create_session(_CHANNEL, {})
+    sessions, turns = _services(
+        session_repository,
+        session_factory,
+        publisher,
+        _FailingAgentRunner(),
+    )
+    session = await sessions.create(channel=_CHANNEL, metadata={})
 
-    await service.start_turn(session.id, "hello", {})
-    await _wait_for_event(publisher, GatewayEventType.TURN_FAILED)
-    await service.close()
+    await turns.start(session_id=session.id, text="hello", metadata={})
+    await _wait_for_event(publisher, ConversationEventType.TURN_FAILED)
+    await turns.close()
 
     assert [event.type for event in publisher.events] == [
-        GatewayEventType.TURN_STARTED,
-        GatewayEventType.TURN_FAILED,
+        ConversationEventType.TURN_STARTED,
+        ConversationEventType.TURN_FAILED,
     ]
     failure = publisher.events[1]
     assert failure.session_id == session.id
@@ -145,26 +160,27 @@ async def test_failed_turn_publishes_turn_failed_event(
 
 async def test_agent_stream_updates_session_and_publishes_ordered_events(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _StreamingAgentRunner()
-    service = ConversationService(session_repository, publisher, runner)
-    session = await service.create_session(_CHANNEL, {})
+    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    session = await sessions.create(channel=_CHANNEL, metadata={})
 
-    await service.start_turn(session.id, "hello", {})
-    await _wait_for_event(publisher, GatewayEventType.TURN_COMPLETED)
+    await turns.start(session_id=session.id, text="hello", metadata={})
+    await _wait_for_event(publisher, ConversationEventType.TURN_COMPLETED)
 
     assert [event.type for event in publisher.events] == [
-        GatewayEventType.TURN_STARTED,
-        GatewayEventType.CHAT_DELTA,
-        GatewayEventType.TOOL_CALL_STARTED,
-        GatewayEventType.TOOL_CALL_COMPLETED,
-        GatewayEventType.CHAT_COMPLETED,
-        GatewayEventType.TURN_COMPLETED,
+        ConversationEventType.TURN_STARTED,
+        ConversationEventType.CHAT_DELTA,
+        ConversationEventType.TOOL_CALL_STARTED,
+        ConversationEventType.TOOL_CALL_COMPLETED,
+        ConversationEventType.CHAT_COMPLETED,
+        ConversationEventType.TURN_COMPLETED,
     ]
     assert [event.sequence for event in publisher.events] == list(range(1, 7))
 
-    persisted = await service.get_session(session.id)
+    persisted = await sessions.get(session.id)
     request = runner.requests[0]
     assert request.session.id == session.id
     assert request.session.channel.name == "test"
@@ -181,25 +197,26 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     assert sequence.calls[0].state is ToolCallState.COMPLETED
     assert sequence.calls[0].result == {"answer": 42}
 
-    await service.close()
+    await turns.close()
 
 
 async def test_automation_turn_uses_full_context_without_a_synthetic_user_message(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _StreamingAgentRunner()
-    service = ConversationService(session_repository, publisher, runner)
-    session = await service.create_session(_CHANNEL, {})
+    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    session = await sessions.create(channel=_CHANNEL, metadata={})
 
-    await service.run_automation_turn(
-        session.id,
-        "[Scheduled agent run] Play bird sounds and wake the user",
-        {"origin": "automation", "automation_kind": "reminder"},
+    await turns.start_scheduled(
+        session_id=session.id,
+        text="[Scheduled agent run] Play bird sounds and wake the user",
+        metadata={"origin": "automation", "automation_kind": "reminder"},
     )
 
     request = runner.requests[0]
-    persisted = await service.get_session(session.id)
+    persisted = await sessions.get(session.id)
     assert request.input_id is None
     assert request.input == "[Scheduled agent run] Play bird sounds and wake the user"
     assert request.turn_metadata == {
@@ -210,24 +227,25 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
         "ToolCallSequence",
         "AssistantMessage",
     ]
-    await service.close()
+    await turns.close()
 
 
 async def test_automation_turn_waits_for_an_active_interactive_turn(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _BlockingFirstAgentRunner()
-    service = ConversationService(session_repository, publisher, runner)
-    session = await service.create_session(_CHANNEL, {})
-    await service.start_turn(session.id, "Schedule this", {})
+    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    session = await sessions.create(channel=_CHANNEL, metadata={})
+    await turns.start(session_id=session.id, text="Schedule this", metadata={})
     await asyncio.wait_for(runner.first_started.wait(), timeout=1)
 
     automation = asyncio.create_task(
-        service.run_automation_turn(
-            session.id,
-            "[Scheduled agent run] Execute this",
-            {"origin": "automation"},
+        turns.start_scheduled(
+            session_id=session.id,
+            text="[Scheduled agent run] Execute this",
+            metadata={"origin": "automation"},
         )
     )
     await asyncio.sleep(0.3)
@@ -239,12 +257,12 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
     assert len(runner.requests) == 2
     assert runner.requests[1].input_id is None
     assert runner.requests[1].turn_metadata == {"origin": "automation"}
-    await service.close()
+    await turns.close()
 
 
 async def _wait_for_event(
     publisher: _RecordingPublisher,
-    event_type: GatewayEventType,
+    event_type: ConversationEventType,
     timeout: float = 5.0,
 ) -> None:
     loop = asyncio.get_running_loop()
@@ -254,3 +272,20 @@ async def _wait_for_event(
         and loop.time() < deadline
     ):
         await asyncio.sleep(0.01)
+
+
+def _services(
+    repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
+    publisher: EventPublisher,
+    runner: AgentRunner,
+) -> tuple[SessionService, TurnService]:
+    sessions = SessionService(repository)
+    turns = TurnService(
+        repository,
+        sessions,
+        SQLTurnLease(session_factory),
+        publisher,
+        runner,
+    )
+    return sessions, turns

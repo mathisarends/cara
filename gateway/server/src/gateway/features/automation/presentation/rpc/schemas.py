@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -8,6 +9,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class _AutomationSchema(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class AutomationRpcMethod(StrEnum):
+    LIST = "automation.list"
+    GET = "automation.get"
+    CREATE = "automation.create"
+    UPDATE = "automation.update"
+    DELETE = "automation.delete"
 
 
 class AtSchedule(_AutomationSchema):

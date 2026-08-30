@@ -4,7 +4,7 @@ from gateway.features.conversation.domain import (
     GatewayEventType,
     Session,
 )
-from gateway.features.conversation.presentation.mapping import (
+from gateway.features.conversation.presentation.rpc.mapping import (
     session_event,
     session_snapshot,
 )

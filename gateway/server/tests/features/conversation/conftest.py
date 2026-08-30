@@ -1,7 +1,12 @@
 from collections.abc import AsyncIterator
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
@@ -26,7 +31,14 @@ async def async_engine() -> AsyncIterator[AsyncEngine]:
 
 
 @pytest.fixture
-def session_repository(async_engine: AsyncEngine) -> SQLSessionRepository:
-    return SQLSessionRepository(
-        async_sessionmaker(async_engine, expire_on_commit=False)
-    )
+def session_factory(
+    async_engine: AsyncEngine,
+) -> async_sessionmaker[AsyncSession]:
+    return async_sessionmaker(async_engine, expire_on_commit=False)
+
+
+@pytest.fixture
+def session_repository(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> SQLSessionRepository:
+    return SQLSessionRepository(session_factory)

@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from gateway.features.conversation.presentation.events import (
+from gateway.features.conversation.presentation.rpc.schemas import (
     SESSION_EVENT_ADAPTER,
     ChatDelta,
 )

@@ -1,12 +1,3 @@
-from gateway.presentation import Feature
-
-from .infrastructure import AutomationProvider
-from .presentation import AUTOMATION_PROTOCOL
-
-feature = Feature(
-    name="automation",
-    providers=[AutomationProvider],
-    protocol=AUTOMATION_PROTOCOL,
-)
+from .feature import feature
 
 __all__ = ["feature"]
