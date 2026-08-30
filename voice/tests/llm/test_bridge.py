@@ -52,6 +52,14 @@ class _AgentSession:
         pass
 
 
+class _SilentToolAgentSession(_AgentSession):
+    async def _events(self) -> AsyncIterator[AgentEvent]:
+        yield ToolStarted("weather")
+        yield ToolCompleted("weather")
+        yield TextDelta("It is sunny.")
+        yield TurnCompleted()
+
+
 def test_agent_bridge_translates_every_agent_event(caplog) -> None:
     async def run() -> tuple[str | None, list[object], list[str]]:
         event_bus = EventBus()
@@ -92,3 +100,31 @@ def test_agent_bridge_translates_every_agent_event(caplog) -> None:
         "LLM output: I will help",
     ]
     assert lifecycle == ["prepared", "finished"]
+
+
+def test_agent_bridge_speaks_synthetic_ack_without_adding_it_to_response(
+    monkeypatch,
+) -> None:
+    async def run() -> list[object]:
+        event_bus = EventBus()
+        AgentBridge(event_bus=event_bus, session=_SilentToolAgentSession())
+        received: list[object] = []
+
+        async def capture(event: object) -> None:
+            received.append(event)
+
+        event_bus.on(AssistantTextChunk, capture)
+        event_bus.on(AssistantTextCompleted, capture)
+
+        await event_bus.request(
+            AssistantResponseRequested(turn_id=3, text="Check the weather")
+        )
+        return received
+
+    monkeypatch.setattr("voice.llm.bridge.random.choice", lambda choices: choices[0])
+
+    assert asyncio.run(run()) == [
+        AssistantTextChunk(turn_id=3, chunk="On it."),
+        AssistantTextChunk(turn_id=3, chunk="It is sunny."),
+        AssistantTextCompleted(turn_id=3, text="It is sunny."),
+    ]

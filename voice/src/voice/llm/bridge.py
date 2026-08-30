@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 
 from voice.events import (
     AssistantResponseRequested,
@@ -17,6 +18,14 @@ from voice.llm.port import AgentSession
 
 logger = logging.getLogger(__name__)
 
+_TOOL_CALL_ACK_PHRASES = (
+    "On it.",
+    "Let me check.",
+    "One sec.",
+    "Give me a moment.",
+    "Sure, checking now.",
+)
+
 
 class AgentBridge:
     """Translates an agent session stream into realtime voice events."""
@@ -25,6 +34,7 @@ class AgentBridge:
         self._event_bus = event_bus
         self._session = session
         self._preparation: asyncio.Task[None] | None = None
+        self._last_ack_phrase: str | None = None
 
         event_bus.on(VoiceTurnStarted, self._on_turn_started)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
@@ -50,12 +60,15 @@ class AgentBridge:
             await self._preparation
         await self._event_bus.dispatch(AssistantResponseStarted(turn_id=event.turn_id))
         chunks: list[str] = []
+        has_spoken_text = False
+        ack_spoken = False
         try:
             events = await self._session.start_turn(event.text)
             async for agent_event in events:
                 match agent_event:
                     case TextDelta(text=text) if text:
                         chunks.append(text)
+                        has_spoken_text = has_spoken_text or bool(text.strip())
                         await self._event_bus.dispatch(
                             AssistantTextChunk(
                                 turn_id=event.turn_id,
@@ -63,6 +76,14 @@ class AgentBridge:
                             )
                         )
                     case ToolStarted(name=name):
+                        if not has_spoken_text and not ack_spoken:
+                            await self._event_bus.dispatch(
+                                AssistantTextChunk(
+                                    turn_id=event.turn_id,
+                                    chunk=self._pick_ack_phrase(),
+                                )
+                            )
+                            ack_spoken = True
                         await self._event_bus.dispatch(
                             AssistantToolStarted(
                                 turn_id=event.turn_id,
@@ -98,3 +119,13 @@ class AgentBridge:
                 text=text,
             )
         )
+
+    def _pick_ack_phrase(self) -> str:
+        choices = [
+            phrase
+            for phrase in _TOOL_CALL_ACK_PHRASES
+            if phrase != self._last_ack_phrase
+        ]
+        phrase = random.choice(choices)
+        self._last_ack_phrase = phrase
+        return phrase
