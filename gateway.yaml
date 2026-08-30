@@ -51,6 +51,8 @@ agent:
             target: /tmp/.config/sonoscli
           - name: fitbitctl
             target: /tmp/.config/fitbitctl
+          - name: elevenfx
+            target: /tmp/.config/elevenfx
 
       # Mount targets the sandbox owns; configured mounts may not claim them.
       reserved_targets:
