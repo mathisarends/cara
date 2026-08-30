@@ -80,6 +80,28 @@ def test_reader_includes_pre_roll_without_reopening_input() -> None:
     assert opens == 1
 
 
+def test_reader_keeps_start_frames_during_consumer_startup() -> None:
+    async def run() -> list[int]:
+        input_device = _ControlledInput()
+        buffered_input = BufferedAudioInput(input_device, history_seconds=0.16)
+        await buffered_input.start()
+        for value in range(2):
+            await input_device.send(value)
+        await _wait_until_captured()
+
+        reader = await buffered_input.open_reader(from_sequence=0)
+        for value in range(2, 4):
+            await input_device.send(value)
+        await _wait_until_captured()
+
+        frames = [await anext(reader) for _ in range(4)]
+        await reader.aclose()
+        await buffered_input.stop()
+        return [frame.sequence for frame in frames]
+
+    assert asyncio.run(run()) == [0, 1, 2, 3]
+
+
 def test_slow_reader_fails_explicitly_after_ring_buffer_overrun() -> None:
     async def run() -> None:
         input_device = _ControlledInput()

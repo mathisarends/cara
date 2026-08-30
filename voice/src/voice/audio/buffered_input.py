@@ -14,9 +14,15 @@ class AudioOverrunError(RuntimeError):
 
 
 class AudioReader:
-    def __init__(self, buffered_input: BufferedAudioInput, next_sequence: int) -> None:
+    def __init__(
+        self,
+        buffered_input: BufferedAudioInput,
+        next_sequence: int,
+        pending: tuple[AudioFrame, ...] = (),
+    ) -> None:
         self._buffered_input = buffered_input
         self._next_sequence = next_sequence
+        self._pending = deque(pending)
         self._closed = False
 
     def __aiter__(self) -> AsyncIterator[AudioFrame]:
@@ -25,6 +31,10 @@ class AudioReader:
     async def __anext__(self) -> AudioFrame:
         if self._closed:
             raise StopAsyncIteration
+        if self._pending:
+            frame = self._pending.popleft()
+            self._next_sequence = frame.sequence + 1
+            return frame
         frame = await self._buffered_input._read(self._next_sequence)
         if frame is None:
             self._closed = True
@@ -112,12 +122,17 @@ class BufferedAudioInput:
         """Open a reader on the live tail, or on ``from_sequence`` minus pre-roll.
 
         A start older than the retained history is clamped to the oldest frame.
+        Retained start frames are copied into the reader so provider startup cannot
+        evict them before consumption begins.
         """
         async with self._condition:
             if from_sequence is None:
                 return AudioReader(self, self._next_sequence)
             start = from_sequence - max(self._chunks_for(pre_roll_seconds) - 1, 0)
-            return AudioReader(self, max(start, self._oldest_sequence))
+            start = max(start, self._oldest_sequence)
+            offset = start - self._oldest_sequence
+            pending = tuple(self._frames)[offset:]
+            return AudioReader(self, start, pending)
 
     async def _capture(self) -> None:
         try:

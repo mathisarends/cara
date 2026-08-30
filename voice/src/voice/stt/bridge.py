@@ -3,7 +3,11 @@ import logging
 import time
 from collections.abc import AsyncIterator
 
-from voice.audio.buffered_input import AudioReader, BufferedAudioInput
+from voice.audio.buffered_input import (
+    AudioOverrunError,
+    AudioReader,
+    BufferedAudioInput,
+)
 from voice.events import (
     UserSpeechEnded,
     UserSpeechStarted,
@@ -45,6 +49,7 @@ class SpeechToTextBridge:
             pre_roll_seconds=event.pre_roll_seconds,
         )
         transcriptions = self._speech_to_text.transcribe(_audio_chunks(reader))
+        speech_started = False
         try:
             first = await self._wait_for_speech(
                 event.turn_id, transcriptions, event.speech_start_timeout
@@ -59,6 +64,7 @@ class SpeechToTextBridge:
                 return
 
             await self._event_bus.dispatch(UserSpeechStarted())
+            speech_started = True
             final_text = first.text if first.is_final else None
             while final_text is None:
                 update = await anext(transcriptions)
@@ -67,6 +73,7 @@ class SpeechToTextBridge:
                     final_text = update.text
 
             await self._event_bus.dispatch(UserSpeechEnded())
+            speech_started = False
             await self._event_bus.dispatch(
                 UserTranscriptionCompleted(
                     turn_id=event.turn_id,
@@ -75,6 +82,16 @@ class SpeechToTextBridge:
             )
         except StopAsyncIteration:
             return
+        except AudioOverrunError as error:
+            logger.warning(
+                "Turn %d: transcription overran the audio buffer; "
+                "ending the turn cleanly: %s",
+                event.turn_id,
+                error,
+            )
+            if speech_started:
+                await self._event_bus.dispatch(UserSpeechEnded())
+            await self._event_bus.dispatch(VoiceTurnTimedOut(turn_id=event.turn_id))
         finally:
             await transcriptions.aclose()
             await reader.aclose()
