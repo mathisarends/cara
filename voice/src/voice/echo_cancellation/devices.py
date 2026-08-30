@@ -1,20 +1,20 @@
-import time
 from collections.abc import AsyncIterator
 
 import numpy as np
 
 from voice.audio.ports import AudioInput, AudioOutput
-from voice.echo_cancellation.ports import Clock, EchoCanceller
-from voice.echo_cancellation.timeline import PlaybackTimeline
+from voice.echo_cancellation.alignment import ReferenceAligner
+from voice.echo_cancellation.ports import EchoCanceller
+from voice.echo_cancellation.reference import PlaybackReference
 
 _BYTES_PER_SAMPLE = 2
 
 
 class ReferenceTapOutput(AudioOutput):
-    def __init__(self, output: AudioOutput, timeline: PlaybackTimeline):
+    def __init__(self, output: AudioOutput, reference: PlaybackReference):
         self._output = output
-        self._timeline = timeline
-        self._reference_sample_rate = timeline.sample_rate
+        self._reference = reference
+        self._reference_sample_rate = reference.sample_rate
         self._output_sample_rate: int | None = None
         self._output_channels: int | None = None
 
@@ -23,21 +23,20 @@ class ReferenceTapOutput(AudioOutput):
         return self._output.is_playing
 
     async def start(self, *, sample_rate: int, channels: int) -> None:
-        self._timeline.reset()
+        self._reference.start_playback()
         self._output_sample_rate = sample_rate
         self._output_channels = channels
         await self._output.start(sample_rate=sample_rate, channels=channels)
 
     async def stop(self) -> None:
         await self._output.stop()
-        self._timeline.reset()
 
     async def play_chunk(self, chunk: bytes) -> None:
         sample_rate = self._output_sample_rate
         channels = self._output_channels
         if sample_rate is None or channels is None:
             raise RuntimeError("Audio output format is not configured.")
-        self._timeline.write(
+        self._reference.write(
             _reference_pcm(
                 chunk,
                 sample_rate=sample_rate,
@@ -52,7 +51,6 @@ class ReferenceTapOutput(AudioOutput):
 
     async def clear_buffer(self) -> None:
         await self._output.clear_buffer()
-        self._timeline.discard_pending()
 
 
 def _reference_pcm(
@@ -80,22 +78,12 @@ class EchoCancellingInput(AudioInput):
     def __init__(
         self,
         input_device: AudioInput,
-        timeline: PlaybackTimeline,
+        aligner: ReferenceAligner,
         canceller: EchoCanceller,
-        *,
-        sample_rate: int = 24000,
-        alignment_margin_s: float = 0.04,
-        resync_threshold_s: float = 0.1,
-        clock: Clock = time.monotonic,
     ):
         self._input = input_device
-        self._timeline = timeline
+        self._aligner = aligner
         self._canceller = canceller
-        self._sample_rate = sample_rate
-        self._alignment_margin_s = alignment_margin_s
-        self._resync_threshold_s = resync_threshold_s
-        self._clock = clock
-        self._capture_cursor: float | None = None
 
     @property
     def sample_rate(self) -> int:
@@ -114,8 +102,8 @@ class EchoCancellingInput(AudioInput):
         return self._input.is_active
 
     async def start(self) -> None:
-        self._capture_cursor = None
         self._canceller.reset()
+        self._aligner.reset()
         await self._input.start()
 
     async def stop(self) -> None:
@@ -123,24 +111,6 @@ class EchoCancellingInput(AudioInput):
 
     async def stream_chunks(self) -> AsyncIterator[bytes]:
         async for chunk in self._input.stream_chunks():
-            cleaned = self._canceller.process(chunk, self._reference_for(chunk))
+            cleaned = self._canceller.process(chunk, self._aligner.read(chunk))
             if cleaned:
                 yield cleaned
-
-    def _reference_for(self, chunk: bytes) -> bytes:
-        samples = len(chunk) // _BYTES_PER_SAMPLE
-        duration = samples / self._sample_rate
-        start = self._capture_start(self._clock() - duration, duration)
-
-        # Capture latency can only make the estimate late, so looking back is safe.
-        return self._timeline.read(start - self._alignment_margin_s, samples)
-
-    def _capture_start(self, estimate: float, duration: float) -> float:
-        cursor = self._capture_cursor
-
-        # Sample time ignores scheduler jitter; wall time still corrects real drift.
-        if cursor is None or abs(cursor - estimate) > self._resync_threshold_s:
-            cursor = estimate
-
-        self._capture_cursor = cursor + duration
-        return cursor

@@ -18,7 +18,7 @@ class NlmsEchoCanceller(EchoCanceller):
         *,
         tail_ms: float = 250.0,
         block_size: int = 256,
-        step_size: float = 0.4,
+        step_size: float = 0.8,
         residual_leakage: float = 0.1,
     ):
         self._block = block_size

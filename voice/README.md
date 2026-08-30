@@ -28,6 +28,11 @@ assistant speaks, cancelling the active turn and starting a new one from the
 interrupting speech. `FollowUpHandler` opens a short wake-word-free window
 after playback.
 
+Echo cancellation retains the exact PCM sent to the output and acoustically
+matches microphone windows against that sample history. The resulting reference
+feeds an adaptive room filter. It does not depend on a configured playback
+latency, so the same pipeline handles local output and buffered Sonos clips.
+
 ## Key ports
 
 | Port | Implementations |
