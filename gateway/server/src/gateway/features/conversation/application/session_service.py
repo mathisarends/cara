@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +9,8 @@ from gateway.features.conversation.domain import (
     SessionNotFoundError,
     SessionRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SessionService:
@@ -22,7 +25,13 @@ class SessionService:
         metadata: dict[str, Any],
     ) -> Session:
         session = Session.create(channel, metadata)
-        return await self._sessions.save(session)
+        saved = await self._sessions.save(session)
+        logger.info(
+            "Created conversation session %s for channel %s",
+            saved.id,
+            _channel_label(channel),
+        )
+        return saved
 
     async def open(
         self,
@@ -33,6 +42,11 @@ class SessionService:
         async with self._open_lock:
             session = await self._sessions.find_latest_by_channel(channel)
             if session is not None:
+                logger.info(
+                    "Opened existing conversation session %s for channel %s",
+                    session.id,
+                    _channel_label(channel),
+                )
                 return session
             return await self.create(channel=channel, metadata=metadata)
 
@@ -41,3 +55,9 @@ class SessionService:
         if session is None:
             raise SessionNotFoundError(session_id)
         return session
+
+
+def _channel_label(channel: ChannelRef) -> str:
+    if channel.account_id is None:
+        return channel.name
+    return f"{channel.name}/{channel.account_id}"

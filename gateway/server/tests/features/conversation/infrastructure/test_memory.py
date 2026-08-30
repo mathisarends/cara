@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from uuid import uuid4
 
 import pytest
@@ -79,3 +80,33 @@ async def test_disconnecting_a_client_drops_its_subscriptions_without_error() ->
     broker.disconnect("client-1")
 
     await broker.publish(_event(session_id))
+
+
+async def test_lifecycle_events_are_logged_with_delivery_count(caplog) -> None:
+    broker = InMemoryEventStream()
+    session_id = uuid4()
+    broker.connect("client-12345678")
+    broker.subscribe("client-12345678", session_id)
+    event = ConversationEvent(
+        type=ConversationEventType.CHAT_COMPLETED,
+        session_id=session_id,
+        sequence=2,
+        data={"text": "Assistant reply", "finish_reason": "stop"},
+    )
+
+    with caplog.at_level(logging.INFO):
+        await broker.publish(event)
+
+    assert (
+        f"Emitted event chat.completed for session {session_id} "
+        "(sequence=2, recipients=1, text='Assistant reply')"
+    ) in caplog.messages
+
+
+async def test_chat_deltas_are_not_logged_at_info(caplog) -> None:
+    broker = InMemoryEventStream()
+
+    with caplog.at_level(logging.INFO):
+        await broker.publish(_event(uuid4()))
+
+    assert not any("chat.delta" in message for message in caplog.messages)
