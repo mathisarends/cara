@@ -7,6 +7,7 @@ from uuid import UUID
 from dotenv import load_dotenv
 from pyrpckit.client import RpcClientError
 
+from cli import commands
 from cli.chat import ChatSession
 from cli.console import Console
 from cli.keyboard import Keyboard
@@ -33,8 +34,10 @@ async def _run(args: argparse.Namespace) -> None:
     console = Console(
         color=not args.no_color and sys.stdout.isatty(),
         interactive=keyboard.interactive and sys.stdout.isatty(),
+        completer=commands.suggest,
     )
-    console.banner(args.url)
+    console.header("gateway client")
+    console.field("gateway", args.url)
     token = os.environ.get("CARA_GATEWAY_TOKEN")
     if not token:
         console.error("CARA_GATEWAY_TOKEN is not set")

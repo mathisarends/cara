@@ -19,6 +19,7 @@ _ESCAPE_SEQUENCE_TIMEOUT = 0.05
 class ControlKey(StrEnum):
     SUBMIT = "submit"
     BACKSPACE = "backspace"
+    COMPLETE = "complete"
     ESCAPE = "escape"
     QUIT = "quit"
     UNKNOWN = "unknown"
@@ -36,7 +37,8 @@ class Keyboard:
     """Streams key events from stdin, in raw mode when stdin is a terminal.
 
     Without a terminal the reader falls back to whole lines, which still
-    produces characters and SUBMIT — only ESCAPE can never arrive.
+    produces characters and SUBMIT — ESCAPE and COMPLETE never arrive, since
+    a piped line has no keystrokes to distinguish them by.
     """
 
     def __init__(self) -> None:
@@ -192,6 +194,8 @@ def _key_event(char: str) -> KeyEvent:
         return ControlKey.SUBMIT
     if char in ("\x7f", "\b"):
         return ControlKey.BACKSPACE
+    if char == "\t":
+        return ControlKey.COMPLETE
     if char == _ESCAPE:
         return ControlKey.ESCAPE
     if char in (_INTERRUPT, _END_OF_TRANSMISSION):
