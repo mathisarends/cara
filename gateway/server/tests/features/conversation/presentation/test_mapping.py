@@ -1,9 +1,8 @@
-from gateway.features.conversation.domain import (
-    ChannelRef,
-    GatewayEvent,
-    GatewayEventType,
-    Session,
+from gateway.features.conversation.application import (
+    ConversationEvent,
+    ConversationEventType,
 )
+from gateway.features.conversation.domain import ChannelRef, Session
 from gateway.features.conversation.presentation.rpc.mapping import (
     session_event,
     session_snapshot,
@@ -27,10 +26,10 @@ def test_session_snapshot_maps_persisted_entries() -> None:
     ]
 
 
-def test_gateway_event_maps_to_flat_protocol_event() -> None:
+def test_conversation_event_maps_to_a_flat_protocol_event() -> None:
     session = Session.create(_CHANNEL)
-    event = GatewayEvent(
-        type=GatewayEventType.CHAT_DELTA,
+    event = ConversationEvent(
+        type=ConversationEventType.CHAT_DELTA,
         session_id=session.id,
         sequence=2,
         data={"text": "Hi"},

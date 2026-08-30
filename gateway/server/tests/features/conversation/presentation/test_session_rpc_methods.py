@@ -3,25 +3,29 @@ from collections.abc import AsyncIterator
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from agent_plugin_api import AgentEvent, AgentRunner, AgentRunRequest
-from gateway.features.conversation.application.service import ConversationService
+from gateway.features.conversation.application import (
+    ConversationEvent,
+    EventPublisher,
+    SessionService,
+    TurnService,
+)
 from gateway.features.conversation.domain import SessionNotFoundError
-from gateway.features.conversation.infrastructure.memory import InMemoryEventBroker
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
 )
-from gateway.features.conversation.presentation.rpc import (
+from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
+from gateway.features.conversation.presentation.rpc.handler import (
+    ConversationRpcMethods,
+)
+from gateway.features.conversation.presentation.rpc.schemas import (
     CreateSessionParams,
     OpenSessionParams,
-    SessionParams,
-)
-from gateway.features.conversation.presentation.schemas import (
     SessionChannel,
+    SessionParams,
     SessionSnapshotResponse,
-)
-from gateway.features.conversation.presentation.session_rpc_methods import (
-    SessionRpcMethods,
 )
 
 _CHANNEL = SessionChannel(name="voice", account_id="local")
@@ -40,22 +44,29 @@ class _NullAgentRunner(AgentRunner):
         pass
 
 
+class _DiscardingPublisher(EventPublisher):
+    async def publish(self, event: ConversationEvent) -> None:
+        pass
+
+
 @pytest.fixture
-def service(
+def methods(
     session_repository: SQLSessionRepository,
-) -> ConversationService:
-    return ConversationService(
-        session_repository, InMemoryEventBroker(), _NullAgentRunner()
+    session_factory: async_sessionmaker[AsyncSession],
+) -> ConversationRpcMethods:
+    sessions = SessionService(session_repository)
+    turns = TurnService(
+        session_repository,
+        sessions,
+        SQLTurnLease(session_factory),
+        _DiscardingPublisher(),
+        _NullAgentRunner(),
     )
-
-
-@pytest.fixture
-def methods(service: ConversationService) -> SessionRpcMethods:
-    return SessionRpcMethods(service)
+    return ConversationRpcMethods(sessions, turns)
 
 
 async def test_create_session_persists_metadata(
-    methods: SessionRpcMethods,
+    methods: ConversationRpcMethods,
     session_repository: SQLSessionRepository,
 ) -> None:
     response = await methods.create_session(
@@ -68,7 +79,7 @@ async def test_create_session_persists_metadata(
 
 
 async def test_create_session_always_creates_a_fresh_session(
-    methods: SessionRpcMethods,
+    methods: ConversationRpcMethods,
 ) -> None:
     first = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
     second = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
@@ -77,7 +88,7 @@ async def test_create_session_always_creates_a_fresh_session(
 
 
 async def test_open_session_reuses_the_latest_session_for_the_channel(
-    methods: SessionRpcMethods,
+    methods: ConversationRpcMethods,
 ) -> None:
     created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
 
@@ -87,7 +98,7 @@ async def test_open_session_reuses_the_latest_session_for_the_channel(
 
 
 async def test_concurrent_open_session_calls_resolve_to_one_session(
-    methods: SessionRpcMethods,
+    methods: ConversationRpcMethods,
 ) -> None:
     first, second = await asyncio.gather(
         methods.open_session(OpenSessionParams(channel=_CHANNEL)),
@@ -98,7 +109,7 @@ async def test_concurrent_open_session_calls_resolve_to_one_session(
 
 
 async def test_open_session_does_not_cross_channel_boundaries(
-    methods: SessionRpcMethods,
+    methods: ConversationRpcMethods,
 ) -> None:
     first = await methods.open_session(OpenSessionParams(channel=_CHANNEL))
 
@@ -114,7 +125,9 @@ async def test_open_session_does_not_cross_channel_boundaries(
     assert second.id != first.id
 
 
-async def test_get_session_returns_a_snapshot(methods: SessionRpcMethods) -> None:
+async def test_get_session_returns_a_snapshot(
+    methods: ConversationRpcMethods,
+) -> None:
     created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
 
     snapshot = await methods.get_session(SessionParams(session_id=created.id))
@@ -124,7 +137,7 @@ async def test_get_session_returns_a_snapshot(methods: SessionRpcMethods) -> Non
 
 
 async def test_get_session_raises_for_an_unknown_session(
-    methods: SessionRpcMethods,
+    methods: ConversationRpcMethods,
 ) -> None:
     with pytest.raises(SessionNotFoundError):
         await methods.get_session(SessionParams(session_id=uuid4()))

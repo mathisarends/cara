@@ -1,51 +1,61 @@
 import asyncio
 from collections.abc import AsyncIterator
+from uuid import uuid4
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from agent_plugin_api import (
     AgentEvent,
     AgentRunner,
     AgentRunRequest,
     AgentSessionRef,
+    ChatCompleted,
 )
-from gateway.features.conversation.application.service import ConversationService
-from gateway.features.conversation.domain import GatewayEvent, GatewayEventType
-from gateway.features.conversation.infrastructure.memory import InMemoryEventBroker
+from gateway.features.conversation.application import (
+    ConversationEvent,
+    ConversationEventType,
+    EventPublisher,
+    SessionService,
+    TurnService,
+)
+from gateway.features.conversation.domain import SessionNotFoundError
 from gateway.features.conversation.infrastructure.persistence import (
     SQLSessionRepository,
 )
-from gateway.features.conversation.presentation.rpc import (
+from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
+from gateway.features.conversation.presentation.rpc.handler import (
+    ConversationRpcMethods,
+)
+from gateway.features.conversation.presentation.rpc.schemas import (
+    AssistantMessageItem,
     CreateSessionParams,
+    SessionChannel,
     SessionParams,
     StartTurnParams,
-)
-from gateway.features.conversation.presentation.schemas import SessionChannel
-from gateway.features.conversation.presentation.session_rpc_methods import (
-    SessionRpcMethods,
-)
-from gateway.features.conversation.presentation.subscription_rpc_methods import (
-    SubscriptionRpcMethods,
-)
-from gateway.features.conversation.presentation.turn_rpc_methods import (
-    TurnRpcMethods,
 )
 
 _CHANNEL = SessionChannel(name="voice", account_id="local")
 
 
-class _NullAgentRunner(AgentRunner):
+class _RecordingPublisher(EventPublisher):
+    def __init__(self) -> None:
+        self.events: list[ConversationEvent] = []
+
+    async def publish(self, event: ConversationEvent) -> None:
+        self.events.append(event)
+
+
+class _LifecycleAgentRunner(AgentRunner):
     def __init__(self) -> None:
         self.lifecycle: list[tuple[str, AgentSessionRef]] = []
 
     async def prepare(self, session: AgentSessionRef) -> None:
         self.lifecycle.append(("prepare", session))
 
-    async def run(
-        self,
-        request: AgentRunRequest,
-    ) -> AsyncIterator[AgentEvent]:
+    async def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]:
         del request
-        return
-        yield
+        yield ChatCompleted("done", finish_reason="stop")
 
     async def finish(self, session: AgentSessionRef) -> None:
         self.lifecycle.append(("finish", session))
@@ -55,93 +65,109 @@ class _NullAgentRunner(AgentRunner):
 
 
 class _HangingAgentRunner(AgentRunner):
-    async def run(
-        self,
-        request: AgentRunRequest,
-    ) -> AsyncIterator[AgentEvent]:
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+
+    async def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]:
         del request
+        self.started.set()
         await asyncio.Event().wait()
-        yield
+        yield  # pragma: no cover
 
     async def close(self) -> None:
         pass
 
 
-async def _wait_for_event(
-    receiver,
-    event_type: GatewayEventType,
-    timeout: float = 5.0,
-) -> GatewayEvent:
-    async with asyncio.timeout(timeout):
-        while True:
-            event = await receiver.receive()
-            if event.type is event_type:
-                return event
-
-
-async def test_start_turn_runs_the_agent_and_returns_the_session_id(
+def _methods(
     session_repository: SQLSessionRepository,
-) -> None:
-    broker = InMemoryEventBroker()
-    service = ConversationService(session_repository, broker, _NullAgentRunner())
-    session_methods = SessionRpcMethods(service)
-    subscription_methods = SubscriptionRpcMethods(service, broker, "client-1")
-    turn_methods = TurnRpcMethods(service)
-    receiver = broker.connect("client-1")
-    created = await session_methods.create_session(
-        CreateSessionParams(channel=_CHANNEL)
+    session_factory: async_sessionmaker[AsyncSession],
+    runner: AgentRunner,
+    publisher: EventPublisher | None = None,
+) -> ConversationRpcMethods:
+    sessions = SessionService(session_repository)
+    turns = TurnService(
+        session_repository,
+        sessions,
+        SQLTurnLease(session_factory),
+        publisher or _RecordingPublisher(),
+        runner,
     )
-    await subscription_methods.subscribe_session(SessionParams(session_id=created.id))
-
-    result = await turn_methods.start_turn(
-        StartTurnParams(session_id=created.id, message="hello")
-    )
-
-    assert result.session_id == created.id
-    await _wait_for_event(receiver, GatewayEventType.TURN_COMPLETED)
-    await service.close()
+    return ConversationRpcMethods(sessions, turns)
 
 
 async def test_prepare_and_finish_turn_forward_the_session(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    broker = InMemoryEventBroker()
-    runner = _NullAgentRunner()
-    service = ConversationService(session_repository, broker, runner)
-    session_methods = SessionRpcMethods(service)
-    turn_methods = TurnRpcMethods(service)
-    created = await session_methods.create_session(
-        CreateSessionParams(channel=_CHANNEL)
-    )
+    runner = _LifecycleAgentRunner()
+    methods = _methods(session_repository, session_factory, runner)
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
 
-    prepared = await turn_methods.prepare_turn(SessionParams(session_id=created.id))
-    finished = await turn_methods.finish_turn(SessionParams(session_id=created.id))
+    prepared = await methods.prepare_turn(SessionParams(session_id=created.id))
+    finished = await methods.finish_turn(SessionParams(session_id=created.id))
 
     assert prepared.session_id == created.id
     assert finished.session_id == created.id
     assert [event for event, _ in runner.lifecycle] == ["prepare", "finish"]
-    assert all(session.id == created.id for _, session in runner.lifecycle)
 
 
-async def test_cancel_turn_stops_an_active_turn(
+async def test_start_turn_runs_the_agent_in_the_background(
     session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    broker = InMemoryEventBroker()
-    service = ConversationService(session_repository, broker, _HangingAgentRunner())
-    session_methods = SessionRpcMethods(service)
-    subscription_methods = SubscriptionRpcMethods(service, broker, "client-1")
-    turn_methods = TurnRpcMethods(service)
-    receiver = broker.connect("client-1")
-    created = await session_methods.create_session(
-        CreateSessionParams(channel=_CHANNEL)
+    publisher = _RecordingPublisher()
+    methods = _methods(
+        session_repository, session_factory, _LifecycleAgentRunner(), publisher
     )
-    await subscription_methods.subscribe_session(SessionParams(session_id=created.id))
-    await turn_methods.start_turn(
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+
+    result = await methods.start_turn(
         StartTurnParams(session_id=created.id, message="hello")
     )
-
-    result = await turn_methods.cancel_turn(SessionParams(session_id=created.id))
+    await _wait_for_turn_completed(publisher)
 
     assert result.session_id == created.id
-    await _wait_for_event(receiver, GatewayEventType.TURN_CANCELLED)
-    await service.close()
+    snapshot = await methods.get_session(SessionParams(session_id=created.id))
+    reply = snapshot.items[-1]
+    assert isinstance(reply, AssistantMessageItem)
+    assert reply.content == "done"
+
+
+async def test_cancel_turn_releases_the_session_for_a_new_turn(
+    session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    runner = _HangingAgentRunner()
+    methods = _methods(session_repository, session_factory, runner)
+    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+    await methods.start_turn(StartTurnParams(session_id=created.id, message="hello"))
+    await asyncio.wait_for(runner.started.wait(), timeout=1)
+
+    await methods.cancel_turn(SessionParams(session_id=created.id))
+    result = await methods.start_turn(
+        StartTurnParams(session_id=created.id, message="hello again")
+    )
+
+    assert result.session_id == created.id
+
+
+async def test_turn_methods_raise_for_an_unknown_session(
+    session_repository: SQLSessionRepository,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    methods = _methods(session_repository, session_factory, _LifecycleAgentRunner())
+
+    with pytest.raises(SessionNotFoundError):
+        await methods.prepare_turn(SessionParams(session_id=uuid4()))
+
+
+async def _wait_for_turn_completed(
+    publisher: _RecordingPublisher,
+    timeout: float = 2.0,
+) -> None:
+    async with asyncio.timeout(timeout):
+        while not any(
+            event.type is ConversationEventType.TURN_COMPLETED
+            for event in publisher.events
+        ):
+            await asyncio.sleep(0.01)
