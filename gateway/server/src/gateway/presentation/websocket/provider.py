@@ -1,4 +1,4 @@
-from uuid import uuid4
+import uuid
 
 import pyrpckit as rpc
 from dishka import Provider, Scope, provide
@@ -59,7 +59,7 @@ class GatewayProvider(Provider):
         stream: InMemoryEventStream,
     ) -> GatewayConnection:
         authenticator.authenticate(websocket)
-        client_id = str(uuid4())
+        client_id = str(uuid.uuid4())
         server = rpc.RpcServer(
             AutomationRpcMethods(automation_service),
             ConversationRpcMethods(sessions, turns),

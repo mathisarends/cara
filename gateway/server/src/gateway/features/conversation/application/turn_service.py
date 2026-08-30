@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import uuid
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from agent_plugin_api import (
     AgentChannelRef,
@@ -136,7 +137,7 @@ class TurnService:
             await turn.publish(ConversationEventType.TURN_STARTED, {})
             request = AgentRunRequest(
                 session=_agent_session_ref(session),
-                turn_id=uuid4(),
+                turn_id=uuid.uuid4(),
                 input_id=input_id,
                 input=text,
                 turn_metadata=dict(metadata),

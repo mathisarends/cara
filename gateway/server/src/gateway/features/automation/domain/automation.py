@@ -1,6 +1,7 @@
+import uuid
 from datetime import UTC, datetime
 from typing import Self
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from gateway.features.automation.domain.action import (
     AutomationOrigin,
@@ -45,7 +46,7 @@ class Automation:
         name: str | None = None,
     ) -> Self:
         return cls(
-            id=uuid4().hex,
+            id=uuid.uuid4().hex,
             created_at=datetime.now(UTC),
             target=target,
             schedule=schedule,

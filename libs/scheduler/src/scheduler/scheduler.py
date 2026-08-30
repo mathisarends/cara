@@ -1,10 +1,10 @@
 import asyncio
 import logging
+import uuid
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta, tzinfo
 from functools import partial
 from typing import Self
-from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from croniter import croniter
@@ -52,7 +52,7 @@ class Scheduler[PayloadT]:
     ) -> ScheduledJob[PayloadT]:
         created_at = datetime.now(UTC)
         job = ScheduledJob(
-            id=job_id or uuid4().hex,
+            id=job_id or uuid.uuid4().hex,
             trigger=trigger,
             payload=payload,
             created_at=created_at,

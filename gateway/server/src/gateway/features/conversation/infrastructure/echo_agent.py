@@ -1,7 +1,8 @@
 import asyncio
+import uuid
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from agent_plugin_api import (
     AGENT_PLUGIN_API_VERSION,
@@ -44,7 +45,7 @@ class EchoAgentRunner(AgentRunner):
         message = request.input
 
         if _TOOL_KEYWORD in message.lower():
-            call_id = str(uuid4())
+            call_id = str(uuid.uuid4())
             yield ToolCallStarted(
                 call_id,
                 "echo_clock",

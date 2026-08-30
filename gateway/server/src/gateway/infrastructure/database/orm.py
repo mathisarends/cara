@@ -1,13 +1,14 @@
+import uuid
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import JSON, Column, DateTime, Index, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
 class DatabaseEntity(SQLModel):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    id: UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_type=DateTime(timezone=True),

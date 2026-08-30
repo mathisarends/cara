@@ -1,5 +1,5 @@
 import asyncio
-from uuid import uuid4
+import uuid
 
 from dotenv import load_dotenv
 
@@ -11,7 +11,7 @@ load_dotenv(override=True)
 
 
 async def main() -> None:
-    conversation_id = str(uuid4())
+    conversation_id = str(uuid.uuid4())
     documents = [
         Document(
             id=conversation_id,
@@ -19,13 +19,13 @@ async def main() -> None:
             metadata={"kind": "conversation"},
         ),
         Document(
-            id=str(uuid4()),
+            id=str(uuid.uuid4()),
             parent_id=conversation_id,
             text="Can Cara remember an earlier conversation?",
             metadata={"kind": "message", "role": "user"},
         ),
         Document(
-            id=str(uuid4()),
+            id=str(uuid.uuid4()),
             parent_id=conversation_id,
             text="Yes. Store each turn as a child document in SQLite.",
             metadata={"kind": "message", "role": "assistant"},

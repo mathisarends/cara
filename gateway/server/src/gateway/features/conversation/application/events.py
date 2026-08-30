@@ -1,8 +1,9 @@
+import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 
 class ConversationEventType(StrEnum):
@@ -22,7 +23,7 @@ class ConversationEvent:
     type: ConversationEventType
     session_id: UUID
     data: dict[str, Any]
-    event_id: UUID = field(default_factory=uuid4)
+    event_id: UUID = field(default_factory=uuid.uuid4)
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     call_id: str | None = None
     sequence: int | None = None
