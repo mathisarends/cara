@@ -29,12 +29,6 @@
       "$ref": "#/$defs/GetSessionRequest"
     },
     {
-      "$ref": "#/$defs/SubscribeSessionRequest"
-    },
-    {
-      "$ref": "#/$defs/UnsubscribeSessionRequest"
-    },
-    {
       "$ref": "#/$defs/PrepareTurnRequest"
     },
     {
@@ -45,6 +39,12 @@
     },
     {
       "$ref": "#/$defs/CancelTurnRequest"
+    },
+    {
+      "$ref": "#/$defs/SubscribeSessionRequest"
+    },
+    {
+      "$ref": "#/$defs/UnsubscribeSessionRequest"
     },
     {
       "$ref": "#/$defs/RpcSuccess"
@@ -141,11 +141,6 @@
         "schedule": {
           "$ref": "#/$defs/AutomationSchedule"
         },
-        "schema_version": {
-          "const": 2,
-          "title": "Schema Version",
-          "type": "integer"
-        },
         "target": {
           "$ref": "#/$defs/SessionAutomationTargetResponse"
         },
@@ -159,7 +154,6 @@
         "created_at",
         "next_run_at",
         "schedule",
-        "schema_version",
         "target",
         "payload"
       ],
@@ -1600,80 +1594,6 @@
         "params"
       ]
     },
-    "SubscribeSessionRequest": {
-      "additionalProperties": false,
-      "type": "object",
-      "title": "SubscribeSessionRequest",
-      "properties": {
-        "jsonrpc": {
-          "const": "2.0",
-          "type": "string"
-        },
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "method": {
-          "const": "subscription.subscribe",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/$defs/SessionParams"
-        }
-      },
-      "required": [
-        "jsonrpc",
-        "method",
-        "params"
-      ]
-    },
-    "UnsubscribeSessionRequest": {
-      "additionalProperties": false,
-      "type": "object",
-      "title": "UnsubscribeSessionRequest",
-      "properties": {
-        "jsonrpc": {
-          "const": "2.0",
-          "type": "string"
-        },
-        "id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "method": {
-          "const": "subscription.unsubscribe",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/$defs/SessionParams"
-        }
-      },
-      "required": [
-        "jsonrpc",
-        "method",
-        "params"
-      ]
-    },
     "PrepareTurnRequest": {
       "additionalProperties": false,
       "type": "object",
@@ -1810,6 +1730,80 @@
         },
         "method": {
           "const": "turn.cancel",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/SessionParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ]
+    },
+    "SubscribeSessionRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "SubscribeSessionRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "subscription.subscribe",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/$defs/SessionParams"
+        }
+      },
+      "required": [
+        "jsonrpc",
+        "method",
+        "params"
+      ]
+    },
+    "UnsubscribeSessionRequest": {
+      "additionalProperties": false,
+      "type": "object",
+      "title": "UnsubscribeSessionRequest",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "method": {
+          "const": "subscription.unsubscribe",
           "type": "string"
         },
         "params": {
@@ -2034,48 +2028,6 @@
       ]
     },
     {
-      "name": "subscription.subscribe",
-      "feature": "conversation",
-      "request": {
-        "$ref": "#/$defs/SubscribeSessionRequest"
-      },
-      "params": {
-        "$ref": "#/$defs/SessionParams"
-      },
-      "result": {
-        "$ref": "#/$defs/SubscriptionResult"
-      },
-      "errors": [
-        {
-          "code": -32004,
-          "message": "Resource not found"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error"
-        }
-      ]
-    },
-    {
-      "name": "subscription.unsubscribe",
-      "feature": "conversation",
-      "request": {
-        "$ref": "#/$defs/UnsubscribeSessionRequest"
-      },
-      "params": {
-        "$ref": "#/$defs/SessionParams"
-      },
-      "result": {
-        "$ref": "#/$defs/UnsubscriptionResult"
-      },
-      "errors": [
-        {
-          "code": -32603,
-          "message": "Internal error"
-        }
-      ]
-    },
-    {
       "name": "turn.prepare",
       "feature": "conversation",
       "request": {
@@ -2173,6 +2125,48 @@
           "code": -32004,
           "message": "Resource not found"
         },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "subscription.subscribe",
+      "feature": "event_stream",
+      "request": {
+        "$ref": "#/$defs/SubscribeSessionRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/SessionParams"
+      },
+      "result": {
+        "$ref": "#/$defs/SubscriptionResult"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "subscription.unsubscribe",
+      "feature": "event_stream",
+      "request": {
+        "$ref": "#/$defs/UnsubscribeSessionRequest"
+      },
+      "params": {
+        "$ref": "#/$defs/SessionParams"
+      },
+      "result": {
+        "$ref": "#/$defs/UnsubscriptionResult"
+      },
+      "errors": [
         {
           "code": -32603,
           "message": "Internal error"

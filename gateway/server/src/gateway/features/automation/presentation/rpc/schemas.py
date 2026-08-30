@@ -19,19 +19,25 @@ class AutomationRpcMethod(StrEnum):
     DELETE = "automation.delete"
 
 
+class ScheduleKind(StrEnum):
+    AT = "at"
+    INTERVAL = "interval"
+    CRON = "cron"
+
+
 class AtSchedule(_AutomationSchema):
-    kind: Literal["at"] = "at"
+    kind: Literal[ScheduleKind.AT] = ScheduleKind.AT
     run_at: datetime
 
 
 class IntervalSchedule(_AutomationSchema):
-    kind: Literal["interval"] = "interval"
+    kind: Literal[ScheduleKind.INTERVAL] = ScheduleKind.INTERVAL
     every_seconds: float = Field(gt=0)
     run_immediately: bool
 
 
 class CronSchedule(_AutomationSchema):
-    kind: Literal["cron"] = "cron"
+    kind: Literal[ScheduleKind.CRON] = ScheduleKind.CRON
     expression: str
     timezone: str
 
@@ -68,7 +74,6 @@ class AutomationResponse(_AutomationSchema):
     created_at: datetime
     next_run_at: datetime
     schedule: AutomationSchedule
-    schema_version: Literal[2]
     target: SessionAutomationTargetResponse
     payload: ReminderAutomationPayload
 

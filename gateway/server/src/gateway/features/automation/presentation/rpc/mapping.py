@@ -37,7 +37,6 @@ def automation_response(automation: Automation) -> AutomationResponse:
         created_at=automation.created_at,
         next_run_at=automation.next_run_at,
         schedule=schedule_response(automation.schedule),
-        schema_version=2,
         target=SessionAutomationTargetResponse(
             kind="session",
             session_id=automation.target.session_id,

@@ -20,12 +20,12 @@ class RpcMethod(StrEnum):
     SESSION_CREATE = "session.create"
     SESSION_OPEN = "session.open"
     SESSION_GET = "session.get"
-    SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
-    SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
     TURN_PREPARE = "turn.prepare"
     TURN_START = "turn.start"
     TURN_FINISH = "turn.finish"
     TURN_CANCEL = "turn.cancel"
+    SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
+    SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
 
 
 class RpcModel(BaseModel):
@@ -67,7 +67,6 @@ class AutomationResponse(RpcModel):
     created_at: datetime
     next_run_at: datetime
     schedule: AutomationSchedule
-    schema_version: Literal[2]
     target: SessionAutomationTargetResponse
     payload: ReminderAutomationPayload
 

@@ -23,7 +23,6 @@ class Turns:
         *,
         session_id: UUID,
     ) -> TurnCommandResult:
-        """Prepare latency-sensitive resources for an upcoming turn."""
         params = SessionParams(
             session_id=session_id,
         )
@@ -40,7 +39,6 @@ class Turns:
         message: str,
         metadata: dict[str, Any] | None = None,
     ) -> TurnCommandResult:
-        """Start an agent turn in a conversation session."""
         params = StartTurnParams(
             session_id=session_id,
             message=message,
@@ -57,7 +55,6 @@ class Turns:
         *,
         session_id: UUID,
     ) -> TurnCommandResult:
-        """Release resources prepared for a turn that is finished."""
         params = SessionParams(
             session_id=session_id,
         )
@@ -72,7 +69,6 @@ class Turns:
         *,
         session_id: UUID,
     ) -> TurnCommandResult:
-        """Cancel the active turn in a conversation session."""
         params = SessionParams(
             session_id=session_id,
         )

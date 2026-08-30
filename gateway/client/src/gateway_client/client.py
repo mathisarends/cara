@@ -16,8 +16,8 @@ class GatewayClient:
         self._transport = transport
         self.automation = Automations(transport)
         self.session = Sessions(transport)
-        self.subscription = Subscriptions(transport)
         self.turn = Turns(transport)
+        self.subscription = Subscriptions(transport)
 
     async def notifications(self) -> AsyncIterator[SessionEventNotification]:
         adapter = TypeAdapter(SessionEventNotification)

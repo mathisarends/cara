@@ -27,7 +27,6 @@ class Sessions:
         channel: SessionChannel,
         metadata: dict[str, Any] | None = None,
     ) -> SessionResponse:
-        """Create a conversation session."""
         params = CreateSessionParams(
             channel=channel,
             metadata=metadata,
@@ -44,7 +43,6 @@ class Sessions:
         channel: SessionChannel,
         metadata: dict[str, Any] | None = None,
     ) -> SessionResponse:
-        """Open the current session for a channel or create it."""
         params = OpenSessionParams(
             channel=channel,
             metadata=metadata,
@@ -60,7 +58,6 @@ class Sessions:
         *,
         session_id: UUID,
     ) -> SessionSnapshotResponse:
-        """Get a conversation session snapshot."""
         params = SessionParams(
             session_id=session_id,
         )

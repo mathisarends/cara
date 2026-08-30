@@ -22,7 +22,6 @@ class Subscriptions:
         *,
         session_id: UUID,
     ) -> SubscriptionResult:
-        """Subscribe this connection to a conversation session."""
         params = SessionParams(
             session_id=session_id,
         )
@@ -37,7 +36,6 @@ class Subscriptions:
         *,
         session_id: UUID,
     ) -> UnsubscriptionResult:
-        """Unsubscribe this connection from a conversation session."""
         params = SessionParams(
             session_id=session_id,
         )

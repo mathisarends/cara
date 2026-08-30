@@ -451,86 +451,6 @@
       ]
     },
     {
-      "name": "subscription.subscribe",
-      "tags": [
-        {
-          "name": "conversation"
-        }
-      ],
-      "paramStructure": "by-name",
-      "params": [
-        {
-          "name": "session_id",
-          "required": true,
-          "schema": {
-            "format": "uuid",
-            "title": "Session Id",
-            "type": "string"
-          }
-        }
-      ],
-      "result": {
-        "name": "result",
-        "schema": {
-          "$ref": "#/components/schemas/SubscriptionResult"
-        }
-      },
-      "x-rpc-request-schema": {
-        "$ref": "#/components/schemas/SubscribeSessionRequest"
-      },
-      "x-rpc-params-schema": {
-        "$ref": "#/components/schemas/SessionParams"
-      },
-      "errors": [
-        {
-          "code": -32004,
-          "message": "Resource not found"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error"
-        }
-      ]
-    },
-    {
-      "name": "subscription.unsubscribe",
-      "tags": [
-        {
-          "name": "conversation"
-        }
-      ],
-      "paramStructure": "by-name",
-      "params": [
-        {
-          "name": "session_id",
-          "required": true,
-          "schema": {
-            "format": "uuid",
-            "title": "Session Id",
-            "type": "string"
-          }
-        }
-      ],
-      "result": {
-        "name": "result",
-        "schema": {
-          "$ref": "#/components/schemas/UnsubscriptionResult"
-        }
-      },
-      "x-rpc-request-schema": {
-        "$ref": "#/components/schemas/UnsubscribeSessionRequest"
-      },
-      "x-rpc-params-schema": {
-        "$ref": "#/components/schemas/SessionParams"
-      },
-      "errors": [
-        {
-          "code": -32603,
-          "message": "Internal error"
-        }
-      ]
-    },
-    {
       "name": "turn.prepare",
       "tags": [
         {
@@ -727,6 +647,86 @@
           "message": "Internal error"
         }
       ]
+    },
+    {
+      "name": "subscription.subscribe",
+      "tags": [
+        {
+          "name": "event_stream"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/SubscriptionResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/SubscribeSessionRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
+    },
+    {
+      "name": "subscription.unsubscribe",
+      "tags": [
+        {
+          "name": "event_stream"
+        }
+      ],
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "session_id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/UnsubscriptionResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/UnsubscribeSessionRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SessionParams"
+      },
+      "errors": [
+        {
+          "code": -32603,
+          "message": "Internal error"
+        }
+      ]
     }
   ],
   "components": {
@@ -815,11 +815,6 @@
           "schedule": {
             "$ref": "#/components/schemas/AutomationSchedule"
           },
-          "schema_version": {
-            "const": 2,
-            "title": "Schema Version",
-            "type": "integer"
-          },
           "target": {
             "$ref": "#/components/schemas/SessionAutomationTargetResponse"
           },
@@ -833,7 +828,6 @@
           "created_at",
           "next_run_at",
           "schedule",
-          "schema_version",
           "target",
           "payload"
         ],
@@ -2274,80 +2268,6 @@
           "params"
         ]
       },
-      "SubscribeSessionRequest": {
-        "additionalProperties": false,
-        "type": "object",
-        "title": "SubscribeSessionRequest",
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "method": {
-            "const": "subscription.subscribe",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/SessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ]
-      },
-      "UnsubscribeSessionRequest": {
-        "additionalProperties": false,
-        "type": "object",
-        "title": "UnsubscribeSessionRequest",
-        "properties": {
-          "jsonrpc": {
-            "const": "2.0",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "method": {
-            "const": "subscription.unsubscribe",
-            "type": "string"
-          },
-          "params": {
-            "$ref": "#/components/schemas/SessionParams"
-          }
-        },
-        "required": [
-          "jsonrpc",
-          "method",
-          "params"
-        ]
-      },
       "PrepareTurnRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -2484,6 +2404,80 @@
           },
           "method": {
             "const": "turn.cancel",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "SubscribeSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SubscribeSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "subscription.subscribe",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "UnsubscribeSessionRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UnsubscribeSessionRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "subscription.unsubscribe",
             "type": "string"
           },
           "params": {

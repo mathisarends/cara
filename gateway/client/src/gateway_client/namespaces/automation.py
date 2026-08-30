@@ -45,7 +45,6 @@ class Automations:
         session_id: UUID,
         automation_id: str,
     ) -> AutomationResponse:
-        """Get an automation belonging to a conversation session."""
         params = GetAutomationParams(
             session_id=session_id,
             automation_id=automation_id,
@@ -64,7 +63,6 @@ class Automations:
         payload: ReminderAutomationPayload,
         name: str | None | None = None,
     ) -> AutomationResponse:
-        """Create an automation for a conversation session."""
         params = CreateAutomationParams(
             session_id=session_id,
             schedule=schedule,
@@ -86,7 +84,6 @@ class Automations:
         payload: ReminderAutomationPayload,
         name: str | None | None = None,
     ) -> AutomationResponse:
-        """Replace the schedule and payload of an automation."""
         params = UpdateAutomationParams(
             session_id=session_id,
             automation_id=automation_id,
@@ -106,7 +103,6 @@ class Automations:
         session_id: UUID,
         automation_id: str,
     ) -> DeleteAutomationResponse:
-        """Delete an automation belonging to a conversation session."""
         params = DeleteAutomationParams(
             session_id=session_id,
             automation_id=automation_id,
