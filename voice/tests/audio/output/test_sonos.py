@@ -95,8 +95,8 @@ def test_start_opens_a_streaming_clip_and_writes_a_wav_header() -> None:
             "priority": ClipPriority.HIGH,
             "clip_type": ClipType.CUSTOM,
             "led_behavior": ClipLEDBehavior.WHITE_LED_QUICK_BREATHING,
-            # 1.5s of head start at 16 kHz mono 16-bit
-            "prebuffer_bytes": 48_000,
+            # 0.25s of head start at 16 kHz mono 16-bit
+            "prebuffer_bytes": 8_000,
         }
     ]
     assert bytes(client.stream.written) == _HEADER
