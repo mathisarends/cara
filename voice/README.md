@@ -52,6 +52,23 @@ listen, `prompt()` to speak unprompted) for buttons, schedulers, etc.
 server, Voice consumes that existing event stream instead of submitting a
 duplicate turn and speaks the result.
 
+## Static tool acknowledgements
+
+When the agent starts a tool without first speaking, Voice immediately plays a
+short acknowledgement from `voice/static/acknowledgements`. The WAV files are
+loaded into memory when `VoiceChannel` is constructed, so this path does not
+open a TTS connection at runtime.
+
+Regenerate all acknowledgement clips with the configured `DEEPGRAM_API_KEY`:
+
+```powershell
+uv run python scripts/prepare_tool_acknowledgements.py
+```
+
+The generator defaults to Deepgram's `aura-2-athena-en` voice and 24 kHz,
+16-bit mono WAV output. Use `--voice`, `--sample-rate`, or `--output-dir` to
+override those defaults.
+
 ## Layout
 
 ```text

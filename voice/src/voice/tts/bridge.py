@@ -55,19 +55,27 @@ class TextToSpeechBridge:
         async with self._state_lock:
             self._active_turn_id = event.turn_id
             self._text_queue = queue
-            self._synthesis_task = asyncio.create_task(
-                self._synthesize(event.turn_id, queue),
-                name=f"voice-tts-{event.turn_id}",
-            )
 
     async def _on_text_chunk(self, event: AssistantTextChunk) -> None:
         if event.chunk:
+            await self._start_synthesis(event.turn_id)
             await self._enqueue(event.turn_id, event.chunk)
 
     async def _on_text_completed(self, event: AssistantTextCompleted) -> None:
+        await self._start_synthesis(event.turn_id)
         task, enqueued = await self._enqueue(event.turn_id, _END)
         if task is not None and enqueued:
             await task
+
+    async def _start_synthesis(self, turn_id: int) -> None:
+        async with self._state_lock:
+            if turn_id != self._active_turn_id or self._text_queue is None:
+                return
+            if self._synthesis_task is None:
+                self._synthesis_task = asyncio.create_task(
+                    self._synthesize(turn_id, self._text_queue),
+                    name=f"voice-tts-{turn_id}",
+                )
 
     async def _synthesize(
         self,
