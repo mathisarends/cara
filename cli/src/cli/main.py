@@ -9,6 +9,7 @@ from pyrpckit.client import RpcClientError
 
 from cli.chat import ChatSession
 from cli.console import Console
+from cli.keyboard import Keyboard
 from gateway_client import GatewayClient, WebSocketTransport
 from gateway_client.models import SessionChannel
 
@@ -17,6 +18,8 @@ DEFAULT_CHANNEL = "cli"
 
 
 def main() -> None:
+    # Tool markers and the prompt glyph are outside the Windows default codepage.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     load_dotenv()
     args = _parse_args()
     try:
@@ -26,7 +29,11 @@ def main() -> None:
 
 
 async def _run(args: argparse.Namespace) -> None:
-    console = Console(color=not args.no_color and sys.stdout.isatty())
+    keyboard = Keyboard()
+    console = Console(
+        color=not args.no_color and sys.stdout.isatty(),
+        interactive=keyboard.interactive and sys.stdout.isatty(),
+    )
     console.banner(args.url)
     token = os.environ.get("CARA_GATEWAY_TOKEN")
     if not token:
@@ -39,8 +46,8 @@ async def _run(args: argparse.Namespace) -> None:
         raise SystemExit(1) from error
 
     channel = SessionChannel(name=args.channel, account_id=args.account)
-    async with client:
-        chat = ChatSession(client, console, channel, trace=args.events)
+    async with client, keyboard:
+        chat = ChatSession(client, console, keyboard, channel, trace=args.events)
         try:
             await chat.run(args.session)
         except RpcClientError as error:

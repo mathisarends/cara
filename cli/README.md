@@ -5,6 +5,12 @@ during development. Connects over JSON-RPC/WebSocket via
 [`gateway_client`](../gateway/client), opens or resumes a session on a given
 channel, and renders the streamed reply — including tool-call events — live.
 
+Typing stays live while a turn runs: a message sent during a turn is queued
+with `turn.steer` and reaches the model at its next tool-call boundary, and
+`esc` interrupts the turn so anything still queued is resent as a new turn.
+Both need a terminal; with stdin redirected the client falls back to reading
+whole lines, where `esc` is unavailable and `/cancel` interrupts instead.
+
 ## Running
 
 ```bash
@@ -27,7 +33,8 @@ In-session commands: `/new`, `/session`, `/history`, `/events`, `/cancel`,
 
 ```text
 cli/src/cli/
-├── main.py      argument parsing, connection, top-level error handling
-├── chat.py       ChatSession: session lifecycle, REPL commands, rendering
-└── console.py    ANSI-colored terminal output helpers
+├── main.py       argument parsing, connection, top-level error handling
+├── chat.py       ChatSession: session lifecycle, commands, steering, rendering
+├── keyboard.py   raw-mode key events from stdin, with a line-mode fallback
+└── console.py    stdout: colored output above a live prompt line
 ```
