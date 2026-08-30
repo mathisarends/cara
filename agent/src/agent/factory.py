@@ -48,6 +48,6 @@ class AgentFactory:
         )
 
     async def prewarm_model(self) -> ChatCodex:
-        model = create_codex_model(self._settings.default_model)
+        model = create_codex_model(self._settings.models.default)
         await model.prewarm()
         return model

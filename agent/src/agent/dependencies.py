@@ -73,7 +73,10 @@ class ConfiguredDependencies(DependencyProvider):
 
     @provide
     def model_factories(self, settings: AgentSettings) -> _ModelFactories:
-        return {model.value: _codex_model_factory(model) for model in settings.models}
+        return {
+            model.value: _codex_model_factory(model)
+            for model in settings.models.available
+        }
 
     @provide
     def model_switch(
@@ -83,7 +86,7 @@ class ConfiguredDependencies(DependencyProvider):
     ) -> ModelSwitch:
         return ModelSwitch.configurable(
             model_factories,
-            default=settings.default_model.value,
+            default=settings.models.default.value,
             reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
             initial_model=self._initial_model,
         )

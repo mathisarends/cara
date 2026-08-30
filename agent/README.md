@@ -8,7 +8,7 @@ switching, reminders).
 ## Public API
 
 ```python
-from agent import Agent, AgentFactory, AgentSettings, ModelSwitch, SystemPrompt, WorkspaceSettings
+from agent import Agent, AgentFactory, AgentSettings, ModelSettings, ModelSwitch, SystemPrompt, WorkspaceSettings
 ```
 
 Everything else is imported directly from its module (`agent.tools`,

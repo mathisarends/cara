@@ -181,8 +181,10 @@ def test_cara_plugin_rebuilds_context_and_streams_complete_tool_events(
     sessions = _SessionReader(context)
     runner = create_plugin().create(
         {
-            "models": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
-            "default_model": "gpt-5.6-sol",
+            "models": {
+                "default": "gpt-5.6-sol",
+                "available": ["gpt-5.3-codex-spark", "gpt-5.6-sol"],
+            },
             "workspace": {"root": str(tmp_path)},
         },
         AgentPluginContext(sessions),
@@ -314,11 +316,13 @@ def test_cara_plugin_rejects_unknown_timezone() -> None:
 def test_cara_plugin_rejects_unavailable_default_model() -> None:
     sessions = _SessionReader(AgentContext(()))
 
-    with pytest.raises(ValidationError, match="default_model must be included"):
+    with pytest.raises(ValidationError, match="default model must be included"):
         create_plugin().create(
             {
-                "models": ["gpt-5.6-sol"],
-                "default_model": "gpt-5.4",
+                "models": {
+                    "default": "gpt-5.4",
+                    "available": ["gpt-5.6-sol"],
+                },
             },
             AgentPluginContext(sessions),
         )
@@ -333,7 +337,7 @@ def test_cara_plugin_rejects_invalid_model_lists(models: list[str]) -> None:
 
     with pytest.raises(ValidationError, match="models"):
         create_plugin().create(
-            {"models": models},
+            {"models": {"available": models}},
             AgentPluginContext(sessions),
         )
 
