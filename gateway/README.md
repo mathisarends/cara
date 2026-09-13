@@ -7,12 +7,9 @@ runtime loaded via Python entry points. [`voice`](../clients/voice) and
 [`cli`](../clients/cli) are just JSON-RPC clients of this process — neither talks
 to an LLM directly.
 
-Also home to two independently installable sibling packages:
-[`codegen`](codegen#readme) (`gateway-codegen`), the generator that reads
-this package's exported OpenRPC schema and regenerates
-[`gateway-client`](../generated/gateway_client#readme); and
-[`plugin_api`](plugin_api#readme) (`agent-plugin-api`), the dependency-free
-contract between this server and agent plugins.
+Also home to [`plugin_api`](plugin_api#readme) (`agent-plugin-api`), the
+independently installable, dependency-free contract between this server and
+agent plugins.
 
 ```text
 Voice / CLI client --JSON-RPC/WS--> gateway --> ConversationService
@@ -29,6 +26,7 @@ $env:CARA_GATEWAY_TOKEN = python -c "import secrets; print(secrets.token_urlsafe
 uv run cara-gateway          # applies migrations, serves on 127.0.0.1:8000
 uv run gateway-migrate         # migrations standalone
 uv run cara-gateway-schema      # regenerate gateway/schema/*.json
+uv run cara-gateway-client-generate gateway/schema/gateway.openrpc.json  # regenerate gateway_client
 ```
 
 `CARA_GATEWAY_TOKEN` (>=32 chars) is required for the `/v1/gateway` WebSocket
@@ -44,7 +42,7 @@ application/domain/infrastructure/presentation layers and exposes one
 ```text
 gateway/src/gateway/
 ├── app.py, container.py, lifespan.py, main.py    composition root, startup/shutdown, uvicorn entry
-├── presentation/       rpc/ (channel, contract, schema export), websocket/ (the /v1/gateway route)
+├── presentation/       rpc/ (channel, contract, schema export, client codegen), websocket/ (the /v1/gateway route)
 ├── features/            health/, automation/, conversation/ (feature-owned RPC methods and events)
 ├── infrastructure/      SQLModel ORM, generic Repository, Alembic runner, Scheduler wiring
 └── agent_plugins/        entry-point discovery, loading, validation, DI wiring for the AgentRunner
@@ -58,8 +56,10 @@ handlers through `Inject`. Conversation also owns its subscription and event
 definitions. `presentation/rpc/channels/gateway.py` composes the modules into
 one `RpcChannel`; that same channel serves requests and produces the contract.
 
-`cara-gateway-schema` exports `gateway.openrpc.json`. `gateway-codegen`
-regenerates the client from it. Both artifacts should be updated together.
+`cara-gateway-schema` exports `gateway.openrpc.json`.
+`cara-gateway-client-generate` regenerates
+[`gateway-client`](../generated/gateway_client#readme) from it. Both
+artifacts should be updated together.
 The WebSocket uses JSON-RPC 2.0; `session.event` carries server notifications.
 Subscriptions are in-memory per process.
 
@@ -100,7 +100,8 @@ local SQLite file.
 
 - [`agent_plugin_api`](plugin_api) — the plugin loading contract.
 - [`scheduler`](../libs/scheduler) — periodic housekeeping jobs.
-- [`gateway-codegen`](codegen) reads this package's exported OpenRPC
-  schema to regenerate [`gateway-client`](../generated/gateway_client).
+- `cara-gateway-client-generate` (`presentation/rpc/client_codegen.py`) reads
+  this package's exported OpenRPC schema to regenerate
+  [`gateway-client`](../generated/gateway_client).
 - Drives [`agent`](../agent) as its production plugin; consumed by
   [`voice`](../clients/voice) and [`cli`](../clients/cli) as JSON-RPC clients.

@@ -21,7 +21,6 @@ members = [
     "gateway",
     "gateway/plugin_api",
     "generated/gateway_client",
-    "gateway/codegen",
     "libs/llm",
     "libs/scheduler",
     "memory",
@@ -36,7 +35,6 @@ cli = { workspace = true }
 gateway-server = { workspace = true }
 agent-plugin-api = { workspace = true }
 gateway-client = { workspace = true }
-gateway-codegen = { workspace = true }
 llm = { workspace = true }
 memory = { workspace = true }
 scheduler = { workspace = true }
@@ -65,7 +63,6 @@ known-first-party = [
     "gateway",
     "agent_plugin_api",
     "gateway_client",
-    "gateway_codegen",
     "llm",
     "memory",
     "scheduler",

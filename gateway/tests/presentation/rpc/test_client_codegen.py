@@ -2,18 +2,18 @@ from pathlib import Path
 
 import pytest
 
-from gateway_codegen import generate
+from gateway.presentation.rpc.client_codegen import generate
 
 
 def test_checked_in_client_matches_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    package_root = Path(__file__).parents[3]
-    monkeypatch.chdir(package_root / "gateway")
+    repo_root = Path(__file__).parents[4]
+    monkeypatch.chdir(repo_root / "gateway")
 
     changed = generate(
-        package_root / "gateway" / "schema" / "gateway.openrpc.json",
-        package_root / "generated" / "gateway_client" / "src" / "gateway_client",
+        repo_root / "gateway" / "schema" / "gateway.openrpc.json",
+        repo_root / "generated" / "gateway_client" / "src" / "gateway_client",
         check=True,
     )
 
@@ -21,9 +21,9 @@ def test_checked_in_client_matches_schema(
 
 
 def test_every_client_module_is_marked_as_generated() -> None:
-    package_root = Path(__file__).parents[3]
+    repo_root = Path(__file__).parents[4]
     client_source = (
-        package_root / "generated" / "gateway_client" / "src" / "gateway_client"
+        repo_root / "generated" / "gateway_client" / "src" / "gateway_client"
     )
 
     for module in client_source.rglob("*.py"):

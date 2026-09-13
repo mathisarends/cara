@@ -23,6 +23,7 @@ dependencies = [
 [project.scripts]
 cara-gateway = "gateway.main:main"
 cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
+cara-gateway-client-generate = "gateway.presentation.rpc.client_codegen:main"
 gateway-migrate = "gateway.infrastructure.database.migrations:main"
 
 [project.entry-points."cara.agent_plugins"]
@@ -37,6 +38,8 @@ dev = [
     "httpx2>=2.9.1",
     "pytest>=8.0.0",
     "pytest-asyncio>=1.0.0",
+    "pyrpckit[codegen]==0.4.0",
+    "ruff>=0.14.0",
 ]
 
 [tool.hatch.build.targets.wheel]

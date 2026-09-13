@@ -76,9 +76,9 @@ session-per-channel reuse (`session.open`) for free from the gateway.
 
 ## Packages
 
-All eleven packages are members of one `uv` workspace (`pyproject.toml`). The Gateway server lives
-at `gateway/`, alongside its code generator (`gateway/codegen/`) and plugin contract
-(`gateway/plugin_api/`); the generated client lives separately at `generated/gateway_client/`. All four
+All packages are members of one `uv` workspace (`pyproject.toml`). The Gateway server lives
+at `gateway/`, alongside its plugin contract (`gateway/plugin_api/`); the generated client lives
+separately at `generated/gateway_client/`. All three
 remain independently installable; the graph below is their
 actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
 relationship that is _not_ a package dependency: `gateway` never imports `agent` — it only
@@ -97,14 +97,13 @@ flowchart TD
     gateway -.->|"entry point:<br/>cara.agent_plugins"| agent
 
     gateway_client
-    gateway_codegen
     agent_plugin_api
     scheduler
     llm
     retrieval
 ```
 
-The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`, `gateway_codegen`,
+The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`,
 `llm`, `retrieval`, `scheduler`) have zero intra-workspace dependencies — each is usable and
 testable standalone.
 
@@ -114,7 +113,6 @@ testable standalone.
 | [`agent`](agent#readme)                       | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
 | [`agent_plugin_api`](gateway/plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                |
 | [`gateway-client`](generated/gateway_client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
-| [`gateway-codegen`](gateway/codegen#readme)   | Generator and Jinja2 templates for the complete Gateway client source package.                 |
 | [`voice`](clients/voice#readme)               | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
 | [`cli`](clients/cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](libs/llm#readme)                      | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
