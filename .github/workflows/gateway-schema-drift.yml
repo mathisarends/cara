@@ -34,11 +34,11 @@ jobs:
       - name: Regenerate Python client
         run: >-
           uv run --frozen --package gateway-codegen cara-gateway-client-generate
-          gateway/server/schema/gateway.openrpc.json
+          gateway/schema/gateway.openrpc.json
 
       - name: Check generated artifacts for drift
         run: >-
           git diff --exit-code --
-          gateway/server/schema/gateway.schema.json
-          gateway/server/schema/gateway.openrpc.json
-          gateway/client/src/gateway_client
+          gateway/schema/gateway.schema.json
+          gateway/schema/gateway.openrpc.json
+          generated/gateway_client/src/gateway_client

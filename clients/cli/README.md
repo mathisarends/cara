@@ -2,7 +2,7 @@
 
 Small interactive terminal client for manually exercising the Cara Gateway
 during development. Connects over JSON-RPC/WebSocket via
-[`gateway_client`](../../gateway/client), opens or resumes a session on a given
+[`gateway_client`](../../generated/gateway_client), opens or resumes a session on a given
 channel, and renders the streamed reply — including tool-call events — live.
 
 Typing stays live while a turn runs: a message sent during a turn is queued
@@ -62,8 +62,8 @@ headline and no result.
 
 ## Dependencies
 
-- [`gateway_client`](../../gateway/client) — typed RPC client and event models.
-- A running [`gateway-server`](../../gateway/server) to connect to.
+- [`gateway_client`](../../generated/gateway_client) — typed RPC client and event models.
+- A running [`gateway-server`](../../gateway) to connect to.
 
 ## Layout
 

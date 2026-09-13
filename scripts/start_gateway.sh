@@ -13,7 +13,7 @@ gateway_run=(uv run --package gateway-server --with-editable ./agent)
 if [[ "${CARA_RELOAD:-0}" == "1" ]]; then
     echo "CARA_RELOAD=1: hot reload on, the agent's bash tool will not work." >&2
     exec "${gateway_run[@]}" python -m uvicorn gateway.app:app --reload \
-        --reload-dir gateway/server/src \
+        --reload-dir gateway/src \
         --reload-dir agent/src \
         --reload-dir libs/llm/src \
         "$@"

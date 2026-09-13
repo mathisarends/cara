@@ -25,7 +25,7 @@ class AgentPlugin(Protocol):
 Registered via the `cara.agent_plugins` entry-point group; the Gateway
 validates the loaded object against these `@runtime_checkable` protocols and
 checks `api_version` against `AGENT_PLUGIN_API_VERSION` before invoking it —
-see [`gateway-server`](../server#agent-plugin-system) for the loading
+see [`gateway-server`](..#agent-plugin-system) for the loading
 sequence.
 
 Key types: `AgentChannelRef`, `AgentSessionRef`, `AgentRunRequest`,
@@ -40,5 +40,5 @@ turn that has already ended is dropped, not an error.
 
 ## Dependencies
 
-None. Depended on by [`gateway-server`](../server) (the loader/contract) and
+None. Depended on by [`gateway-server`](..) (the loader/contract) and
 by any installed plugin, e.g. [`agent`](../../agent).

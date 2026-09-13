@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pyrpckit.codegen import PythonClientOptions, render_python_client, write_files
 
-_DEFAULT_OUTPUT = Path("gateway/client/src/gateway_client")
+_DEFAULT_OUTPUT = Path("generated/gateway_client/src/gateway_client")
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
 _RUFF = str(Path(sys.executable).with_name("ruff.exe"))
 

@@ -1,7 +1,7 @@
 # voice
 
 Cara's local audio-pipeline client: wake word detection, recording,
-speech-to-text, an agent turn (over [`gateway-server`](../../gateway/server) by
+speech-to-text, an agent turn (over [`gateway-server`](../../gateway) by
 default), text-to-speech, and playback, wired into one event-driven
 `VoiceChannel`. Layers acoustic echo cancellation and configurable barge-in on
 top, so a user can interrupt the assistant mid-response; supports local
@@ -97,7 +97,7 @@ async with agent_session:
 
 ## Dependencies
 
-- [`gateway_client`](../../gateway/client) via `GatewayAgentSession` — the sole
+- [`gateway_client`](../../generated/gateway_client) via `GatewayAgentSession` — the sole
   path to an LLM.
 - Injecting a `VolumeControl`-capable `AudioOutput` into `agent`'s tool
   context is what enables its volume tools — see [repo root

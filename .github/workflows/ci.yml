@@ -27,7 +27,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Run Gateway tests
-        run: uv run --frozen --package gateway-server pytest gateway/server/tests -q
+        run: uv run --frozen --package gateway-server pytest gateway/tests -q
 
   gateway-client:
     name: Gateway client tests
@@ -50,7 +50,7 @@ jobs:
       - name: Run Gateway client tests
         run: >-
           uv run --frozen --package gateway-client
-          pytest gateway/client/tests -q
+          pytest generated/gateway_client/tests -q
 
   gateway-codegen:
     name: Gateway codegen tests

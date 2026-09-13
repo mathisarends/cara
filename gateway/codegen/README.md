@@ -8,7 +8,7 @@ the bearer-token `connect_gateway` helper and checks generated output for drift.
 ```bash
 uv run --package gateway-server cara-gateway-schema
 uv run --package gateway-codegen cara-gateway-client-generate \
-  gateway/server/schema/gateway.openrpc.json
+  gateway/schema/gateway.openrpc.json
 ```
 
 Pass `--check` to verify the checked-in client without writing files.

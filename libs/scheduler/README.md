@@ -22,5 +22,5 @@ multiple schedulers against one database can double-run a job.
 ## Dependencies
 
 None beyond the standard library for `MemoryJobStore`; `SqliteJobStore` needs
-a host-supplied payload `Codec`. Used by [`gateway-server`](../../gateway/server)
+a host-supplied payload `Codec`. Used by [`gateway-server`](../../gateway)
 for periodic housekeeping via `SchedulerProvider`.

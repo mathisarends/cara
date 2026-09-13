@@ -37,12 +37,12 @@ src/agent/
 - `mm-agenttoolkit` — tool registration, DI, schema generation, skills,
   workspace access, and Docker sandboxing. This package only defines *what*
   tools Cara has and *how* its loop/prompt are built.
-- [`gateway-server`](../gateway/server) discovers and drives this package as
+- [`gateway-server`](../gateway) discovers and drives this package as
   a plugin via the `cara.agent_plugins` entry point
   (`agent.plugin:create_plugin`), speaking only the
   [`agent_plugin_api`](../gateway/plugin_api) contract — the integration
   boundary the Gateway drives the agent through.
-- [`gateway-client`](../gateway/client) is how the reminder tools call back
+- [`gateway-client`](../generated/gateway_client) is how the reminder tools call back
   into the Gateway's automation API. They are bound to the session and turn
   the agent is running in, and stay hidden from the model unless
   `CARA_GATEWAY_TOKEN` is set.

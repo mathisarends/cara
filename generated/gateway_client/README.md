@@ -2,7 +2,7 @@
 
 Fully typed Python client for the Cara Gateway JSON-RPC 2.0 WebSocket API.
 `pyrpckit` 0.4.0 generates the models, namespace clients, WebSocket transport,
-and internal runtime from `gateway/server/schema/gateway.openrpc.json`.
+and internal runtime from `gateway/schema/gateway.openrpc.json`.
 `gateway-codegen` adds the Gateway bearer-token connection helper.
 The package does not import `gateway-server`.
 
@@ -27,7 +27,7 @@ keyword arguments, and return parsed Pydantic models. The client exports
 ```bash
 uv run --package gateway-server cara-gateway-schema
 uv run --package gateway-codegen cara-gateway-client-generate \
-  gateway/server/schema/gateway.openrpc.json
+  gateway/schema/gateway.openrpc.json
 ```
 
 All Python files under `src/gateway_client/` are generated; do not edit them

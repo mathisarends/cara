@@ -8,8 +8,8 @@ from pyrpckit.schema import render_openrpc
 
 from gateway.presentation.rpc.contract import gateway_contract
 
-_REPO_ROOT = Path(__file__).resolve().parents[6]
-_DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "server" / "schema"
+_REPO_ROOT = Path(__file__).resolve().parents[5]
+_DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "schema"
 
 
 def render_openrpc_schema(contract: rpc.RpcContract) -> dict[str, Any]:

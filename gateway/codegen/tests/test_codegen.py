@@ -12,8 +12,8 @@ def test_checked_in_client_matches_schema(
     monkeypatch.chdir(package_root / "gateway")
 
     changed = generate(
-        package_root / "gateway" / "server" / "schema" / "gateway.openrpc.json",
-        package_root / "gateway" / "client" / "src" / "gateway_client",
+        package_root / "gateway" / "schema" / "gateway.openrpc.json",
+        package_root / "generated" / "gateway_client" / "src" / "gateway_client",
         check=True,
     )
 
@@ -22,7 +22,9 @@ def test_checked_in_client_matches_schema(
 
 def test_every_client_module_is_marked_as_generated() -> None:
     package_root = Path(__file__).parents[3]
-    client_source = package_root / "gateway" / "client" / "src" / "gateway_client"
+    client_source = (
+        package_root / "generated" / "gateway_client" / "src" / "gateway_client"
+    )
 
     for module in client_source.rglob("*.py"):
         lines = module.read_text(encoding="utf-8").splitlines()

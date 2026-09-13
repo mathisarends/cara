@@ -82,7 +82,7 @@ Generate the checked-in contract and client with:
 ```bash
 uv run --package gateway-server cara-gateway-schema
 uv run --package gateway-codegen cara-gateway-client-generate \
-  gateway/server/schema/gateway.openrpc.json
+  gateway/schema/gateway.openrpc.json
 ```
 
 `schema/gateway.openrpc.json` contains method parameters, results, errors,

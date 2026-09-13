@@ -6,4 +6,4 @@ readonly PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${PROJECT_DIR}"
 uv run --package gateway-codegen cara-gateway-client-generate \
-    gateway/server/schema/gateway.openrpc.json
+    gateway/schema/gateway.openrpc.json
