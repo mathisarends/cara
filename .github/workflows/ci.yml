@@ -97,4 +97,4 @@ jobs:
         run: uv python install 3.13
 
       - name: Run Voice tests
-        run: uv run --frozen --package voice pytest voice/tests -q
+        run: uv run --frozen --package voice pytest clients/voice/tests -q

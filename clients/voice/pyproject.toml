@@ -34,4 +34,4 @@ packages = ["src/voice"]
 addopts = "--import-mode=importlib"
 
 [tool.ruff]
-extend = "../pyproject.toml"
+extend = "../../pyproject.toml"

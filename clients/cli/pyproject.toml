@@ -23,4 +23,4 @@ packages = ["src/cli"]
 gateway-client = { workspace = true }
 
 [tool.ruff]
-extend = "../pyproject.toml"
+extend = "../../pyproject.toml"

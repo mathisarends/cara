@@ -189,7 +189,7 @@ wheels = [
 [[package]]
 name = "cli"
 version = "0.1.0"
-source = { editable = "cli" }
+source = { editable = "clients/cli" }
 dependencies = [
     { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1547,7 +1547,7 @@ deepgram = [
 [[package]]
 name = "voice"
 version = "0.1.0"
-source = { editable = "voice" }
+source = { editable = "clients/voice" }
 dependencies = [
     { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },

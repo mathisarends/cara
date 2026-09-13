@@ -16,7 +16,8 @@ environments = [
 [tool.uv.workspace]
 members = [
     "agent",
-    "cli",
+    "clients/cli",
+    "clients/voice",
     "gateway/server",
     "gateway/plugin_api",
     "gateway/client",
@@ -25,7 +26,6 @@ members = [
     "libs/retrieval",
     "libs/scheduler",
     "memory",
-    "voice",
 ]
 
 [tool.pytest.ini_options]

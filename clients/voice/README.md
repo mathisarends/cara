@@ -1,7 +1,7 @@
 # voice
 
 Cara's local audio-pipeline client: wake word detection, recording,
-speech-to-text, an agent turn (over [`gateway-server`](../gateway/server) by
+speech-to-text, an agent turn (over [`gateway-server`](../../gateway/server) by
 default), text-to-speech, and playback, wired into one event-driven
 `VoiceChannel`. Layers acoustic echo cancellation and configurable barge-in on
 top, so a user can interrupt the assistant mid-response; supports local
@@ -9,7 +9,7 @@ playback and Sonos speakers.
 
 Voice does **not** talk to an LLM directly — `voice.llm.GatewayAgentSession`
 streams turns over the Gateway's JSON-RPC WebSocket, the same protocol
-[`cli`](../cli) uses. `EchoAgentSession` exists for tests/examples without a
+[`cli`](../../clients/cli) uses. `EchoAgentSession` exists for tests/examples without a
 running gateway. STT and TTS are both streamed rather than run in one shot,
 and barge-in + echo cancellation let a user interrupt mid-sentence.
 
@@ -55,7 +55,7 @@ duplicate turn and speaks the result.
 ## Static tool acknowledgements
 
 When the agent starts a tool without first speaking, Voice immediately plays a
-short acknowledgement from `voice/static/acknowledgements`. The WAV files are
+short acknowledgement from `clients/voice/static/acknowledgements`. The WAV files are
 loaded into memory when `VoiceChannel` is constructed, so this path does not
 open a TTS connection at runtime.
 
@@ -72,7 +72,7 @@ override those defaults.
 ## Layout
 
 ```text
-voice/src/voice/
+clients/voice/src/voice/
 ├── channel.py          VoiceChannel: persistent activation channel
 ├── audio/                physical I/O, buffering, volume
 ├── activation/            what may start a turn
@@ -97,8 +97,8 @@ async with agent_session:
 
 ## Dependencies
 
-- [`gateway_client`](../gateway/client) via `GatewayAgentSession` — the sole
+- [`gateway_client`](../../gateway/client) via `GatewayAgentSession` — the sole
   path to an LLM.
 - Injecting a `VolumeControl`-capable `AudioOutput` into `agent`'s tool
   context is what enables its volume tools — see [repo root
-  README](../README.md#audio-outputs).
+  README](../../README.md#audio-outputs).

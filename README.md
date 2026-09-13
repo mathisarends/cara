@@ -11,7 +11,7 @@ The voice pipeline puts particular emphasis on feeling immediate rather than fol
 are both streamed, and barge-in plus acoustic echo cancellation let you interrupt Cara mid-sentence.
 Ambient side effects (currently Philips Hue lighting reacting to listening/processing/speaking) make
 the assistant felt, not just heard. See [Architecture](#architecture) below and the
-[`voice`](voice#readme) package for how that's actually built.
+[`voice`](clients/voice#readme) package for how that's actually built.
 
 This is a learning project built to understand, hands-on, how an agent-gateway architecture like
 [OpenClaw's](https://github.com/openclaw/openclaw) actually works — several concepts here (session
@@ -32,8 +32,8 @@ than invented from scratch.
 
 ```mermaid
 flowchart TD
-    Voice["voice client<br/>(voice/, examples/voice_main.py)"]
-    Cli["cli client<br/>(cli/, cara-chat)"]
+    Voice["voice client<br/>(clients/voice/, examples/voice_main.py)"]
+    Cli["cli client<br/>(clients/cli/, cara-chat)"]
     Client["gateway_client<br/>(generated, typed)"]
     Gateway["gateway (FastAPI)<br/>sessions · turns · persistence · event fan-out"]
     Plugin["configured AgentRunner plugin<br/>(installed package, discovered by<br/>Python entry point at startup)"]
@@ -70,7 +70,7 @@ Three ideas hold this together:
   [gateway server → Agent plugin system](gateway/server#agent-plugin-system) and
   [`AGENT_PLUGIN_CONCEPT.md`](AGENT_PLUGIN_CONCEPT.md) for the design rationale.
 
-[`voice`](voice#readme) and [`cli`](cli#readme) are both thin clients built on
+[`voice`](clients/voice#readme) and [`cli`](clients/cli#readme) are both thin clients built on
 [`gateway_client`](gateway/client#readme): neither talks to an LLM directly, and both get
 session-per-channel reuse (`session.open`) for free from the gateway.
 
@@ -114,8 +114,8 @@ testable standalone.
 | [`agent_plugin_api`](gateway/plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                |
 | [`gateway-client`](gateway/client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
 | [`gateway-codegen`](gateway/codegen#readme)   | Generator and Jinja2 templates for the complete Gateway client source package.                 |
-| [`voice`](voice#readme)                       | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
-| [`cli`](cli#readme)                           | Interactive terminal client (`cara-chat`) for the gateway.                                     |
+| [`voice`](clients/voice#readme)               | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
+| [`cli`](clients/cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](libs/llm#readme)                      | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
 | [`retrieval`](libs/retrieval#readme)          | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
 | [`scheduler`](libs/scheduler#readme)          | A small in-memory/SQLite async scheduler, independent of agent runtimes.                       |
@@ -151,7 +151,7 @@ uv run python examples/voice_main.py
 
 Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you
 stop speaking, answers through the speakers, and briefly listens for a follow-up.
-Press Ctrl+C to stop the client. See [`voice`](voice#readme) for the full pipeline.
+Press Ctrl+C to stop the client. See [`voice`](clients/voice#readme) for the full pipeline.
 
 `examples/voice_activation_main.py` is a minimal variant that additionally
 starts a turn on a timer, standing in for a button or any other out-of-band
@@ -168,7 +168,7 @@ uv run cara-chat
 ```
 
 `cara-chat` reuses the current session on its channel across runs, so restarting it continues the
-same conversation. Use `/quit`, `/exit`, `/q`, or Ctrl+C to leave. See [`cli`](cli#readme) for the
+same conversation. Use `/quit`, `/exit`, `/q`, or Ctrl+C to leave. See [`cli`](clients/cli#readme) for the
 full command list.
 
 ## Workspace and Docker binds
