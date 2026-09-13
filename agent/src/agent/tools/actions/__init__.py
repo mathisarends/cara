@@ -1,7 +1,6 @@
 from agenttoolkit import Tools
 
 from .filesystem import register_filesystem_tools
-from .memory import register_memory_tools
 from .model_control import register_model_control_tools
 from .reminders import register_reminder_tools
 from .shell import register_shell_tools
@@ -24,7 +23,6 @@ def register_tools(tools: Tools) -> None:
         register_volume_tools,
         register_shell_tools,
         register_filesystem_tools,
-        register_memory_tools,
         register_reminder_tools,
     ):
         register(tools)
