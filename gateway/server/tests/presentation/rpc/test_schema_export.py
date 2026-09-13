@@ -1,21 +1,16 @@
 import json
 
-import pyrpckit as rpc
-
-from gateway.features.conversation.presentation import CONVERSATION_PROTOCOL
+from gateway.presentation.rpc.contract import gateway_contract
 from gateway.presentation.rpc.schema_export import (
-    render_gateway_schema,
     render_openrpc_schema,
-    write_gateway_schemas,
+    write_gateway_schema,
 )
 
 
 def test_generated_openrpc_keeps_method_result_and_event_payload_links() -> None:
-    protocol = rpc.RpcProtocol(CONVERSATION_PROTOCOL)
-
-    document = render_openrpc_schema(protocol)
+    document = render_openrpc_schema(gateway_contract())
     methods = {method["name"]: method for method in document["methods"]}
-    events = {event["name"]: event for event in document["x-rpc-events"]}
+    events = {event["name"]: event for event in document["x-rpc-notification-types"]}
 
     assert methods["session.get"]["result"]["schema"] == {
         "$ref": "#/components/schemas/SessionSnapshotResponse"
@@ -30,13 +25,9 @@ def test_generated_openrpc_keeps_method_result_and_event_payload_links() -> None
 
 
 def test_schema_writer_creates_reproducible_documents(tmp_path) -> None:
-    protocol = rpc.RpcProtocol(CONVERSATION_PROTOCOL)
+    contract = gateway_contract()
+    openrpc_path = write_gateway_schema(tmp_path, contract)
 
-    gateway_path, openrpc_path = write_gateway_schemas(tmp_path, protocol)
-
-    assert json.loads(gateway_path.read_text(encoding="utf-8")) == (
-        render_gateway_schema(protocol)
-    )
     assert json.loads(openrpc_path.read_text(encoding="utf-8")) == (
-        render_openrpc_schema(protocol)
+        render_openrpc_schema(contract)
     )

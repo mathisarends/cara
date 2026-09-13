@@ -1,5 +1,3 @@
-import pyrpckit as rpc
-
 from gateway.features.automation.application import SessionAutomationService
 from gateway.features.automation.presentation.rpc.mapping import (
     automation_origin,
@@ -9,7 +7,6 @@ from gateway.features.automation.presentation.rpc.mapping import (
 )
 from gateway.features.automation.presentation.rpc.schemas import (
     AutomationResponse,
-    AutomationRpcMethod,
     CreateAutomationParams,
     DeleteAutomationParams,
     DeleteAutomationResponse,
@@ -18,14 +15,12 @@ from gateway.features.automation.presentation.rpc.schemas import (
     ListAutomationsResponse,
     UpdateAutomationParams,
 )
-from gateway.presentation.rpc import ResourceNotFoundError
 
 
-class AutomationRpcMethods(rpc.RpcHandler):
+class AutomationRpcMethods:
     def __init__(self, service: SessionAutomationService) -> None:
         self._service = service
 
-    @rpc.method(AutomationRpcMethod.LIST, errors=(rpc.RpcInternalError,))
     async def list_automations(
         self,
         params: ListAutomationsParams,
@@ -36,10 +31,6 @@ class AutomationRpcMethods(rpc.RpcHandler):
             automations=tuple(automation_response(item) for item in automations)
         )
 
-    @rpc.method(
-        AutomationRpcMethod.GET,
-        errors=(ResourceNotFoundError, rpc.RpcInternalError),
-    )
     async def get_automation(
         self,
         params: GetAutomationParams,
@@ -50,10 +41,6 @@ class AutomationRpcMethods(rpc.RpcHandler):
         )
         return automation_response(automation)
 
-    @rpc.method(
-        AutomationRpcMethod.CREATE,
-        errors=(rpc.RpcInvalidParamsError, rpc.RpcInternalError),
-    )
     async def create_automation(
         self,
         params: CreateAutomationParams,
@@ -67,14 +54,6 @@ class AutomationRpcMethods(rpc.RpcHandler):
         )
         return automation_response(automation)
 
-    @rpc.method(
-        AutomationRpcMethod.UPDATE,
-        errors=(
-            ResourceNotFoundError,
-            rpc.RpcInvalidParamsError,
-            rpc.RpcInternalError,
-        ),
-    )
     async def update_automation(
         self,
         params: UpdateAutomationParams,
@@ -89,10 +68,6 @@ class AutomationRpcMethods(rpc.RpcHandler):
         )
         return automation_response(automation)
 
-    @rpc.method(
-        AutomationRpcMethod.DELETE,
-        errors=(ResourceNotFoundError, rpc.RpcInternalError),
-    )
     async def delete_automation(
         self,
         params: DeleteAutomationParams,

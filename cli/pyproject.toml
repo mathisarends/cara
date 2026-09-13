@@ -5,7 +5,7 @@ description = "Interactive console client for manual Cara Gateway testing."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "gateway-client",
-    "pyrpckit==0.2.0",
+    "pyrpckit==0.4.0",
     "python-dotenv>=1.0.0",
 ]
 

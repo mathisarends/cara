@@ -3,8 +3,6 @@ import logging
 from collections import defaultdict
 from uuid import UUID
 
-import pyrpckit as rpc
-
 from gateway.features.conversation.application import (
     ConversationEvent,
     ConversationEventType,
@@ -12,12 +10,10 @@ from gateway.features.conversation.application import (
     SessionService,
 )
 from gateway.features.conversation.presentation.rpc.schemas import (
-    ConversationRpcMethod,
     SessionParams,
     SubscriptionResult,
     UnsubscriptionResult,
 )
-from gateway.presentation.rpc import ResourceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +73,7 @@ class InMemoryEventStream(EventPublisher):
         _log_event(event, delivered)
 
 
-class EventStreamRpcMethods(rpc.RpcHandler):
+class EventStreamRpcMethods:
     def __init__(
         self,
         sessions: SessionService,
@@ -88,31 +84,17 @@ class EventStreamRpcMethods(rpc.RpcHandler):
         self._stream = stream
         self._client_id = client_id
 
-    @rpc.method(
-        ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE,
-        errors=(ResourceNotFoundError, rpc.RpcInternalError),
-    )
     async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
         await self._sessions.get(params.session_id)
         self._stream.subscribe(self._client_id, params.session_id)
         return SubscriptionResult(subscribed=params.session_id)
 
-    @rpc.method(
-        ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE,
-        errors=(rpc.RpcInternalError,),
-    )
     async def unsubscribe_session(
         self,
         params: SessionParams,
     ) -> UnsubscriptionResult:
         self._stream.unsubscribe(self._client_id, params.session_id)
         return UnsubscriptionResult(unsubscribed=params.session_id)
-
-
-EVENT_STREAM_PROTOCOL = rpc.feature(
-    "event_stream",
-    handlers=(EventStreamRpcMethods,),
-)
 
 
 def _log_event(event: ConversationEvent, recipients: int) -> None:

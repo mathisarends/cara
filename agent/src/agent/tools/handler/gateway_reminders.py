@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pyrpckit.client import RpcClientError
 
 from agent.tools.handler.ports import (
     Reminder,
@@ -15,7 +14,7 @@ from agent.tools.handler.ports import (
     RemindOnCron,
 )
 from agent.tools.middleware import ToolError
-from gateway_client import GatewayClient, WebSocketTransport
+from gateway_client import GatewayClient, RpcClientError, connect_gateway
 from gateway_client.models import (
     AtSchedule,
     AutomationResponse,
@@ -113,14 +112,14 @@ class GatewayReminders(Reminders):
     @asynccontextmanager
     async def _client(self) -> AsyncGenerator[GatewayClient]:
         try:
-            transport = await WebSocketTransport.connect(
+            client = await connect_gateway(
                 self._connection.url,
                 token=self._token,
             )
         except OSError as error:
             raise ToolError(f"The gateway is unreachable: {error}") from error
         try:
-            async with GatewayClient(transport) as client:
+            async with client:
                 yield client
         except RpcClientError as error:
             raise ToolError(f"The gateway rejected the request: {error}") from error

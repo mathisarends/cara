@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from gateway_client import WebSocketTransport
+from gateway_client import connect_gateway
 
 
 class _Connection:
@@ -29,17 +29,20 @@ async def test_connect_sends_the_gateway_bearer_token(
         calls.append((url, kwargs))
         return connection
 
-    monkeypatch.setattr("gateway_client.transport.connect", connect)
+    monkeypatch.setattr("gateway_client.authenticated.connect", connect)
 
-    transport = await WebSocketTransport.connect(
+    client = await connect_gateway(
         "ws://gateway.test/v1/gateway",
         token="secret-token",
     )
-    await transport.close()
+    await client.close()
 
     assert calls == [
         (
             "ws://gateway.test/v1/gateway",
-            {"additional_headers": {"Authorization": "Bearer secret-token"}},
+            {
+                "subprotocols": None,
+                "additional_headers": {"Authorization": "Bearer secret-token"},
+            },
         )
     ]

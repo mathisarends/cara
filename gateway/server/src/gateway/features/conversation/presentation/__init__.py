@@ -1,3 +1,3 @@
-from .rpc import CONVERSATION_PROTOCOL, ConversationRpcMethods
+from .rpc import ConversationRpcMethods
 
-__all__ = ["CONVERSATION_PROTOCOL", "ConversationRpcMethods"]
+__all__ = ["ConversationRpcMethods"]

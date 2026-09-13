@@ -56,51 +56,34 @@ turn.completed | turn.failed | turn.cancelled
 
 ## Protocol source and generated specifications
 
-RPC metadata belongs exclusively to presentation handlers. Parameter and result
-types are derived from their annotations:
+RPC methods are free functions registered on a feature-owned `RpcModule`.
+Their Pydantic parameter and result annotations define the wire contract;
+services are resolved with `Inject`:
 
 ```python
-from pyrpckit import method
+from pyrpckit import Inject, RpcModule
 
-@method(
-    "session.get",
-    errors=(RpcErrorCode.RESOURCE_NOT_FOUND,),
-)
+conversation_module = RpcModule()
+
+@conversation_module.method("session.get", errors=(ResourceNotFoundError,))
 async def get_session(
-    self,
     params: SessionParams,
+    handler: Inject[ConversationRpcMethods],
 ) -> SessionSnapshotResponse:
-    ...
+    return await handler.get_session(params)
 ```
 
-Wire events follow the same rule. Application and domain events remain unaware
-of JSON-RPC; a presentation mapper converts them to decorated Pydantic messages:
+Conversation event payloads are Pydantic models with discriminated `type`
+fields. `events.py` registers the `session.event` async source on another
+`RpcModule`. The Gateway channel includes the feature and event modules.
 
-```python
-from pyrpckit import event
+Generate the checked-in contract and client with:
 
-@event
-class ChatDelta(EventBase):
-    type: Literal["chat.delta"] = "chat.delta"
-    text: str
+```bash
+uv run --package gateway-server cara-gateway-schema
+uv run --package gateway-codegen cara-gateway-client-generate \
+  gateway/server/schema/gateway.openrpc.json
 ```
 
-Decorators only attach metadata. They do not mutate a global registry. Each
-feature explicitly creates its protocol definition with `pyrpckit.feature(...)`,
-and the gateway composes those definitions. The same definitions drive
-runtime dispatch and specification generation — all via
-`pyrpckit`, the transport-agnostic JSON-RPC library gateway is
-built on.
-
-Generate the checked-in artifacts with:
-
-```text
-uv run cara-gateway-schema
-```
-
-Outputs:
-
-- `schema/gateway.openrpc.json` maps every method to params, result, and errors.
-- `schema/gateway.schema.json` contains the complete JSON Schema model graph.
-- `x-rpc-notifications` maps notification names to their payload unions.
-- `x-rpc-events` maps every decorated event name to its concrete payload.
+`schema/gateway.openrpc.json` contains method parameters, results, errors,
+notifications, and notification payload types.

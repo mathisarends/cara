@@ -5,13 +5,12 @@ import sys
 from uuid import UUID
 
 from dotenv import load_dotenv
-from pyrpckit.client import RpcClientError
 
 from cli import commands
 from cli.chat import ChatSession
 from cli.console import Console
 from cli.keyboard import Keyboard
-from gateway_client import GatewayClient, WebSocketTransport
+from gateway_client import RpcClientError, connect_gateway
 from gateway_client.models import SessionChannel
 
 DEFAULT_URL = "ws://127.0.0.1:8000/v1/gateway"
@@ -43,7 +42,7 @@ async def _run(args: argparse.Namespace) -> None:
         console.error("CARA_GATEWAY_TOKEN is not set")
         raise SystemExit(1)
     try:
-        client = GatewayClient(await WebSocketTransport.connect(args.url, token=token))
+        client = await connect_gateway(args.url, token=token)
     except OSError as error:
         console.error(f"cannot reach the gateway: {error}")
         raise SystemExit(1) from error

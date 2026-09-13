@@ -87,10 +87,18 @@ class GatewayConnection:
 
     async def _send(
         self,
-        message: rpc.RpcSuccess | rpc.RpcFailure | rpc.RpcNotification,
+        message: rpc.RpcSuccess
+        | rpc.RpcFailure
+        | rpc.RpcNotification
+        | list[rpc.RpcSuccess | rpc.RpcFailure],
     ) -> None:
         async with self._send_lock:
-            await self._socket.send_json(message.model_dump(mode="json"))
+            payload = (
+                [item.model_dump(mode="json") for item in message]
+                if isinstance(message, list)
+                else message.model_dump(mode="json")
+            )
+            await self._socket.send_json(payload)
 
 
 def _request_identity(raw_request: object) -> tuple[str, object]:

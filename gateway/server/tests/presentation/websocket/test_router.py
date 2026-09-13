@@ -39,7 +39,7 @@ def test_automation_list_runs_over_gateway_socket(client: TestClient) -> None:
                 "jsonrpc": "2.0",
                 "id": "automations",
                 "method": "automation.list",
-                "params": {"session_id": "090b4d71-8e4d-4b90-8981-8f38df122011"},
+                "params": {"sessionId": "090b4d71-8e4d-4b90-8981-8f38df122011"},
             }
         )
         response = socket.receive_json()
@@ -98,7 +98,7 @@ def test_conversation_request_runs_over_gateway_socket(client: TestClient) -> No
                 "jsonrpc": "2.0",
                 "id": "unsubscribe",
                 "method": "subscription.unsubscribe",
-                "params": {"session_id": session_id},
+                "params": {"sessionId": session_id},
             }
         )
         response = socket.receive_json()

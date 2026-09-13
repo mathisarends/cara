@@ -3,19 +3,18 @@
 
 from uuid import UUID
 
-from pyrpckit.client import RpcTransport
-
+from gateway_client.internal import RpcClientCore
 from gateway_client.models import (
-    RpcMethod,
     SessionParams,
     SubscriptionResult,
     UnsubscriptionResult,
 )
+from gateway_client.routes import SUBSCRIPTION_SUBSCRIBE, SUBSCRIPTION_UNSUBSCRIBE
 
 
-class Subscriptions:
-    def __init__(self, transport: RpcTransport) -> None:
-        self._transport = transport
+class Subscription:
+    def __init__(self, rpc: RpcClientCore) -> None:
+        self._rpc = rpc
 
     async def subscribe(
         self,
@@ -25,11 +24,10 @@ class Subscriptions:
         params = SessionParams(
             session_id=session_id,
         )
-        result = await self._transport.request(
-            RpcMethod.SUBSCRIPTION_SUBSCRIBE,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            SUBSCRIPTION_SUBSCRIBE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return SubscriptionResult.model_validate(result)
 
     async def unsubscribe(
         self,
@@ -39,8 +37,7 @@ class Subscriptions:
         params = SessionParams(
             session_id=session_id,
         )
-        result = await self._transport.request(
-            RpcMethod.SUBSCRIPTION_UNSUBSCRIBE,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            SUBSCRIPTION_UNSUBSCRIBE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return UnsubscriptionResult.model_validate(result)

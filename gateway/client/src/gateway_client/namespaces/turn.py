@@ -4,20 +4,25 @@
 from typing import Any
 from uuid import UUID
 
-from pyrpckit.client import RpcTransport
-
+from gateway_client.internal import UNSET, RpcClientCore, UnsetType
 from gateway_client.models import (
-    RpcMethod,
     SessionParams,
     StartTurnParams,
     SteerTurnParams,
     TurnCommandResult,
 )
+from gateway_client.routes import (
+    TURN_CANCEL,
+    TURN_FINISH,
+    TURN_PREPARE,
+    TURN_START,
+    TURN_STEER,
+)
 
 
-class Turns:
-    def __init__(self, transport: RpcTransport) -> None:
-        self._transport = transport
+class Turn:
+    def __init__(self, rpc: RpcClientCore) -> None:
+        self._rpc = rpc
 
     async def prepare(
         self,
@@ -27,29 +32,28 @@ class Turns:
         params = SessionParams(
             session_id=session_id,
         )
-        result = await self._transport.request(
-            RpcMethod.TURN_PREPARE,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            TURN_PREPARE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return TurnCommandResult.model_validate(result)
 
     async def start(
         self,
         *,
         session_id: UUID,
         message: str,
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | UnsetType = UNSET,
     ) -> TurnCommandResult:
-        params = StartTurnParams(
-            session_id=session_id,
-            message=message,
-            metadata=metadata,
+        values: dict[str, object] = {}
+        values["sessionId"] = session_id
+        values["message"] = message
+        if metadata is not UNSET:
+            values["metadata"] = metadata
+        params = StartTurnParams.model_validate(values)
+        return await self._rpc.request(
+            TURN_START,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        result = await self._transport.request(
-            RpcMethod.TURN_START,
-            params.model_dump(mode="json", exclude_none=True),
-        )
-        return TurnCommandResult.model_validate(result)
 
     async def steer(
         self,
@@ -61,11 +65,10 @@ class Turns:
             session_id=session_id,
             message=message,
         )
-        result = await self._transport.request(
-            RpcMethod.TURN_STEER,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            TURN_STEER,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return TurnCommandResult.model_validate(result)
 
     async def finish(
         self,
@@ -75,11 +78,10 @@ class Turns:
         params = SessionParams(
             session_id=session_id,
         )
-        result = await self._transport.request(
-            RpcMethod.TURN_FINISH,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            TURN_FINISH,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return TurnCommandResult.model_validate(result)
 
     async def cancel(
         self,
@@ -89,8 +91,7 @@ class Turns:
         params = SessionParams(
             session_id=session_id,
         )
-        result = await self._transport.request(
-            RpcMethod.TURN_CANCEL,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            TURN_CANCEL,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return TurnCommandResult.model_validate(result)

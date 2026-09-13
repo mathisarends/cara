@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from gateway_client import GatewayClient
-from gateway_client.models import RpcMethod, SessionEventType
+from gateway_client.models import SessionEventType
 from voice.activation import PromptActivation
 from voice.llm import (
     GatewayAgentSession,
@@ -28,26 +28,26 @@ class _Transport:
     async def request(self, method: str, params: dict[str, Any]) -> Any:
         method_name = str(method)
         self.requests.append((method_name, params))
-        if method_name in {RpcMethod.SESSION_OPEN, RpcMethod.SESSION_CREATE}:
+        if method_name in {"session.open", "session.create"}:
             return {
                 "id": str(self.session_id),
                 "created_at": datetime.now(UTC).isoformat(),
                 "channel": params["channel"],
                 "metadata": params.get("metadata"),
             }
-        if method_name == RpcMethod.SUBSCRIPTION_SUBSCRIBE:
+        if method_name == "subscription.subscribe":
             return {"subscribed": str(self.session_id)}
-        if method_name == RpcMethod.SUBSCRIPTION_UNSUBSCRIBE:
+        if method_name == "subscription.unsubscribe":
             return {"unsubscribed": str(self.session_id)}
         if method_name in {
-            RpcMethod.TURN_PREPARE,
-            RpcMethod.TURN_START,
-            RpcMethod.TURN_FINISH,
-            RpcMethod.TURN_CANCEL,
+            "turn.prepare",
+            "turn.start",
+            "turn.finish",
+            "turn.cancel",
         }:
-            if method_name == RpcMethod.TURN_CANCEL:
+            if method_name == "turn.cancel":
                 await self.emit(SessionEventType.TURN_CANCELLED, sequence=100)
-            return {"session_id": str(self.session_id)}
+            return {"sessionId": str(self.session_id)}
         raise AssertionError(f"Unexpected method: {method_name}")
 
     async def notifications(self) -> AsyncIterator[dict[str, Any]]:
@@ -136,22 +136,22 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
         (
             "session.open",
             {
-                "channel": {"name": "voice", "account_id": "kitchen"},
+                "channel": {"name": "voice", "accountId": "kitchen"},
                 "metadata": {"client": "cara-voice"},
             },
         ),
-        ("subscription.subscribe", {"session_id": str(session_id)}),
-        ("turn.prepare", {"session_id": str(session_id)}),
+        ("subscription.subscribe", {"sessionId": str(session_id)}),
+        ("turn.prepare", {"sessionId": str(session_id)}),
         (
             "turn.start",
             {
-                "session_id": str(session_id),
+                "sessionId": str(session_id),
                 "message": "Wie ist das Wetter?",
                 "metadata": {"modality": "voice"},
             },
         ),
-        ("turn.finish", {"session_id": str(session_id)}),
-        ("subscription.unsubscribe", {"session_id": str(session_id)}),
+        ("turn.finish", {"sessionId": str(session_id)}),
+        ("subscription.unsubscribe", {"sessionId": str(session_id)}),
     ]
 
 

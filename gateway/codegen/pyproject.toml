@@ -5,7 +5,7 @@ description = "Code generator for the typed Cara Gateway Python client."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "jinja2>=3.1.0",
-    "pyrpckit==0.2.0",
+    "pyrpckit==0.4.0",
     "ruff>=0.14.0",
 ]
 

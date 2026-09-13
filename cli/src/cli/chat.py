@@ -1,12 +1,10 @@
 import asyncio
 from uuid import UUID
 
-from pyrpckit.client import RpcRemoteError
-
 from cli import commands
 from cli.console import Console
 from cli.keyboard import Character, ControlKey, Keyboard
-from gateway_client import GatewayClient
+from gateway_client import GatewayClient, RpcRemoteError
 from gateway_client.models import (
     AssistantMessageItem,
     ChatCompleted,
@@ -212,8 +210,8 @@ class ChatSession:
 
     async def _pump_events(self) -> None:
         try:
-            async for notification in self._client.notifications():
-                await self._handle(notification.params)
+            async for event in self._client.session.event():
+                await self._handle(event)
         except Exception as error:
             self._console.error(f"event stream stopped: {error}")
         else:

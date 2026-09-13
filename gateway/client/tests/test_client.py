@@ -19,7 +19,7 @@ class FakeTransport:
     async def request(self, method: str, params: dict[str, Any]) -> Any:
         self.calls.append((method, params))
         if method.startswith("turn."):
-            return {"session_id": params["session_id"]}
+            return {"sessionId": params["sessionId"]}
         return {
             "id": str(uuid4()),
             "created_at": "2026-08-20T12:00:00Z",
@@ -53,7 +53,7 @@ async def test_namespaced_method_returns_typed_model() -> None:
             {
                 "channel": {
                     "name": "voice",
-                    "account_id": "local",
+                    "accountId": "local",
                 },
                 "metadata": {"client": "test"},
             },
@@ -90,7 +90,7 @@ async def test_params_model_serializes_uuid_for_transport() -> None:
     result = await client.turn.cancel(session_id=session_id)
 
     assert result.session_id == session_id
-    assert transport.calls == [("turn.cancel", {"session_id": str(session_id)})]
+    assert transport.calls == [("turn.cancel", {"sessionId": str(session_id)})]
 
 
 @pytest.mark.asyncio
@@ -103,8 +103,8 @@ async def test_turn_preparation_and_finish_use_session_commands() -> None:
     await client.turn.finish(session_id=session_id)
 
     assert transport.calls == [
-        ("turn.prepare", {"session_id": str(session_id)}),
-        ("turn.finish", {"session_id": str(session_id)}),
+        ("turn.prepare", {"sessionId": str(session_id)}),
+        ("turn.finish", {"sessionId": str(session_id)}),
     ]
 
 
@@ -128,7 +128,7 @@ async def test_notification_is_parsed_as_concrete_event() -> None:
     )
     client = GatewayClient(transport)
 
-    notifications = [item async for item in client.notifications()]
+    notifications = [item async for item in client.session.event()]
 
-    assert notifications[0].params.type == "chat.delta"
-    assert notifications[0].params.text == "Hallo"
+    assert notifications[0].type == "chat.delta"
+    assert notifications[0].text == "Hallo"

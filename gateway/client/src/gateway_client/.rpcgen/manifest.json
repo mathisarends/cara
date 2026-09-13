@@ -1,0 +1,29 @@
+{
+  "generator": "pyrpckit",
+  "generatorVersion": "0.4.0",
+  "layoutVersion": 7,
+  "language": "python",
+  "contractSha256": "e5537c98db407ce7fb7de42e16c76ad9aaf7e575ba87cd2d25a18d9a510cc8e9",
+  "files": [
+    ".rpcgen/manifest.json",
+    "__init__.py",
+    "authenticated.py",
+    "client.py",
+    "endpoints.py",
+    "errors.py",
+    "internal/__init__.py",
+    "internal/connection.py",
+    "internal/core.py",
+    "internal/errors.py",
+    "internal/metadata.py",
+    "internal/transport.py",
+    "internal/unset.py",
+    "models.py",
+    "namespaces/automation.py",
+    "namespaces/session.py",
+    "namespaces/subscription.py",
+    "namespaces/turn.py",
+    "routes.py",
+    "transport.py"
+  ]
+}

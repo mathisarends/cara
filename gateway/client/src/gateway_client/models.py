@@ -11,26 +11,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class RpcMethod(StrEnum):
-    AUTOMATION_LIST = "automation.list"
-    AUTOMATION_GET = "automation.get"
-    AUTOMATION_CREATE = "automation.create"
-    AUTOMATION_UPDATE = "automation.update"
-    AUTOMATION_DELETE = "automation.delete"
-    SESSION_CREATE = "session.create"
-    SESSION_OPEN = "session.open"
-    SESSION_GET = "session.get"
-    TURN_PREPARE = "turn.prepare"
-    TURN_START = "turn.start"
-    TURN_STEER = "turn.steer"
-    TURN_FINISH = "turn.finish"
-    TURN_CANCEL = "turn.cancel"
-    SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
-    SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
-
-
 class RpcModel(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(validate_by_name=True)
 
 
 class ItemType(StrEnum):
@@ -52,6 +34,7 @@ class SessionEventType(StrEnum):
 
 
 class AssistantMessageItem(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[ItemType.ASSISTANT_MESSAGE] = ItemType.ASSISTANT_MESSAGE
     id: UUID
     created_at: datetime
@@ -59,21 +42,24 @@ class AssistantMessageItem(RpcModel):
 
 
 class AtSchedule(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     kind: Literal["at"] = "at"
     run_at: datetime
 
 
 class AutomationResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     id: str
     name: str | None
-    created_at: datetime
-    next_run_at: datetime
+    created_at: datetime = Field(alias="createdAt")
+    next_run_at: datetime = Field(alias="nextRunAt")
     schedule: AutomationSchedule
     target: SessionAutomationTargetResponse
     payload: ReminderAutomationPayload
 
 
 class ChatCompleted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.CHAT_COMPLETED] = SessionEventType.CHAT_COMPLETED
     event_id: UUID
     timestamp: datetime
@@ -85,6 +71,7 @@ class ChatCompleted(RpcModel):
 
 
 class ChatDelta(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.CHAT_DELTA] = SessionEventType.CHAT_DELTA
     event_id: UUID
     timestamp: datetime
@@ -95,105 +82,125 @@ class ChatDelta(RpcModel):
 
 
 class CreateAutomationParams(RpcModel):
-    session_id: UUID
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None
 
 
 class CreateSessionParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     channel: SessionChannel
     metadata: dict[str, Any] | None = None
 
 
 class CronSchedule(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     kind: Literal["cron"] = "cron"
     expression: str
     timezone: str
 
 
 class DeleteAutomationParams(RpcModel):
-    session_id: UUID
-    automation_id: str
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
+    automation_id: str = Field(alias="automationId")
 
 
 class DeleteAutomationResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     deleted: str
 
 
 class GetAutomationParams(RpcModel):
-    session_id: UUID
-    automation_id: str
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
+    automation_id: str = Field(alias="automationId")
 
 
 class IntervalSchedule(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     kind: Literal["interval"] = "interval"
     every_seconds: float
     run_immediately: bool
 
 
 class ListAutomationsParams(RpcModel):
-    session_id: UUID
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
 
 
 class ListAutomationsResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     automations: list[AutomationResponse]
 
 
 class OpenSessionParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     channel: SessionChannel
     metadata: dict[str, Any] | None = None
 
 
 class ReminderAutomationPayload(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     kind: Literal["reminder"]
     instruction: str
-    created_from_turn_id: UUID
+    created_from_turn_id: UUID = Field(alias="createdFromTurnId")
 
 
 class SessionAutomationTargetResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     kind: Literal["session"]
-    session_id: UUID
+    session_id: UUID = Field(alias="sessionId")
 
 
 class SessionChannel(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     name: str
-    account_id: str | None = None
+    account_id: str | None = Field(None, alias="accountId")
 
 
 class SessionParams(RpcModel):
-    session_id: UUID
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
 
 
 class SessionResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     id: UUID
-    created_at: datetime
+    created_at: datetime = Field(alias="createdAt")
     channel: SessionChannel
     metadata: dict[str, Any] | None = None
 
 
 class SessionSnapshotResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     session: SessionResponse
     items: list[Item]
-    turn_active: bool
+    turn_active: bool = Field(alias="turnActive")
 
 
 class StartTurnParams(RpcModel):
-    session_id: UUID
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
     message: str
     metadata: dict[str, Any] | None = None
 
 
 class SteerTurnParams(RpcModel):
-    session_id: UUID
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
     message: str
 
 
 class SubscriptionResult(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     subscribed: UUID
 
 
 class ToolCallCompleted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TOOL_CALL_COMPLETED] = (
         SessionEventType.TOOL_CALL_COMPLETED
     )
@@ -209,6 +216,7 @@ class ToolCallCompleted(RpcModel):
 
 
 class ToolCallItem(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[ItemType.TOOL_CALL] = ItemType.TOOL_CALL
     id: UUID
     created_at: datetime
@@ -221,6 +229,7 @@ class ToolCallItem(RpcModel):
 
 
 class ToolCallStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TOOL_CALL_STARTED] = (
         SessionEventType.TOOL_CALL_STARTED
     )
@@ -241,6 +250,7 @@ class ToolCallStatus(StrEnum):
 
 
 class TurnCancelled(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TURN_CANCELLED] = SessionEventType.TURN_CANCELLED
     event_id: UUID
     timestamp: datetime
@@ -250,10 +260,12 @@ class TurnCancelled(RpcModel):
 
 
 class TurnCommandResult(RpcModel):
-    session_id: UUID
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
 
 
 class TurnCompleted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TURN_COMPLETED] = SessionEventType.TURN_COMPLETED
     event_id: UUID
     timestamp: datetime
@@ -263,6 +275,7 @@ class TurnCompleted(RpcModel):
 
 
 class TurnFailed(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TURN_FAILED] = SessionEventType.TURN_FAILED
     event_id: UUID
     timestamp: datetime
@@ -274,6 +287,7 @@ class TurnFailed(RpcModel):
 
 
 class TurnStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TURN_STARTED] = SessionEventType.TURN_STARTED
     event_id: UUID
     timestamp: datetime
@@ -283,6 +297,7 @@ class TurnStarted(RpcModel):
 
 
 class TurnSteered(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.TURN_STEERED] = SessionEventType.TURN_STEERED
     event_id: UUID
     timestamp: datetime
@@ -293,18 +308,21 @@ class TurnSteered(RpcModel):
 
 
 class UnsubscriptionResult(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     unsubscribed: UUID
 
 
 class UpdateAutomationParams(RpcModel):
-    session_id: UUID
-    automation_id: str
+    model_config = ConfigDict(extra="forbid")
+    session_id: UUID = Field(alias="sessionId")
+    automation_id: str = Field(alias="automationId")
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None
 
 
 class UserMessageItem(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal[ItemType.USER_MESSAGE] = ItemType.USER_MESSAGE
     id: UUID
     created_at: datetime
@@ -312,20 +330,19 @@ class UserMessageItem(RpcModel):
 
 
 class SessionEventNotification(RpcModel):
+    model_config = ConfigDict(extra="forbid")
     jsonrpc: Literal["2.0"]
     method: Literal["session.event"]
     params: SessionEvent
 
 
 type AutomationSchedule = Annotated[
-    AtSchedule | IntervalSchedule | CronSchedule,
-    Field(discriminator="kind"),
+    AtSchedule | IntervalSchedule | CronSchedule, Field(discriminator="kind")
 ]
 
 
 type Item = Annotated[
-    UserMessageItem | AssistantMessageItem | ToolCallItem,
-    Field(discriminator="type"),
+    UserMessageItem | AssistantMessageItem | ToolCallItem, Field(discriminator="type")
 ]
 
 

@@ -3,8 +3,7 @@
 
 from uuid import UUID
 
-from pyrpckit.client import RpcTransport
-
+from gateway_client.internal import RpcClientCore
 from gateway_client.models import (
     AutomationResponse,
     AutomationSchedule,
@@ -15,29 +14,33 @@ from gateway_client.models import (
     ListAutomationsParams,
     ListAutomationsResponse,
     ReminderAutomationPayload,
-    RpcMethod,
     UpdateAutomationParams,
+)
+from gateway_client.routes import (
+    AUTOMATION_CREATE,
+    AUTOMATION_DELETE,
+    AUTOMATION_GET,
+    AUTOMATION_LIST,
+    AUTOMATION_UPDATE,
 )
 
 
-class Automations:
-    def __init__(self, transport: RpcTransport) -> None:
-        self._transport = transport
+class Automation:
+    def __init__(self, rpc: RpcClientCore) -> None:
+        self._rpc = rpc
 
     async def list(
         self,
         *,
         session_id: UUID,
     ) -> ListAutomationsResponse:
-        """List automations belonging to a conversation session."""
         params = ListAutomationsParams(
             session_id=session_id,
         )
-        result = await self._transport.request(
-            RpcMethod.AUTOMATION_LIST,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            AUTOMATION_LIST,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return ListAutomationsResponse.model_validate(result)
 
     async def get(
         self,
@@ -49,11 +52,10 @@ class Automations:
             session_id=session_id,
             automation_id=automation_id,
         )
-        result = await self._transport.request(
-            RpcMethod.AUTOMATION_GET,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            AUTOMATION_GET,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return AutomationResponse.model_validate(result)
 
     async def create(
         self,
@@ -61,7 +63,7 @@ class Automations:
         session_id: UUID,
         schedule: AutomationSchedule,
         payload: ReminderAutomationPayload,
-        name: str | None | None = None,
+        name: str | None = None,
     ) -> AutomationResponse:
         params = CreateAutomationParams(
             session_id=session_id,
@@ -69,11 +71,10 @@ class Automations:
             payload=payload,
             name=name,
         )
-        result = await self._transport.request(
-            RpcMethod.AUTOMATION_CREATE,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            AUTOMATION_CREATE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return AutomationResponse.model_validate(result)
 
     async def update(
         self,
@@ -82,7 +83,7 @@ class Automations:
         automation_id: str,
         schedule: AutomationSchedule,
         payload: ReminderAutomationPayload,
-        name: str | None | None = None,
+        name: str | None = None,
     ) -> AutomationResponse:
         params = UpdateAutomationParams(
             session_id=session_id,
@@ -91,11 +92,10 @@ class Automations:
             payload=payload,
             name=name,
         )
-        result = await self._transport.request(
-            RpcMethod.AUTOMATION_UPDATE,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            AUTOMATION_UPDATE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return AutomationResponse.model_validate(result)
 
     async def delete(
         self,
@@ -107,8 +107,7 @@ class Automations:
             session_id=session_id,
             automation_id=automation_id,
         )
-        result = await self._transport.request(
-            RpcMethod.AUTOMATION_DELETE,
-            params.model_dump(mode="json", exclude_none=True),
+        return await self._rpc.request(
+            AUTOMATION_DELETE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )
-        return DeleteAutomationResponse.model_validate(result)

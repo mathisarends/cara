@@ -4,7 +4,7 @@ from .errors import (
     ResourceNotFoundError,
     TurnAlreadyRunningError,
 )
-from .schema import WireSchema
+from .models import WireSchema
 
 __all__ = [
     "GatewayErrorCode",

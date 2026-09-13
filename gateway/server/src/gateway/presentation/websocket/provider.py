@@ -1,4 +1,5 @@
 import uuid
+from typing import cast
 
 import pyrpckit as rpc
 from dishka import Provider, Scope, provide
@@ -25,9 +26,9 @@ from gateway.presentation.websocket.subscriptions import (
 
 
 class GatewayProvider(Provider):
-    def __init__(self, protocol: rpc.RpcProtocol) -> None:
+    def __init__(self, channel: rpc.RpcChannel) -> None:
         super().__init__()
-        self._protocol = protocol
+        self._channel = channel
 
     @provide(scope=Scope.APP)
     def auth_settings(self) -> GatewayAuthSettings:
@@ -60,11 +61,21 @@ class GatewayProvider(Provider):
     ) -> GatewayConnection:
         authenticator.authenticate(websocket)
         client_id = str(uuid.uuid4())
-        server = rpc.RpcServer(
+        handlers = (
             AutomationRpcMethods(automation_service),
             ConversationRpcMethods(sessions, turns),
             EventStreamRpcMethods(sessions, stream, client_id),
-            protocol=self._protocol,
+        )
+        server = self._channel.server(
+            resolver=_GatewayResolver(handlers),
             error_mapper=gateway_error_mapper,
         )
         return GatewayConnection(websocket, stream, client_id, server)
+
+
+class _GatewayResolver:
+    def __init__(self, handlers: tuple[object, ...]) -> None:
+        self._handlers = {type(handler): handler for handler in handlers}
+
+    async def resolve[DependencyT](self, dependency: type[DependencyT]) -> DependencyT:
+        return cast(DependencyT, self._handlers[dependency])

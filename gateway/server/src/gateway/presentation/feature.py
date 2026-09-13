@@ -11,7 +11,7 @@ class Feature:
     name: str
     routers: Sequence[APIRouter] = ()
     providers: Sequence[type[Provider]] = ()
-    protocol: rpc.RpcFeatureDefinition | None = None
+    module: rpc.RpcModule | None = None
 
     def install(self, app: FastAPI) -> None:
         for router in self.routers:

@@ -32,32 +32,29 @@ README](../../README.md#run) for the full startup sequence.
 
 Feature-sliced: each vertical slice under `features/` owns its own
 application/domain/infrastructure/presentation layers and exposes one
-`Feature` (routers, DI providers, RPC protocol).
+`Feature` (routers, DI providers, RPC module).
 
 ```text
 gateway/server/src/gateway/
 ├── app.py, container.py, lifespan.py, main.py    composition root, startup/shutdown, uvicorn entry
-├── presentation/       rpc/ (method+event registry, dispatch, schema export), websocket/ (the /v1/gateway route)
-├── features/            health/, conversation/ (sessions, turns, messages, tool calls)
+├── presentation/       rpc/ (channel, contract, schema export), websocket/ (the /v1/gateway route)
+├── features/            health/, automation/, conversation/ (feature-owned RPC methods and events)
 ├── infrastructure/      SQLModel ORM, generic Repository, Alembic runner, Scheduler wiring
 └── agent_plugins/        entry-point discovery, loading, validation, DI wiring for the AgentRunner
 ```
 
 ## RPC surface
 
-Generated from code via `pyrpckit`, not maintained as a parallel spec — a
-handler declares methods with `@method(...)`, event models with
-`@event`, grouped into a `Feature.protocol`; `RpcServer` asserts at
-startup that handlers match the declared protocol exactly.
-`cara-gateway-schema` exports `gateway.schema.json` and
-`gateway.openrpc.json`, which feed [`gateway-codegen`](../codegen) —
-regenerating the schema and the client are always one change, never
-independent edits.
+Each feature owns its RPC methods under `features/<name>/presentation/rpc/`.
+Free functions registered on `RpcModule` delegate to the feature's service
+handlers through `Inject`. Conversation also owns its subscription and event
+definitions. `presentation/rpc/channels/gateway.py` composes the modules into
+one `RpcChannel`; that same channel serves requests and produces the contract.
 
-WebSocket framing is strict JSON-RPC 2.0 (`session.event` is the notification
-method for server-pushed events). Subscriptions are per-process, in-memory
-(`subscription.subscribe`/`unsubscribe`) — no fan-out across multiple gateway
-instances.
+`cara-gateway-schema` exports `gateway.openrpc.json`. `gateway-codegen`
+regenerates the client from it. Both artifacts should be updated together.
+The WebSocket uses JSON-RPC 2.0; `session.event` carries server notifications.
+Subscriptions are in-memory per process.
 
 ## Agent plugins
 

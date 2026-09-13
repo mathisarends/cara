@@ -1,3 +1,3 @@
-from .rpc import AUTOMATION_PROTOCOL, AutomationRpcMethods
+from .rpc import AutomationRpcMethods
 
-__all__ = ["AUTOMATION_PROTOCOL", "AutomationRpcMethods"]
+__all__ = ["AutomationRpcMethods"]

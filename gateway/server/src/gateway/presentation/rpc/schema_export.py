@@ -4,65 +4,48 @@ from pathlib import Path
 from typing import Any
 
 import pyrpckit as rpc
-from pyrpckit.schema import render_json_schema, render_openrpc
+from pyrpckit.schema import render_openrpc
 
-from gateway.features import gateway_protocol
+from gateway.presentation.rpc.contract import gateway_contract
 
 _REPO_ROOT = Path(__file__).resolve().parents[6]
 _DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "server" / "schema"
 
 
-def render_gateway_schema(protocol: rpc.RpcProtocol) -> dict[str, Any]:
-    return render_json_schema(
-        protocol,
-        title="Cara Gateway Protocol",
-        description="JSON-RPC requests, responses, and notifications.",
-        schema_id="https://cara.local/gateway.schema.json",
-    )
-
-
-def render_openrpc_schema(protocol: rpc.RpcProtocol) -> dict[str, Any]:
+def render_openrpc_schema(contract: rpc.RpcContract) -> dict[str, Any]:
     return render_openrpc(
-        protocol,
-        title="Cara Gateway",
-        description="Typed JSON-RPC API over the Cara Gateway WebSocket.",
-        servers=({"name": "local", "url": "ws://127.0.0.1:8000/v1/gateway"},),
+        contract.protocol,
+        title=contract.title,
+        description=contract.description,
+        servers=contract.servers,
     )
 
 
-def write_gateway_schemas(
+def write_gateway_schema(
     output_dir: Path,
-    protocol: rpc.RpcProtocol | None = None,
-) -> tuple[Path, Path]:
-    selected_protocol = protocol or gateway_protocol()
+    contract: rpc.RpcContract | None = None,
+) -> Path:
+    selected_contract = contract or gateway_contract()
     output_dir.mkdir(parents=True, exist_ok=True)
-    gateway_schema_path = output_dir / "gateway.schema.json"
-    openrpc_schema_path = output_dir / "gateway.openrpc.json"
-    _write_json(gateway_schema_path, render_gateway_schema(selected_protocol))
-    _write_json(openrpc_schema_path, render_openrpc_schema(selected_protocol))
-    return gateway_schema_path, openrpc_schema_path
+    path = output_dir / "gateway.openrpc.json"
+    path.write_text(
+        json.dumps(
+            render_openrpc_schema(selected_contract), indent=2, ensure_ascii=False
+        )
+        + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return path
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate the Cara Gateway JSON Schema and OpenRPC contract."
+        description="Generate the Cara Gateway OpenRPC contract"
     )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=_DEFAULT_OUTPUT_DIR,
-        help=f"Output directory (default: {_DEFAULT_OUTPUT_DIR})",
-    )
+    parser.add_argument("--output-dir", type=Path, default=_DEFAULT_OUTPUT_DIR)
     args = parser.parse_args()
-    for path in write_gateway_schemas(args.output_dir):
-        print(f"Wrote {path}")
-
-
-def _write_json(path: Path, document: dict[str, Any]) -> None:
-    path.write_text(
-        json.dumps(document, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    print(f"Wrote {write_gateway_schema(args.output_dir)}")
 
 
 if __name__ == "__main__":

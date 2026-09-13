@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from gateway_client import GatewayClient, WebSocketTransport
+from gateway_client import GatewayClient, connect_gateway
 from gateway_client.models import (
     ChatCompleted,
     ChatDelta,
@@ -79,7 +79,7 @@ class GatewayAgentSession(ActivationSource):
         account_id: str | None = None,
         new_session: bool = False,
     ) -> Self:
-        client = GatewayClient(await WebSocketTransport.connect(url, token=token))
+        client = await connect_gateway(url, token=token)
         try:
             return await cls.attach(
                 client,
@@ -231,8 +231,7 @@ class GatewayAgentSession(ActivationSource):
 
     async def _pump_notifications(self) -> None:
         try:
-            async for notification in self._client.notifications():
-                event = notification.params
+            async for event in self._client.session.event():
                 if event.session_id != self._session_id:
                     continue
                 if isinstance(event, TurnStarted) and self._turn_queue is None:

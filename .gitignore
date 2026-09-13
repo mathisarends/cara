@@ -94,6 +94,10 @@ docs/node_modules/
 bandit-report.json
 
 .claude/
+
+# Project-local developer tools
+/.tools/
+
 # Local gateway database
 /gateway.sqlite3
 /scheduler.sqlite3
