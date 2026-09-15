@@ -1,6 +1,6 @@
 import logging
 
-from dishka.integrations.fastapi import FromDishka, inject
+from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -13,7 +13,7 @@ from gateway.features.health.presentation.schemas import (
 logger = logging.getLogger(__name__)
 
 
-health_router = APIRouter(tags=["system"])
+health_router = APIRouter(tags=["system"], route_class=DishkaRoute)
 
 
 @health_router.get(
@@ -23,7 +23,7 @@ health_router = APIRouter(tags=["system"])
     response_description="The gateway process is alive.",
     summary="Check gateway health",
 )
-def health() -> HealthResponse:
+async def health() -> HealthResponse:
     return HealthResponse()
 
 
@@ -34,7 +34,6 @@ def health() -> HealthResponse:
     response_description="The gateway application stack is ready.",
     summary="Check gateway readiness",
 )
-@inject
 async def readiness(
     service: FromDishka[ReadinessService],
 ) -> ReadinessResponse:

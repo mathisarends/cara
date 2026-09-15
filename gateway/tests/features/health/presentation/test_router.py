@@ -25,4 +25,5 @@ def test_readiness_is_unavailable_when_database_check_fails(
     response = client.get("/v1/readiness")
 
     assert response.status_code == 503
-    assert response.json() == {"detail": "Gateway dependencies are unavailable."}
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["detail"] == "Gateway dependencies are unavailable."
