@@ -122,7 +122,8 @@ stopped after 600 idle seconds by default. Set
 `CARA_SANDBOX_IDLE_TTL_SECONDS` to change that value. For host development:
 
 ```bash
-bash scripts/start_gateway.sh
+uv run --package gateway-server gateway-migrate
+uv run --package gateway-server cara-gateway
 ```
 
 Clients connect to `ws://127.0.0.1:8000/v1/gateway`. Requests, commands,
@@ -241,13 +242,13 @@ MCP servers; arbitrary Python is never loaded into the Gateway.
 Start Docker Desktop and prepare the local sandbox image once before using the tool:
 
 ```bash
-bash scripts/prepare_bash_sandbox.sh
+bash scripts/setup/prepare_bash_sandbox.sh
 ```
 
 From PowerShell on Windows, Git Bash can be selected explicitly to avoid the WSL `bash.exe` launcher:
 
 ```powershell
-& 'C:\Program Files\Git\usr\bin\bash.exe' scripts/prepare_bash_sandbox.sh
+& 'C:\Program Files\Git\usr\bin\bash.exe' scripts/setup/prepare_bash_sandbox.sh
 ```
 
 The setup script builds `cara-bash-sandbox:latest`, verifies its bundled runtimes and CLIs, and scaffolds

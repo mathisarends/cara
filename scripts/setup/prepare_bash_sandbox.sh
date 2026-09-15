@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly PROJECT_DIR="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 readonly PYTHON_IMAGE="python:3.14-alpine"
 readonly GO_IMAGE="golang:1.26-alpine"
 readonly SANDBOX_IMAGE="cara-bash-sandbox:latest"

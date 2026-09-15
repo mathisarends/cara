@@ -12,7 +12,7 @@ from vocalbin.deepgram.tts import (
 
 from voice.acknowledgement import TOOL_ACKNOWLEDGEMENTS
 
-_PROJECT_ROOT = Path(__file__).parents[1]
+_PROJECT_ROOT = Path(__file__).parents[2]
 _DEFAULT_OUTPUT_DIR = (
     _PROJECT_ROOT / "clients" / "voice" / "static" / "acknowledgements"
 )

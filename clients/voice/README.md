@@ -62,7 +62,7 @@ open a TTS connection at runtime.
 Regenerate all acknowledgement clips with the configured `DEEPGRAM_API_KEY`:
 
 ```powershell
-uv run python scripts/prepare_tool_acknowledgements.py
+uv run python scripts/setup/prepare_tool_acknowledgements.py
 ```
 
 The generator defaults to Deepgram's `aura-2-athena-en` voice and 24 kHz,

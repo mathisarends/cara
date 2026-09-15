@@ -9,7 +9,8 @@ docker compose up --build -d
 ```
 
 For host development, set `CARA_GATEWAY_TOKEN` and run
-`bash scripts/start_gateway.sh`. Configuration lives in
+`uv run --package gateway-server gateway-migrate` followed by
+`uv run --package gateway-server cara-gateway`. Configuration lives in
 [`gateway.yaml`](../gateway.yaml). See the
 [architecture vision](../AGENT_RUNTIME_ARCHITECTURE_VISION.md) and
 [MCP guide](../docs/mcp-tools.md).
