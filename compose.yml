@@ -54,8 +54,45 @@ services:
     volumes:
       - ./gateway.sqlite3:/data/gateway.sqlite3
 
+  minio:
+    # Last release that ships the full web console; later community builds strip it down.
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${CARA_MINIO_ROOT_USER:-cara}
+      MINIO_ROOT_PASSWORD: ${CARA_MINIO_ROOT_PASSWORD:-change-me-minio-password}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - cara-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+
+  minio-init:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        mc alias set cara http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        && mc mb --ignore-existing "cara/$$CARA_MINIO_BUCKET"
+    environment:
+      MINIO_ROOT_USER: ${CARA_MINIO_ROOT_USER:-cara}
+      MINIO_ROOT_PASSWORD: ${CARA_MINIO_ROOT_PASSWORD:-change-me-minio-password}
+      CARA_MINIO_BUCKET: ${CARA_MINIO_BUCKET:-cara}
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   cara-workspace:
     name: cara-workspace
   cara-cli-config:
     name: cara-cli-config
+  cara-minio-data:
+    name: cara-minio-data
