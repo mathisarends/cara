@@ -20,16 +20,16 @@ from gateway.features.automation.presentation.rpc.mapping import (
     prompt_action,
     schedule_response,
 )
-from gateway.features.automation.presentation.rpc.schemas import (
+from gateway.features.automation.presentation.rpc.models import (
     AtSchedule as WireAtSchedule,
 )
-from gateway.features.automation.presentation.rpc.schemas import (
+from gateway.features.automation.presentation.rpc.models import (
     CronSchedule as WireCronSchedule,
 )
-from gateway.features.automation.presentation.rpc.schemas import (
+from gateway.features.automation.presentation.rpc.models import (
     IntervalSchedule as WireIntervalSchedule,
 )
-from gateway.features.automation.presentation.rpc.schemas import (
+from gateway.features.automation.presentation.rpc.models import (
     ReminderAutomationPayload,
 )
 

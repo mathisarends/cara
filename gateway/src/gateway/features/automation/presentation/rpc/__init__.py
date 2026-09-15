@@ -1,3 +1,3 @@
-from .handler import AutomationRpcMethods
+from .methods import automation_module
 
-__all__ = ["AutomationRpcMethods"]
+__all__ = ["automation_module"]

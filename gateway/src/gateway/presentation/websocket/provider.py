@@ -6,7 +6,6 @@ from dishka import Provider, Scope, provide
 from fastapi import WebSocket
 
 from gateway.features.automation.application import SessionAutomationService
-from gateway.features.automation.presentation import AutomationRpcMethods
 from gateway.features.conversation.application import (
     EventPublisher,
     SessionService,
@@ -62,7 +61,7 @@ class GatewayProvider(Provider):
         authenticator.authenticate(websocket)
         client_id = str(uuid.uuid4())
         handlers = (
-            AutomationRpcMethods(automation_service),
+            automation_service,
             ConversationRpcMethods(sessions, turns),
             EventStreamRpcMethods(sessions, stream, client_id),
         )

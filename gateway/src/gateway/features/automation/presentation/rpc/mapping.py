@@ -17,7 +17,7 @@ from gateway.features.automation.domain import (
 from gateway.features.automation.domain import (
     IntervalSchedule as DomainIntervalSchedule,
 )
-from gateway.features.automation.presentation.rpc.schemas import (
+from gateway.features.automation.presentation.rpc.models import (
     AtSchedule,
     AutomationResponse,
     AutomationSchedule,
