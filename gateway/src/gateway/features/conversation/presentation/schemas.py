@@ -32,15 +32,6 @@ class OpenSessionRequest(WireSchema):
     channel: SessionChannel
 
 
-class StartTurnRequest(WireSchema):
-    message: str = Field(min_length=1)
-    metadata: dict[str, object] = Field(default_factory=dict)
-
-
-class SteerTurnRequest(WireSchema):
-    message: str = Field(min_length=1)
-
-
 class SessionResponse(WireSchema):
     id: UUID
     created_at: datetime
