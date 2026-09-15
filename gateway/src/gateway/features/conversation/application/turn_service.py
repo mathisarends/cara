@@ -187,7 +187,7 @@ class TurnService:
             await self._release_lease(session_id)
         finally:
             await self._publish_terminal(
-                session_id,
+                session,
                 turn,
                 terminal_type,
                 terminal_data,
@@ -199,7 +199,7 @@ class TurnService:
 
     async def _publish_terminal(
         self,
-        session_id: UUID,
+        session: Session | None,
         turn: TurnExecution | None,
         event_type: ConversationEventType,
         data: dict[str, Any],
@@ -207,10 +207,13 @@ class TurnService:
         if turn is not None:
             await turn.publish(event_type, data)
             return
+        if session is None:
+            return
         await self._events.publish(
             ConversationEvent(
                 type=event_type,
-                session_id=session_id,
+                session_id=session.id,
+                channel=session.channel,
                 sequence=1,
                 data=data,
             )
@@ -253,4 +256,5 @@ def _agent_session_ref(session: Session) -> AgentSessionRef:
     return AgentSessionRef(
         id=session.id,
         channel=AgentChannelRef(session.channel.name),
+        inactivity_timeout=session.inactivity_timeout,
     )

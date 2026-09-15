@@ -8,6 +8,7 @@ from gateway.features.automation.application import AutomationService
 from gateway.features.automation.domain import (
     AtSchedule,
     Automation,
+    ChannelTarget,
     PromptAction,
     SessionTarget,
 )
@@ -53,6 +54,8 @@ async def test_reminders_call_the_gateway_service_in_process() -> None:
         _UnitOfWork(service),
         owner_id=_OWNER_ID,
         session_id=_SESSION_ID,
+        channel="cli",
+        channel_scoped=False,
     )
 
     reminder = await reminders.create(
@@ -76,6 +79,27 @@ async def test_reminders_list_is_scoped_to_its_owner() -> None:
         _UnitOfWork(service),
         owner_id=_OWNER_ID,
         session_id=_SESSION_ID,
+        channel="cli",
+        channel_scoped=False,
     )
 
     assert await reminders.list() == ()
+
+
+async def test_reminders_from_an_expiring_session_target_the_channel() -> None:
+    service = _AutomationService()
+    reminders = GatewayReminders(
+        _UnitOfWork(service),
+        owner_id=_OWNER_ID,
+        session_id=_SESSION_ID,
+        channel="voice",
+        channel_scoped=True,
+    )
+
+    await reminders.create(
+        instruction="Prepare coffee",
+        schedule=RemindOnce(_RUN_AT),
+    )
+
+    _, values = cast(tuple[str, dict[str, object]], service.created)
+    assert values["target"] == ChannelTarget("voice")

@@ -413,10 +413,143 @@
           }
         }
       ]
+    },
+    {
+      "name": "subscription.subscribe_channel",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "channel",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Channel",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ChannelSubscriptionResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/SubscribeChannelRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/ChannelParams"
+      },
+      "errors": [
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "subscription.unsubscribe_channel",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "channel",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Channel",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ChannelUnsubscriptionResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/UnsubscribeChannelRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/ChannelParams"
+      },
+      "errors": [
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
     }
   ],
   "components": {
     "schemas": {
+      "ChannelParams": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "minLength": 1,
+            "title": "Channel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "title": "ChannelParams",
+        "type": "object"
+      },
+      "ChannelSubscriptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "subscribedChannel": {
+            "title": "Subscribedchannel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscribedChannel"
+        ],
+        "title": "ChannelSubscriptionResult",
+        "type": "object"
+      },
+      "ChannelUnsubscriptionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "unsubscribedChannel": {
+            "title": "Unsubscribedchannel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unsubscribedChannel"
+        ],
+        "title": "ChannelUnsubscriptionResult",
+        "type": "object"
+      },
       "ChatCompleted": {
         "additionalProperties": false,
         "properties": {
@@ -1272,6 +1405,80 @@
           },
           "params": {
             "$ref": "#/components/schemas/SessionParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "SubscribeChannelRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SubscribeChannelRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "subscription.subscribe_channel",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ChannelParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "UnsubscribeChannelRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UnsubscribeChannelRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "subscription.unsubscribe_channel",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ChannelParams"
           }
         },
         "required": [

@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from gateway.features.conversation.domain import (
@@ -117,3 +119,29 @@ def test_failing_pending_tool_calls_without_a_pending_sequence_is_a_noop() -> No
     session = Session.create(_CHANNEL)
 
     assert session.fail_pending_tool_calls("cancelled") == ()
+
+
+def test_session_only_expires_when_it_has_an_inactivity_policy() -> None:
+    now = datetime(2026, 9, 15, 12, tzinfo=UTC)
+    created_at = now - timedelta(hours=1)
+    persistent = Session(channel=_CHANNEL, created_at=created_at)
+    expiring = Session(
+        channel=_CHANNEL,
+        created_at=created_at,
+        inactivity_timeout=timedelta(minutes=30),
+    )
+
+    assert not persistent.is_inactive_at(now)
+    assert expiring.is_inactive_at(now)
+
+
+def test_an_active_turn_prevents_session_expiration() -> None:
+    now = datetime(2026, 9, 15, 12, tzinfo=UTC)
+    session = Session(
+        channel=_CHANNEL,
+        created_at=now - timedelta(hours=1),
+        inactivity_timeout=timedelta(minutes=30),
+        turn_active=True,
+    )
+
+    assert not session.is_inactive_at(now)

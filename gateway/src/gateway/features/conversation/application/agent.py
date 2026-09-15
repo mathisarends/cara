@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -14,6 +15,7 @@ class AgentChannelRef:
 class AgentSessionRef:
     id: UUID
     channel: AgentChannelRef
+    inactivity_timeout: timedelta | None = None
 
 
 @dataclass(frozen=True, slots=True)

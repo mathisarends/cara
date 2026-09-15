@@ -58,6 +58,20 @@ def test_an_automation_is_hidden_from_other_owners(client: TestClient) -> None:
     assert response.json()["code"] == "automation_not_found"
 
 
+def test_create_an_automation_targeting_a_channel(client: TestClient) -> None:
+    response = client.post(
+        _AUTOMATIONS,
+        json={
+            "target": {"kind": "channel", "channel": "voice"},
+            "schedule": {"kind": "interval", "every_seconds": 60},
+            "payload": {"instruction": "Stretch"},
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["target"] == {"kind": "channel", "channel": "voice"}
+
+
 def test_creating_an_automation_for_an_unknown_session_is_not_found(
     client: TestClient,
 ) -> None:

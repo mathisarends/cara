@@ -62,9 +62,22 @@ type _QueuedEvent = SessionEvent | _GatewayDisconnected
 
 
 class GatewayAgentSession(ActivationSource):
-    def __init__(self, client: GatewayRpcClient, session_id: UUID) -> None:
+    def __init__(
+        self,
+        client: GatewayRpcClient,
+        session_id: UUID,
+        channel: str,
+        *,
+        sessions: GatewayRestClient | None = None,
+        http: httpx2.AsyncClient | None = None,
+        inactivity_timeout_seconds: float | None = None,
+    ) -> None:
         self._client = client
         self._session_id = session_id
+        self._channel = channel
+        self._sessions = sessions
+        self._http = http
+        self._inactivity_timeout_seconds = inactivity_timeout_seconds
         self._turn_queue: asyncio.Queue[_QueuedEvent] | None = None
         self._turn_terminal: asyncio.Future[_QueuedEvent] | None = None
         self._activations: asyncio.Queue[Activation | None] = asyncio.Queue()
@@ -83,29 +96,51 @@ class GatewayAgentSession(ActivationSource):
         token: str,
         channel: str = "voice",
         new_session: bool = False,
+        inactivity_timeout_seconds: float = 1800,
     ) -> Self:
-        async with httpx2.AsyncClient() as http:
-            sessions = GatewayRestClient(http, url, credentials={"GatewayToken": token})
-            session_id = await _resolve_session(
-                sessions, channel=channel, new_session=new_session
-            )
-        client = await connect_gateway(url, token=token)
+        http = httpx2.AsyncClient()
+        sessions = GatewayRestClient(http, url, credentials={"GatewayToken": token})
+        client: GatewayRpcClient | None = None
         try:
-            return await cls.attach(client, session_id)
+            session_id = await _resolve_session(
+                sessions,
+                channel=channel,
+                new_session=new_session,
+                inactivity_timeout_seconds=inactivity_timeout_seconds,
+            )
+            client = await connect_gateway(url, token=token)
+            await client.subscription.subscribe_channel(channel=channel)
+            return cls(
+                client,
+                session_id,
+                channel,
+                sessions=sessions,
+                http=http,
+                inactivity_timeout_seconds=inactivity_timeout_seconds,
+            )
         except BaseException:
-            await client.close()
+            if client is not None:
+                await client.close()
+            await http.aclose()
             raise
 
     @classmethod
-    async def attach(cls, client: GatewayRpcClient, session_id: UUID) -> Self:
-        await client.subscription.subscribe(session_id=session_id)
-        return cls(client, session_id)
+    async def attach(
+        cls,
+        client: GatewayRpcClient,
+        session_id: UUID,
+        *,
+        channel: str = "voice",
+    ) -> Self:
+        await client.subscription.subscribe_channel(channel=channel)
+        return cls(client, session_id, channel)
 
     @property
     def session_id(self) -> UUID:
         return self._session_id
 
     async def prepare_turn(self) -> None:
+        await self._refresh_session()
         await self._client.turn.prepare(session_id=self._session_id)
 
     async def activations(self) -> AsyncIterator[Activation]:
@@ -180,9 +215,11 @@ class GatewayAgentSession(ActivationSource):
         self._closed = True
         try:
             await self.interrupt()
-            await self._client.subscription.unsubscribe(session_id=self._session_id)
+            await self._client.subscription.unsubscribe_channel(channel=self._channel)
         finally:
             await self._client.close()
+            if self._http is not None:
+                await self._http.aclose()
             await self._notifications
             await self._activations.put(None)
 
@@ -200,6 +237,7 @@ class GatewayAgentSession(ActivationSource):
             if self._turn_queue is None:
                 raise RuntimeError("Proactive gateway turn has no event queue")
             return self._turn_queue
+        await self._refresh_session()
         if self._turn_terminal is not None:
             raise RuntimeError("Gateway agent session already has an active turn")
         queue: asyncio.Queue[_QueuedEvent] = asyncio.Queue()
@@ -219,9 +257,8 @@ class GatewayAgentSession(ActivationSource):
     async def _pump_notifications(self) -> None:
         try:
             async for event in self._client.session.event():
-                if event.session_id != self._session_id:
-                    continue
                 if isinstance(event, TurnStarted) and self._turn_queue is None:
+                    self._session_id = event.session_id
                     self._turn_queue = asyncio.Queue()
                     self._turn_terminal = asyncio.get_running_loop().create_future()
                     self._proactive_turn_pending = True
@@ -229,6 +266,8 @@ class GatewayAgentSession(ActivationSource):
                         PromptActivation(prompt="[Proactive gateway turn]")
                     )
                 if self._turn_queue is None:
+                    continue
+                if event.session_id != self._session_id:
                     continue
                 await self._turn_queue.put(event)
                 if isinstance(event, GatewayTurnCompleted | TurnCancelled | TurnFailed):
@@ -259,18 +298,35 @@ class GatewayAgentSession(ActivationSource):
         if terminal is not None and not terminal.done():
             terminal.cancel()
 
+    async def _refresh_session(self) -> None:
+        if self._sessions is None:
+            return
+        self._session_id = await _resolve_session(
+            self._sessions,
+            channel=self._channel,
+            new_session=False,
+            inactivity_timeout_seconds=self._inactivity_timeout_seconds,
+        )
+
 
 async def _resolve_session(
     sessions: GatewayRestClient,
     *,
     channel: str,
     new_session: bool,
+    inactivity_timeout_seconds: float | None,
 ) -> UUID:
     channel_ref = SessionChannel(name=channel)
     if new_session:
-        session = await sessions.create_session(
-            CreateSessionRequest(channel=channel_ref)
+        request = CreateSessionRequest(
+            channel=channel_ref,
+            inactivity_timeout_seconds=inactivity_timeout_seconds,
         )
+        session = await sessions.create_session(request)
     else:
-        session = await sessions.open_session(OpenSessionRequest(channel=channel_ref))
+        request = OpenSessionRequest(
+            channel=channel_ref,
+            inactivity_timeout_seconds=inactivity_timeout_seconds,
+        )
+        session = await sessions.open_session(request)
     return session.id

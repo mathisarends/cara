@@ -50,11 +50,19 @@ type AutomationSchedule = Annotated[
 
 
 class SessionTarget(WireSchema):
-    kind: Literal[TargetKind.SESSION] = TargetKind.SESSION
+    kind: Literal[TargetKind.SESSION]
     session_id: UUID
 
 
-type AutomationTarget = SessionTarget
+class ChannelTarget(WireSchema):
+    kind: Literal[TargetKind.CHANNEL]
+    channel: str = Field(min_length=1, pattern=r"\S")
+
+
+type AutomationTarget = Annotated[
+    SessionTarget | ChannelTarget,
+    Field(discriminator="kind"),
+]
 
 
 class ReminderPayload(WireSchema):

@@ -31,6 +31,7 @@ def test_conversation_event_maps_to_a_flat_protocol_event() -> None:
     event = ConversationEvent(
         type=ConversationEventType.CHAT_DELTA,
         session_id=session.id,
+        channel=session.channel,
         sequence=2,
         data={"text": "Hi"},
     )

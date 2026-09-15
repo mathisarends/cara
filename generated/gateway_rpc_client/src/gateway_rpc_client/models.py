@@ -27,6 +27,21 @@ class SessionEventType(StrEnum):
     TURN_STEERED = "turn.steered"
 
 
+class ChannelParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    channel: str
+
+
+class ChannelSubscriptionResult(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    subscribed_channel: str = Field(alias="subscribedChannel")
+
+
+class ChannelUnsubscriptionResult(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    unsubscribed_channel: str = Field(alias="unsubscribedChannel")
+
+
 class ChatCompleted(RpcModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal[SessionEventType.CHAT_COMPLETED] = SessionEventType.CHAT_COMPLETED
@@ -188,6 +203,9 @@ type SessionEvent = Annotated[
 ]
 
 
+ChannelParams.model_rebuild()
+ChannelSubscriptionResult.model_rebuild()
+ChannelUnsubscriptionResult.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
 SessionParams.model_rebuild()

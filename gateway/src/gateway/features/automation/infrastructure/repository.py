@@ -10,6 +10,7 @@ from gateway.features.automation.domain import (
     AutomationRepository,
     AutomationSchedule,
     AutomationTarget,
+    ChannelTarget,
     CronSchedule,
     IntervalSchedule,
     PromptAction,
@@ -55,13 +56,21 @@ class SQLAutomationRepository(
         )
 
     def _to_orm(self, domain: Automation) -> AutomationModel:
+        target_session_id: UUID | None = None
+        target_channel_name: str | None = None
+        match domain.target:
+            case SessionTarget(session_id=session_id):
+                target_session_id = session_id
+            case ChannelTarget(channel=channel):
+                target_channel_name = channel
         model = AutomationModel(
             id=domain.id,
             created_at=domain.created_at,
             owner_id=domain.owner_id,
             name=domain.name,
             target_kind=domain.target.kind,
-            target_session_id=domain.target.session_id,
+            target_session_id=target_session_id,
+            target_channel_name=target_channel_name,
             schedule_kind=domain.schedule.kind,
             instruction=domain.action.instruction,
             next_run_at=domain.next_run_at,
@@ -93,6 +102,11 @@ def _target(model: AutomationModel) -> AutomationTarget:
             target_session_id=UUID() as id,
         ):
             return SessionTarget(id)
+        case AutomationModel(
+            target_kind=TargetKind.CHANNEL,
+            target_channel_name=str() as channel,
+        ) if channel.strip():
+            return ChannelTarget(channel)
     raise ValueError(f"Automation {model.id} has an invalid target")
 
 

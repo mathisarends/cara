@@ -8,6 +8,7 @@ from gateway.features.automation.presentation.schemas import (
     AutomationResponse,
     AutomationSchedule,
     AutomationTarget,
+    ChannelTarget,
     CronSchedule,
     IntervalSchedule,
     ReminderPayload,
@@ -56,6 +57,8 @@ def to_target(target: AutomationTarget) -> domain.AutomationTarget:
     match target:
         case SessionTarget(session_id=session_id):
             return domain.SessionTarget(session_id)
+        case ChannelTarget(channel=channel):
+            return domain.ChannelTarget(channel)
 
 
 def to_action(payload: ReminderPayload) -> domain.PromptAction:
@@ -83,4 +86,6 @@ def _to_schedule_schema(schedule: domain.AutomationSchedule) -> AutomationSchedu
 def _to_target_schema(target: domain.AutomationTarget) -> AutomationTarget:
     match target:
         case domain.SessionTarget(session_id=session_id):
-            return SessionTarget(session_id=session_id)
+            return SessionTarget(kind=domain.TargetKind.SESSION, session_id=session_id)
+        case domain.ChannelTarget(channel=channel):
+            return ChannelTarget(kind=domain.TargetKind.CHANNEL, channel=channel)

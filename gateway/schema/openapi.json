@@ -992,21 +992,83 @@
       }
     },
     "/v1/sessions": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "List sessions ordered by creation time",
+        "operationId": "list_sessions",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder",
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "sessions"
         ],
         "summary": "Create a session",
         "operationId": "create_session",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateSessionRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1029,12 +1091,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "GatewayToken": []
-          }
-        ]
+        }
       }
     },
     "/v1/sessions/open": {
@@ -1540,25 +1597,43 @@
         }
       },
       "AutomationTarget": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SessionTarget"
+          },
+          {
+            "$ref": "#/components/schemas/ChannelTarget"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "channel": "#/components/schemas/ChannelTarget",
+            "session": "#/components/schemas/SessionTarget"
+          }
+        }
+      },
+      "ChannelTarget": {
         "properties": {
           "kind": {
             "type": "string",
-            "const": "session",
-            "title": "Kind",
-            "default": "session"
+            "const": "channel",
+            "title": "Kind"
           },
-          "session_id": {
+          "channel": {
             "type": "string",
-            "format": "uuid",
-            "title": "Session Id"
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Channel"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "session_id"
+          "kind",
+          "channel"
         ],
-        "title": "SessionTarget"
+        "title": "ChannelTarget"
       },
       "CreateAlarmRequest": {
         "properties": {
@@ -1641,6 +1716,18 @@
         "properties": {
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
+          },
+          "inactivity_timeout_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inactivity Timeout Seconds"
           }
         },
         "additionalProperties": false,
@@ -1809,6 +1896,18 @@
         "properties": {
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
+          },
+          "inactivity_timeout_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inactivity Timeout Seconds"
           }
         },
         "additionalProperties": false,
@@ -1867,6 +1966,23 @@
         ],
         "title": "SessionChannel"
       },
+      "SessionListResponse": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionResponse"
+            },
+            "type": "array",
+            "title": "Sessions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sessions"
+        ],
+        "title": "SessionListResponse"
+      },
       "SessionResponse": {
         "properties": {
           "id": {
@@ -1918,6 +2034,27 @@
         ],
         "title": "SessionSnapshotResponse"
       },
+      "SessionTarget": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "session",
+            "title": "Kind"
+          },
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "session_id"
+        ],
+        "title": "SessionTarget"
+      },
       "SetAlarmEnabledRequest": {
         "properties": {
           "enabled": {
@@ -1947,6 +2084,14 @@
           "minutes"
         ],
         "title": "SnoozeAlarmRequest"
+      },
+      "SortOrder": {
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "title": "SortOrder"
       },
       "ToolCallItem": {
         "properties": {

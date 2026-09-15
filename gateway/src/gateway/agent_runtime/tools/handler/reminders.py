@@ -16,6 +16,7 @@ from gateway.features.automation.domain import (
     Automation,
     AutomationNotFoundError,
     AutomationSchedule,
+    ChannelTarget,
     CronSchedule,
     IntervalSchedule,
     PromptAction,
@@ -34,10 +35,14 @@ class GatewayReminders(Reminders):
         *,
         owner_id: str,
         session_id: UUID,
+        channel: str,
+        channel_scoped: bool,
     ) -> None:
         self._automations = automations
         self._owner_id = owner_id
         self._session_id = session_id
+        self._channel = channel
+        self._channel_scoped = channel_scoped
 
     async def list(self) -> tuple[Reminder, ...]:
         async with self._automations() as service:
@@ -53,9 +58,14 @@ class GatewayReminders(Reminders):
     ) -> Reminder:
         try:
             async with self._automations() as service:
+                target = (
+                    ChannelTarget(self._channel)
+                    if self._channel_scoped
+                    else SessionTarget(self._session_id)
+                )
                 automation = await service.create(
                     self._owner_id,
-                    target=SessionTarget(self._session_id),
+                    target=target,
                     schedule=_automation_schedule(schedule),
                     action=PromptAction(instruction),
                     name=name,

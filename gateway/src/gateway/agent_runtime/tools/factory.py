@@ -44,6 +44,8 @@ class TurnToolDependencies:
                 self._automations,
                 owner_id=owner_id,
                 session_id=session.id,
+                channel=session.channel.name,
+                channel_scoped=session.inactivity_timeout is not None,
             ),
         )
 

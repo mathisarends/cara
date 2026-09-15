@@ -31,18 +31,25 @@ from gateway_rest_client.models import (
     DismissAlarmResponse,
     HealthResponse,
     InvalidAlarmProblem,
+    ListSessionsParams,
     OpenSessionRequest,
     ReadinessResponse,
     RequestValidationProblem,
+    SessionListResponse,
     SessionNotFoundProblem,
     SessionResponse,
     SessionSnapshotResponse,
     SetAlarmEnabledRequest,
     SnoozeAlarmRequest,
+    SortOrder,
     UpdateAlarmRequest,
     UpdateAutomationRequest,
 )
-from gateway_rest_client.serialization import apply_security, serialize_path
+from gateway_rest_client.serialization import (
+    apply_security,
+    serialize_path,
+    serialize_query,
+)
 from gateway_rest_client.transport import AsyncHttpClient
 
 
@@ -922,6 +929,63 @@ class GatewayRestClient:
         try:
             if response.status_code == 200:
                 return ReadinessResponse.model_validate(response.json())
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def list_sessions(
+        self,
+        limit: int = 20,
+        sort: SortOrder = SortOrder.DESC,
+        *,
+        timeout: float | None = None,
+    ) -> SessionListResponse:
+        try:
+            path = "/v1/sessions"
+
+            params = ListSessionsParams(
+                limit=limit,
+                sort=sort,
+            )
+            query: list[tuple[str, str]] = []
+            query.extend(serialize_query("limit", params.limit))
+            query.extend(serialize_query("sort", params.sort))
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, query, {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                params=query,
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return SessionListResponse.model_validate(response.json())
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
         except ClientError:

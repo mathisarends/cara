@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Annotated
 from uuid import UUID
 
@@ -62,7 +63,11 @@ async def create_session(
     request: CreateSessionRequest,
     sessions: FromDishka[SessionService],
 ) -> SessionResponse:
-    session = await sessions.create(channel=to_channel_ref(request.channel))
+    inactivity_timeout = _inactivity_timeout(request.inactivity_timeout_seconds)
+    session = await sessions.create(
+        channel=to_channel_ref(request.channel),
+        inactivity_timeout=inactivity_timeout,
+    )
     return to_session_response(session)
 
 
@@ -76,8 +81,16 @@ async def open_session(
     request: OpenSessionRequest,
     sessions: FromDishka[SessionService],
 ) -> SessionResponse:
-    session = await sessions.open(channel=to_channel_ref(request.channel))
+    inactivity_timeout = _inactivity_timeout(request.inactivity_timeout_seconds)
+    session = await sessions.open(
+        channel=to_channel_ref(request.channel),
+        inactivity_timeout=inactivity_timeout,
+    )
     return to_session_response(session)
+
+
+def _inactivity_timeout(seconds: float | None) -> timedelta | None:
+    return timedelta(seconds=seconds) if seconds is not None else None
 
 
 @conversation_router.get(

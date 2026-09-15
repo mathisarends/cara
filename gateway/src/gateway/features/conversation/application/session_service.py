@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from gateway.features.conversation.domain import (
@@ -23,20 +24,40 @@ class SessionService:
         self,
         *,
         channel: ChannelRef,
+        inactivity_timeout: timedelta | None = None,
     ) -> Session:
         async with self._sessions() as sessions:
-            return await _create(sessions, channel)
+            return await _create(
+                sessions,
+                channel,
+                inactivity_timeout=inactivity_timeout,
+            )
 
     async def open(
         self,
         *,
         channel: ChannelRef,
+        inactivity_timeout: timedelta | None = None,
     ) -> Session:
         # The lock also spans the commit, so concurrent opens never both create.
         async with self._open_lock, self._sessions() as sessions:
             session = await sessions.find_latest_by_channel(channel)
             if session is None:
-                return await _create(sessions, channel)
+                return await _create(
+                    sessions,
+                    channel,
+                    inactivity_timeout=inactivity_timeout,
+                )
+            if inactivity_timeout is not None:
+                session.set_inactivity_timeout(inactivity_timeout)
+            if session.is_inactive_at(datetime.now(UTC)):
+                return await _create(
+                    sessions,
+                    channel,
+                    inactivity_timeout=session.inactivity_timeout,
+                )
+            if inactivity_timeout is not None:
+                session = await sessions.save(session)
             logger.info(
                 "Opened existing conversation session %s for channel %s",
                 session.id,
@@ -56,8 +77,15 @@ class SessionService:
         return session
 
 
-async def _create(sessions: SessionRepository, channel: ChannelRef) -> Session:
-    saved = await sessions.save(Session.create(channel))
+async def _create(
+    sessions: SessionRepository,
+    channel: ChannelRef,
+    *,
+    inactivity_timeout: timedelta | None = None,
+) -> Session:
+    session = Session.create(channel)
+    session.set_inactivity_timeout(inactivity_timeout)
+    saved = await sessions.save(session)
     logger.info(
         "Created conversation session %s for channel %s",
         saved.id,

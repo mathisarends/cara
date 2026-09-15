@@ -7,6 +7,7 @@ from gateway.features.automation.domain import (
     AtSchedule,
     Automation,
     AutomationSchedule,
+    ChannelTarget,
     CronSchedule,
     IntervalSchedule,
     PromptAction,
@@ -49,6 +50,24 @@ async def test_find_by_owner_returns_only_that_owners_automations(
     found = await automation_repository.find_by_owner("owner")
 
     assert [automation.id for automation in found] == [mine.id]
+
+
+async def test_save_round_trips_a_channel_target(
+    automation_repository: SQLAutomationRepository,
+) -> None:
+    automation = Automation.create(
+        owner_id="owner",
+        target=ChannelTarget("voice"),
+        schedule=_HOURLY,
+        action=PromptAction("Stretch"),
+        next_run_at=datetime(2027, 1, 1, 9, tzinfo=UTC),
+    )
+
+    await automation_repository.save(automation)
+
+    stored = await automation_repository.find_by_id(automation.id)
+    assert stored is not None
+    assert stored.target == ChannelTarget("voice")
 
 
 async def test_remove_deletes_the_automation(

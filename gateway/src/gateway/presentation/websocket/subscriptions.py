@@ -11,6 +11,9 @@ from gateway.features.conversation.application import (
     SessionService,
 )
 from gateway.features.conversation.presentation.rpc.models import (
+    ChannelParams,
+    ChannelSubscriptionResult,
+    ChannelUnsubscriptionResult,
     SessionParams,
     SubscriptionResult,
     UnsubscriptionResult,
@@ -41,6 +44,7 @@ class InMemoryEventStream(EventPublisher):
     def __init__(self) -> None:
         self._clients: dict[str, EventReceiver] = {}
         self._subscriptions: dict[UUID, set[str]] = defaultdict(set)
+        self._channel_subscriptions: dict[str, set[str]] = defaultdict(set)
 
     def connect(self, client_id: str) -> EventReceiver:
         receiver = EventReceiver()
@@ -50,6 +54,8 @@ class InMemoryEventStream(EventPublisher):
     def disconnect(self, client_id: str) -> None:
         self._clients.pop(client_id, None)
         for clients in self._subscriptions.values():
+            clients.discard(client_id)
+        for clients in self._channel_subscriptions.values():
             clients.discard(client_id)
 
     def subscribe(self, client_id: str, session_id: UUID) -> None:
@@ -68,8 +74,26 @@ class InMemoryEventStream(EventPublisher):
             session_id,
         )
 
+    def subscribe_channel(self, client_id: str, channel: str) -> None:
+        self._channel_subscriptions[channel].add(client_id)
+        logger.info(
+            "Gateway client %s subscribed to channel %s",
+            _short_id(client_id),
+            channel,
+        )
+
+    def unsubscribe_channel(self, client_id: str, channel: str) -> None:
+        self._channel_subscriptions[channel].discard(client_id)
+        logger.info(
+            "Gateway client %s unsubscribed from channel %s",
+            _short_id(client_id),
+            channel,
+        )
+
     async def publish(self, event: ConversationEvent) -> None:
-        client_ids = tuple(self._subscriptions.get(event.session_id, ()))
+        client_ids = self._subscriptions.get(event.session_id, set()) | (
+            self._channel_subscriptions.get(event.channel.name, set())
+        )
         delivered = 0
         for client_id in client_ids:
             receiver = self._clients.get(client_id)
@@ -101,6 +125,17 @@ class EventStreamRpcMethods:
     ) -> UnsubscriptionResult:
         self._stream.unsubscribe(self._client.id, params.session_id)
         return UnsubscriptionResult(unsubscribed=params.session_id)
+
+    def subscribe_channel(self, params: ChannelParams) -> ChannelSubscriptionResult:
+        self._stream.subscribe_channel(self._client.id, params.channel)
+        return ChannelSubscriptionResult(subscribed_channel=params.channel)
+
+    def unsubscribe_channel(
+        self,
+        params: ChannelParams,
+    ) -> ChannelUnsubscriptionResult:
+        self._stream.unsubscribe_channel(self._client.id, params.channel)
+        return ChannelUnsubscriptionResult(unsubscribed_channel=params.channel)
 
 
 def _log_event(event: ConversationEvent, recipients: int) -> None:

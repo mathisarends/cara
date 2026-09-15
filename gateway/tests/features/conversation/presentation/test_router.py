@@ -1,3 +1,4 @@
+import time
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -12,6 +13,29 @@ def test_open_reuses_the_latest_session_of_a_channel(client: TestClient) -> None
     assert created.status_code == 201
     assert opened.status_code == 200
     assert opened.json() == created.json()
+
+
+def test_open_starts_a_new_session_after_the_requested_inactivity_timeout(
+    client: TestClient,
+) -> None:
+    request = {**_CHANNEL, "inactivity_timeout_seconds": 0.01}
+    first = client.post("/v1/sessions/open", json=request).json()
+    time.sleep(0.02)
+
+    second = client.post("/v1/sessions/open", json=_CHANNEL).json()
+
+    assert second["id"] != first["id"]
+
+
+def test_open_without_an_inactivity_timeout_keeps_reusing_the_session(
+    client: TestClient,
+) -> None:
+    first = client.post("/v1/sessions/open", json=_CHANNEL).json()
+    time.sleep(0.02)
+
+    second = client.post("/v1/sessions/open", json=_CHANNEL).json()
+
+    assert second == first
 
 
 def test_list_sorts_by_creation_time_and_applies_the_limit(

@@ -8,3 +8,5 @@ gateway:
 voice:
   channel: voice
   new_session: false
+  # Start fresh after 30 minutes without persisted conversation activity.
+  inactivity_timeout_seconds: 1800

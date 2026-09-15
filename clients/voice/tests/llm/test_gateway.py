@@ -32,10 +32,10 @@ class _Transport:
     async def request(self, method: str, params: dict[str, Any]) -> Any:
         method_name = str(method)
         self.requests.append((method_name, params))
-        if method_name == "subscription.subscribe":
-            return {"subscribed": str(self.session_id)}
-        if method_name == "subscription.unsubscribe":
-            return {"unsubscribed": str(self.session_id)}
+        if method_name == "subscription.subscribe_channel":
+            return {"subscribedChannel": params["channel"]}
+        if method_name == "subscription.unsubscribe_channel":
+            return {"unsubscribedChannel": params["channel"]}
         if method_name in {
             "turn.prepare",
             "turn.start",
@@ -59,6 +59,7 @@ class _Transport:
         event_type: SessionEventType,
         *,
         sequence: int,
+        session_id: UUID | None = None,
         **data: Any,
     ) -> None:
         await self._notifications.put(
@@ -69,7 +70,7 @@ class _Transport:
                     "type": event_type,
                     "event_id": str(uuid4()),
                     "timestamp": datetime.now(UTC).isoformat(),
-                    "session_id": str(self.session_id),
+                    "session_id": str(session_id or self.session_id),
                     "sequence": sequence,
                     **data,
                 },
@@ -132,7 +133,7 @@ def test_gateway_agent_session_translates_events() -> None:
         TurnCompleted("Hallo Berlin"),
     ]
     assert requests == [
-        ("subscription.subscribe", {"sessionId": str(session_id)}),
+        ("subscription.subscribe_channel", {"channel": "voice"}),
         ("turn.prepare", {"sessionId": str(session_id)}),
         (
             "turn.start",
@@ -143,7 +144,7 @@ def test_gateway_agent_session_translates_events() -> None:
             },
         ),
         ("turn.finish", {"sessionId": str(session_id)}),
-        ("subscription.unsubscribe", {"sessionId": str(session_id)}),
+        ("subscription.unsubscribe_channel", {"channel": "voice"}),
     ]
 
 
@@ -172,12 +173,17 @@ def test_session_is_resolved_over_rest(new_session: bool, path: str) -> None:
                 http, "http://gateway.test", credentials={"GatewayToken": "secret"}
             )
             return await _resolve_session(
-                sessions, channel="voice", new_session=new_session
+                sessions,
+                channel="voice",
+                new_session=new_session,
+                inactivity_timeout_seconds=1800,
             )
 
     assert asyncio.run(run()) == session_id
     assert requests[0].url.path == path
-    assert json.loads(requests[0].content) == {"channel": {"name": "voice"}}
+    body = json.loads(requests[0].content)
+    assert body["channel"] == {"name": "voice"}
+    assert body["inactivity_timeout_seconds"] == 1800
     assert requests[0].headers["Authorization"] == "Bearer secret"
 
 
@@ -214,7 +220,56 @@ def test_server_started_turn_activates_voice_without_starting_a_second_turn() ->
         TextDelta("Zeit aufzuwachen!"),
         TurnCompleted("Zeit aufzuwachen!"),
     ]
-    assert methods == ["subscription.subscribe", "subscription.unsubscribe"]
+    assert methods == [
+        "subscription.subscribe_channel",
+        "subscription.unsubscribe_channel",
+    ]
+
+
+def test_server_started_turn_moves_voice_to_the_channels_new_session() -> None:
+    async def run() -> tuple[UUID, UUID, list[str]]:
+        transport = _Transport()
+        session = await _attach(transport)
+        activations = session.activations()
+        rotated_session_id = uuid4()
+
+        await transport.emit(
+            SessionEventType.TURN_STARTED,
+            sequence=1,
+            session_id=rotated_session_id,
+            metadata={"origin": "automation"},
+        )
+        activation = await anext(activations)
+        await transport.emit(
+            SessionEventType.CHAT_COMPLETED,
+            sequence=2,
+            session_id=rotated_session_id,
+            text="Hallo aus der neuen Session",
+            finish_reason="stop",
+        )
+        await transport.emit(
+            SessionEventType.TURN_COMPLETED,
+            sequence=3,
+            session_id=rotated_session_id,
+        )
+        stream = await session.start_turn(activation.prompt)
+        _ = [event async for event in stream]
+        await activations.aclose()
+        current_session_id = session.session_id
+        await session.close()
+        return (
+            current_session_id,
+            rotated_session_id,
+            [method for method, _ in transport.requests],
+        )
+
+    session_id, rotated_session_id, methods = asyncio.run(run())
+
+    assert session_id == rotated_session_id
+    assert methods == [
+        "subscription.subscribe_channel",
+        "subscription.unsubscribe_channel",
+    ]
 
 
 def test_interrupt_cancels_the_active_gateway_turn_and_drains_its_terminal() -> None:
@@ -232,10 +287,10 @@ def test_interrupt_cancels_the_active_gateway_turn_and_drains_its_terminal() -> 
         return [method for method, _ in transport.requests]
 
     assert asyncio.run(run()) == [
-        "subscription.subscribe",
+        "subscription.subscribe_channel",
         "turn.start",
         "turn.cancel",
-        "subscription.unsubscribe",
+        "subscription.unsubscribe_channel",
     ]
 
 

@@ -18,6 +18,7 @@ class SessionModel(DatabaseEntity, table=True):
     )
 
     channel_name: str
+    inactivity_timeout_seconds: float | None = None
     turn_active: bool = Field(default=False, nullable=False)
     user_messages: list["SessionUserMessageModel"] = Relationship(
         back_populates="session",

@@ -11,6 +11,8 @@ from gateway.presentation.rpc import WireSchema
 class ConversationRpcMethod(StrEnum):
     SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
     SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
+    SUBSCRIPTION_SUBSCRIBE_CHANNEL = "subscription.subscribe_channel"
+    SUBSCRIPTION_UNSUBSCRIBE_CHANNEL = "subscription.unsubscribe_channel"
     TURN_PREPARE = "turn.prepare"
     TURN_START = "turn.start"
     TURN_STEER = "turn.steer"
@@ -24,6 +26,10 @@ class RpcNotificationMethod(StrEnum):
 
 class SessionParams(WireSchema):
     session_id: UUID
+
+
+class ChannelParams(WireSchema):
+    channel: str = Field(min_length=1)
 
 
 class StartTurnParams(SessionParams):
@@ -41,6 +47,14 @@ class SubscriptionResult(WireSchema):
 
 class UnsubscriptionResult(WireSchema):
     unsubscribed: UUID
+
+
+class ChannelSubscriptionResult(WireSchema):
+    subscribed_channel: str
+
+
+class ChannelUnsubscriptionResult(WireSchema):
+    unsubscribed_channel: str
 
 
 class TurnCommandResult(WireSchema):

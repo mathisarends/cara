@@ -8,6 +8,7 @@ from gateway.features.conversation.application import (
     ConversationEvent,
     ConversationEventType,
 )
+from gateway.features.conversation.domain import ChannelRef
 from gateway.presentation.websocket.subscriptions import InMemoryEventStream
 
 
@@ -15,6 +16,7 @@ def _event(session_id) -> ConversationEvent:
     return ConversationEvent(
         type=ConversationEventType.CHAT_DELTA,
         session_id=session_id,
+        channel=ChannelRef("voice"),
         data={"text": "hi"},
     )
 
@@ -90,6 +92,7 @@ async def test_lifecycle_events_are_logged_with_delivery_count(caplog) -> None:
     event = ConversationEvent(
         type=ConversationEventType.CHAT_COMPLETED,
         session_id=session_id,
+        channel=ChannelRef("voice"),
         sequence=2,
         data={"text": "Assistant reply", "finish_reason": "stop"},
     )
@@ -110,3 +113,30 @@ async def test_chat_deltas_are_not_logged_at_info(caplog) -> None:
         await broker.publish(_event(uuid4()))
 
     assert not any("chat.delta" in message for message in caplog.messages)
+
+
+async def test_channel_subscriber_receives_events_across_sessions() -> None:
+    broker = InMemoryEventStream()
+    receiver = broker.connect("voice-client")
+    broker.subscribe_channel("voice-client", "voice")
+    first = _event(uuid4())
+    second = _event(uuid4())
+
+    await broker.publish(first)
+    await broker.publish(second)
+
+    assert await receiver.receive() is first
+    assert await receiver.receive() is second
+
+
+async def test_delivery_is_deduplicated_for_session_and_channel_subscriptions() -> None:
+    broker = InMemoryEventStream()
+    session_id = uuid4()
+    receiver = broker.connect("voice-client")
+    broker.subscribe("voice-client", session_id)
+    broker.subscribe_channel("voice-client", "voice")
+
+    await broker.publish(_event(session_id))
+
+    await receiver.receive()
+    await _assert_nothing_delivered(receiver)

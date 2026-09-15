@@ -32,6 +32,7 @@ async def main() -> None:
         token=config.gateway.token,
         channel=config.voice.channel,
         new_session=config.voice.new_session,
+        inactivity_timeout_seconds=config.voice.inactivity_timeout_seconds,
     )
     async with gateway_session, SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)

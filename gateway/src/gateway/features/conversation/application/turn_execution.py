@@ -105,6 +105,7 @@ class TurnExecution:
             ConversationEvent(
                 type=event_type,
                 session_id=self._session.id,
+                channel=self._session.channel,
                 call_id=call_id,
                 sequence=self._sequence,
                 metadata=metadata or {},

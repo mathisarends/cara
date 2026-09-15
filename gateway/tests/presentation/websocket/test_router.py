@@ -100,3 +100,22 @@ def test_conversation_request_runs_over_gateway_socket(client: TestClient) -> No
         "id": "unsubscribe",
         "result": {"unsubscribed": session_id},
     }
+
+
+def test_channel_subscription_runs_over_gateway_socket(client: TestClient) -> None:
+    with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
+        socket.send_json(
+            {
+                "jsonrpc": "2.0",
+                "id": "subscribe-channel",
+                "method": "subscription.subscribe_channel",
+                "params": {"channel": "voice"},
+            }
+        )
+        response = socket.receive_json()
+
+    assert response == {
+        "jsonrpc": "2.0",
+        "id": "subscribe-channel",
+        "result": {"subscribedChannel": "voice"},
+    }

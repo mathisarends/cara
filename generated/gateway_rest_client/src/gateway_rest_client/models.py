@@ -24,6 +24,11 @@ class AutomationScheduleKind(StrEnum):
     CRON = "cron"
 
 
+class AutomationTargetKind(StrEnum):
+    SESSION = "session"
+    CHANNEL = "channel"
+
+
 class ItemType(StrEnum):
     USER_MESSAGE = "user_message"
     ASSISTANT_MESSAGE = "assistant_message"
@@ -188,11 +193,21 @@ AutomationSchedule = Annotated[
 ]
 
 
-class AutomationTarget(BaseModel):
+class ChannelTarget(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    kind: Literal["session"] = "session"
+    kind: Literal[AutomationTargetKind.CHANNEL]
+    channel: str = Field(min_length=1, pattern="\\S")
+
+
+class SessionTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    kind: Literal[AutomationTargetKind.SESSION]
     session_id: UUID
+
+
+AutomationTarget = Annotated[SessionTarget | ChannelTarget, Field(discriminator="kind")]
 
 
 class ReminderPayload(BaseModel):
@@ -261,6 +276,7 @@ class CreateSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     channel: SessionChannel
+    inactivity_timeout_seconds: float | None = None
 
 
 class DismissAlarmResponse(BaseModel):
@@ -341,6 +357,7 @@ class OpenSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     channel: SessionChannel
+    inactivity_timeout_seconds: float | None = None
 
 
 class Problem(BaseModel):
@@ -382,6 +399,20 @@ class RequestValidationProblem(BaseModel):
     errors: list[RequestValidationProblemErrorsItem]
 
 
+class SessionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    id: UUID
+    created_at: datetime
+    channel: SessionChannel
+
+
+class SessionListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    sessions: list[SessionResponse]
+
+
 class SessionNotFoundProblem(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -391,14 +422,6 @@ class SessionNotFoundProblem(BaseModel):
     code: Literal["session_not_found"]
     detail: str | None = None
     instance: str | None = None
-
-
-class SessionResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    id: UUID
-    created_at: datetime
-    channel: SessionChannel
 
 
 class SessionSnapshotResponse(BaseModel):
@@ -421,6 +444,11 @@ class SnoozeAlarmRequest(BaseModel):
     minutes: int = Field(ge=1.0, le=60.0)
 
 
+class SortOrder(StrEnum):
+    ASC = "asc"
+    DESC = "desc"
+
+
 class UpdateAlarmRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -436,3 +464,8 @@ class UpdateAutomationRequest(BaseModel):
     schedule: AutomationSchedule
     payload: ReminderPayload
     name: str | None = None
+
+
+class ListSessionsParams(BaseModel):
+    limit: int = Field(20, ge=1, le=100)
+    sort: SortOrder = SortOrder.DESC

@@ -41,9 +41,10 @@ class AutomationProvider(Provider):
     @provide(scope=Scope.APP)
     def action_executor(
         self,
+        sessions: SessionService,
         turns: TurnService,
     ) -> AutomationActionExecutor:
-        return ConversationAutomationActionExecutor(turns)
+        return ConversationAutomationActionExecutor(sessions, turns)
 
     @provide(scope=Scope.REQUEST)
     def repository(

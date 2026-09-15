@@ -1,6 +1,9 @@
 from pyrpckit import Inject, RpcInternalError, RpcModule
 
 from gateway.features.conversation.presentation.rpc.models import (
+    ChannelParams,
+    ChannelSubscriptionResult,
+    ChannelUnsubscriptionResult,
     ConversationRpcMethod,
     SessionParams,
     SubscriptionResult,
@@ -31,3 +34,25 @@ async def unsubscribe_session(
     handler: Inject[EventStreamRpcMethods],
 ) -> UnsubscriptionResult:
     return await handler.unsubscribe_session(params)
+
+
+@subscription_module.method(
+    ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE_CHANNEL,
+    errors=(RpcInternalError,),
+)
+async def subscribe_channel(
+    params: ChannelParams,
+    handler: Inject[EventStreamRpcMethods],
+) -> ChannelSubscriptionResult:
+    return handler.subscribe_channel(params)
+
+
+@subscription_module.method(
+    ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE_CHANNEL,
+    errors=(RpcInternalError,),
+)
+async def unsubscribe_channel(
+    params: ChannelParams,
+    handler: Inject[EventStreamRpcMethods],
+) -> ChannelUnsubscriptionResult:
+    return handler.unsubscribe_channel(params)

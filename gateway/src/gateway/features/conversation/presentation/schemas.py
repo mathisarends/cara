@@ -31,10 +31,12 @@ class SessionChannel(WireSchema):
 
 class CreateSessionRequest(WireSchema):
     channel: SessionChannel
+    inactivity_timeout_seconds: float | None = Field(default=None, gt=0)
 
 
 class OpenSessionRequest(WireSchema):
     channel: SessionChannel
+    inactivity_timeout_seconds: float | None = Field(default=None, gt=0)
 
 
 class SessionResponse(WireSchema):

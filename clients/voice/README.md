@@ -52,6 +52,14 @@ listen, `prompt()` to speak unprompted) for buttons, schedulers, etc.
 server, Voice consumes that existing event stream instead of submitting a
 duplicate turn and speaks the result.
 
+Voice subscribes to its channel rather than one session ID. Before an
+interactive turn it reopens the channel session with the configured
+`voice.inactivity_timeout_seconds` (30 minutes by default). Once that period
+passes without persisted conversation activity, the gateway creates a fresh
+context session. Other clients retain sessions indefinitely unless they opt in
+to a timeout themselves. Reminders created in an expiring session target the
+channel, so they follow this rotation and still reach a connected Voice client.
+
 ## Static tool acknowledgements
 
 When the agent starts a tool without first speaking, Voice immediately plays a

@@ -5,6 +5,8 @@ from pydantic import TypeAdapter
 
 from gateway_rpc_client.internal import RpcNotificationInfo, RpcRouteInfo
 from gateway_rpc_client.models import (
+    ChannelSubscriptionResult,
+    ChannelUnsubscriptionResult,
     SessionEvent,
     SessionEventNotification,
     SubscriptionResult,
@@ -51,6 +53,18 @@ SUBSCRIPTION_SUBSCRIBE = RpcRouteInfo(
 SUBSCRIPTION_UNSUBSCRIBE = RpcRouteInfo(
     method="subscription.unsubscribe",
     result_adapter=TypeAdapter(UnsubscriptionResult),
+    server="local",
+)
+
+SUBSCRIPTION_SUBSCRIBE_CHANNEL = RpcRouteInfo(
+    method="subscription.subscribe_channel",
+    result_adapter=TypeAdapter(ChannelSubscriptionResult),
+    server="local",
+)
+
+SUBSCRIPTION_UNSUBSCRIBE_CHANNEL = RpcRouteInfo(
+    method="subscription.unsubscribe_channel",
+    result_adapter=TypeAdapter(ChannelUnsubscriptionResult),
     server="local",
 )
 

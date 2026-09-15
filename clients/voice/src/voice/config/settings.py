@@ -24,6 +24,7 @@ class SessionConfig(BaseModel):
 
     channel: str = Field(default="voice", min_length=1)
     new_session: bool = False
+    inactivity_timeout_seconds: float = Field(default=1800, gt=0)
 
 
 class VoiceChannelConfig(BaseSettings):

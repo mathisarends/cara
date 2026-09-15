@@ -8,10 +8,12 @@ from gateway.features.automation.application import (
 )
 from gateway.features.automation.domain import (
     AutomationTarget,
+    ChannelTarget,
     PromptAction,
     SessionTarget,
 )
 from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.domain import ChannelRef
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +26,14 @@ class ConversationAutomationTargetResolver(AutomationTargetResolver):
         match target:
             case SessionTarget(session_id=session_id):
                 await self._sessions.get(session_id)
+            case ChannelTarget(channel=channel):
+                if not channel.strip():
+                    raise ValueError("Automation target channel must not be empty")
 
 
 class ConversationAutomationActionExecutor(AutomationActionExecutor):
-    def __init__(self, turns: TurnService) -> None:
+    def __init__(self, sessions: SessionService, turns: TurnService) -> None:
+        self._sessions = sessions
         self._turns = turns
 
     async def execute(
@@ -48,6 +54,13 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
             case SessionTarget(session_id=session_id):
                 await self._turns.start_scheduled(
                     session_id=session_id,
+                    text=_automation_prompt(action.instruction),
+                    metadata=metadata,
+                )
+            case ChannelTarget(channel=channel):
+                session = await self._sessions.open(channel=ChannelRef(channel))
+                await self._turns.start_scheduled(
+                    session_id=session.id,
                     text=_automation_prompt(action.instruction),
                     metadata=metadata,
                 )

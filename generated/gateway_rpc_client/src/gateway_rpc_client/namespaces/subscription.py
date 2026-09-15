@@ -5,11 +5,19 @@ from uuid import UUID
 
 from gateway_rpc_client.internal import RpcClientCore
 from gateway_rpc_client.models import (
+    ChannelParams,
+    ChannelSubscriptionResult,
+    ChannelUnsubscriptionResult,
     SessionParams,
     SubscriptionResult,
     UnsubscriptionResult,
 )
-from gateway_rpc_client.routes import SUBSCRIPTION_SUBSCRIBE, SUBSCRIPTION_UNSUBSCRIBE
+from gateway_rpc_client.routes import (
+    SUBSCRIPTION_SUBSCRIBE,
+    SUBSCRIPTION_SUBSCRIBE_CHANNEL,
+    SUBSCRIPTION_UNSUBSCRIBE,
+    SUBSCRIPTION_UNSUBSCRIBE_CHANNEL,
+)
 
 
 class Subscription:
@@ -39,5 +47,31 @@ class Subscription:
         )
         return await self._rpc.request(
             SUBSCRIPTION_UNSUBSCRIBE,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+        )
+
+    async def subscribe_channel(
+        self,
+        *,
+        channel: str,
+    ) -> ChannelSubscriptionResult:
+        params = ChannelParams(
+            channel=channel,
+        )
+        return await self._rpc.request(
+            SUBSCRIPTION_SUBSCRIBE_CHANNEL,
+            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+        )
+
+    async def unsubscribe_channel(
+        self,
+        *,
+        channel: str,
+    ) -> ChannelUnsubscriptionResult:
+        params = ChannelParams(
+            channel=channel,
+        )
+        return await self._rpc.request(
+            SUBSCRIPTION_UNSUBSCRIBE_CHANNEL,
             params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
         )

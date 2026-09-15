@@ -4,7 +4,8 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 ## WebSocket (`/v1/gateway`, JSON-RPC)
 
-- `subscription.subscribe` / `subscription.unsubscribe`: connection-bound (`client_id`)
+- `subscription.subscribe` / `subscription.unsubscribe`: connection-bound session subscription
+- `subscription.subscribe_channel` / `subscription.unsubscribe_channel`: connection-bound channel subscription that survives session rotation
 - `turn.start`: result arrives as events on the socket anyway
 - `turn.steer` / `turn.cancel`: control a running turn
 - `turn.prepare` / `turn.finish`: latency-sensitive agent lifecycle hints during a conversation
@@ -32,6 +33,6 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 ## Client flow
 
-1. Get or create the session via REST.
-2. Load the snapshot via `GET /v1/sessions/{id}`, then call `subscription.subscribe` on the socket.
+1. Get or create the session via REST. A client that wants ephemeral context may pass `inactivity_timeout_seconds`; omitting it means that the session never expires automatically.
+2. A history-oriented client loads the snapshot via `GET /v1/sessions/{id}`, then calls `subscription.subscribe` on the socket. A persistent channel client such as Voice calls `subscription.subscribe_channel` instead.
 3. The snapshot carries no event `sequence` yet, so events between steps 2 and 3 can be missed; a snapshot sequence would allow subscribe-first with dedupe.
