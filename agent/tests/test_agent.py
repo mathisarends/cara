@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -50,6 +51,7 @@ def _agent(model: _Model, tools: _Tools) -> Agent:
     return Agent(
         models=ModelSwitch.single(cast(ChatModel, model)),
         tools=cast(AgentTools, tools),
+        workspace_root=Path("missing-test-workspace"),
     )
 
 

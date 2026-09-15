@@ -1,4 +1,6 @@
-from pydantic import Field
+from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -9,6 +11,12 @@ from pydantic_settings import (
 from agent.configuration import AgentSettings
 from gateway.agent_runtime.mcp import McpServerSettings
 from gateway.agent_runtime.sandbox import SandboxClientSettings
+
+
+class WorkspaceSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    root: Path | None = None
 
 
 class GatewaySettings(BaseSettings):
@@ -23,6 +31,7 @@ class GatewaySettings(BaseSettings):
     )
 
     agent: AgentSettings = Field(default_factory=AgentSettings)
+    workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     sandbox: SandboxClientSettings = Field(default_factory=SandboxClientSettings)
     tools: tuple[McpServerSettings, ...] = ()
 

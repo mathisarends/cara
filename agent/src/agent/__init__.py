@@ -1,5 +1,5 @@
 from .agent import Agent
-from .configuration import AgentSettings, ModelSettings, WorkspaceSettings
+from .configuration import AgentSettings, ModelSettings
 from .factory import AgentFactory
 from .models import ModelSwitch
 from .prompt import SystemPrompt
@@ -11,5 +11,4 @@ __all__ = [
     "ModelSettings",
     "ModelSwitch",
     "SystemPrompt",
-    "WorkspaceSettings",
 ]

@@ -5,10 +5,10 @@ from dishka import Provider, Scope, provide
 
 from agent.configuration import AgentSettings
 from agent.factory import AgentFactory
-from agent.workspace import resolve_workspace_root
 from gateway.agent_runtime.mcp import McpTools
 from gateway.agent_runtime.sandbox import WorkspaceSandboxClient
 from gateway.agent_runtime.settings import GatewaySettings
+from gateway.agent_runtime.workspace import resolve_workspace_root
 from gateway.features.conversation.application import AgentRuntime
 from gateway.features.conversation.domain import SessionRepository
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
@@ -30,7 +30,7 @@ class AgentRuntimeProvider(Provider):
         self,
         settings: GatewaySettings,
     ) -> AsyncIterator[WorkspaceSandboxClient]:
-        root = resolve_workspace_root(settings.agent.workspace.root)
+        root = resolve_workspace_root(settings.workspace.root)
         client = WorkspaceSandboxClient(settings.sandbox, root)
         try:
             yield client

@@ -48,10 +48,10 @@ class Agent:
         *,
         models: ModelSwitch,
         tools: AgentTools,
+        workspace_root: Path,
         skills: Skills | None = None,
         clock: LocalClock | None = None,
         system_prompt: str | None = None,
-        workspace_root: Path | None = None,
         messages: Sequence[Message] = (),
     ) -> None:
         self._models = models

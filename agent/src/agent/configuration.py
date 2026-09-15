@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Self
 from zoneinfo import ZoneInfo
 
@@ -6,13 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from agent.clock import DEFAULT_TIMEZONE
 from llm import CodexModel
-
-
-class WorkspaceSettings(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    root: Path | None = None
-    max_file_bytes: int | None = Field(default=None, gt=0)
 
 
 class ModelSettings(BaseModel):
@@ -45,7 +37,6 @@ class AgentSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     models: ModelSettings = Field(default_factory=ModelSettings)
-    workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     system_prompt: str | None = None
     timezone: str = DEFAULT_TIMEZONE
 

@@ -4,8 +4,6 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 
-from agent.workspace import resolve_workspace_root
-
 _BASE_FILES = ("AGENTS.md", "IDENTITY.md", "SOUL.md", "USER.md")
 _TOOLS_FILES = ("TOOLS.md",)
 _MEMORY_FILES = ("MEMORY.md",)
@@ -18,12 +16,12 @@ class SystemPrompt:
     def __init__(
         self,
         *,
-        root: Path | None = None,
+        root: Path,
         system_prompt: str | None = None,
         skills: Skills | None = None,
         today: Callable[[], date] | None = None,
     ) -> None:
-        self._root = root or resolve_workspace_root()
+        self._root = root
         self._system_prompt = system_prompt
         self._skills = skills
         self._today = today or date.today

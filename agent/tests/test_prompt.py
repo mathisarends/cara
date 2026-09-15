@@ -1,7 +1,6 @@
 from datetime import date
 from pathlib import Path
 
-import pytest
 from agenttoolkit import Skills
 
 from agent.prompt import SystemPrompt
@@ -51,15 +50,6 @@ def test_system_prompt_is_assembled_from_the_context_markdown_files(
         < prompt.index("### USER.md")
         < prompt.rindex("### MEMORY.md")
     )
-
-
-def test_system_prompt_defaults_to_the_user_workspace(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    (tmp_path / "AGENTS.md").write_text("Workspace rules.", encoding="utf-8")
-    monkeypatch.setenv("CARA_WORKSPACE_ROOT", str(tmp_path))
-
-    assert SystemPrompt().render() == "### AGENTS.md\n\nWorkspace rules."
 
 
 def test_system_prompt_skips_files_that_are_missing(tmp_path: Path) -> None:
