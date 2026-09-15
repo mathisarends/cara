@@ -12,6 +12,7 @@ dependencies = [
 
 [project.scripts]
 cara-sandbox-manager = "sandbox_manager.main:main"
+cara-sandbox-manager-schema = "sandbox_manager.schema_export:main"
 
 [build-system]
 requires = ["hatchling"]

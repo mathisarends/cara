@@ -3,11 +3,22 @@ from collections.abc import Mapping
 from pathlib import Path
 from urllib.parse import quote
 
-import httpx
+import httpx2
 from agenttoolkit.builtins import CommandResult
 from agenttoolkit.builtins.fs import Entry, GrepMatch
 from agenttoolkit.builtins.shell import DEFAULT_TIMEOUT, CommandTimeout
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, SecretStr
+
+from sandbox_manager_client import (
+    ApiError,
+    ExecRequest,
+    FileEditRequest,
+    FileWriteRequest,
+    GrepRequest,
+    SandboxManagerClient,
+)
+from sandbox_manager_client import FileEntry as GeneratedEntry
+from sandbox_manager_client import FileMatch as GeneratedMatch
 
 
 class SandboxClientSettings(BaseModel):
@@ -23,14 +34,15 @@ class WorkspaceSandboxClient:
         self,
         settings: SandboxClientSettings,
         root: Path,
-        client: httpx.AsyncClient | None = None,
+        client: httpx2.AsyncClient | None = None,
     ) -> None:
         self._settings = settings
         self._root = root
+        self._authorization = f"Bearer {settings.token.get_secret_value()}"
         self._owns_client = client is None
-        self._client = client or httpx.AsyncClient(
-            base_url=str(settings.url).rstrip("/"),
-            headers={"Authorization": f"Bearer {settings.token.get_secret_value()}"},
+        self._http_client = client or httpx2.AsyncClient()
+        self._client = SandboxManagerClient(
+            self._http_client, str(settings.url).rstrip("/")
         )
 
     @property
@@ -38,8 +50,8 @@ class WorkspaceSandboxClient:
         return self._root
 
     async def ensure(self) -> None:
-        response = await self._client.put(f"{self._base}/sandbox")
-        _raise_for_status(response)
+        async with _translate_errors():
+            await self._client.ensure_sandbox(self._workspace_id, self._authorization)
 
     async def execute(
         self,
@@ -52,33 +64,34 @@ class WorkspaceSandboxClient:
     ) -> CommandResult:
         started = time.perf_counter()
         timeout_seconds = 15 if timeout in (DEFAULT_TIMEOUT, None) else timeout
-        response = await self._client.post(
-            f"{self._base}/exec",
-            json={
-                "argv": ["/bin/bash", "-lc", command],
-                "cwd": _container_cwd(cwd),
-                "env": env or {},
-                "stdin": stdin.decode() if isinstance(stdin, bytes) else stdin,
-                "timeout_seconds": timeout_seconds,
-            },
-            timeout=timeout_seconds + 5,
-        )
-        _raise_for_status(response)
-        result = response.json()
+        async with _translate_errors():
+            result = await self._client.execute(
+                self._workspace_id,
+                self._authorization,
+                ExecRequest(
+                    argv=["/bin/bash", "-lc", command],
+                    cwd=_container_cwd(cwd),
+                    env=dict(env or {}),
+                    stdin=stdin.decode() if isinstance(stdin, bytes) else stdin,
+                    timeout_seconds=timeout_seconds,
+                ),
+                timeout=timeout_seconds + 5,
+            )
         return CommandResult(
             command=command,
-            returncode=result["exit_code"],
-            stdout=result["stdout"],
-            stderr=result["stderr"],
+            returncode=result.exit_code,
+            stdout=result.stdout,
+            stderr=result.stderr,
             duration_seconds=time.perf_counter() - started,
-            timed_out=result.get("timed_out", False),
+            timed_out=result.timed_out,
         )
 
     async def read_file(self, path: str | Path, *, encoding: str | None = None) -> str:
         _require_utf8(encoding)
-        response = await self._client.get(f"{self._base}/files/{_path(path)}")
-        _raise_for_status(response)
-        return response.text
+        async with _translate_errors():
+            return await self._client.read_file(
+                self._workspace_id, _path(path), self._authorization
+            )
 
     async def write_file(
         self,
@@ -91,11 +104,13 @@ class WorkspaceSandboxClient:
         _require_utf8(encoding)
         if not create_parents:
             raise ValueError("remote workspace always creates parent directories")
-        response = await self._client.put(
-            f"{self._base}/files/{_path(path)}",
-            json={"content": content},
-        )
-        _raise_for_status(response)
+        async with _translate_errors():
+            await self._client.write_file(
+                self._workspace_id,
+                _path(path),
+                self._authorization,
+                FileWriteRequest(content=content),
+            )
 
     async def edit_file(
         self,
@@ -107,12 +122,14 @@ class WorkspaceSandboxClient:
         encoding: str | None = None,
     ) -> int:
         _require_utf8(encoding)
-        response = await self._client.post(
-            f"{self._base}/edit/{_path(path)}",
-            json={"old": old, "new": new, "replace_all": replace_all},
-        )
-        _raise_for_status(response)
-        return response.json()["count"]
+        async with _translate_errors():
+            response = await self._client.edit_file(
+                self._workspace_id,
+                _path(path),
+                self._authorization,
+                FileEditRequest(old=old, new=new, replace_all=replace_all),
+            )
+        return response.count
 
     async def list_dir(
         self,
@@ -121,20 +138,22 @@ class WorkspaceSandboxClient:
         recursive: bool = False,
         limit: int | None = None,
     ) -> list[Entry]:
-        response = await self._client.get(
-            f"{self._base}/entries",
-            params={"path": str(path), "recursive": recursive},
-        )
-        _raise_for_status(response)
-        entries = [Entry(**item) for item in response.json()]
-        return entries if limit is None else entries[:limit]
+        async with _translate_errors():
+            entries = await self._client.list_entries(
+                self._workspace_id,
+                self._authorization,
+                directory=str(path),
+                recursive=recursive,
+            )
+        result = [_entry(item) for item in entries]
+        return result if limit is None else result[:limit]
 
     async def glob(self, pattern: str) -> list[Entry]:
-        response = await self._client.get(
-            f"{self._base}/glob", params={"pattern": pattern}
-        )
-        _raise_for_status(response)
-        return [Entry(**item) for item in response.json()]
+        async with _translate_errors():
+            entries = await self._client.glob_files(
+                self._workspace_id, pattern, self._authorization
+            )
+        return [_entry(item) for item in entries]
 
     async def grep(
         self,
@@ -145,34 +164,35 @@ class WorkspaceSandboxClient:
         context_lines: int = 0,
         max_matches: int | None = None,
     ) -> list[GrepMatch]:
-        response = await self._client.post(
-            f"{self._base}/grep",
-            json={
-                "pattern": pattern,
-                "glob": glob,
-                "case_sensitive": case_sensitive,
-                "context_lines": context_lines,
-                "max_matches": max_matches,
-            },
-        )
-        _raise_for_status(response)
-        return [GrepMatch(**item) for item in response.json()]
+        async with _translate_errors():
+            matches = await self._client.grep_files(
+                self._workspace_id,
+                self._authorization,
+                GrepRequest(
+                    pattern=pattern,
+                    glob=glob,
+                    case_sensitive=case_sensitive,
+                    context_lines=context_lines,
+                    max_matches=max_matches,
+                ),
+            )
+        return [_match(item) for item in matches]
 
     async def stat(self, path: str | Path) -> Entry | None:
-        response = await self._client.get(
-            f"{self._base}/stat", params={"path": str(path)}
-        )
-        _raise_for_status(response)
-        value = response.json()
-        return None if value is None else Entry(**value)
+        async with _translate_errors():
+            entry = await self._client.stat_file(
+                self._workspace_id, _path(path), self._authorization
+            )
+        return None if entry is None else _entry(entry)
 
     async def aclose(self) -> None:
+        await self._client.aclose()
         if self._owns_client:
-            await self._client.aclose()
+            await self._http_client.aclose()
 
     @property
-    def _base(self) -> str:
-        return f"/v1/workspaces/{quote(self._settings.workspace_id, safe='')}"
+    def _workspace_id(self) -> str:
+        return self._settings.workspace_id
 
 
 def _path(path: str | Path) -> str:
@@ -194,11 +214,39 @@ def _require_utf8(encoding: str | None) -> None:
         raise ValueError("remote workspace supports UTF-8 only")
 
 
-def _raise_for_status(response: httpx.Response) -> None:
-    if response.status_code == 404:
-        raise FileNotFoundError(response.request.url.path)
-    if response.status_code == 403:
-        raise PermissionError(response.text)
-    if response.status_code == 400:
-        raise ValueError(response.text)
-    response.raise_for_status()
+def _entry(item: GeneratedEntry) -> Entry:
+    return Entry(
+        path=item.path,
+        is_dir=item.is_dir,
+        is_symlink=item.is_symlink,
+        size=item.size,
+        modified=item.modified,
+    )
+
+
+def _match(item: GeneratedMatch) -> GrepMatch:
+    return GrepMatch(
+        path=item.path,
+        line_number=item.line_number,
+        line=item.line,
+        context_before=tuple(item.context_before),
+        context_after=tuple(item.context_after),
+    )
+
+
+class _translate_errors:
+    async def __aenter__(self) -> None:
+        return None
+
+    async def __aexit__(
+        self, exc_type: object, exc: BaseException | None, tb: object
+    ) -> bool:
+        if not isinstance(exc, ApiError):
+            return False
+        if exc.status_code == 404:
+            raise FileNotFoundError(exc.raw_body) from exc
+        if exc.status_code == 403:
+            raise PermissionError(exc.raw_body) from exc
+        if exc.status_code == 400:
+            raise ValueError(exc.raw_body) from exc
+        return False

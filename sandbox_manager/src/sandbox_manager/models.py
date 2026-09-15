@@ -45,3 +45,7 @@ class GrepRequest(BaseModel):
 class SandboxResponse(BaseModel):
     workspace_id: str
     container_id: str
+
+
+class FileEditResponse(BaseModel):
+    count: int

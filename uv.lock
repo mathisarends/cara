@@ -20,12 +20,14 @@ members = [
     "gateway-server",
     "llm",
     "sandbox-manager",
+    "sandbox-manager-client",
     "scheduler",
     "voice",
 ]
 
 [manifest.dependency-groups]
 dev = [
+    { name = "httpxgen", specifier = ">=0.2.0" },
     { name = "pre-commit", specifier = ">=4.0.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
@@ -440,13 +442,14 @@ dependencies = [
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi-canon", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "mcp", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "obstore", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "sandbox-manager-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "scheduler", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sqlmodel", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -455,7 +458,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyrpckit", extra = ["codegen"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pytest-asyncio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -470,13 +472,14 @@ requires-dist = [
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "fastapi-canon", specifier = ">=0.4.0,<0.5.0" },
-    { name = "httpx", specifier = ">=0.28.0" },
+    { name = "httpx2", specifier = ">=2.9.1" },
     { name = "mcp", specifier = ">=2.2,<3" },
     { name = "obstore", specifier = ">=0.11.1" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyrpckit", specifier = "==0.4.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "sandbox-manager-client", editable = "generated/sandbox_manager_client" },
     { name = "scheduler", editable = "libs/scheduler" },
     { name = "sqlmodel", specifier = ">=0.0.31" },
     { name = "uvicorn", specifier = ">=0.30.0" },
@@ -485,7 +488,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx2", specifier = ">=2.9.1" },
     { name = "pyrpckit", extras = ["codegen"], specifier = "==0.4.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
@@ -631,6 +633,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/21/14/38128fbafd7e0ed41d874df6c9a653d47c2d111cfe59e2b4ac95161b4abd/httpx2-2.9.1.tar.gz", hash = "sha256:1932a768737e3666291582833da748cc4e563c337cf96706fccc04fa6e58764a", size = 95458, upload-time = "2026-07-24T09:21:04.972Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/13/b8/cfd91c4ab9134d386d48f0b6ac662ff3d4be6efdee59ee1c67ebc3c0487c/httpx2-2.9.1-py3-none-any.whl", hash = "sha256:1820fe14a9ab1107bfeff39259987429450b070ec0ff38cc87eb0d8c97fdc71a", size = 91191, upload-time = "2026-07-24T09:21:02.6Z" },
+]
+
+[[package]]
+name = "httpxgen"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jinja2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d0/21/fd08e60ffafbeb123f383494eb2b3cdeb3b6594e3195ffaf58fb3af54243/httpxgen-0.2.0.tar.gz", hash = "sha256:335b0e5b32c440fd70a2298a336b0c4e6f046ac5904be5f25e53fc282c2e151d", size = 113887, upload-time = "2026-09-08T10:42:33.552Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/9e/a3b5d48a4abf356c73bd245d552261c8129a0324262da83ad34d5f02b133/httpxgen-0.2.0-py3-none-any.whl", hash = "sha256:becf2371f09945bd8f8189b858588f9b5969a424754305896083cfb1b7215390", size = 53061, upload-time = "2026-09-08T10:42:32.412Z" },
 ]
 
 [[package]]
@@ -1464,6 +1480,21 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "uvicorn", specifier = ">=0.30.0" },
+]
+
+[[package]]
+name = "sandbox-manager-client"
+version = "0.1.0"
+source = { editable = "generated/sandbox_manager_client" }
+dependencies = [
+    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx2", specifier = ">=2.9.1" },
+    { name = "pydantic", specifier = ">=2.7.0" },
 ]
 
 [[package]]

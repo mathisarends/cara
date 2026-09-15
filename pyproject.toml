@@ -1,5 +1,6 @@
 [dependency-groups]
 dev = [
+    "httpxgen>=0.2.0",
     "pre-commit>=4.0.0",
     "pytest>=8.0.0",
     "pytest-cov>=7.1.0",
@@ -20,6 +21,7 @@ members = [
     "clients/voice",
     "gateway",
     "generated/gateway_client",
+    "generated/sandbox_manager_client",
     "libs/llm",
     "libs/scheduler",
     "memory",
@@ -38,11 +40,12 @@ llm = { workspace = true }
 memory = { workspace = true }
 scheduler = { workspace = true }
 sandbox-manager = { workspace = true }
+sandbox-manager-client = { workspace = true }
 voice = { workspace = true }
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
@@ -55,6 +58,11 @@ select = [
     "C4",  # flake8-comprehensions
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Generated clients re-export names their own module never calls (F401) and
+# httpxgen's OpenAPI error model can shadow pydantic's ValidationError (F811).
+"generated/**" = ["F401", "F811"]
+
 [tool.ruff.lint.isort]
 known-first-party = [
     "agent",
@@ -64,6 +72,7 @@ known-first-party = [
     "gateway_client",
     "llm",
     "memory",
+    "sandbox_manager_client",
     "scheduler",
     "voice",
 ]

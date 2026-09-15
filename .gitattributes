@@ -1,2 +1,5 @@
 *.sh text eol=lf
 docker/tools.txt text eol=lf
+
+generated/** linguist-generated=true
+generated/** -diff
