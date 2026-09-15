@@ -92,7 +92,17 @@ services:
 volumes:
   cara-workspace:
     name: cara-workspace
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CARA_WORKSPACE_ROOT:-${HOME}/.cara/workspace}
   cara-cli-config:
     name: cara-cli-config
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CARA_SANDBOX_CLI_CONFIG_ROOT:-${HOME}/.cara/cli-config}
   cara-minio-data:
     name: cara-minio-data
