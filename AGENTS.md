@@ -9,4 +9,23 @@
 - Use dataclasses only for classes that are primarily data containers. Prefer regular classes when a class owns significant behavior or validation logic.
 - Keep class attributes and instance variables private by default. Expose public attributes only when they are intentionally part of the public API.
 - Prefer private module-level helper functions for module-local or cross-module logic instead of static methods that do not need class state.
+- Do not inline factory or constructor calls as arguments to another operation. Assign the created object to a descriptive local variable first, especially before passing it to a repository or service call.
 - When renaming an API, complete the rename throughout the codebase instead of leaving compatibility aliases or other transitional shims unless explicitly requested.
+
+## Tests
+
+Do not automatically add unit tests for every change.
+
+Add tests only when they protect meaningful behavior:
+- regressions
+- domain rules
+- edge cases
+- public contracts
+
+Avoid:
+- tests for implementation details
+- excessive mocking
+- tests for simple data containers
+- duplicating type-system guarantees
+
+Always run the smallest relevant existing test suite.
