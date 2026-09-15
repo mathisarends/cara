@@ -20,6 +20,11 @@ class ToolCallStatus(StrEnum):
     FAILED = "failed"
 
 
+class SortOrder(StrEnum):
+    ASC = "asc"
+    DESC = "desc"
+
+
 class SessionChannel(WireSchema):
     name: str = Field(min_length=1)
 
@@ -36,6 +41,10 @@ class SessionResponse(WireSchema):
     id: UUID
     created_at: datetime
     channel: SessionChannel
+
+
+class SessionListResponse(WireSchema):
+    sessions: tuple[SessionResponse, ...]
 
 
 class ItemBase(WireSchema):

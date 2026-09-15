@@ -7,6 +7,7 @@ from gateway.features.conversation.domain import (
     Session,
     SessionNotFoundError,
     SessionRepository,
+    SortOrder,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,9 @@ class SessionService:
                 )
                 return session
             return await self.create(channel=channel)
+
+    async def list(self, *, limit: int, order: SortOrder) -> tuple[Session, ...]:
+        return await self._sessions.find_many(limit=limit, order=order)
 
     async def get(self, session_id: UUID) -> Session:
         session = await self._sessions.find_by_id(session_id)

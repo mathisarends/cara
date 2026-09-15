@@ -10,6 +10,7 @@ from gateway.features.conversation.domain import (
     ChannelRef,
     Session,
     SessionRepository,
+    SortOrder,
     ToolCall,
     ToolCallSequence,
     ToolCallState,
@@ -61,6 +62,18 @@ class SQLSessionRepository(
             result = await database.execute(statement)
             model = result.scalar_one_or_none()
             return self._to_domain(model) if model is not None else None
+
+    async def find_many(self, *, limit: int, order: SortOrder) -> tuple[Session, ...]:
+        if order is SortOrder.ASCENDING:
+            ordering = (SessionModel.created_at.asc(), SessionModel.id.asc())
+        else:
+            ordering = (SessionModel.created_at.desc(), SessionModel.id.desc())
+        statement = self._with_entries(
+            select(SessionModel).order_by(*ordering).limit(limit)
+        )
+        async with self._session_factory() as database:
+            result = await database.execute(statement)
+            return tuple(self._to_domain(model) for model in result.scalars())
 
     async def save(self, domain: Session) -> Session:
         async with self._session_factory() as database:

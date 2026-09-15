@@ -2,6 +2,7 @@ from gateway.features.conversation.domain import (
     AssistantMessage,
     ChannelRef,
     Session,
+    SortOrder,
     ToolCallSequence,
     ToolCallState,
     UserMessage,
@@ -69,3 +70,15 @@ async def test_latest_session_can_be_found_by_its_channel(
     assert restored is not None
     assert restored.id == latest.id
     assert restored.id != first.id
+
+
+async def test_sessions_can_be_listed_in_either_order_with_a_limit(
+    session_repository: SQLSessionRepository,
+) -> None:
+    saved = [await session_repository.save(Session.create(_CHANNEL)) for _ in range(3)]
+
+    newest = await session_repository.find_many(limit=2, order=SortOrder.DESCENDING)
+    oldest = await session_repository.find_many(limit=2, order=SortOrder.ASCENDING)
+
+    assert [session.id for session in newest] == [saved[2].id, saved[1].id]
+    assert [session.id for session in oldest] == [saved[0].id, saved[1].id]

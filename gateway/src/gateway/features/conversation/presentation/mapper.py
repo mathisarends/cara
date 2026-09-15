@@ -1,11 +1,15 @@
+from collections.abc import Iterable
+
 from gateway.features.conversation import domain
 from gateway.features.conversation.presentation.schemas import (
     AssistantMessageItem,
     Item,
     ItemType,
     SessionChannel,
+    SessionListResponse,
     SessionResponse,
     SessionSnapshotResponse,
+    SortOrder,
     ToolCallItem,
     ToolCallStatus,
     UserMessageItem,
@@ -14,6 +18,22 @@ from gateway.features.conversation.presentation.schemas import (
 
 def to_channel_ref(channel: SessionChannel) -> domain.ChannelRef:
     return domain.ChannelRef(channel.name)
+
+
+def to_sort_order(sort: SortOrder) -> domain.SortOrder:
+    match sort:
+        case SortOrder.ASC:
+            return domain.SortOrder.ASCENDING
+        case SortOrder.DESC:
+            return domain.SortOrder.DESCENDING
+
+
+def to_session_list_response(
+    sessions: Iterable[domain.Session],
+) -> SessionListResponse:
+    return SessionListResponse(
+        sessions=tuple(to_session_response(session) for session in sessions)
+    )
 
 
 def to_session_response(session: domain.Session) -> SessionResponse:

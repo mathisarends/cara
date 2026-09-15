@@ -15,7 +15,7 @@ from .repository import SessionRepository
 from .session import Session
 from .session_entry import SessionEntry
 from .tool_calls import ToolCall, ToolCallSequence, ToolCallState
-from .values import ChannelRef
+from .values import ChannelRef, SortOrder
 
 __all__ = [
     "ConversationError",
@@ -30,6 +30,7 @@ __all__ = [
     "SessionEntry",
     "SessionNotFoundError",
     "SessionRepository",
+    "SortOrder",
     "ToolCall",
     "ToolCallAlreadyResolvedError",
     "ToolCallNotFoundError",

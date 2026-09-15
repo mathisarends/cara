@@ -1,7 +1,8 @@
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import Depends, status
+from fastapi import Depends, Query, status
 from fastapi_canon import CanonRouter
 
 from gateway.features.conversation.application import SessionService
@@ -11,14 +12,18 @@ from gateway.features.conversation.presentation.errors import (
 )
 from gateway.features.conversation.presentation.mapper import (
     to_channel_ref,
+    to_session_list_response,
     to_session_response,
     to_session_snapshot_response,
+    to_sort_order,
 )
 from gateway.features.conversation.presentation.schemas import (
     CreateSessionRequest,
     OpenSessionRequest,
+    SessionListResponse,
     SessionResponse,
     SessionSnapshotResponse,
+    SortOrder,
 )
 from gateway.presentation.authentication import require_token
 
@@ -29,6 +34,21 @@ conversation_router = CanonRouter(
     error_registry=CONVERSATION_ERRORS,
     dependencies=[Depends(require_token)],
 )
+
+
+@conversation_router.get(
+    "",
+    operation_id="list_sessions",
+    response_model=SessionListResponse,
+    summary="List sessions ordered by creation time",
+)
+async def list_sessions(
+    sessions: FromDishka[SessionService],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    sort: SortOrder = SortOrder.DESC,
+) -> SessionListResponse:
+    listed = await sessions.list(limit=limit, order=to_sort_order(sort))
+    return to_session_list_response(listed)
 
 
 @conversation_router.post(

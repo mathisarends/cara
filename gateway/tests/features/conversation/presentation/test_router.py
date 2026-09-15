@@ -14,6 +14,23 @@ def test_open_reuses_the_latest_session_of_a_channel(client: TestClient) -> None
     assert opened.json() == created.json()
 
 
+def test_list_sorts_by_creation_time_and_applies_the_limit(
+    client: TestClient,
+) -> None:
+    ids = [client.post("/v1/sessions", json=_CHANNEL).json()["id"] for _ in range(3)]
+
+    newest = client.get("/v1/sessions", params={"limit": 2})
+    oldest = client.get("/v1/sessions", params={"limit": 2, "sort": "asc"})
+
+    assert [s["id"] for s in newest.json()["sessions"]] == [ids[2], ids[1]]
+    assert [s["id"] for s in oldest.json()["sessions"]] == [ids[0], ids[1]]
+
+
+def test_list_rejects_a_limit_outside_the_allowed_range(client: TestClient) -> None:
+    assert client.get("/v1/sessions", params={"limit": 0}).status_code == 422
+    assert client.get("/v1/sessions", params={"limit": 101}).status_code == 422
+
+
 def test_get_returns_a_session_snapshot(client: TestClient) -> None:
     session = client.post("/v1/sessions", json=_CHANNEL).json()
 
