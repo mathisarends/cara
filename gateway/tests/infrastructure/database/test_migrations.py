@@ -3,7 +3,7 @@ from pathlib import Path
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from gateway.infrastructure.database.migrations import run_migrations
+from gateway.platform.database.migrations import run_migrations
 
 
 async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> None:

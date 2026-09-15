@@ -1,5 +1,5 @@
+from ..platform.observability.request_logging import RequestLoggingMiddleware
 from . import rpc
 from .feature import Feature
-from .request_logging import RequestLoggingMiddleware
 
 __all__ = ["Feature", "RequestLoggingMiddleware", "rpc"]

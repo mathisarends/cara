@@ -4,7 +4,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from gateway.features.conversation.application import TurnLease
-from gateway.infrastructure.database import SessionModel
+from gateway.platform.database import SessionModel
 
 
 class SQLTurnLease(TurnLease):

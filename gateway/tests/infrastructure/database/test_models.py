@@ -2,7 +2,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from gateway.infrastructure.database import (
+from gateway.platform.database import (
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,

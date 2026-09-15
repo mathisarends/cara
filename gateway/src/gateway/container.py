@@ -3,7 +3,7 @@ from dishka.integrations.fastapi import FastapiProvider
 
 from gateway.agent_plugins import AgentPluginProvider
 from gateway.features import FEATURES
-from gateway.infrastructure import DatabaseProvider
+from gateway.platform import DatabaseProvider
 from gateway.presentation.rpc.channels import gateway_channel
 from gateway.presentation.websocket.provider import GatewayProvider
 

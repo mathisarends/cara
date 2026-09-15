@@ -7,7 +7,7 @@ from alembic.config import Config
 from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from gateway.infrastructure.database.settings import DatabaseSettings
+from gateway.platform.database.settings import DatabaseSettings
 
 _MIGRATIONS_ROOT = Path(__file__).resolve().parents[4]
 

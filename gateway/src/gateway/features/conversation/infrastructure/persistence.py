@@ -15,7 +15,7 @@ from gateway.features.conversation.domain import (
     ToolCallState,
     UserMessage,
 )
-from gateway.infrastructure.database import (
+from gateway.platform.database import (
     Repository,
     SessionAssistantMessageModel,
     SessionModel,

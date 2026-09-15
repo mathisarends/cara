@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import Field, SQLModel
 
-from gateway.infrastructure.database.repository import Repository
+from gateway.platform.database.repository import Repository
 
 
 class _NoteModel(SQLModel, table=True):

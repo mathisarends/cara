@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import StaticPool
 
-from gateway.infrastructure.database.settings import DatabaseSettings
+from gateway.platform.database.settings import DatabaseSettings
 
 
 class DatabaseProvider(Provider):
