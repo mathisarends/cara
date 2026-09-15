@@ -10,8 +10,10 @@ from features.alarm.fakes import (
     AcceptAllTargets,
     FixedClock,
     RecordingScheduler,
+    find_alarm,
     make_alarm,
     once_at,
+    save_alarm,
 )
 from gateway.features.alarm.application import (
     AlarmService,
@@ -21,13 +23,14 @@ from gateway.features.alarm.application import (
 from gateway.features.alarm.domain import (
     AlarmNotFoundError,
     AlarmPhase,
+    AlarmRepository,
     AlarmRoutine,
     AlarmStateError,
     AlarmTarget,
     OccurrenceState,
     SessionTarget,
 )
-from gateway.features.alarm.infrastructure.repository import SQLAlarmRepository
+from gateway.shared import UnitOfWork
 
 _OWNER = "owner"
 _OTHER_OWNER = "someone-else"
@@ -146,7 +149,7 @@ async def test_snooze_requires_a_ringing_alarm(alarm_service: AlarmService) -> N
 
 
 async def test_snooze_and_dismiss_a_ringing_one_time_alarm(
-    alarm_repository: SQLAlarmRepository,
+    alarm_repositories: UnitOfWork[AlarmRepository],
     alarm_service: AlarmService,
     clock: FixedClock,
     recording_scheduler: RecordingScheduler,
@@ -155,7 +158,7 @@ async def test_snooze_and_dismiss_a_ringing_one_time_alarm(
     run = alarm.next_due_run(NEXT_WAKE)
     assert run is not None
     alarm.start_run(run, NEXT_WAKE)
-    await alarm_repository.save(alarm)
+    await save_alarm(alarm_repositories, alarm)
     clock.current = NEXT_WAKE + timedelta(minutes=1)
 
     snoozed = await alarm_service.snooze(alarm.id, _OWNER, timedelta(minutes=9))
@@ -165,12 +168,12 @@ async def test_snooze_and_dismiss_a_ringing_one_time_alarm(
     assert snoozed.occurrence.state is OccurrenceState.SNOOZED
     assert snoozed.occurrence.snooze_count == 1
     assert dismissed is None
-    assert await alarm_repository.find_by_id(alarm.id) is None
+    assert await find_alarm(alarm_repositories, alarm.id) is None
     assert recording_scheduler.armed == {}
 
 
 async def test_resume_arms_every_persisted_alarm(
-    alarm_repository: SQLAlarmRepository,
+    alarm_repositories: UnitOfWork[AlarmRepository],
     alarm_service: AlarmService,
     clock: FixedClock,
 ) -> None:
@@ -179,7 +182,7 @@ async def test_resume_arms_every_persisted_alarm(
     restarted = RecordingScheduler()
 
     await AlarmService(
-        AlarmStore(alarm_repository, restarted),
+        AlarmStore(alarm_repositories, restarted),
         AcceptAllTargets(),
         clock,
     ).resume()

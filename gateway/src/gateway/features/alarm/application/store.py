@@ -6,6 +6,7 @@ from uuid import UUID
 
 from gateway.features.alarm.application.ports import AlarmScheduler
 from gateway.features.alarm.domain import Alarm, AlarmRepository
+from gateway.shared import UnitOfWork
 
 
 class AlarmStore:
@@ -15,8 +16,12 @@ class AlarmStore:
     never interleave between loading and saving an alarm.
     """
 
-    def __init__(self, repository: AlarmRepository, scheduler: AlarmScheduler) -> None:
-        self._repository = repository
+    def __init__(
+        self,
+        repositories: UnitOfWork[AlarmRepository],
+        scheduler: AlarmScheduler,
+    ) -> None:
+        self._repositories = repositories
         self._scheduler = scheduler
         self._lock = asyncio.Lock()
 
@@ -26,17 +31,21 @@ class AlarmStore:
             yield
 
     async def find(self, alarm_id: UUID) -> Alarm | None:
-        return await self._repository.find_by_id(alarm_id)
+        async with self._repositories() as repository:
+            return await repository.find_by_id(alarm_id)
 
     async def find_by_owner(self, owner_id: str) -> tuple[Alarm, ...]:
-        return await self._repository.find_by_owner(owner_id)
+        async with self._repositories() as repository:
+            return await repository.find_by_owner(owner_id)
 
     async def find_all(self) -> tuple[Alarm, ...]:
-        return await self._repository.find_all()
+        async with self._repositories() as repository:
+            return await repository.find_all()
 
     async def save(self, alarm: Alarm, now: datetime) -> Alarm:
-        # Persist before arming so a due run always finds the stored alarm.
-        saved = await self._repository.save(alarm)
+        # Commit before arming so a due run always finds the stored alarm.
+        async with self._repositories() as repository:
+            saved = await repository.save(alarm)
         self._scheduler.arm(saved, now)
         return saved
 
@@ -49,7 +58,8 @@ class AlarmStore:
 
     async def remove(self, alarm: Alarm) -> None:
         self._scheduler.disarm(alarm.id)
-        await self._repository.remove(alarm)
+        async with self._repositories() as repository:
+            await repository.remove(alarm)
 
     def arm(self, alarm: Alarm, now: datetime) -> None:
         self._scheduler.arm(alarm, now)

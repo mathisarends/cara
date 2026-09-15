@@ -11,8 +11,9 @@ from gateway.features.conversation.application import (
     AgentRunRequest,
     AgentSessionRef,
     ChatCompleted,
+    SessionService,
 )
-from gateway.features.conversation.domain import ChannelRef, Session, SessionRepository
+from gateway.features.conversation.domain import ChannelRef, Session
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
 from llm import Message
 
@@ -21,8 +22,9 @@ class _Sessions:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    async def find_by_id(self, session_id):
-        return self._session if session_id == self._session.id else None
+    async def get(self, session_id):
+        assert session_id == self._session.id
+        return self._session
 
 
 class _Agent:
@@ -82,7 +84,7 @@ async def test_runtime_reuses_one_agent_until_the_session_is_finished() -> None:
     factory = _Factory()
     sandbox = _Sandbox()
     runtime = CaraAgentRuntime(
-        cast(SessionRepository, _Sessions(session)),
+        cast(SessionService, _Sessions(session)),
         cast(AgentFactory, factory),
         sandbox,
         cast(TurnToolDependencies, _TurnDependencies()),

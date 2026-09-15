@@ -1,16 +1,26 @@
+from collections.abc import AsyncIterator
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from features.alarm.fakes import AcceptAllTargets, FixedClock, RecordingScheduler
 from gateway.features.alarm.application import AlarmService, AlarmStore
+from gateway.features.alarm.domain import AlarmRepository
 from gateway.features.alarm.infrastructure.repository import SQLAlarmRepository
+from gateway.shared import UnitOfWork
 
 
 @pytest.fixture
-def alarm_repository(
+async def alarm_repository(
     session_factory: async_sessionmaker[AsyncSession],
-) -> SQLAlarmRepository:
-    return SQLAlarmRepository(session_factory)
+) -> AsyncIterator[SQLAlarmRepository]:
+    async with session_factory() as session:
+        yield SQLAlarmRepository(session)
+
+
+@pytest.fixture
+def alarm_repositories(make_unit_of_work) -> UnitOfWork[AlarmRepository]:
+    return make_unit_of_work(SQLAlarmRepository)
 
 
 @pytest.fixture
@@ -25,10 +35,10 @@ def recording_scheduler() -> RecordingScheduler:
 
 @pytest.fixture
 def alarm_store(
-    alarm_repository: SQLAlarmRepository,
+    alarm_repositories: UnitOfWork[AlarmRepository],
     recording_scheduler: RecordingScheduler,
 ) -> AlarmStore:
-    return AlarmStore(alarm_repository, recording_scheduler)
+    return AlarmStore(alarm_repositories, recording_scheduler)
 
 
 @pytest.fixture

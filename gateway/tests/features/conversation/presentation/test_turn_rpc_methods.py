@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from gateway.features.conversation.application import (
     AgentEvent,
@@ -15,17 +14,15 @@ from gateway.features.conversation.application import (
     ConversationEventType,
     EventPublisher,
     SessionService,
+    TurnLease,
     TurnService,
 )
 from gateway.features.conversation.domain import (
     AssistantMessage,
     ChannelRef,
     SessionNotFoundError,
+    SessionRepository,
 )
-from gateway.features.conversation.infrastructure.repository import (
-    SQLSessionRepository,
-)
-from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
 from gateway.features.conversation.presentation.rpc.methods import (
     cancel_turn,
     finish_turn,
@@ -36,6 +33,7 @@ from gateway.features.conversation.presentation.rpc.models import (
     SessionParams,
     StartTurnParams,
 )
+from gateway.shared import UnitOfWork
 
 _CHANNEL = ChannelRef("voice")
 
@@ -81,16 +79,16 @@ class _HangingAgentRuntime(AgentRuntime):
 
 
 def _services(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     runner: AgentRuntime,
     publisher: EventPublisher | None = None,
 ) -> tuple[SessionService, TurnService]:
-    sessions = SessionService(session_repository)
+    sessions = SessionService(session_units)
     turns = TurnService(
-        session_repository,
+        session_units,
         sessions,
-        SQLTurnLease(session_factory),
+        lease_units,
         publisher or _RecordingPublisher(),
         runner,
     )
@@ -98,11 +96,11 @@ def _services(
 
 
 async def test_prepare_and_finish_turn_forward_the_session(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
 ) -> None:
     runner = _LifecycleAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, runner)
+    sessions, turns = _services(session_units, lease_units, runner)
     created = await sessions.create(channel=_CHANNEL)
 
     prepared = await prepare_turn(SessionParams(session_id=created.id), turns)
@@ -114,12 +112,12 @@ async def test_prepare_and_finish_turn_forward_the_session(
 
 
 async def test_start_turn_runs_the_agent_in_the_background(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
 ) -> None:
     publisher = _RecordingPublisher()
     sessions, turns = _services(
-        session_repository, session_factory, _LifecycleAgentRuntime(), publisher
+        session_units, lease_units, _LifecycleAgentRuntime(), publisher
     )
     created = await sessions.create(channel=_CHANNEL)
 
@@ -136,11 +134,11 @@ async def test_start_turn_runs_the_agent_in_the_background(
 
 
 async def test_cancel_turn_releases_the_session_for_a_new_turn(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
 ) -> None:
     runner = _HangingAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, runner)
+    sessions, turns = _services(session_units, lease_units, runner)
     created = await sessions.create(channel=_CHANNEL)
     await start_turn(StartTurnParams(session_id=created.id, message="hello"), turns)
     await asyncio.wait_for(runner.started.wait(), timeout=1)
@@ -155,10 +153,10 @@ async def test_cancel_turn_releases_the_session_for_a_new_turn(
 
 
 async def test_turn_methods_raise_for_an_unknown_session(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
 ) -> None:
-    _, turns = _services(session_repository, session_factory, _LifecycleAgentRuntime())
+    _, turns = _services(session_units, lease_units, _LifecycleAgentRuntime())
 
     with pytest.raises(SessionNotFoundError):
         await prepare_turn(SessionParams(session_id=uuid4()), turns)

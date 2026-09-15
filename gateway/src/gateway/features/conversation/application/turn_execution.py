@@ -15,13 +15,14 @@ from gateway.features.conversation.application.events import (
 )
 from gateway.features.conversation.application.ports import EventPublisher
 from gateway.features.conversation.domain import Session, SessionRepository
+from gateway.shared import UnitOfWork
 
 
 class TurnExecution:
     def __init__(
         self,
         session: Session,
-        sessions: SessionRepository,
+        sessions: UnitOfWork[SessionRepository],
         publisher: EventPublisher,
     ) -> None:
         self._session = session
@@ -115,7 +116,8 @@ class TurnExecution:
         await self._save_session()
 
     async def _save_session(self) -> None:
-        self._session = await self._sessions.save(self._session)
+        async with self._sessions() as sessions:
+            self._session = await sessions.save(self._session)
 
 
 def render_tool_value(value: Any) -> str:

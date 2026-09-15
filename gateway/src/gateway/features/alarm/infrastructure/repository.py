@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from sqlalchemy import Select, delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from gateway.features.alarm.domain import (
     Alarm,
@@ -24,8 +24,8 @@ from gateway.platform.database import Repository
 
 
 class SQLAlarmRepository(Repository[AlarmModel, Alarm], AlarmRepository):
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
-        super().__init__(session_factory, AlarmModel)
+    def __init__(self, session: AsyncSession) -> None:
+        super().__init__(session, AlarmModel)
 
     async def find_by_owner(self, owner_id: str) -> tuple[Alarm, ...]:
         return await self._find(
@@ -36,9 +36,9 @@ class SQLAlarmRepository(Repository[AlarmModel, Alarm], AlarmRepository):
         return await self._find(select(AlarmModel))
 
     async def remove(self, domain: Alarm) -> None:
-        async with self._session_factory() as database:
-            await database.execute(delete(AlarmModel).where(AlarmModel.id == domain.id))
-            await database.commit()
+        statement = delete(AlarmModel).where(AlarmModel.id == domain.id)
+        await self._session.execute(statement)
+        await self._session.flush()
 
     def _to_domain(self, orm: AlarmModel) -> Alarm:
         return Alarm(
@@ -99,9 +99,8 @@ class SQLAlarmRepository(Repository[AlarmModel, Alarm], AlarmRepository):
 
     async def _find(self, statement: Select[tuple[AlarmModel]]) -> tuple[Alarm, ...]:
         ordered = statement.order_by(AlarmModel.created_at, AlarmModel.id)
-        async with self._session_factory() as database:
-            models = await database.scalars(ordered)
-            return tuple(self._to_domain(model) for model in models)
+        models = await self._session.scalars(ordered)
+        return tuple(self._to_domain(model) for model in models)
 
 
 def _target(model: AlarmModel) -> AlarmTarget:

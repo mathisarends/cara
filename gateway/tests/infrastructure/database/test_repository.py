@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlmodel import Field, SQLModel
 
 from gateway.platform.database.repository import Repository
@@ -35,9 +35,8 @@ async def note_repository() -> AsyncIterator[_NoteRepository]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
-    yield _NoteRepository(
-        async_sessionmaker(engine, expire_on_commit=False), _NoteModel
-    )
+    async with AsyncSession(engine, expire_on_commit=False) as session:
+        yield _NoteRepository(session, _NoteModel)
     await engine.dispose()
 
 

@@ -6,6 +6,7 @@ from uuid import UUID
 from gateway.features.alarm.application import (
     AlarmExecution,
     AlarmScheduler,
+    AlarmService,
     Clock,
 )
 from gateway.features.alarm.domain import Alarm, DueRun
@@ -72,6 +73,27 @@ class InProcessAlarmScheduler(AlarmScheduler):
                 await self._execution.run(job)
             case _Expiry(alarm_id=alarm_id):
                 await self._execution.expire_due(alarm_id)
+
+
+class AlarmRuntime:
+    def __init__(
+        self,
+        service: AlarmService,
+        execution: AlarmExecution,
+        scheduler: InProcessAlarmScheduler,
+    ) -> None:
+        self._service = service
+        self._execution = execution
+        self._scheduler = scheduler
+
+    async def start(self) -> None:
+        await self._service.resume()
+        # The scheduler runs due alarms through the execution, which re-arms
+        # through the scheduler, so it only starts once both exist.
+        await self._scheduler.start(self._execution)
+
+    async def stop(self) -> None:
+        await self._scheduler.stop()
 
 
 def _next_job(alarm: Alarm, now: datetime) -> _AlarmJob | None:

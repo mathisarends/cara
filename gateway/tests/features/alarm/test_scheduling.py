@@ -3,7 +3,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from features.alarm.fakes import DAILY_AT_SIX, AcceptAllTargets
+from features.alarm.fakes import DAILY_AT_SIX, AcceptAllTargets, find_alarm, save_alarm
 from gateway.features.alarm.application import (
     AlarmExecution,
     AlarmRunExecutor,
@@ -13,6 +13,7 @@ from gateway.features.alarm.application import (
 from gateway.features.alarm.domain import (
     Alarm,
     AlarmPhase,
+    AlarmRepository,
     AlarmRoutine,
     DueRun,
     Occurrence,
@@ -20,11 +21,11 @@ from gateway.features.alarm.domain import (
     OnceRecurrence,
     SessionTarget,
 )
-from gateway.features.alarm.infrastructure.repository import SQLAlarmRepository
 from gateway.features.alarm.infrastructure.scheduling import (
     InProcessAlarmScheduler,
     SystemClock,
 )
+from gateway.shared import UnitOfWork
 
 
 class _SlowExecutor(AlarmRunExecutor):
@@ -42,10 +43,10 @@ class _SlowExecutor(AlarmRunExecutor):
 
 
 async def test_phases_run_in_order_while_each_run_rearms_its_alarm(
-    alarm_repository: SQLAlarmRepository,
+    alarm_repositories: UnitOfWork[AlarmRepository],
 ) -> None:
     executor = _SlowExecutor()
-    scheduler, service = await _start(alarm_repository, executor)
+    scheduler, service = await _start(alarm_repositories, executor)
     try:
         alarm = await service.create(
             "owner",
@@ -71,15 +72,15 @@ async def test_phases_run_in_order_while_each_run_rearms_its_alarm(
         AlarmPhase.SNOOZE_END,
     ]
     assert dismissed is None
-    assert await alarm_repository.find_by_id(alarm.id) is None
+    assert await find_alarm(alarm_repositories, alarm.id) is None
 
 
 async def test_disarming_never_cancels_a_running_routine(
-    alarm_repository: SQLAlarmRepository,
+    alarm_repositories: UnitOfWork[AlarmRepository],
 ) -> None:
     executor = _SlowExecutor()
     executor.release.clear()
-    scheduler, service = await _start(alarm_repository, executor)
+    scheduler, service = await _start(alarm_repositories, executor)
     try:
         alarm = await service.create(
             "owner",
@@ -97,18 +98,18 @@ async def test_disarming_never_cancels_a_running_routine(
 
 
 async def test_resume_honours_the_grace_period_for_overdue_runs(
-    alarm_repository: SQLAlarmRepository,
+    alarm_repositories: UnitOfWork[AlarmRepository],
 ) -> None:
     now = datetime.now(UTC)
-    recent = await alarm_repository.save(_overdue(now - timedelta(minutes=5)))
-    missed = await alarm_repository.save(_overdue(now - timedelta(minutes=20)))
+    recent = await save_alarm(alarm_repositories, _overdue(now - timedelta(minutes=5)))
+    missed = await save_alarm(alarm_repositories, _overdue(now - timedelta(minutes=20)))
     executor = _SlowExecutor()
 
-    scheduler, _ = await _start(alarm_repository, executor)
+    scheduler, _ = await _start(alarm_repositories, executor)
     try:
         await _until(lambda: executor.completed == [AlarmPhase.WAKE])
         await _until_stored(
-            alarm_repository,
+            alarm_repositories,
             missed,
             lambda occurrence: (
                 occurrence.state is OccurrenceState.UPCOMING
@@ -118,18 +119,18 @@ async def test_resume_honours_the_grace_period_for_overdue_runs(
     finally:
         await scheduler.stop()
 
-    stored = await alarm_repository.find_by_id(recent.id)
+    stored = await find_alarm(alarm_repositories, recent.id)
     assert stored is not None
     assert stored.occurrence is not None
     assert stored.occurrence.state is OccurrenceState.ACTIVE
 
 
 async def _start(
-    repository: SQLAlarmRepository,
+    repositories: UnitOfWork[AlarmRepository],
     executor: AlarmRunExecutor,
 ) -> tuple[InProcessAlarmScheduler, AlarmService]:
     scheduler = InProcessAlarmScheduler()
-    store = AlarmStore(repository, scheduler)
+    store = AlarmStore(repositories, scheduler)
     clock = SystemClock()
     service = AlarmService(store, AcceptAllTargets(), clock)
     await service.resume()
@@ -156,13 +157,13 @@ async def _until(predicate: Callable[[], bool]) -> None:
 
 
 async def _until_stored(
-    repository: SQLAlarmRepository,
+    repositories: UnitOfWork[AlarmRepository],
     alarm: Alarm,
     predicate: Callable[[Occurrence], bool],
 ) -> None:
     async with asyncio.timeout(2):
         while True:
-            stored = await repository.find_by_id(alarm.id)
+            stored = await find_alarm(repositories, alarm.id)
             if stored and stored.occurrence and predicate(stored.occurrence):
                 return
             await asyncio.sleep(0.01)

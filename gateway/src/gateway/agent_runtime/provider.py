@@ -16,8 +16,7 @@ from gateway.agent_runtime.tools import (
 )
 from gateway.agent_runtime.workspace import resolve_workspace_root
 from gateway.features.automation.application import AutomationService
-from gateway.features.conversation.application import AgentRuntime
-from gateway.features.conversation.domain import SessionRepository
+from gateway.features.conversation.application import AgentRuntime, SessionService
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
 from gateway.shared import UnitOfWork
 
@@ -85,7 +84,7 @@ class AgentRuntimeProvider(Provider):
     @provide
     async def agent_runtime(
         self,
-        sessions: SessionRepository,
+        sessions: SessionService,
         factory: AgentFactory,
         sandbox: WorkspaceSandboxClient,
         tool_dependencies: TurnToolDependencies,

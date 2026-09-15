@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,7 @@ from gateway.features.conversation.application import (
     ChatCompleted,
 )
 from gateway.platform.database.migrations import run_migrations
+from gateway.shared import UnitOfWork
 
 _TOKEN = "test-gateway-token-with-32-characters"
 
@@ -125,6 +127,32 @@ def session_factory(
     async_engine: AsyncEngine,
 ) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(async_engine, expire_on_commit=False)
+
+
+@pytest.fixture
+def make_unit_of_work(session_factory: async_sessionmaker[AsyncSession]):
+    def create[ServiceT](
+        build: Callable[[AsyncSession], ServiceT],
+    ) -> UnitOfWork[ServiceT]:
+        return _CommittingUnitOfWork(session_factory, build)
+
+    return create
+
+
+class _CommittingUnitOfWork[ServiceT](UnitOfWork[ServiceT]):
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        build: Callable[[AsyncSession], ServiceT],
+    ) -> None:
+        self._session_factory = session_factory
+        self._build = build
+
+    @asynccontextmanager
+    async def __call__(self) -> AsyncIterator[ServiceT]:
+        async with self._session_factory() as session:
+            yield self._build(session)
+            await session.commit()
 
 
 async def _migrate(database_url: str) -> None:

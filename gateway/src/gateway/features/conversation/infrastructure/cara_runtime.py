@@ -20,6 +20,7 @@ from gateway.features.conversation.application import (
     AgentSessionRef,
     ChatCompleted,
     ChatDelta,
+    SessionService,
     ToolCallCompleted,
     ToolCallStarted,
     TurnSteered,
@@ -29,8 +30,6 @@ from gateway.features.conversation.domain import (
 )
 from gateway.features.conversation.domain import (
     SessionEntry,
-    SessionNotFoundError,
-    SessionRepository,
     ToolCall,
     ToolCallSequence,
     ToolCallState,
@@ -56,7 +55,7 @@ class _SandboxPrewarmer(Protocol):
 class CaraAgentRuntime:
     def __init__(
         self,
-        sessions: SessionRepository,
+        sessions: SessionService,
         factory: AgentFactory,
         sandbox: _SandboxPrewarmer,
         tool_dependencies: TurnToolDependencies,
@@ -131,13 +130,11 @@ class CaraAgentRuntime:
 
 
 async def _context_messages(
-    sessions: SessionRepository,
+    sessions: SessionService,
     session_id: UUID,
     input_id: UUID | None,
 ) -> list[Message]:
-    session = await sessions.find_by_id(session_id)
-    if session is None:
-        raise SessionNotFoundError(session_id)
+    session = await sessions.get(session_id)
 
     messages: list[Message] = []
     for entry in session.entries:

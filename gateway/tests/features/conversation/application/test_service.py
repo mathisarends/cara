@@ -2,7 +2,6 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from gateway.features.conversation.application import (
     AgentChannelRef,
@@ -18,20 +17,19 @@ from gateway.features.conversation.application import (
     SessionService,
     ToolCallCompleted,
     ToolCallStarted,
+    TurnLease,
     TurnService,
     TurnSteered,
 )
 from gateway.features.conversation.domain import (
     ChannelRef,
     NoActiveTurnError,
+    SessionRepository,
     ToolCallSequence,
     ToolCallState,
     UserMessage,
 )
-from gateway.features.conversation.infrastructure.repository import (
-    SQLSessionRepository,
-)
-from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
+from gateway.shared import UnitOfWork
 
 _CHANNEL = ChannelRef("test")
 
@@ -134,12 +132,12 @@ def publisher() -> _RecordingPublisher:
 
 
 async def test_prepare_and_finish_forward_the_session_to_the_agent(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _StreamingAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=ChannelRef("voice"))
 
     await turns.prepare(session.id)
@@ -150,13 +148,13 @@ async def test_prepare_and_finish_forward_the_session_to_the_agent(
 
 
 async def test_failed_turn_publishes_turn_failed_event(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     sessions, turns = _services(
-        session_repository,
-        session_factory,
+        session_units,
+        lease_units,
         publisher,
         _FailingAgentRuntime(),
     )
@@ -180,12 +178,12 @@ async def test_failed_turn_publishes_turn_failed_event(
 
 
 async def test_agent_stream_updates_session_and_publishes_ordered_events(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _StreamingAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
 
     await turns.start(session_id=session.id, text="hello", metadata={})
@@ -222,12 +220,12 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
 
 
 async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _SteerableAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
     await turns.start(session_id=session.id, text="hello", metadata={})
     await asyncio.wait_for(runner.tool_started.wait(), timeout=1)
@@ -259,13 +257,13 @@ async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
 
 
 async def test_steering_without_an_active_turn_is_rejected(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     sessions, turns = _services(
-        session_repository,
-        session_factory,
+        session_units,
+        lease_units,
         publisher,
         _SteerableAgentRuntime(),
     )
@@ -276,12 +274,12 @@ async def test_steering_without_an_active_turn_is_rejected(
 
 
 async def test_automation_turn_uses_full_context_without_a_synthetic_user_message(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _StreamingAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
 
     await turns.start_scheduled(
@@ -306,12 +304,12 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
 
 
 async def test_automation_turn_waits_for_an_active_interactive_turn(
-    session_repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: _RecordingPublisher,
 ) -> None:
     runner = _BlockingFirstAgentRuntime()
-    sessions, turns = _services(session_repository, session_factory, publisher, runner)
+    sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
     await turns.start(session_id=session.id, text="Schedule this", metadata={})
     await asyncio.wait_for(runner.first_started.wait(), timeout=1)
@@ -350,17 +348,11 @@ async def _wait_for_event(
 
 
 def _services(
-    repository: SQLSessionRepository,
-    session_factory: async_sessionmaker[AsyncSession],
+    session_units: UnitOfWork[SessionRepository],
+    lease_units: UnitOfWork[TurnLease],
     publisher: EventPublisher,
     runner: AgentRuntime,
 ) -> tuple[SessionService, TurnService]:
-    sessions = SessionService(repository)
-    turns = TurnService(
-        repository,
-        sessions,
-        SQLTurnLease(session_factory),
-        publisher,
-        runner,
-    )
+    sessions = SessionService(session_units)
+    turns = TurnService(session_units, sessions, lease_units, publisher, runner)
     return sessions, turns

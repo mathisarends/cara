@@ -20,6 +20,7 @@ from gateway.features.alarm.domain import (
     Weekday,
     WeeklyRecurrence,
 )
+from gateway.shared import UnitOfWork
 
 # Tuesday 2026-09-15, 22:00 in Berlin.
 NOW = datetime(2026, 9, 15, 20, 0, tzinfo=UTC)
@@ -59,19 +60,19 @@ class RecordingScheduler(AlarmScheduler):
 class RecordingExecutor(AlarmRunExecutor):
     def __init__(
         self,
-        repository: AlarmRepository | None = None,
+        repositories: UnitOfWork[AlarmRepository] | None = None,
         error: Exception | None = None,
     ) -> None:
         self.executed: list[DueRun] = []
         # The occurrence stored at the moment each run started executing.
         self.stored: list[Occurrence | None] = []
-        self._repository = repository
+        self._repositories = repositories
         self._error = error
 
     async def execute(self, alarm: Alarm, run: DueRun, now: datetime) -> None:
         self.executed.append(run)
-        if self._repository is not None:
-            stored = await self._repository.find_by_id(alarm.id)
+        if self._repositories is not None:
+            stored = await find_alarm(self._repositories, alarm.id)
             self.stored.append(None if stored is None else stored.occurrence)
         if self._error is not None:
             raise self._error
@@ -99,3 +100,16 @@ def make_alarm(
 
 def once_at(wake_at: datetime) -> OnceRecurrence:
     return OnceRecurrence(wake_at=wake_at)
+
+
+async def save_alarm(repositories: UnitOfWork[AlarmRepository], alarm: Alarm) -> Alarm:
+    async with repositories() as repository:
+        return await repository.save(alarm)
+
+
+async def find_alarm(
+    repositories: UnitOfWork[AlarmRepository],
+    alarm_id: UUID,
+) -> Alarm | None:
+    async with repositories() as repository:
+        return await repository.find_by_id(alarm_id)

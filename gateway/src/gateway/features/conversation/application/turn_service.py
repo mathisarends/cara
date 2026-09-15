@@ -23,6 +23,7 @@ from gateway.features.conversation.domain import (
     SessionBusyError,
     SessionRepository,
 )
+from gateway.shared import UnitOfWork
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +34,15 @@ _MESSAGE_PREVIEW_LENGTH = 200
 class TurnService:
     def __init__(
         self,
-        sessions: SessionRepository,
+        sessions: UnitOfWork[SessionRepository],
         session_service: SessionService,
-        lease: TurnLease,
+        leases: UnitOfWork[TurnLease],
         events: EventPublisher,
         agent: AgentRuntime,
     ) -> None:
         self._sessions = sessions
         self._session_service = session_service
-        self._lease = lease
+        self._leases = leases
         self._events = events
         self._agent = agent
         self._background_tasks: dict[UUID, asyncio.Task[None]] = {}
@@ -64,7 +65,7 @@ class TurnService:
         metadata: dict[str, object],
     ) -> None:
         session = await self._session_service.get(session_id)
-        if not await self._lease.acquire(session_id):
+        if not await self._acquire_lease(session_id):
             raise SessionBusyError(session_id)
         logger.info(
             "User message for session %s on channel %s: %r",
@@ -90,7 +91,7 @@ class TurnService:
     ) -> None:
         session = await self._session_service.get(session_id)
         deferred = False
-        while not await self._lease.acquire(session_id):
+        while not await self._acquire_lease(session_id):
             if not deferred:
                 logger.info(
                     "Deferring automation for busy session %s until its turn ends",
@@ -154,7 +155,7 @@ class TurnService:
             if persist_input:
                 input_message = session.add_user_message(text)
                 input_id = input_message.id
-                session = await self._sessions.save(session)
+                session = await self._save(session)
             turn = TurnExecution(session, self._sessions, self._events)
             await turn.publish(ConversationEventType.TURN_STARTED, {})
             request = AgentRunRequest(
@@ -183,7 +184,7 @@ class TurnService:
         # The lease is released first so that a client may start the next turn
         # as soon as it sees the terminal event.
         try:
-            await self._lease.release(session_id)
+            await self._release_lease(session_id)
         finally:
             await self._publish_terminal(
                 session_id,
@@ -222,7 +223,19 @@ class TurnService:
     ) -> None:
         if session is None or not session.fail_pending_tool_calls(error):
             return
-        await self._sessions.save(session)
+        await self._save(session)
+
+    async def _save(self, session: Session) -> Session:
+        async with self._sessions() as sessions:
+            return await sessions.save(session)
+
+    async def _acquire_lease(self, session_id: UUID) -> bool:
+        async with self._leases() as lease:
+            return await lease.acquire(session_id)
+
+    async def _release_lease(self, session_id: UUID) -> None:
+        async with self._leases() as lease:
+            await lease.release(session_id)
 
 
 def _message(error: Exception) -> str:

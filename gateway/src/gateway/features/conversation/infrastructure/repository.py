@@ -1,9 +1,10 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from uuid import UUID
 
-from sqlalchemy import Select, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.interfaces import ORMOption
 
 from gateway.features.conversation.domain import (
     AssistantMessage,
@@ -26,63 +27,46 @@ from gateway.features.conversation.infrastructure.orm import (
 from gateway.platform.database import Repository
 
 
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
-
-
 class SQLSessionRepository(
     Repository[SessionModel, Session],
     SessionRepository,
 ):
-    def __init__(
-        self,
-        session_factory: async_sessionmaker[AsyncSession],
-    ) -> None:
-        super().__init__(session_factory, SessionModel)
-
-    async def find_by_id(self, id: UUID) -> Session | None:
-        statement = self._with_entries(
-            select(SessionModel).where(SessionModel.id == id)
-        )
-        async with self._session_factory() as database:
-            result = await database.execute(statement)
-            model = result.scalar_one_or_none()
-            return self._to_domain(model) if model is not None else None
+    def __init__(self, session: AsyncSession) -> None:
+        super().__init__(session, SessionModel)
 
     async def find_latest_by_channel(self, channel: ChannelRef) -> Session | None:
-        statement = self._with_entries(
+        statement = (
             select(SessionModel)
             .where(SessionModel.channel_name == channel.name)
             .order_by(SessionModel.created_at.desc(), SessionModel.id.desc())
             .limit(1)
+            .options(*self._load_options())
         )
-        async with self._session_factory() as database:
-            result = await database.execute(statement)
-            model = result.scalar_one_or_none()
-            return self._to_domain(model) if model is not None else None
+        model = await self._session.scalar(statement)
+        return self._to_domain(model) if model is not None else None
 
     async def find_many(self, *, limit: int, order: SortOrder) -> tuple[Session, ...]:
         if order is SortOrder.ASCENDING:
             ordering = (SessionModel.created_at.asc(), SessionModel.id.asc())
         else:
             ordering = (SessionModel.created_at.desc(), SessionModel.id.desc())
-        statement = self._with_entries(
-            select(SessionModel).order_by(*ordering).limit(limit)
+        statement = (
+            select(SessionModel)
+            .order_by(*ordering)
+            .limit(limit)
+            .options(*self._load_options())
         )
-        async with self._session_factory() as database:
-            result = await database.execute(statement)
-            return tuple(self._to_domain(model) for model in result.scalars())
+        models = await self._session.scalars(statement)
+        return tuple(self._to_domain(model) for model in models)
 
-    async def save(self, domain: Session) -> Session:
-        async with self._session_factory() as database:
-            await database.merge(self._to_orm(domain))
-            await database.commit()
-        restored = await self.find_by_id(domain.id)
-        if restored is None:
-            raise RuntimeError(f"Saved session {domain.id} could not be reloaded")
-        return restored
+    def _load_options(self) -> Sequence[ORMOption]:
+        return (
+            selectinload(SessionModel.user_messages),
+            selectinload(SessionModel.assistant_messages),
+            selectinload(SessionModel.tool_call_sequences).selectinload(
+                SessionToolCallSequenceModel.calls
+            ),
+        )
 
     def _to_domain(self, orm: SessionModel) -> Session:
         positioned_entries = [
@@ -162,15 +146,6 @@ class SQLSessionRepository(
             model.tool_call_sequences.append(sequence_model)
         return model
 
-    def _with_entries(self, statement: Select[tuple[SessionModel]]):
-        return statement.options(
-            selectinload(SessionModel.user_messages),
-            selectinload(SessionModel.assistant_messages),
-            selectinload(SessionModel.tool_call_sequences).selectinload(
-                SessionToolCallSequenceModel.calls
-            ),
-        )
-
 
 def _user_message_to_domain(model: SessionUserMessageModel) -> UserMessage:
     return UserMessage(
@@ -210,3 +185,9 @@ def _tool_call_sequence_to_domain(
         id=model.id,
         created_at=_as_utc(model.created_at),
     )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

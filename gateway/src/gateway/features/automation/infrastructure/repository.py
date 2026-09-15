@@ -18,22 +18,15 @@ from gateway.features.automation.domain import (
     TargetKind,
 )
 from gateway.features.automation.infrastructure.orm import AutomationModel
+from gateway.platform.database import Repository
 
 
-class SQLAutomationRepository(AutomationRepository):
+class SQLAutomationRepository(
+    Repository[AutomationModel, Automation],
+    AutomationRepository,
+):
     def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def find_by_id(self, id: UUID) -> Automation | None:
-        model = await self._session.get(AutomationModel, id)
-        return self._to_domain(model) if model is not None else None
-
-    async def save(self, domain: Automation) -> Automation:
-        model = self._to_orm(domain)
-        merged = await self._session.merge(model)
-        await self._session.flush()
-        await self._session.refresh(merged)
-        return self._to_domain(merged)
+        super().__init__(session, AutomationModel)
 
     async def find_by_owner(self, owner_id: str) -> tuple[Automation, ...]:
         return await self._find(

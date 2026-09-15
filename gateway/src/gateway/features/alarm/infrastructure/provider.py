@@ -1,8 +1,7 @@
-from collections.abc import AsyncIterator
 from zoneinfo import ZoneInfo
 
-from dishka import Provider, Scope, provide
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from dishka import AsyncContainer, Provider, Scope, provide
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.configuration import AgentSettings
 from gateway.features.alarm.application import (
@@ -21,10 +20,13 @@ from gateway.features.alarm.infrastructure.conversation import (
 )
 from gateway.features.alarm.infrastructure.repository import SQLAlarmRepository
 from gateway.features.alarm.infrastructure.scheduling import (
+    AlarmRuntime,
     InProcessAlarmScheduler,
     SystemClock,
 )
 from gateway.features.conversation.application import SessionService, TurnService
+from gateway.platform.database import ScopedUnitOfWork
+from gateway.shared import UnitOfWork
 
 
 class AlarmProvider(Provider):
@@ -46,12 +48,16 @@ class AlarmProvider(Provider):
     ) -> AlarmRunExecutor:
         return ConversationAlarmRunExecutor(turns, ZoneInfo(settings.timezone))
 
+    @provide(scope=Scope.REQUEST)
+    def repository(self, session: AsyncSession) -> AlarmRepository:
+        return SQLAlarmRepository(session)
+
     @provide
-    def repository(
+    def repository_unit_of_work(
         self,
-        session_factory: async_sessionmaker[AsyncSession],
-    ) -> AlarmRepository:
-        return SQLAlarmRepository(session_factory)
+        container: AsyncContainer,
+    ) -> UnitOfWork[AlarmRepository]:
+        return ScopedUnitOfWork(container, AlarmRepository)
 
     @provide
     def in_process_scheduler(self) -> InProcessAlarmScheduler:
@@ -64,10 +70,10 @@ class AlarmProvider(Provider):
     @provide
     def store(
         self,
-        repository: AlarmRepository,
+        repositories: UnitOfWork[AlarmRepository],
         scheduler: AlarmScheduler,
     ) -> AlarmStore:
-        return AlarmStore(repository, scheduler)
+        return AlarmStore(repositories, scheduler)
 
     @provide
     def execution(
@@ -79,20 +85,19 @@ class AlarmProvider(Provider):
         return AlarmExecution(store, executor, clock)
 
     @provide
-    async def service(
+    def service(
         self,
         store: AlarmStore,
         targets: AlarmTargetResolver,
         clock: Clock,
+    ) -> AlarmService:
+        return AlarmService(store, targets, clock)
+
+    @provide
+    def runtime(
+        self,
+        service: AlarmService,
         execution: AlarmExecution,
         scheduler: InProcessAlarmScheduler,
-    ) -> AsyncIterator[AlarmService]:
-        service = AlarmService(store, targets, clock)
-        await service.resume()
-        # The scheduler runs due alarms through the execution, which re-arms
-        # through the scheduler, so it only starts once both exist.
-        await scheduler.start(execution)
-        try:
-            yield service
-        finally:
-            await scheduler.stop()
+    ) -> AlarmRuntime:
+        return AlarmRuntime(service, execution, scheduler)
