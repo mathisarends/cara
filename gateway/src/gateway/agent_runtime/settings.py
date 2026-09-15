@@ -1,6 +1,4 @@
-from typing import Any
-
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -8,12 +6,9 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-
-class AgentPluginSettings(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    plugin: str = Field(default="echo", min_length=1)
-    config: dict[str, Any] = Field(default_factory=dict)
+from agent.configuration import AgentSettings
+from gateway.agent_runtime.mcp import McpServerSettings
+from gateway.agent_runtime.sandbox import SandboxClientSettings
 
 
 class GatewaySettings(BaseSettings):
@@ -27,7 +22,9 @@ class GatewaySettings(BaseSettings):
         yaml_file=("gateway.yaml", "gateway.yml"),
     )
 
-    agent: AgentPluginSettings = Field(default_factory=AgentPluginSettings)
+    agent: AgentSettings = Field(default_factory=AgentSettings)
+    sandbox: SandboxClientSettings = Field(default_factory=SandboxClientSettings)
+    tools: tuple[McpServerSettings, ...] = ()
 
     @classmethod
     def settings_customise_sources(

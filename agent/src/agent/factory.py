@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+from agenttoolkit import Tools
+from agenttoolkit.builtins import CommandRunner, Workspace
 from agenttoolkit.dependency import DependencyContainer
 from llmify import ChatCodex, ChatModel, Message
 
@@ -14,8 +16,18 @@ from llm import create_codex_model
 class AgentFactory:
     """Build a fully configured agent without depending on a transport plugin."""
 
-    def __init__(self, settings: AgentSettings) -> None:
+    def __init__(
+        self,
+        settings: AgentSettings,
+        *,
+        workspace: Workspace | None = None,
+        command_runner: CommandRunner | None = None,
+        additional_tools: Tools | None = None,
+    ) -> None:
         self._settings = settings
+        self._workspace = workspace
+        self._command_runner = command_runner
+        self._additional_tools = additional_tools
 
     async def create(
         self,
@@ -29,6 +41,8 @@ class AgentFactory:
                 self._settings,
                 tool_dependencies=tool_dependencies,
                 initial_model=initial_model,
+                workspace=self._workspace,
+                command_runner=self._command_runner,
             ),
             BuiltinDependencies(),
         )
@@ -36,6 +50,7 @@ class AgentFactory:
         tools = build_tools(
             context=components.tool_context,
             container=container,
+            additional_tools=self._additional_tools,
         )
         return Agent(
             models=components.models,

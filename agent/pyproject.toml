@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Agentic core: agent loop, tools, memory, and prompt assembly."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "agent-plugin-api",
     "gateway-client",
     "llm",
     "httpx>=0.28.0",
@@ -18,9 +17,6 @@ dependencies = [
     "tavily-python>=0.7.26",
     "tzdata>=2024.1",
 ]
-
-[project.entry-points."cara.agent_plugins"]
-cara = "agent.plugin:create_plugin"
 
 [build-system]
 requires = ["hatchling"]

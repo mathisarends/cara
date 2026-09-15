@@ -1,8 +1,51 @@
 name: cara
 
-# The gateway runs on the host via `scripts/start_gateway.sh`. Docker is only
-# used here for the optional SQLite browser.
 services:
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    command:
+      - sh
+      - -c
+      - .venv/bin/gateway-migrate && exec .venv/bin/python -m gateway.main
+    environment:
+      CARA_GATEWAY_HOST: 0.0.0.0
+      CARA_GATEWAY_TOKEN: ${CARA_GATEWAY_TOKEN:-change-me-gateway-token-32-characters}
+      CARA_WORKSPACE_ROOT: /workspace
+      CARA_SANDBOX: '{"url":"http://sandbox-manager:8080","token":"${CARA_SANDBOX_TOKEN:-change-me}","workspace_id":"default"}'
+    ports:
+      - "8000:8000"
+    volumes:
+      - cara-workspace:/workspace:ro
+      # The model client runs here and reads /root/.codex/auth.json.
+      # Override CARA_CODEX_HOME for a non-standard host location.
+      - ${CARA_CODEX_HOME:-${HOME}/.codex}:/root/.codex:ro
+      - ./gateway.yaml:/app/gateway.yaml:ro
+      - ./gateway.sqlite3:/app/gateway.sqlite3
+    depends_on:
+      sandbox-manager:
+        condition: service_healthy
+
+  sandbox-manager:
+    build:
+      context: .
+      dockerfile: sandbox_manager/Dockerfile
+    environment:
+      CARA_SANDBOX_TOKEN: ${CARA_SANDBOX_TOKEN:-change-me}
+      CARA_SANDBOX_WORKSPACE_VOLUME: cara-workspace
+      CARA_SANDBOX_CLI_CONFIG_VOLUME: cara-cli-config
+      CARA_SANDBOX_IDLE_TTL_SECONDS: ${CARA_SANDBOX_IDLE_TTL_SECONDS:-600}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - cara-workspace:/workspace
+      - cara-cli-config:/tmp/.config
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/docs')"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+
   sqlite-web:
     image: ghcr.io/coleifer/sqlite-web:latest
     command: ["gateway.sqlite3"]
@@ -10,3 +53,9 @@ services:
       - "8080:8080"
     volumes:
       - ./gateway.sqlite3:/data/gateway.sqlite3
+
+volumes:
+  cara-workspace:
+    name: cara-workspace
+  cara-cli-config:
+    name: cara-cli-config

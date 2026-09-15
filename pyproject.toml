@@ -19,11 +19,11 @@ members = [
     "clients/cli",
     "clients/voice",
     "gateway",
-    "gateway/plugin_api",
     "generated/gateway_client",
     "libs/llm",
     "libs/scheduler",
     "memory",
+    "sandbox_manager",
 ]
 
 [tool.pytest.ini_options]
@@ -33,11 +33,11 @@ asyncio_mode = "auto"
 agent = { workspace = true }
 cli = { workspace = true }
 gateway-server = { workspace = true }
-agent-plugin-api = { workspace = true }
 gateway-client = { workspace = true }
 llm = { workspace = true }
 memory = { workspace = true }
 scheduler = { workspace = true }
+sandbox-manager = { workspace = true }
 voice = { workspace = true }
 
 [tool.ruff]
@@ -61,7 +61,6 @@ known-first-party = [
     "cli",
     "experiments",
     "gateway",
-    "agent_plugin_api",
     "gateway_client",
     "llm",
     "memory",

@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from agent_plugin_api import (
+from gateway.features.conversation.application.agent import (
     AgentEvent,
     ChatCompleted,
     ChatDelta,

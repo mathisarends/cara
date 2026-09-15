@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-gateway_run=(uv run --package gateway-server --with-editable ./agent)
+gateway_run=(uv run --package gateway-server)
 
 "${gateway_run[@]}" python -m gateway.platform.database.migrations
 

@@ -4,11 +4,12 @@ version = "0.1.0"
 description = "JSON-RPC WebSocket gateway for Cara clients."
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "agent",
     "aiosqlite>=0.22.0",
     "alembic>=1.19.1",
-    "agent-plugin-api",
     "dishka>=1.10.0",
     "fastapi>=0.115.0",
+    "httpx>=0.28.0",
     "fastapi-canon>=0.4.0,<0.5.0",
     "obstore>=0.11.1",
     "pydantic>=2.7.0",
@@ -27,9 +28,6 @@ cara-gateway = "gateway.main:main"
 cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
 cara-gateway-client-generate = "gateway.presentation.rpc.client_codegen:main"
 gateway-migrate = "gateway.platform.database.migrations:main"
-
-[project.entry-points."cara.agent_plugins"]
-echo = "gateway.features.conversation.infrastructure.echo_agent:create_plugin"
 
 [build-system]
 requires = ["hatchling"]

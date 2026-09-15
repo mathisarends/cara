@@ -1,21 +1,33 @@
 from collections.abc import Callable
-from pathlib import Path
 
 import pytest
-import yaml
 from agenttoolkit import ToolContext
 
 from agent.sandbox import SandboxDefinition
 from agent.tools import AgentTools
 from agent.tools.factory import _create_tool_context, _create_tools
 
-_GATEWAY_CONFIG = Path(__file__).resolve().parents[2] / "gateway.yaml"
-
 
 @pytest.fixture
 def project_sandbox() -> SandboxDefinition:
-    config = yaml.safe_load(_GATEWAY_CONFIG.read_text(encoding="utf-8"))
-    return SandboxDefinition.model_validate(config["agent"]["config"]["sandbox"])
+    return SandboxDefinition.model_validate(
+        {
+            "image": "cara-bash-sandbox:latest",
+            "shell": "/bin/bash",
+            "network_access": True,
+            "defaults": {
+                "home": "/tmp",
+                "timeout_seconds": 15,
+                "max_output_bytes": 1_000_000,
+            },
+            "limits": {
+                "memory_bytes": 536_870_912,
+                "pids": 512,
+                "cpus": 1,
+            },
+            "reserved_targets": ["/workspace"],
+        }
+    )
 
 
 @pytest.fixture

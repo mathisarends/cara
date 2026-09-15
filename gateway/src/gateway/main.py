@@ -1,4 +1,5 @@
 import logging
+import os
 
 import uvicorn
 
@@ -10,7 +11,12 @@ logging.basicConfig(
 
 
 def main() -> None:
-    uvicorn.run("gateway.app:app", host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run(
+        "gateway.app:app",
+        host=os.environ.get("CARA_GATEWAY_HOST", "127.0.0.1"),
+        port=int(os.environ.get("CARA_GATEWAY_PORT", "8000")),
+        reload=False,
+    )
 
 
 if __name__ == "__main__":

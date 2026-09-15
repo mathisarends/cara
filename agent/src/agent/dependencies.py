@@ -14,7 +14,6 @@ from llmify import ChatModel
 from agent.clock import LocalClock
 from agent.configuration import AgentSettings
 from agent.models import ModelSwitch
-from agent.sandbox import create_sandbox
 from agent.workspace import resolve_workspace_root
 from llm import CodexModel, CodexReasoningEffort, create_codex_model
 
@@ -36,10 +35,14 @@ class ConfiguredDependencies(DependencyProvider):
         settings: AgentSettings,
         tool_dependencies: Sequence[object] = (),
         initial_model: ChatModel | None = None,
+        workspace: Workspace | None = None,
+        command_runner: CommandRunner | None = None,
     ) -> None:
         self._settings = settings
         self._tool_dependencies = tuple(tool_dependencies)
         self._initial_model = initial_model
+        self._workspace = workspace
+        self._command_runner = command_runner
 
     @provide
     def settings(self) -> AgentSettings:
@@ -47,6 +50,8 @@ class ConfiguredDependencies(DependencyProvider):
 
     @provide
     def workspace(self, settings: AgentSettings) -> Workspace:
+        if self._workspace is not None:
+            return self._workspace
         return LocalWorkspace(
             resolve_workspace_root(settings.workspace.root),
             max_file_bytes=settings.workspace.max_file_bytes,
@@ -63,9 +68,9 @@ class ConfiguredDependencies(DependencyProvider):
         settings: AgentSettings,
         workspace: Workspace,
     ) -> CommandRunner:
-        if settings.sandbox is None:
-            return LocalShellRunner(CommandDefaults(working_directory=workspace.root))
-        return create_sandbox(workspace.root, settings.sandbox)
+        if self._command_runner is not None:
+            return self._command_runner
+        return LocalShellRunner(CommandDefaults(working_directory=workspace.root))
 
     @provide
     def clock(self, settings: AgentSettings) -> LocalClock:

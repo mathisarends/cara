@@ -1,59 +1,33 @@
-# Single source of truth for the gateway and the agent plugin it loads.
+# Single source of truth for the Gateway-owned agent runtime.
 agent:
-  plugin: cara
+  # Local timezone used for current-time lookups and daily memory selection.
+  timezone: Europe/Berlin
 
-  config:
-    # Local timezone used for current-time lookups and daily memory selection.
-    timezone: Europe/Berlin
+  # Default model and models available for runtime switching.
+  models:
+    default: gpt-5.6-sol
+    available:
+      - gpt-5.3-codex-spark
+      - gpt-5.6-luna
+      - gpt-5.6-terra
+      - gpt-5.6-sol
+      - gpt-5.5
+      - gpt-5.4
 
-    # Default model and models available for runtime switching.
-    models:
-      default: gpt-5.3-codex-spark
-      available:
-        - gpt-5.3-codex-spark
-        - gpt-5.6-luna
-        - gpt-5.6-terra
-        - gpt-5.6-sol
-        - gpt-5.5
-        - gpt-5.4
+  # Directory the agent reads and writes files in.
+  workspace:
+    root: ~/.cara/workspace
+    max_file_bytes: null
 
-    # Directory the agent reads and writes files in.
-    workspace:
-      root: ~/.cara/workspace
-      max_file_bytes: null
+sandbox:
+  url: http://127.0.0.1:8081
+  token: change-me
+  workspace_id: default
 
-    # Docker container the agent runs shell commands in.
-    sandbox:
-      image: cara-bash-sandbox:latest
-      shell: /bin/bash
-      network_access: true
-
-      defaults:
-        home: /tmp
-        timeout_seconds: 15
-        max_output_bytes: 1000000
-
-      limits:
-        memory_bytes: 536870912 # 512 MiB
-        pids: 512
-        cpus: 1
-
-      # Host CLI config directories mounted into the container.
-      mounts:
-        cli_credentials:
-          - name: huego
-            target: /tmp/.config/huego
-          - name: spoti
-            target: /tmp/.config/spoti
-          - name: withings-client
-            target: /tmp/.config/withings-client
-          - name: sonoscli
-            target: /tmp/.config/sonoscli
-          - name: fitbitctl
-            target: /tmp/.config/fitbitctl
-          - name: elevenfx
-            target: /tmp/.config/elevenfx
-
-      # Mount targets the sandbox owns; configured mounts may not claim them.
-      reserved_targets:
-        - /workspace
+# User and integration tools run out of process. Tool names are exposed as
+# <server-name>_<tool-name>. Example:
+# tools:
+#   - name: github
+#     url: http://github-tools:8080/mcp
+#     token: replace-me
+tools: []

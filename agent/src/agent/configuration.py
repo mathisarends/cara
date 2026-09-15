@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from agent.clock import DEFAULT_TIMEZONE
-from agent.sandbox import SandboxDefinition
 from llm import CodexModel
 
 
@@ -47,7 +46,6 @@ class AgentSettings(BaseModel):
 
     models: ModelSettings = Field(default_factory=ModelSettings)
     workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
-    sandbox: SandboxDefinition | None = None
     system_prompt: str | None = None
     timezone: str = DEFAULT_TIMEZONE
 

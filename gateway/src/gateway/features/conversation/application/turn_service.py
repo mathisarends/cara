@@ -4,10 +4,10 @@ import uuid
 from typing import Any
 from uuid import UUID
 
-from agent_plugin_api import (
+from gateway.features.conversation.application.agent import (
     AgentChannelRef,
-    AgentRunner,
     AgentRunRequest,
+    AgentRuntime,
     AgentSessionRef,
 )
 from gateway.features.conversation.application.events import (
@@ -37,7 +37,7 @@ class TurnService:
         session_service: SessionService,
         lease: TurnLease,
         events: EventPublisher,
-        agent: AgentRunner,
+        agent: AgentRuntime,
     ) -> None:
         self._sessions = sessions
         self._session_service = session_service

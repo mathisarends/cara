@@ -1,7 +1,6 @@
 import asyncio
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any
 
 import pytest
 from fastapi import FastAPI
@@ -15,20 +14,31 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from agent_plugin_api import AgentPluginContext, AgentRunner
 from gateway.app import create_app
-from gateway.features.conversation.infrastructure import EchoAgentRunner
+from gateway.features.conversation.application import (
+    AgentEvent,
+    AgentRunRequest,
+    AgentSessionRef,
+    ChatCompleted,
+)
 from gateway.platform.database.migrations import run_migrations
 
 
-class _TestAgentPlugin:
-    def create(
-        self,
-        config: Mapping[str, Any],
-        context: AgentPluginContext,
-    ) -> AgentRunner:
-        del config, context
-        return EchoAgentRunner(delta_delay=0)
+class _TestAgentRuntime:
+    async def prepare(self, session: AgentSessionRef) -> None:
+        del session
+
+    async def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]:
+        yield ChatCompleted(request.input)
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        del session, text
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        del session
+
+    async def close(self) -> None:
+        pass
 
 
 @pytest.fixture
@@ -38,8 +48,8 @@ def app(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> FastAPI:
     monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("CARA_GATEWAY_TOKEN", "test-gateway-token-with-32-characters")
     monkeypatch.setattr(
-        "gateway.agent_plugins.di.load_agent_plugin",
-        lambda _: _TestAgentPlugin(),
+        "gateway.agent_runtime.provider.CaraAgentRuntime",
+        lambda *args: _TestAgentRuntime(),
     )
     return create_app()
 

@@ -4,24 +4,22 @@ from collections.abc import AsyncIterator
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from agent_plugin_api import (
+from gateway.features.conversation.application import (
     AgentChannelRef,
     AgentEvent,
-    AgentRunner,
     AgentRunRequest,
+    AgentRuntime,
     AgentSessionRef,
     ChatCompleted,
     ChatDelta,
-    ToolCallCompleted,
-    ToolCallStarted,
-    TurnSteered,
-)
-from gateway.features.conversation.application import (
     ConversationEvent,
     ConversationEventType,
     EventPublisher,
     SessionService,
+    ToolCallCompleted,
+    ToolCallStarted,
     TurnService,
+    TurnSteered,
 )
 from gateway.features.conversation.domain import (
     ChannelRef,
@@ -38,7 +36,7 @@ from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
 _CHANNEL = ChannelRef("test")
 
 
-class _FailingAgentRunner(AgentRunner):
+class _FailingAgentRuntime(AgentRuntime):
     async def run(
         self,
         request: AgentRunRequest,
@@ -51,7 +49,7 @@ class _FailingAgentRunner(AgentRunner):
         pass
 
 
-class _StreamingAgentRunner(AgentRunner):
+class _StreamingAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
         self.requests: list[AgentRunRequest] = []
         self.prepared: list[AgentSessionRef] = []
@@ -77,7 +75,7 @@ class _StreamingAgentRunner(AgentRunner):
         pass
 
 
-class _BlockingFirstAgentRunner(AgentRunner):
+class _BlockingFirstAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
         self.requests: list[AgentRunRequest] = []
         self.first_started = asyncio.Event()
@@ -97,7 +95,7 @@ class _BlockingFirstAgentRunner(AgentRunner):
         pass
 
 
-class _SteerableAgentRunner(AgentRunner):
+class _SteerableAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
         self.tool_started = asyncio.Event()
         self._steering: asyncio.Queue[str] = asyncio.Queue()
@@ -140,7 +138,7 @@ async def test_prepare_and_finish_forward_the_session_to_the_agent(
     session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
-    runner = _StreamingAgentRunner()
+    runner = _StreamingAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
     session = await sessions.create(channel=ChannelRef("voice"))
 
@@ -160,7 +158,7 @@ async def test_failed_turn_publishes_turn_failed_event(
         session_repository,
         session_factory,
         publisher,
-        _FailingAgentRunner(),
+        _FailingAgentRuntime(),
     )
     session = await sessions.create(channel=_CHANNEL)
 
@@ -186,7 +184,7 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
-    runner = _StreamingAgentRunner()
+    runner = _StreamingAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
 
@@ -228,7 +226,7 @@ async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
     session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
-    runner = _SteerableAgentRunner()
+    runner = _SteerableAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
     await turns.start(session_id=session.id, text="hello", metadata={})
@@ -269,7 +267,7 @@ async def test_steering_without_an_active_turn_is_rejected(
         session_repository,
         session_factory,
         publisher,
-        _SteerableAgentRunner(),
+        _SteerableAgentRuntime(),
     )
     session = await sessions.create(channel=_CHANNEL)
 
@@ -282,7 +280,7 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
     session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
-    runner = _StreamingAgentRunner()
+    runner = _StreamingAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
 
@@ -312,7 +310,7 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
     session_factory: async_sessionmaker[AsyncSession],
     publisher: _RecordingPublisher,
 ) -> None:
-    runner = _BlockingFirstAgentRunner()
+    runner = _BlockingFirstAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
     await turns.start(session_id=session.id, text="Schedule this", metadata={})
@@ -355,7 +353,7 @@ def _services(
     repository: SQLSessionRepository,
     session_factory: async_sessionmaker[AsyncSession],
     publisher: EventPublisher,
-    runner: AgentRunner,
+    runner: AgentRuntime,
 ) -> tuple[SessionService, TurnService]:
     sessions = SessionService(repository)
     turns = TurnService(

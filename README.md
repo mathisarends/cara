@@ -15,7 +15,7 @@ the assistant felt, not just heard. See [Architecture](#architecture) below and 
 
 This is a learning project built to understand, hands-on, how an agent-gateway architecture like
 [OpenClaw's](https://github.com/openclaw/openclaw) actually works — several concepts here (session
-keys, database-first sessions, the gateway/plugin split) are deliberately adapted from it rather
+keys and database-first sessions) are deliberately adapted from it rather
 than invented from scratch.
 
 ## Table of contents
@@ -36,14 +36,18 @@ flowchart TD
     Cli["cli client<br/>(clients/cli/, cara-chat)"]
     Client["gateway_client<br/>(generated, typed)"]
     Gateway["gateway (FastAPI)<br/>sessions · turns · persistence · event fan-out"]
-    Plugin["configured AgentRunner plugin<br/>(installed package, discovered by<br/>Python entry point at startup)"]
-    Agent["agent<br/>models · tools · skills · sandbox"]
+    Agent["Gateway-owned agent runtime<br/>model · loop · tool registry"]
+    Manager["sandbox manager<br/>workspace lifecycle · Docker API"]
+    Sandbox["workspace sandbox<br/>shell · files · processes"]
+    MCP["MCP tool servers"]
 
     Voice --> Client
     Cli --> Client
     Client -- "JSON-RPC 2.0 over WebSocket<br/>'/v1/gateway'" --> Gateway
-    Gateway -- "AgentRunRequest, via agent_plugin_api" --> Plugin
-    Plugin --> Agent
+    Gateway --> Agent
+    Agent --> Manager
+    Manager --> Sandbox
+    Agent --> MCP
 ```
 
 Three ideas hold this together:
@@ -60,15 +64,11 @@ Three ideas hold this together:
   the client — never edit generated files by hand. See
   [gateway server → JSON-RPC / OpenRPC schema generation](gateway#json-rpc--openrpc-schema-generation) for
   the exact mechanism.
-- **The agent runtime is a plugin, not a hardwired dependency.** The gateway defines a small,
-  stable contract in [`agent_plugin_api`](gateway/plugin_api#readme) (a run request, a read-only
-  session-context reader, a streamed event union) with zero dependency on FastAPI, the database, or
-  DI. [`agent`](agent#readme) implements that contract and registers itself under the Python
-  entry-point group `cara.agent_plugins`; the gateway discovers, validates, and loads whichever
-  plugin `gateway.yaml` names at startup, and fails fast if it's missing, mismatched, or
-  misconfigured — never mid-turn. See
-  [gateway server → Agent plugin system](gateway#agent-plugin-system) and
-  [`AGENT_PLUGIN_CONCEPT.md`](AGENT_PLUGIN_CONCEPT.md) for the design rationale.
+- **The gateway owns the agent runtime.** The model/tool loop is composed directly in the Gateway;
+  arbitrary Python plugins are never loaded into that privileged process. Shell and workspace
+  operations go through the separately deployed Sandbox Manager, while user integrations are
+  out-of-process [MCP tool servers](docs/mcp-tools.md). See the
+  [architecture vision](AGENT_RUNTIME_ARCHITECTURE_VISION.md).
 
 [`voice`](clients/voice#readme) and [`cli`](clients/cli#readme) are both thin clients built on
 [`gateway_client`](generated/gateway_client#readme): neither talks to an LLM directly, and both get
@@ -76,42 +76,30 @@ session-per-channel reuse (`session.open`) for free from the gateway.
 
 ## Packages
 
-All packages are members of one `uv` workspace (`pyproject.toml`). The Gateway server lives
-at `gateway/`, alongside its plugin contract (`gateway/plugin_api/`); the generated client lives
-separately at `generated/gateway_client/`. All three
-remain independently installable; the graph below is their
-actual `dependencies = [...]` edges, not an idealized layering. The dotted edge is the one
-relationship that is _not_ a package dependency: `gateway` never imports `agent` — it only
-discovers whichever plugin `gateway.yaml` names, at startup, through the `cara.agent_plugins`
-entry-point group.
+All packages are members of one `uv` workspace (`pyproject.toml`). The Gateway,
+Sandbox Manager, agent library, and generated client remain independently testable workspace
+members. Their relevant runtime dependency graph is:
 
 ```mermaid
 flowchart TD
     voice --> gateway_client
     cli --> gateway_client
-    gateway --> agent_plugin_api
+    gateway --> agent
     gateway --> scheduler
-    agent --> agent_plugin_api
     agent --> llm
-    agent --> retrieval
-    gateway -.->|"entry point:<br/>cara.agent_plugins"| agent
+    gateway -.->|"HTTP"| sandbox_manager
 
     gateway_client
-    agent_plugin_api
+    sandbox_manager
     scheduler
     llm
-    retrieval
 ```
-
-The packages with no outgoing edges (`agent_plugin_api`, `gateway_client`,
-`llm`, `retrieval`, `scheduler`) have zero intra-workspace dependencies — each is usable and
-testable standalone.
 
 | Package                                       | What it is                                                                                     |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [`gateway-server`](gateway#readme)     | FastAPI process: JSON-RPC/WebSocket protocol, sessions, turns, persistence, agent plugin host. |
-| [`agent`](agent#readme)                       | The tool-calling agent loop, prompt assembly, and tool catalog — the gateway's default plugin. |
-| [`agent_plugin_api`](gateway/plugin_api#readme) | The stable, dependency-free contract between the gateway and an agent plugin.                |
+| [`gateway-server`](gateway#readme)     | FastAPI process: protocol, sessions, persistence, agent runtime, and tool composition. |
+| [`agent`](agent#readme)                       | The model-facing loop, prompt assembly, and trusted tool catalog used by the Gateway. |
+| [`sandbox-manager`](sandbox_manager)          | Workspace-scoped Docker lifecycle and remote shell/filesystem API. |
 | [`gateway-client`](generated/gateway_client#readme)     | Generated, fully typed Python client for the gateway's JSON-RPC API.                           |
 | [`voice`](clients/voice#readme)               | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
 | [`cli`](clients/cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
@@ -121,19 +109,20 @@ testable standalone.
 
 ## Run
 
-The gateway runs directly on the host; Docker is not part of its runtime. Set
-`OPENAI_API_KEY` and a random `CARA_GATEWAY_TOKEN` with at least 32 characters,
-then start it from Git Bash (or WSL/macOS/Linux):
+The complete single-user stack runs with Docker Compose. It reuses the host's
+Codex login from `${CARA_CODEX_HOME:-$HOME/.codex}` and mounts it read-only into
+the Gateway:
+
+```bash
+docker compose up --build -d
+```
+
+The workspace sandbox is created lazily, shared across conversations, and
+stopped after 600 idle seconds by default. Set
+`CARA_SANDBOX_IDLE_TTL_SECONDS` to change that value. For host development:
 
 ```bash
 bash scripts/start_gateway.sh
-```
-
-The gateway applies pending Alembic migrations during startup and starts on
-`127.0.0.1:8000`. The equivalent explicit commands are:
-
-```powershell
-uv run cara-gateway
 ```
 
 Clients connect to `ws://127.0.0.1:8000/v1/gateway`. Requests, commands,
@@ -172,9 +161,9 @@ full command list.
 
 ## Workspace and Docker binds
 
-Cara keeps private, persistent agent state outside the repository in
-`~/.cara/workspace`. The directory is both the source for prompt files and the
-root exposed to file and Bash tools. `CARA_WORKSPACE_ROOT` can override it.
+Compose keeps private, persistent agent state in the named `cara-workspace`
+volume. The Gateway reads it and the sandbox reads/writes it. All conversations
+intentionally share file changes and process state while the sandbox is alive.
 
 The expected layout is:
 
@@ -194,29 +183,11 @@ The expected layout is:
 └── skills/
 ```
 
-Docker binds are configured separately; each entry ends in `ro` or `rw`:
-
-```json5
-{
-  agents: {
-    defaults: {
-      sandbox: {
-        // Disabled by default. Enable only for tools that need external APIs.
-        networkAccess: false,
-        docker: {
-          binds: ["/home/mathis/music:/music:ro"],
-        },
-      },
-    },
-  },
-}
-```
-
-Container targets below `/workspace` remain reserved for Cara and cannot be added as binds. Treat
-this file as trusted configuration: an `rw` bind gives sandbox commands write
-access to that host directory. `networkAccess` controls outbound network access
-for Bash sandbox commands and defaults to `false`. Restart the gateway after
-changing the file.
+CLI configuration used by sandbox commands persists in the separate
+`cara-cli-config` volume at `/tmp/.config`. The Gateway never receives it.
+Conversely, Codex authentication belongs to the model client and is mounted
+only into the Gateway at `/root/.codex`. See the
+[architecture vision](AGENT_RUNTIME_ARCHITECTURE_VISION.md).
 
 Die mit Docker Compose gestartete SQLite-Datenbank kann lokal mit sqlite-web
 angesehen werden. Eine kurze Anleitung steht in
@@ -260,19 +231,12 @@ tools = build_tools(injected_dependencies=(audio_output,))
 
 ## Tool safety
 
-Tool registration, dependency injection, schema generation, validation, middleware, skills, workspace
-access, and sandboxing come from `mm-agenttoolkit`. Cara only defines its application-specific tool
-catalog. File tools use `agenttoolkit.builtins.LocalWorkspace`, whose root jail rejects parent traversal
-and symlinks that resolve outside the workspace.
-
-The built-in `bash` tool uses `agenttoolkit.builtins.DockerSandbox` with a `SandboxPolicy`: by default, the
-container has no network access, uses a read-only root filesystem, drops Linux capabilities, and has CPU,
-memory, process, output, and execution-time limits. The reusable tool factory defaults to a dedicated
-`LocalWorkspace` rooted at `~/.cara/workspace`. Skills live below that workspace at `skills/`. No
-repository directory is exposed to the sandbox; in particular, `.env`, `.git`, and the source tree stay
-outside it. Other callers can
-provide their own `Workspace` or `Sandbox`, or opt into additional sandbox mounts, environment variables,
-and network access through `build_tools()`.
+The Gateway injects remote workspace and command-runner adapters into the
+agent. The Sandbox Manager is the only component with Docker access. It creates
+one hardened container per workspace with a read-only root filesystem, dropped
+capabilities, no-new-privileges, no network by default, and CPU, memory,
+process, output, and execution-time limits. User integrations run as separate
+MCP servers; arbitrary Python is never loaded into the Gateway.
 
 Start Docker Desktop and prepare the local sandbox image once before using the tool:
 
