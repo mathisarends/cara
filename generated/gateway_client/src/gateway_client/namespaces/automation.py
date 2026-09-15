@@ -34,6 +34,7 @@ class Automation:
         *,
         session_id: UUID,
     ) -> ListAutomationsResponse:
+        """List automations belonging to a conversation session."""
         params = ListAutomationsParams(
             session_id=session_id,
         )

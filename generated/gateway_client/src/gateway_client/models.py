@@ -44,7 +44,7 @@ class AssistantMessageItem(RpcModel):
 class AtSchedule(RpcModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["at"] = "at"
-    run_at: datetime
+    run_at: datetime = Field(alias="runAt")
 
 
 class AutomationResponse(RpcModel):
@@ -121,8 +121,8 @@ class GetAutomationParams(RpcModel):
 class IntervalSchedule(RpcModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["interval"] = "interval"
-    every_seconds: float
-    run_immediately: bool
+    every_seconds: float = Field(alias="everySeconds")
+    run_immediately: bool = Field(alias="runImmediately")
 
 
 class ListAutomationsParams(RpcModel):

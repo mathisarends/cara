@@ -19,6 +19,7 @@
   "methods": [
     {
       "name": "automation.list",
+      "summary": "List automations belonging to a conversation session.",
       "paramStructure": "by-name",
       "params": [
         {
@@ -941,14 +942,14 @@
             "title": "Kind",
             "type": "string"
           },
-          "run_at": {
+          "runAt": {
             "format": "date-time",
-            "title": "Run At",
+            "title": "Runat",
             "type": "string"
           }
         },
         "required": [
-          "run_at"
+          "runAt"
         ],
         "title": "AtSchedule",
         "type": "object"
@@ -1263,19 +1264,19 @@
             "title": "Kind",
             "type": "string"
           },
-          "every_seconds": {
+          "everySeconds": {
             "exclusiveMinimum": 0,
-            "title": "Every Seconds",
+            "title": "Everyseconds",
             "type": "number"
           },
-          "run_immediately": {
-            "title": "Run Immediately",
+          "runImmediately": {
+            "title": "Runimmediately",
             "type": "boolean"
           }
         },
         "required": [
-          "every_seconds",
-          "run_immediately"
+          "everySeconds",
+          "runImmediately"
         ],
         "title": "IntervalSchedule",
         "type": "object"
@@ -2155,7 +2156,8 @@
           "jsonrpc",
           "method",
           "params"
-        ]
+        ],
+        "description": "List automations belonging to a conversation session."
       },
       "GetAutomationRequest": {
         "additionalProperties": false,
