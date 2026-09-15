@@ -1,11 +1,10 @@
-from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
+from fastapi_canon import Composition
 
-from gateway.container import create_container
 from gateway.features import FEATURES
 from gateway.lifespan import lifespan
+from gateway.platform_feature import platform_feature
 from gateway.presentation import RequestLoggingMiddleware
-from gateway.presentation.websocket.router import gateway_router
 
 
 def create_app() -> FastAPI:
@@ -25,14 +24,7 @@ def create_app() -> FastAPI:
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)
-    app.include_router(gateway_router)
-    for feature in FEATURES:
-        feature.install(app)
-
-    setup_dishka(
-        create_container(),
-        app=app,
-    )
+    Composition(platform_feature, *FEATURES).apply(app)
     return app
 
 

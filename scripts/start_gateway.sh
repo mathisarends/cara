@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 
 gateway_run=(uv run --package gateway-server --with-editable ./agent)
 
-"${gateway_run[@]}" python -m gateway.infrastructure.database.migrations
+"${gateway_run[@]}" python -m gateway.platform.database.migrations
 
 # No --reload by default: on Windows uvicorn runs reloaded servers on a
 # SelectorEventLoop, which has no subprocess support, so the agent cannot start

@@ -315,6 +315,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi-canon"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/d9/e8ee3ed9e8de335a0f766a28c163c81a74d15fd7d4043f48e39e1138aa84/fastapi_canon-0.4.0.tar.gz", hash = "sha256:240708de31b34c6b96c1bd8b3371b14709627768271d55a156fb2ed36d2261da", size = 102058, upload-time = "2026-09-10T14:59:11.634Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/b7/c3686fd57565019d91be63d41bb84b258f77f97e76a9550a3b8c63195b60/fastapi_canon-0.4.0-py3-none-any.whl", hash = "sha256:db4594fed57df2f75b7e3076177fc8fcb61987691d958ffddc7ded708a78daa8", size = 36475, upload-time = "2026-09-10T14:59:10.423Z" },
+]
+
+[[package]]
 name = "filelock"
 version = "3.29.4"
 source = { registry = "https://pypi.org/simple" }
@@ -370,6 +384,7 @@ dependencies = [
     { name = "alembic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "fastapi-canon", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -394,8 +409,9 @@ requires-dist = [
     { name = "agent-plugin-api", editable = "gateway/plugin_api" },
     { name = "aiosqlite", specifier = ">=0.22.0" },
     { name = "alembic", specifier = ">=1.19.1" },
-    { name = "dishka", specifier = ">=1.4.0" },
+    { name = "dishka", specifier = ">=1.10.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastapi-canon", specifier = ">=0.4.0,<0.5.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyrpckit", specifier = "==0.4.0" },

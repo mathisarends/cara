@@ -1,4 +1,4 @@
-from gateway.presentation import Feature
+from fastapi_canon import Feature
 
 from .infrastructure import HealthProvider
 from .presentation import health_router

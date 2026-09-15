@@ -1,4 +1,5 @@
-from gateway.presentation import Feature
+import pyrpckit as rpc
+from fastapi_canon import Feature
 
 from . import automation, conversation, health
 
@@ -7,4 +8,8 @@ FEATURES: tuple[Feature, ...] = (
     automation.feature,
     conversation.feature,
 )
-__all__ = ["FEATURES"]
+RPC_MODULES: tuple[rpc.RpcModule, ...] = (
+    automation.rpc_module,
+    conversation.rpc_module,
+)
+__all__ = ["FEATURES", "RPC_MODULES"]

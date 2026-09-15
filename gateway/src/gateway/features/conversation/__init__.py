@@ -1,3 +1,3 @@
-from .feature import feature
+from .feature import feature, rpc_module
 
-__all__ = ["feature"]
+__all__ = ["feature", "rpc_module"]

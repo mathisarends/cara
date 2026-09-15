@@ -7,8 +7,9 @@ dependencies = [
     "aiosqlite>=0.22.0",
     "alembic>=1.19.1",
     "agent-plugin-api",
-    "dishka>=1.4.0",
+    "dishka>=1.10.0",
     "fastapi>=0.115.0",
+    "fastapi-canon>=0.4.0,<0.5.0",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",
     "pyyaml>=6.0",
@@ -24,7 +25,7 @@ dependencies = [
 cara-gateway = "gateway.main:main"
 cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
 cara-gateway-client-generate = "gateway.presentation.rpc.client_codegen:main"
-gateway-migrate = "gateway.infrastructure.database.migrations:main"
+gateway-migrate = "gateway.platform.database.migrations:main"
 
 [project.entry-points."cara.agent_plugins"]
 echo = "gateway.features.conversation.infrastructure.echo_agent:create_plugin"
