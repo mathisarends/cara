@@ -17,19 +17,28 @@ from sandbox_manager_client.exceptions import (
 )
 from sandbox_manager_client.http_methods import HttpMethods
 from sandbox_manager_client.models import (
+    DependencyUnavailableProblem,
     ExecRequest,
     ExecResponse,
     FileEditRequest,
     FileEditResponse,
     FileEntry,
     FileMatch,
+    FileNotFoundProblem,
     FileWriteRequest,
     GlobFilesParams,
     GrepRequest,
-    HTTPValidationError,
+    HealthResponse,
+    InvalidEditProblem,
+    InvalidWorkspaceIdProblem,
     ListEntriesParams,
+    NotADirectoryProblem,
+    PathOutsideWorkspaceProblem,
+    ReadinessResponse,
+    RequestValidationProblem,
     SandboxResponse,
     StatFileParams,
+    StdinNotSupportedProblem,
 )
 from sandbox_manager_client.serialization import (
     serialize_path,
@@ -64,6 +73,91 @@ class SandboxManagerClient:
     async def __aexit__(self, *exc_info: object) -> None:
         await self.aclose()
 
+    async def get_health(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> HealthResponse:
+        try:
+            path = "/v1/health"
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json")
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return HealthResponse.model_validate(response.json())
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def get_readiness(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> ReadinessResponse:
+        try:
+            path = "/v1/readiness"
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return ReadinessResponse.model_validate(response.json())
+            if response.status_code == 503:
+                detail = DependencyUnavailableProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
     async def edit_file(
         self,
         workspace_id: str,
@@ -81,7 +175,7 @@ class SandboxManagerClient:
             path = path.replace("{file_path}", serialize_path("file_path", file_path))
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
             json_body = TypeAdapter(FileEditRequest).dump_python(
@@ -109,8 +203,17 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return FileEditResponse.model_validate(response.json())
+            if response.status_code == 400:
+                detail = InvalidEditProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 403:
+                detail = PathOutsideWorkspaceProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 404:
+                detail = FileNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -146,7 +249,7 @@ class SandboxManagerClient:
             query.extend(serialize_query("recursive", params.recursive))
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
         except ClientError:
@@ -170,8 +273,14 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return TypeAdapter(list[FileEntry]).validate_python(response.json())
+            if response.status_code == 400:
+                detail = NotADirectoryProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 403:
+                detail = PathOutsideWorkspaceProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -198,7 +307,7 @@ class SandboxManagerClient:
             )
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
             json_body = TypeAdapter(ExecRequest).dump_python(
@@ -226,8 +335,13 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return ExecResponse.model_validate(response.json())
+            if response.status_code == 400:
+                detail = TypeAdapter(
+                    InvalidWorkspaceIdProblem | StdinNotSupportedProblem
+                ).validate_python(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -255,7 +369,7 @@ class SandboxManagerClient:
             path = path.replace("{file_path}", serialize_path("file_path", file_path))
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "text/plain, application/json")
+            headers.setdefault("Accept", "text/plain, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
         except ClientError:
@@ -278,8 +392,14 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return response.text
+            if response.status_code == 403:
+                detail = PathOutsideWorkspaceProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 404:
+                detail = FileNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -308,7 +428,7 @@ class SandboxManagerClient:
             path = path.replace("{file_path}", serialize_path("file_path", file_path))
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
             json_body = TypeAdapter(FileWriteRequest).dump_python(
@@ -336,8 +456,11 @@ class SandboxManagerClient:
         try:
             if response.status_code == 204:
                 return None
+            if response.status_code == 403:
+                detail = PathOutsideWorkspaceProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -370,7 +493,7 @@ class SandboxManagerClient:
             query.extend(serialize_query("pattern", params.pattern))
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
         except ClientError:
@@ -394,8 +517,11 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return TypeAdapter(list[FileEntry]).validate_python(response.json())
+            if response.status_code == 403:
+                detail = PathOutsideWorkspaceProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -422,7 +548,7 @@ class SandboxManagerClient:
             )
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
             json_body = TypeAdapter(GrepRequest).dump_python(
@@ -451,7 +577,7 @@ class SandboxManagerClient:
             if response.status_code == 200:
                 return TypeAdapter(list[FileMatch]).validate_python(response.json())
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -477,7 +603,7 @@ class SandboxManagerClient:
             )
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
         except ClientError:
@@ -500,8 +626,11 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return SandboxResponse.model_validate(response.json())
+            if response.status_code == 400:
+                detail = InvalidWorkspaceIdProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -527,7 +656,7 @@ class SandboxManagerClient:
             )
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
         except ClientError:
@@ -551,7 +680,7 @@ class SandboxManagerClient:
             if response.status_code == 204:
                 return None
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
@@ -584,7 +713,7 @@ class SandboxManagerClient:
             query.extend(serialize_query("file_path", params.file_path))
 
             headers = dict(self._headers)
-            headers.setdefault("Accept", "application/json")
+            headers.setdefault("Accept", "application/json, application/problem+json")
             headers["authorization"] = serialize_simple(authorization)
 
         except ClientError:
@@ -608,8 +737,11 @@ class SandboxManagerClient:
         try:
             if response.status_code == 200:
                 return TypeAdapter(FileEntry | None).validate_python(response.json())
+            if response.status_code == 403:
+                detail = PathOutsideWorkspaceProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
-                detail = HTTPValidationError.model_validate(response.json())
+                detail = RequestValidationProblem.model_validate(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)

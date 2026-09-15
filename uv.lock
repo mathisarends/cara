@@ -1468,16 +1468,20 @@ name = "sandbox-manager"
 version = "0.1.0"
 source = { editable = "sandbox_manager" }
 dependencies = [
+    { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "docker", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "fastapi-canon", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "dishka", specifier = ">=1.10.0" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastapi-canon", specifier = ">=0.4.0,<0.5.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "uvicorn", specifier = ">=0.30.0" },
 ]

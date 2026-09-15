@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Workspace-scoped Docker sandbox control plane for Cara."
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "dishka>=1.10.0",
     "docker>=7.1.0",
     "fastapi>=0.115.0",
+    "fastapi-canon>=0.4.0,<0.5.0",
     "pydantic-settings>=2.14.2",
     "uvicorn>=0.30.0",
 ]

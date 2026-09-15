@@ -44,7 +44,7 @@ services:
       - cara-workspace:/workspace
       - cara-cli-config:/tmp/.config
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/docs')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/v1/readiness')"]
       interval: 5s
       timeout: 2s
       retries: 12

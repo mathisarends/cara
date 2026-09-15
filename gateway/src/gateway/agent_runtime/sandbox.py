@@ -13,9 +13,15 @@ from sandbox_manager_client import (
     ApiError,
     ExecRequest,
     FileEditRequest,
+    FileNotFoundProblem,
     FileWriteRequest,
     GrepRequest,
+    InvalidEditProblem,
+    InvalidWorkspaceIdProblem,
+    NotADirectoryProblem,
+    PathOutsideWorkspaceProblem,
     SandboxManagerClient,
+    StdinNotSupportedProblem,
 )
 from sandbox_manager_client import FileEntry as GeneratedEntry
 from sandbox_manager_client import FileMatch as GeneratedMatch
@@ -243,10 +249,16 @@ class _translate_errors:
     ) -> bool:
         if not isinstance(exc, ApiError):
             return False
-        if exc.status_code == 404:
-            raise FileNotFoundError(exc.raw_body) from exc
-        if exc.status_code == 403:
-            raise PermissionError(exc.raw_body) from exc
-        if exc.status_code == 400:
-            raise ValueError(exc.raw_body) from exc
+        match exc.detail:
+            case FileNotFoundProblem(detail=detail):
+                raise FileNotFoundError(detail) from exc
+            case PathOutsideWorkspaceProblem(detail=detail):
+                raise PermissionError(detail) from exc
+            case (
+                InvalidEditProblem(detail=detail)
+                | InvalidWorkspaceIdProblem(detail=detail)
+                | NotADirectoryProblem(detail=detail)
+                | StdinNotSupportedProblem(detail=detail)
+            ):
+                raise ValueError(detail) from exc
         return False

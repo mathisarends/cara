@@ -5,9 +5,64 @@
     "version": "1"
   },
   "paths": {
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Check Sandbox Manager health",
+        "operationId": "get_health",
+        "responses": {
+          "200": {
+            "description": "The Sandbox Manager process is alive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/readiness": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Check Sandbox Manager readiness",
+        "operationId": "get_readiness",
+        "responses": {
+          "200": {
+            "description": "The Sandbox Manager can create sandboxes and serve files.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DependencyUnavailableProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/workspaces/{workspace_id}/sandbox": {
       "put": {
-        "summary": "Ensure",
+        "tags": [
+          "sandboxes"
+        ],
+        "summary": "Start the workspace sandbox unless it is already running",
         "operationId": "ensure_sandbox",
         "parameters": [
           {
@@ -40,12 +95,22 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "400": {
+            "description": "Invalid workspace id",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/InvalidWorkspaceIdProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -53,7 +118,10 @@
         }
       },
       "delete": {
-        "summary": "Stop",
+        "tags": [
+          "sandboxes"
+        ],
+        "summary": "Stop the workspace sandbox",
         "operationId": "stop_sandbox",
         "parameters": [
           {
@@ -77,14 +145,14 @@
         ],
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "The sandbox is not running."
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Request validation failed",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -94,7 +162,10 @@
     },
     "/v1/workspaces/{workspace_id}/exec": {
       "post": {
-        "summary": "Execute",
+        "tags": [
+          "sandboxes"
+        ],
+        "summary": "Run a command in the workspace sandbox",
         "operationId": "execute",
         "parameters": [
           {
@@ -137,12 +208,36 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "400": {
+            "description": "Possible problems: Invalid workspace id, Stdin not supported",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/InvalidWorkspaceIdProblem"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StdinNotSupportedProblem"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "code",
+                    "mapping": {
+                      "invalid_workspace_id": "#/components/schemas/InvalidWorkspaceIdProblem",
+                      "stdin_not_supported": "#/components/schemas/StdinNotSupportedProblem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -152,7 +247,10 @@
     },
     "/v1/workspaces/{workspace_id}/files/{file_path}": {
       "get": {
-        "summary": "Read File",
+        "tags": [
+          "files"
+        ],
+        "summary": "Read a UTF-8 text file",
         "operationId": "read_file",
         "parameters": [
           {
@@ -194,12 +292,32 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "404": {
+            "description": "File not found",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/FileNotFoundProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Path outside workspace",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathOutsideWorkspaceProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -207,7 +325,10 @@
         }
       },
       "put": {
-        "summary": "Write File",
+        "tags": [
+          "files"
+        ],
+        "summary": "Write a UTF-8 text file, creating parent directories",
         "operationId": "write_file",
         "parameters": [
           {
@@ -250,14 +371,124 @@
         },
         "responses": {
           "204": {
-            "description": "Successful Response"
+            "description": "The file was written."
+          },
+          "403": {
+            "description": "Path outside workspace",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathOutsideWorkspaceProblem"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace_id}/edit/{file_path}": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Replace text in a file",
+        "operationId": "edit_file",
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "file_path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Path"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileEditRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/FileEditResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileNotFoundProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Path outside workspace",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathOutsideWorkspaceProblem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid edit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidEditProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -267,7 +498,10 @@
     },
     "/v1/workspaces/{workspace_id}/entries": {
       "get": {
-        "summary": "List Files",
+        "tags": [
+          "files"
+        ],
+        "summary": "List a directory",
         "operationId": "list_entries",
         "parameters": [
           {
@@ -324,12 +558,32 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "403": {
+            "description": "Path outside workspace",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/PathOutsideWorkspaceProblem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a directory",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotADirectoryProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -339,7 +593,10 @@
     },
     "/v1/workspaces/{workspace_id}/glob": {
       "get": {
-        "summary": "Glob Files",
+        "tags": [
+          "files"
+        ],
+        "summary": "Find paths matching a glob pattern",
         "operationId": "glob_files",
         "parameters": [
           {
@@ -385,12 +642,22 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "403": {
+            "description": "Path outside workspace",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/PathOutsideWorkspaceProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -400,7 +667,10 @@
     },
     "/v1/workspaces/{workspace_id}/grep": {
       "post": {
-        "summary": "Grep Files",
+        "tags": [
+          "files"
+        ],
+        "summary": "Search file contents with a regular expression",
         "operationId": "grep_files",
         "parameters": [
           {
@@ -448,11 +718,11 @@
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Request validation failed",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -462,7 +732,10 @@
     },
     "/v1/workspaces/{workspace_id}/stat": {
       "get": {
-        "summary": "Stat File",
+        "tags": [
+          "files"
+        ],
+        "summary": "Describe a path, or return null if it does not exist",
         "operationId": "stat_file",
         "parameters": [
           {
@@ -512,79 +785,22 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "403": {
+            "description": "Path outside workspace",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/workspaces/{workspace_id}/edit/{file_path}": {
-      "post": {
-        "summary": "Edit File",
-        "operationId": "edit_file",
-        "parameters": [
-          {
-            "name": "workspace_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Workspace Id"
-            }
-          },
-          {
-            "name": "file_path",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Path"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FileEditRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileEditResponse"
+                  "$ref": "#/components/schemas/PathOutsideWorkspaceProblem"
                 }
               }
             }
           },
           "422": {
-            "description": "Validation Error",
+            "description": "Request validation failed",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/RequestValidationProblem"
                 }
               }
             }
@@ -870,21 +1086,45 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ready",
+            "title": "Status",
+            "default": "ready"
+          }
+        },
+        "type": "object",
+        "title": "ReadinessResponse"
+      },
       "SandboxResponse": {
         "properties": {
           "workspace_id": {
             "type": "string",
             "title": "Workspace Id"
           },
-          "container_id": {
+          "sandbox_id": {
             "type": "string",
-            "title": "Container Id"
+            "title": "Sandbox Id"
           }
         },
         "type": "object",
         "required": [
           "workspace_id",
-          "container_id"
+          "sandbox_id"
         ],
         "title": "SandboxResponse"
       },
@@ -927,7 +1167,451 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Problem": {
+        "type": "object",
+        "title": "Problem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,}$"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "DependencyUnavailableProblem": {
+        "type": "object",
+        "title": "DependencyUnavailableProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/dependency_unavailable"
+          },
+          "title": {
+            "type": "string",
+            "const": "Dependency unavailable"
+          },
+          "status": {
+            "type": "integer",
+            "const": 503
+          },
+          "code": {
+            "type": "string",
+            "const": "dependency_unavailable"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "InvalidWorkspaceIdProblem": {
+        "type": "object",
+        "title": "InvalidWorkspaceIdProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/invalid_workspace_id"
+          },
+          "title": {
+            "type": "string",
+            "const": "Invalid workspace id"
+          },
+          "status": {
+            "type": "integer",
+            "const": 400
+          },
+          "code": {
+            "type": "string",
+            "const": "invalid_workspace_id"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "StdinNotSupportedProblem": {
+        "type": "object",
+        "title": "StdinNotSupportedProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/stdin_not_supported"
+          },
+          "title": {
+            "type": "string",
+            "const": "Stdin not supported"
+          },
+          "status": {
+            "type": "integer",
+            "const": 400
+          },
+          "code": {
+            "type": "string",
+            "const": "stdin_not_supported"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "FileNotFoundProblem": {
+        "type": "object",
+        "title": "FileNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/file_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "File not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "file_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "PathOutsideWorkspaceProblem": {
+        "type": "object",
+        "title": "PathOutsideWorkspaceProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/path_outside_workspace"
+          },
+          "title": {
+            "type": "string",
+            "const": "Path outside workspace"
+          },
+          "status": {
+            "type": "integer",
+            "const": 403
+          },
+          "code": {
+            "type": "string",
+            "const": "path_outside_workspace"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "NotADirectoryProblem": {
+        "type": "object",
+        "title": "NotADirectoryProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/not_a_directory"
+          },
+          "title": {
+            "type": "string",
+            "const": "Not a directory"
+          },
+          "status": {
+            "type": "integer",
+            "const": 400
+          },
+          "code": {
+            "type": "string",
+            "const": "not_a_directory"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "InvalidEditProblem": {
+        "type": "object",
+        "title": "InvalidEditProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/invalid_edit"
+          },
+          "title": {
+            "type": "string",
+            "const": "Invalid edit"
+          },
+          "status": {
+            "type": "integer",
+            "const": 400
+          },
+          "code": {
+            "type": "string",
+            "const": "invalid_edit"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "RequestValidationProblem": {
+        "type": "object",
+        "title": "RequestValidationProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:sandbox-manager:problem/request_validation_error"
+          },
+          "title": {
+            "type": "string",
+            "const": "Request validation failed"
+          },
+          "status": {
+            "type": "integer",
+            "const": 422
+          },
+          "code": {
+            "type": "string",
+            "const": "request_validation_error"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "pointer": {
+                  "type": "string"
+                },
+                "parameter": {
+                  "type": "string"
+                },
+                "in": {
+                  "type": "string",
+                  "enum": [
+                    "path",
+                    "query",
+                    "header",
+                    "cookie"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "errors"
+        ],
+        "additionalProperties": true
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "system",
+      "description": "Sandbox Manager availability."
+    },
+    {
+      "name": "sandboxes",
+      "description": "Workspace sandbox lifecycle and command execution."
+    },
+    {
+      "name": "files",
+      "description": "Workspace filesystem access."
+    }
+  ]
 }

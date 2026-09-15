@@ -1,48 +1,23 @@
 import contextlib
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
 
 import docker
 from docker.models.containers import Container
 
-from sandbox_manager.settings import SandboxManagerSettings
+from sandbox_manager.features.sandbox.application import (
+    ExecOutcome,
+    SandboxRuntime,
+    StdinNotSupportedError,
+)
+from sandbox_manager.features.sandbox.settings import SandboxSettings
 
 _OWNER_LABEL = "dev.cara.sandbox-manager"
 _WORKSPACE_LABEL = "dev.cara.workspace"
 
 
-@dataclass(frozen=True, slots=True)
-class ExecOutcome:
-    exit_code: int | None
-    stdout: bytes
-    stderr: bytes
-    timed_out: bool = False
-
-
-class DockerGateway(Protocol):
-    def create(self, workspace_id: str) -> str: ...
-
-    def execute(
-        self,
-        container_id: str,
-        argv: Sequence[str],
-        *,
-        cwd: str,
-        env: Mapping[str, str],
-        stdin: bytes | None,
-    ) -> ExecOutcome: ...
-
-    def remove(self, container_id: str) -> None: ...
-
-    def remove_owned(self) -> None: ...
-
-    def close(self) -> None: ...
-
-
-class DockerSdkGateway:
-    def __init__(self, settings: SandboxManagerSettings) -> None:
+class DockerSandboxRuntime(SandboxRuntime):
+    def __init__(self, settings: SandboxSettings) -> None:
         self._settings = settings
         self._client = docker.from_env()
 
@@ -80,17 +55,16 @@ class DockerSdkGateway:
 
     def execute(
         self,
-        container_id: str,
+        sandbox_id: str,
         argv: Sequence[str],
         *,
         cwd: str,
         env: Mapping[str, str],
         stdin: bytes | None,
     ) -> ExecOutcome:
-        container = self._container(container_id)
         if stdin is not None:
-            raise ValueError("stdin is not supported by the Docker adapter yet")
-        result = container.exec_run(
+            raise StdinNotSupportedError()
+        result = self._container(sandbox_id).exec_run(
             list(argv),
             workdir=cwd,
             environment=dict(env),
@@ -99,9 +73,9 @@ class DockerSdkGateway:
         stdout, stderr = result.output
         return ExecOutcome(result.exit_code, stdout or b"", stderr or b"")
 
-    def remove(self, container_id: str) -> None:
+    def remove(self, sandbox_id: str) -> None:
         with contextlib.suppress(docker.errors.NotFound):
-            self._container(container_id).remove(force=True)
+            self._container(sandbox_id).remove(force=True)
 
     def remove_owned(self) -> None:
         containers: list[Container] = self._client.containers.list(
@@ -111,11 +85,18 @@ class DockerSdkGateway:
         for container in containers:
             container.remove(force=True)
 
+    def is_available(self) -> bool:
+        # requests' connection errors are OSErrors, not DockerExceptions.
+        try:
+            return self._client.ping()
+        except (docker.errors.DockerException, OSError):
+            return False
+
     def close(self) -> None:
         self._client.close()
 
-    def _container(self, container_id: str) -> Container:
-        return self._client.containers.get(container_id)
+    def _container(self, sandbox_id: str) -> Container:
+        return self._client.containers.get(sandbox_id)
 
 
 def _credential_volumes(mounts: Mapping[str, Path]) -> dict[str, dict[str, str]]:

@@ -1,21 +1,20 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class ExecRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    argv: tuple[str, ...] = Field(min_length=1)
-    cwd: str = "/workspace"
-    env: dict[str, str] = Field(default_factory=dict)
-    stdin: str | None = None
-    timeout_seconds: float = Field(default=15, gt=0, le=3600)
+class FileEntry(BaseModel):
+    path: str
+    is_dir: bool
+    is_symlink: bool
+    size: int | None
+    modified: float
 
 
-class ExecResponse(BaseModel):
-    exit_code: int | None
-    stdout: str
-    stderr: str
-    timed_out: bool = False
+class FileMatch(BaseModel):
+    path: str
+    line_number: int
+    line: str
+    context_before: tuple[str, ...]
+    context_after: tuple[str, ...]
 
 
 class FileWriteRequest(BaseModel):
@@ -32,6 +31,10 @@ class FileEditRequest(BaseModel):
     replace_all: bool = False
 
 
+class FileEditResponse(BaseModel):
+    count: int
+
+
 class GrepRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -40,12 +43,3 @@ class GrepRequest(BaseModel):
     case_sensitive: bool = True
     context_lines: int = Field(default=0, ge=0, le=10)
     max_matches: int | None = Field(default=None, ge=1)
-
-
-class SandboxResponse(BaseModel):
-    workspace_id: str
-    container_id: str
-
-
-class FileEditResponse(BaseModel):
-    count: int

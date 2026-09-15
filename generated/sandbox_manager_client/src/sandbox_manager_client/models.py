@@ -5,9 +5,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+
+class DependencyUnavailableProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/dependency_unavailable"]
+    title: Literal["Dependency unavailable"]
+    status: Literal[503]
+    code: Literal["dependency_unavailable"]
+    detail: str | None = None
+    instance: str | None = None
 
 
 class ExecRequest(BaseModel):
@@ -63,6 +74,17 @@ class FileMatch(BaseModel):
     context_after: list[str]
 
 
+class FileNotFoundProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/file_not_found"]
+    title: Literal["File not found"]
+    status: Literal[404]
+    code: Literal["file_not_found"]
+    detail: str | None = None
+    instance: str | None = None
+
+
 class FileWriteRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -95,11 +117,111 @@ class HTTPValidationError(BaseModel):
     detail: list[ValidationError] = None
 
 
+class HealthResponse(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    status: Literal["ok"] = "ok"
+
+
+class InvalidEditProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/invalid_edit"]
+    title: Literal["Invalid edit"]
+    status: Literal[400]
+    code: Literal["invalid_edit"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class InvalidWorkspaceIdProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/invalid_workspace_id"]
+    title: Literal["Invalid workspace id"]
+    status: Literal[400]
+    code: Literal["invalid_workspace_id"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class NotADirectoryProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/not_a_directory"]
+    title: Literal["Not a directory"]
+    status: Literal[400]
+    code: Literal["not_a_directory"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class PathOutsideWorkspaceProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/path_outside_workspace"]
+    title: Literal["Path outside workspace"]
+    status: Literal[403]
+    code: Literal["path_outside_workspace"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class Problem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: str
+    title: str
+    status: int = Field(ge=100, le=599)
+    code: str = Field(pattern="^[a-z][a-z0-9_]{2,}$")
+    detail: str | None = None
+    instance: str | None = None
+
+
+class ReadinessResponse(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    status: Literal["ready"] = "ready"
+
+
+class RequestValidationProblemErrorsItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    code: str
+    detail: str
+    pointer: str = None
+    parameter: str = None
+    in_: Literal["path", "query", "header", "cookie"] = Field(None, alias="in")
+
+
+class RequestValidationProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/request_validation_error"]
+    title: Literal["Request validation failed"]
+    status: Literal[422]
+    code: Literal["request_validation_error"]
+    detail: str | None = None
+    instance: str | None = None
+    errors: list[RequestValidationProblemErrorsItem]
+
+
 class SandboxResponse(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     workspace_id: str
-    container_id: str
+    sandbox_id: str
+
+
+class StdinNotSupportedProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:sandbox-manager:problem/stdin_not_supported"]
+    title: Literal["Stdin not supported"]
+    status: Literal[400]
+    code: Literal["stdin_not_supported"]
+    detail: str | None = None
+    instance: str | None = None
 
 
 class ListEntriesParams(BaseModel):

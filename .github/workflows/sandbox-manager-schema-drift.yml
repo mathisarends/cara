@@ -29,8 +29,6 @@ jobs:
         run: uv python install 3.13
 
       - name: Regenerate Sandbox Manager schema
-        env:
-          CARA_SANDBOX_TOKEN: schema-export
         run: uv run --frozen --package sandbox-manager cara-sandbox-manager-schema
 
       - name: Regenerate Python client
@@ -42,10 +40,10 @@ jobs:
           --client-name SandboxManagerClient
           --http-client httpx2
 
-      - name: Lint and format the regenerated client
+      - name: Format and lint the regenerated client
         run: |
-          uv run --frozen ruff check --fix generated/sandbox_manager_client/src
           uv run --frozen ruff format generated/sandbox_manager_client/src
+          uv run --frozen ruff check --fix generated/sandbox_manager_client/src
 
       - name: Check generated artifacts for drift
         run: >-

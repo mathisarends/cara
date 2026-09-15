@@ -1,28 +1,18 @@
 import asyncio
 import re
-from dataclasses import dataclass
 from pathlib import Path
 
-
-@dataclass(frozen=True, slots=True)
-class FileEntry:
-    path: str
-    is_dir: bool
-    is_symlink: bool
-    size: int | None
-    modified: float
-
-
-@dataclass(frozen=True, slots=True)
-class FileMatch:
-    path: str
-    line_number: int
-    line: str
-    context_before: tuple[str, ...]
-    context_after: tuple[str, ...]
+from sandbox_manager.features.files.application import (
+    FileEntry,
+    FileMatch,
+    PathOutsideWorkspaceError,
+    WorkspaceFileNotFoundError,
+    WorkspaceFileSystem,
+    WorkspaceNotADirectoryError,
+)
 
 
-class WorkspaceFiles:
+class LocalWorkspaceFileSystem(WorkspaceFileSystem):
     def __init__(self, root: Path) -> None:
         self._root = root.resolve()
 
@@ -34,32 +24,12 @@ class WorkspaceFiles:
         await asyncio.to_thread(target.parent.mkdir, parents=True, exist_ok=True)
         await asyncio.to_thread(target.write_text, content, "utf-8")
 
-    async def edit(
-        self,
-        path: str,
-        old: str,
-        new: str,
-        *,
-        replace_all: bool,
-    ) -> int:
-        if not old:
-            raise ValueError("old text must not be empty")
-        content = await self.read(path)
-        occurrences = content.count(old)
-        if occurrences == 0:
-            raise ValueError("old text was not found")
-        if occurrences > 1 and not replace_all:
-            raise ValueError(f"old text occurs {occurrences} times")
-        count = occurrences if replace_all else 1
-        await self.write(path, content.replace(old, new, -1 if replace_all else 1))
-        return count
-
     async def list_entries(self, path: str, *, recursive: bool) -> list[FileEntry]:
         return await asyncio.to_thread(self._list, path, recursive)
 
     async def glob(self, pattern: str) -> list[FileEntry]:
         if Path(pattern).is_absolute() or ".." in Path(pattern).parts:
-            raise PermissionError("glob must stay inside the workspace")
+            raise PathOutsideWorkspaceError(pattern)
         return await asyncio.to_thread(
             lambda: sorted(
                 (self._entry(path) for path in self._root.glob(pattern)),
@@ -92,21 +62,19 @@ class WorkspaceFiles:
     def _resolve_file(self, path: str) -> Path:
         target = self._resolve(path)
         if not target.is_file():
-            raise FileNotFoundError(path)
+            raise WorkspaceFileNotFoundError(path)
         return target
 
     def _resolve(self, path: str) -> Path:
         target = (self._root / path).resolve()
-        try:
-            target.relative_to(self._root)
-        except ValueError as error:
-            raise PermissionError("path is outside the workspace") from error
+        if not target.is_relative_to(self._root):
+            raise PathOutsideWorkspaceError(path)
         return target
 
     def _list(self, path: str, recursive: bool) -> list[FileEntry]:
         directory = self._resolve(path)
         if not directory.is_dir():
-            raise NotADirectoryError(path)
+            raise WorkspaceNotADirectoryError(path)
         paths = directory.rglob("*") if recursive else directory.iterdir()
         return sorted((self._entry(item) for item in paths), key=lambda item: item.path)
 
