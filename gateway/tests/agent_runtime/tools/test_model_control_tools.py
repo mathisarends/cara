@@ -2,7 +2,7 @@ import asyncio
 from typing import cast
 
 from agent.models import ModelSwitch
-from agent.tools import build_tools
+from gateway.agent_runtime.tools import build_tools
 from llm import ChatModel
 
 

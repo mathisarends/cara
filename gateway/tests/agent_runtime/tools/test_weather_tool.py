@@ -3,11 +3,13 @@ from datetime import datetime
 
 from agenttoolkit import DependencyProvider, ToolContext, provide
 
-from agent.tools import build_tools
-from agent.tools.actions.weather import WeatherPeriod, _render_weather_report
-from agent.tools.factory import _create_tools
-from agent.tools.handler import LocationLookup
-from agent.tools.handler.ports import (
+from gateway.agent_runtime.tools import build_tools, create_tools
+from gateway.agent_runtime.tools.actions.weather import (
+    WeatherPeriod,
+    _render_weather_report,
+)
+from gateway.agent_runtime.tools.handler import LocationLookup
+from gateway.agent_runtime.tools.handler.ports import (
     DailyForecast,
     HourlyForecast,
     Location,
@@ -81,7 +83,7 @@ class _Dependencies(DependencyProvider):
 
 
 def _tools(client: Weather, location_client: LocationLookup):
-    return _create_tools(
+    return create_tools(
         ToolContext(), dependencies=(_Dependencies(client, location_client),)
     )
 

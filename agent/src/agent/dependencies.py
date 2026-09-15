@@ -28,13 +28,11 @@ class ConfiguredDependencies(DependencyProvider):
         workspace: Workspace,
         command_runner: CommandRunner,
         tool_dependencies: Sequence[object] = (),
-        initial_model: ChatModel | None = None,
     ) -> None:
         self._settings = settings
         self._workspace = workspace
         self._command_runner = command_runner
         self._tool_dependencies = tuple(tool_dependencies)
-        self._initial_model = initial_model
 
     @provide
     def settings(self) -> AgentSettings:
@@ -74,7 +72,6 @@ class ConfiguredDependencies(DependencyProvider):
             model_factories,
             default=settings.models.default.value,
             reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
-            initial_model=self._initial_model,
         )
 
     @provide

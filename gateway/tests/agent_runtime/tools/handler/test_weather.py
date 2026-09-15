@@ -3,8 +3,8 @@ import json
 
 import httpx
 
-from agent.tools.handler.ports import Location, WeatherReport
-from agent.tools.handler.weather import OpenMeteoWeather
+from gateway.agent_runtime.tools.handler.ports import Location, WeatherReport
+from gateway.agent_runtime.tools.handler.weather import OpenMeteoWeather
 
 _BERLIN = Location(
     name="Berlin", latitude=52.52, longitude=13.405, timezone="Europe/Berlin"

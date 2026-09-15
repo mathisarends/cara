@@ -5,7 +5,8 @@ from enum import StrEnum
 from agenttoolkit import Inject, Tools
 from pydantic import Field
 
-from agent.tools.handler import (
+from agent.tools.params import ToolParams
+from gateway.agent_runtime.tools.handler import (
     MAX_FORECAST_DAYS,
     DailyForecast,
     HourlyForecast,
@@ -13,7 +14,6 @@ from agent.tools.handler import (
     Weather,
     WeatherReport,
 )
-from agent.tools.params import ToolParams
 
 _RAIN_THRESHOLD = 30
 _HOURLY_STEP = 2

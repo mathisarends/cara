@@ -3,7 +3,7 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from tavily import AsyncTavilyClient
 
-from agent.tools.handler.ports import SearchResponse, WebSearch
+from gateway.agent_runtime.tools.handler.ports import SearchResponse, WebSearch
 
 
 class TavilyCredentials(BaseSettings):

@@ -12,7 +12,7 @@ from agenttoolkit.builtins import (
     SandboxPolicy,
 )
 
-from agent.tools import build_tools
+from gateway.agent_runtime.tools import build_tools
 
 
 def test_custom_action_uses_agenttoolkit_execution() -> None:

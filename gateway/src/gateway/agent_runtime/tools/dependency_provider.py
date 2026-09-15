@@ -1,16 +1,19 @@
 from agenttoolkit import DependencyProvider, provide
 
-from agent.tools.handler import (
+from gateway.agent_runtime.tools.handler import (
     IpLocationLookup,
     LocationLookup,
     OpenMeteoWeather,
     Weather,
     WebSearch,
 )
-from agent.tools.handler.web_search import TavilyCredentials, TavilyWebSearch
+from gateway.agent_runtime.tools.handler.web_search import (
+    TavilyCredentials,
+    TavilyWebSearch,
+)
 
 
-class BuiltinDependencies(DependencyProvider):
+class GatewayToolDependencies(DependencyProvider):
     """Default production adapters for Weather, LocationLookup, and WebSearch.
 
     Each dependency is resolved lazily and cached by the container the first

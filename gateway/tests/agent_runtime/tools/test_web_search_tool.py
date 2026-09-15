@@ -2,9 +2,12 @@ import asyncio
 
 from agenttoolkit import DependencyProvider, ToolContext, provide
 
-from agent.tools import build_tools
-from agent.tools.factory import _create_tools
-from agent.tools.handler.ports import SearchResponse, SearchResult, WebSearch
+from gateway.agent_runtime.tools import build_tools, create_tools
+from gateway.agent_runtime.tools.handler.ports import (
+    SearchResponse,
+    SearchResult,
+    WebSearch,
+)
 
 
 class _StubClient(WebSearch):
@@ -27,7 +30,7 @@ class _Dependencies(DependencyProvider):
 
 
 def _tools(client: WebSearch):
-    return _create_tools(ToolContext(), dependencies=(_Dependencies(client),))
+    return create_tools(ToolContext(), dependencies=(_Dependencies(client),))
 
 
 def test_web_search_tool_is_registered_without_availability_checks(

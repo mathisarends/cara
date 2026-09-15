@@ -2,8 +2,9 @@
 
 Cara's central FastAPI process. It owns the REST resource API, the JSON-RPC
 WebSocket for live turns ([transport split](../docs/gateway-transport.md)), sessions,
-persistence, and the agent runtime. It composes [`agent`](../agent) directly;
-shell/files run through the Sandbox Manager and custom tools through MCP.
+persistence, and the agent runtime. It composes [`agent`](../agent) directly
+and owns the complete concrete tool catalog. Shell/files run through the
+Sandbox Manager and external custom tools through MCP.
 
 ```bash
 docker compose up --build -d

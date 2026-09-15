@@ -9,8 +9,9 @@ from agenttoolkit import ToolContext
 from agenttoolkit.builtins import CommandDefaults, LocalShellRunner, LocalWorkspace
 
 from agent.clock import LocalClock
-from agent.tools.factory import _create_tools
-from agent.tools.handler import (
+from agent.tools.middleware import ToolFailure
+from gateway.agent_runtime.tools import create_tools
+from gateway.agent_runtime.tools.handler import (
     Reminder,
     Reminders,
     ReminderSchedule,
@@ -18,7 +19,6 @@ from agent.tools.handler import (
     RemindOnce,
     RemindOnCron,
 )
-from agent.tools.middleware import ToolFailure
 
 _BERLIN = ZoneInfo("Europe/Berlin")
 _CLOCK = LocalClock(
@@ -89,12 +89,12 @@ def _context(reminders: Reminders | None, tmp_path: Path) -> ToolContext:
 
 
 def _run(reminders: Reminders | None, tmp_path: Path, name: str, arguments: dict):
-    tools = _create_tools(_context(reminders, tmp_path))
+    tools = create_tools(_context(reminders, tmp_path))
     return asyncio.run(tools.execute(name, arguments))
 
 
 def test_reminder_tools_are_hidden_without_a_gateway_connection(tmp_path: Path) -> None:
-    tools = _create_tools(_context(None, tmp_path))
+    tools = create_tools(_context(None, tmp_path))
 
     names = {schema.name for schema in tools.get_schema()}
 
@@ -107,7 +107,7 @@ def test_reminder_tools_are_hidden_without_a_gateway_connection(tmp_path: Path) 
 
 
 def test_reminder_tools_appear_once_reminders_are_provided(tmp_path: Path) -> None:
-    tools = _create_tools(_context(_StubReminders(), tmp_path))
+    tools = create_tools(_context(_StubReminders(), tmp_path))
 
     names = {schema.name for schema in tools.get_schema()}
 
@@ -115,7 +115,7 @@ def test_reminder_tools_appear_once_reminders_are_provided(tmp_path: Path) -> No
 
 
 def test_create_reminder_schema_is_one_time_only(tmp_path: Path) -> None:
-    tools = _create_tools(_context(_StubReminders(), tmp_path))
+    tools = create_tools(_context(_StubReminders(), tmp_path))
     schema = next(
         item
         for item in tools.get_schema("openai")

@@ -3,7 +3,7 @@ import asyncio
 import httpx
 import pytest
 
-from agent.tools.handler import IpLocationLookup, Location
+from gateway.agent_runtime.tools.handler import IpLocationLookup, Location
 
 _RESPONSE = {
     "success": True,

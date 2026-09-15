@@ -2,7 +2,7 @@ from datetime import datetime
 
 import httpx
 
-from agent.tools.handler.ports import (
+from gateway.agent_runtime.tools.handler.ports import (
     MAX_FORECAST_DAYS,
     Location,
     Weather,

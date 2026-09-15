@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import agenttoolkit
 from agenttoolkit import (
@@ -7,9 +7,9 @@ from agenttoolkit import (
 )
 from agenttoolkit.dependency import DependencyContainer
 
-from agent.tools.actions import register_tools
-from agent.tools.dependency_provider import BuiltinDependencies
 from agent.tools.middleware import ToolResultMiddleware
+
+type ToolRegistrar = Callable[[agenttoolkit.Tools], None]
 
 
 class AgentTools(agenttoolkit.Tools):
@@ -35,12 +35,15 @@ def build_tools(
     context: ToolContext,
     additional_tools: agenttoolkit.Tools | None = None,
     container: DependencyContainer | None = None,
+    registrars: Sequence[ToolRegistrar] = (),
 ) -> AgentTools:
     tools = _create_tools(
         context,
         container=container,
-        dependencies=None if container is not None else (BuiltinDependencies(),),
+        dependencies=() if container is None else None,
     )
+    for register in registrars:
+        register(tools)
     if additional_tools is not None:
         tools.merge(additional_tools)
     return tools
@@ -57,5 +60,4 @@ def _create_tools(
         container=container,
         dependencies=dependencies,
     )
-    register_tools(tools)
     return tools

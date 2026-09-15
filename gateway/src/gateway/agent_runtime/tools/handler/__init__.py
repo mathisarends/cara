@@ -1,4 +1,3 @@
-from .gateway_reminders import GatewayConnection, GatewayReminders
 from .ip_location import IpLocationLookup
 from .ports import (
     MAX_FORECAST_DAYS,
@@ -18,13 +17,13 @@ from .ports import (
     WeatherReport,
     WebSearch,
 )
+from .reminders import GatewayReminders
 from .weather import OpenMeteoWeather
 from .web_search import TavilyWebSearch
 
 __all__ = [
     "MAX_FORECAST_DAYS",
     "DailyForecast",
-    "GatewayConnection",
     "GatewayReminders",
     "HourlyForecast",
     "IpLocationLookup",

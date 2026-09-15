@@ -1,8 +1,8 @@
 from agenttoolkit import Inject, Tools
 from pydantic import Field
 
-from agent.tools.handler import WebSearch
 from agent.tools.params import ToolParams
+from gateway.agent_runtime.tools.handler import WebSearch
 
 
 class WebSearchParams(ToolParams):

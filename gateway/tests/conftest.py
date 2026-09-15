@@ -1,8 +1,16 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
 import pytest
+from agenttoolkit import ToolContext
+from agenttoolkit.builtins import (
+    CommandDefaults,
+    CommandRunner,
+    LocalShellRunner,
+    LocalWorkspace,
+    Workspace,
+)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import (
@@ -14,6 +22,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
+from agent.clock import LocalClock
+from gateway.agent_runtime.tools import create_tools
 from gateway.app import create_app
 from gateway.features.conversation.application import (
     AgentEvent,
@@ -24,6 +34,33 @@ from gateway.features.conversation.application import (
 from gateway.platform.database.migrations import run_migrations
 
 _TOKEN = "test-gateway-token-with-32-characters"
+
+
+@pytest.fixture
+def make_tool_context(tmp_path: Path) -> Callable[..., ToolContext]:
+    def create(
+        *dependencies: object,
+        workspace: Workspace | None = None,
+        runner: CommandRunner | None = None,
+        clock: LocalClock | None = None,
+    ) -> ToolContext:
+        selected_workspace = workspace or LocalWorkspace(tmp_path)
+        selected_runner = runner or LocalShellRunner(
+            CommandDefaults(working_directory=selected_workspace.root)
+        )
+        return ToolContext(
+            selected_workspace,
+            selected_runner,
+            clock or LocalClock(),
+            *dependencies,
+        )
+
+    return create
+
+
+@pytest.fixture
+def make_tools():
+    return create_tools
 
 
 class _TestAgentRuntime:

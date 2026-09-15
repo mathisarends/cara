@@ -6,7 +6,9 @@ from agenttoolkit import Inject, Tools, provided
 from pydantic import Field
 
 from agent.clock import LocalClock
-from agent.tools.handler import (
+from agent.tools.middleware import ToolError
+from agent.tools.params import ToolParams
+from gateway.agent_runtime.tools.handler import (
     Reminder,
     Reminders,
     ReminderSchedule,
@@ -14,8 +16,6 @@ from agent.tools.handler import (
     RemindOnce,
     RemindOnCron,
 )
-from agent.tools.middleware import ToolError
-from agent.tools.params import ToolParams
 
 
 class _ReminderParams(ToolParams):

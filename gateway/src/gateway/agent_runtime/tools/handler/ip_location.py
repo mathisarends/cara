@@ -2,7 +2,7 @@ from typing import Any
 
 import httpx
 
-from agent.tools.handler.ports import Location, LocationLookup
+from gateway.agent_runtime.tools.handler.ports import Location, LocationLookup
 
 _IP_LOCATION_URL = "https://ipwho.is/"
 

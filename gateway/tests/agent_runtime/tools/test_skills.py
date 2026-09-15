@@ -3,7 +3,7 @@ from pathlib import Path
 
 from agenttoolkit import Skills
 
-from agent.tools import build_tools
+from gateway.agent_runtime.tools import build_tools
 
 
 def _skills(tmp_path: Path) -> Skills:

@@ -13,7 +13,7 @@ from agent.events import (
     TurnCompleted,
 )
 from agent.factory import AgentFactory
-from agent.tools.handler import GatewayConnection, GatewayReminders
+from gateway.agent_runtime.tools import TurnToolDependencies
 from gateway.features.conversation.application import (
     AgentEvent,
     AgentRunRequest,
@@ -40,7 +40,6 @@ from gateway.features.conversation.domain import (
 )
 from llm import (
     AssistantMessage,
-    ChatModel,
     Message,
     ToolResultMessage,
     UserMessage,
@@ -60,95 +59,75 @@ class CaraAgentRuntime:
         sessions: SessionRepository,
         factory: AgentFactory,
         sandbox: _SandboxPrewarmer,
+        tool_dependencies: TurnToolDependencies,
     ) -> None:
         self._sessions = sessions
         self._factory = factory
         self._sandbox = sandbox
-        self._active_agents: dict[UUID, Agent] = {}
-        self._preparations: dict[UUID, asyncio.Task[ChatModel]] = {}
-        self._preparation_lock = asyncio.Lock()
+        self._tool_dependencies = tool_dependencies
+        self._agents: dict[UUID, Agent] = {}
+        self._active_sessions: set[UUID] = set()
+        self._registry_lock = asyncio.Lock()
 
     async def prepare(self, session: AgentSessionRef) -> None:
-        async with self._preparation_lock:
-            preparation = self._preparations.get(session.id)
-            if preparation is None:
-                preparation = asyncio.create_task(
-                    self._factory.prewarm_model(),
-                    name=f"cara-model-prewarm-{session.id}",
-                )
-                self._preparations[session.id] = preparation
-        try:
-            await asyncio.gather(
-                asyncio.shield(preparation),
-                self._sandbox.ensure(),
-            )
-        except BaseException:
-            async with self._preparation_lock:
-                if self._preparations.get(session.id) is preparation:
-                    self._preparations.pop(session.id)
-            raise
+        await asyncio.gather(
+            self._get_or_create_agent(session),
+            self._sandbox.ensure(),
+        )
 
     async def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]:
-        preparation = await self._take_preparation(request.session.id)
-        initial_model = await preparation if preparation is not None else None
-        messages = await _context_messages(
-            self._sessions,
-            request.session.id,
-            request.input_id,
+        agent = await self._get_or_create_agent(
+            request.session,
+            input_id=request.input_id,
         )
-        try:
-            agent = await self._factory.create(
-                messages,
-                tool_dependencies=_turn_tool_dependencies(request),
-                initial_model=initial_model,
-            )
-        except BaseException:
-            if initial_model is not None:
-                await initial_model.aclose()
-            raise
-        self._active_agents[request.session.id] = agent
+        self._active_sessions.add(request.session.id)
         try:
             events = await agent.start_turn(request.input)
             async for event in events:
                 yield _runtime_event(event)
         finally:
-            if self._active_agents.get(request.session.id) is agent:
-                del self._active_agents[request.session.id]
-            await agent.aclose()
+            self._active_sessions.discard(request.session.id)
 
     async def steer(self, session: AgentSessionRef, text: str) -> None:
-        agent = self._active_agents.get(session.id)
-        if agent is not None:
+        agent = self._agents.get(session.id)
+        if agent is not None and session.id in self._active_sessions:
             await agent.steer(text)
 
     async def finish(self, session: AgentSessionRef) -> None:
-        preparation = await self._take_preparation(session.id)
-        if preparation is not None:
-            model = await preparation
-            await model.aclose()
+        async with self._registry_lock:
+            agent = self._agents.pop(session.id, None)
+        if agent is not None:
+            self._active_sessions.discard(session.id)
+            await agent.aclose()
 
     async def close(self) -> None:
-        async with self._preparation_lock:
-            preparations = tuple(self._preparations.values())
-            self._preparations.clear()
-        prepared_models = await asyncio.gather(*preparations, return_exceptions=True)
-        await asyncio.gather(
-            *(
-                model.aclose()
-                for model in prepared_models
-                if not isinstance(model, BaseException)
-            )
-        )
-        agents = tuple(self._active_agents.values())
+        async with self._registry_lock:
+            agents = tuple(self._agents.values())
+            self._agents.clear()
+            self._active_sessions.clear()
         if agents:
-            await asyncio.gather(*(agent.aclose() for agent in agents))
+            await asyncio.gather(
+                *(agent.aclose() for agent in agents),
+                return_exceptions=True,
+            )
 
-    async def _take_preparation(
+    async def _get_or_create_agent(
         self,
-        session_id: UUID,
-    ) -> asyncio.Task[ChatModel] | None:
-        async with self._preparation_lock:
-            return self._preparations.pop(session_id, None)
+        session: AgentSessionRef,
+        *,
+        input_id: UUID | None = None,
+    ) -> Agent:
+        async with self._registry_lock:
+            agent = self._agents.get(session.id)
+            if agent is not None:
+                return agent
+            messages = await _context_messages(self._sessions, session.id, input_id)
+            agent = await self._factory.create(
+                messages,
+                tool_dependencies=self._tool_dependencies.create(session),
+            )
+            self._agents[session.id] = agent
+            return agent
 
 
 async def _context_messages(
@@ -229,10 +208,3 @@ def _runtime_event(event: object) -> AgentEvent:
                 event.is_error,
             )
     raise TypeError(f"Unsupported Cara agent event: {type(event).__name__}")
-
-
-def _turn_tool_dependencies(request: AgentRunRequest) -> tuple[object, ...]:
-    connection = GatewayConnection()
-    if connection.token is None:
-        return ()
-    return (GatewayReminders(connection, session_id=request.session.id),)

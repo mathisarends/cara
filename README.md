@@ -92,7 +92,6 @@ flowchart TD
     gateway --> agent
     gateway --> scheduler
     agent --> llm
-    agent --> gateway_rest_client
     gateway -.->|"HTTP"| sandbox_manager
 
     gateway_rest_client
@@ -105,7 +104,7 @@ flowchart TD
 | Package                                       | What it is                                                                                     |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | [`gateway-server`](gateway#readme)     | FastAPI process: protocol, sessions, persistence, agent runtime, and tool composition. |
-| [`agent`](agent#readme)                       | The model-facing loop, prompt assembly, and trusted tool catalog used by the Gateway. |
+| [`agent`](agent#readme)                       | Generic model-facing loop, context assembly, tool extension API, and middleware. |
 | [`sandbox-manager`](sandbox_manager)          | Workspace-scoped Docker lifecycle and remote shell/filesystem API. |
 | [`gateway-rest-client`](generated/gateway_rest_client#readme) | Generated, fully typed client for the gateway's REST resources (sessions, automations, alarms). |
 | [`gateway-rpc-client`](generated/gateway_rpc_client#readme) | Generated, fully typed client for the gateway's JSON-RPC WebSocket (turns, events). |

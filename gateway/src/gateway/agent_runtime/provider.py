@@ -8,10 +8,18 @@ from agent.factory import AgentFactory
 from gateway.agent_runtime.mcp import McpTools
 from gateway.agent_runtime.sandbox import WorkspaceSandboxClient
 from gateway.agent_runtime.settings import GatewaySettings
+from gateway.agent_runtime.tools import (
+    GatewayToolDependencies,
+    GatewayToolSettings,
+    TurnToolDependencies,
+    register_tools,
+)
 from gateway.agent_runtime.workspace import resolve_workspace_root
+from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import AgentRuntime
 from gateway.features.conversation.domain import SessionRepository
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
+from gateway.shared import UnitOfWork
 
 
 class AgentRuntimeProvider(Provider):
@@ -24,6 +32,18 @@ class AgentRuntimeProvider(Provider):
     @provide
     def agent_settings(self, settings: GatewaySettings) -> AgentSettings:
         return settings.agent
+
+    @provide
+    def tool_settings(self) -> GatewayToolSettings:
+        return GatewayToolSettings()
+
+    @provide
+    def turn_tool_dependencies(
+        self,
+        automations: UnitOfWork[AutomationService],
+        settings: GatewayToolSettings,
+    ) -> TurnToolDependencies:
+        return TurnToolDependencies(automations, settings)
 
     @provide
     async def sandbox_client(
@@ -58,6 +78,8 @@ class AgentRuntimeProvider(Provider):
             workspace=sandbox,
             command_runner=sandbox,
             additional_tools=mcp_tools,
+            tool_registrars=(register_tools,),
+            tool_dependency_providers=(GatewayToolDependencies(),),
         )
 
     @provide
@@ -66,8 +88,9 @@ class AgentRuntimeProvider(Provider):
         sessions: SessionRepository,
         factory: AgentFactory,
         sandbox: WorkspaceSandboxClient,
+        tool_dependencies: TurnToolDependencies,
     ) -> AsyncIterator[AgentRuntime]:
-        runtime = CaraAgentRuntime(sessions, factory, sandbox)
+        runtime = CaraAgentRuntime(sessions, factory, sandbox, tool_dependencies)
         warmup = asyncio.create_task(sandbox.ensure(), name="workspace-sandbox-warmup")
         try:
             yield runtime
