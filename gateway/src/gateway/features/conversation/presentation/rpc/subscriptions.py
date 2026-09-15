@@ -1,6 +1,6 @@
 from pyrpckit import Inject, RpcInternalError, RpcModule
 
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     ConversationRpcMethod,
     SessionParams,
     SubscriptionResult,

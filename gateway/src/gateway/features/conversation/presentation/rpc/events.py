@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from pyrpckit import Inject, RpcModule
 
 from gateway.features.conversation.presentation.rpc.mapping import session_event
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     RpcNotificationMethod,
     SessionEvent,
 )

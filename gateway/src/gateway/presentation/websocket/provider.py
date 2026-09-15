@@ -11,7 +11,6 @@ from gateway.features.conversation.application import (
     SessionService,
     TurnService,
 )
-from gateway.features.conversation.presentation import ConversationRpcMethods
 from gateway.presentation.websocket.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
@@ -62,7 +61,8 @@ class GatewayProvider(Provider):
         client_id = str(uuid.uuid4())
         handlers = (
             automation_service,
-            ConversationRpcMethods(sessions, turns),
+            sessions,
+            turns,
             EventStreamRpcMethods(sessions, stream, client_id),
         )
         server = self._channel.server(

@@ -1,12 +1,16 @@
 from pyrpckit import Inject, RpcInternalError, RpcInvalidParamsError, RpcModule
 
-from gateway.features.conversation.presentation.rpc.handler import (
-    ConversationRpcMethods,
+from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.domain import ChannelRef
+from gateway.features.conversation.presentation.rpc.mapping import (
+    session_response,
+    session_snapshot,
 )
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     ConversationRpcMethod,
     CreateSessionParams,
     OpenSessionParams,
+    SessionChannel,
     SessionParams,
     SessionResponse,
     SessionSnapshotResponse,
@@ -29,9 +33,10 @@ conversation_module = RpcModule()
 )
 async def create_session(
     params: CreateSessionParams,
-    handler: Inject[ConversationRpcMethods],
+    sessions: Inject[SessionService],
 ) -> SessionResponse:
-    return await handler.create_session(params)
+    session = await sessions.create(channel=_channel_ref(params.channel))
+    return session_response(session)
 
 
 @conversation_module.method(
@@ -39,9 +44,10 @@ async def create_session(
 )
 async def open_session(
     params: OpenSessionParams,
-    handler: Inject[ConversationRpcMethods],
+    sessions: Inject[SessionService],
 ) -> SessionResponse:
-    return await handler.open_session(params)
+    session = await sessions.open(channel=_channel_ref(params.channel))
+    return session_response(session)
 
 
 @conversation_module.method(
@@ -49,9 +55,10 @@ async def open_session(
 )
 async def get_session(
     params: SessionParams,
-    handler: Inject[ConversationRpcMethods],
+    sessions: Inject[SessionService],
 ) -> SessionSnapshotResponse:
-    return await handler.get_session(params)
+    session = await sessions.get(params.session_id)
+    return session_snapshot(session)
 
 
 @conversation_module.method(
@@ -59,9 +66,10 @@ async def get_session(
 )
 async def prepare_turn(
     params: SessionParams,
-    handler: Inject[ConversationRpcMethods],
+    turns: Inject[TurnService],
 ) -> TurnCommandResult:
-    return await handler.prepare_turn(params)
+    await turns.prepare(params.session_id)
+    return TurnCommandResult(session_id=params.session_id)
 
 
 @conversation_module.method(
@@ -75,9 +83,14 @@ async def prepare_turn(
 )
 async def start_turn(
     params: StartTurnParams,
-    handler: Inject[ConversationRpcMethods],
+    turns: Inject[TurnService],
 ) -> TurnCommandResult:
-    return await handler.start_turn(params)
+    await turns.start(
+        session_id=params.session_id,
+        text=params.message,
+        metadata=params.metadata,
+    )
+    return TurnCommandResult(session_id=params.session_id)
 
 
 @conversation_module.method(
@@ -91,9 +104,10 @@ async def start_turn(
 )
 async def steer_turn(
     params: SteerTurnParams,
-    handler: Inject[ConversationRpcMethods],
+    turns: Inject[TurnService],
 ) -> TurnCommandResult:
-    return await handler.steer_turn(params)
+    await turns.steer(session_id=params.session_id, text=params.message)
+    return TurnCommandResult(session_id=params.session_id)
 
 
 @conversation_module.method(
@@ -101,9 +115,10 @@ async def steer_turn(
 )
 async def finish_turn(
     params: SessionParams,
-    handler: Inject[ConversationRpcMethods],
+    turns: Inject[TurnService],
 ) -> TurnCommandResult:
-    return await handler.finish_turn(params)
+    await turns.finish(params.session_id)
+    return TurnCommandResult(session_id=params.session_id)
 
 
 @conversation_module.method(
@@ -112,6 +127,11 @@ async def finish_turn(
 )
 async def cancel_turn(
     params: SessionParams,
-    handler: Inject[ConversationRpcMethods],
+    turns: Inject[TurnService],
 ) -> TurnCommandResult:
-    return await handler.cancel_turn(params)
+    await turns.cancel(params.session_id)
+    return TurnCommandResult(session_id=params.session_id)
+
+
+def _channel_ref(channel: SessionChannel) -> ChannelRef:
+    return ChannelRef(name=channel.name, account_id=channel.account_id)

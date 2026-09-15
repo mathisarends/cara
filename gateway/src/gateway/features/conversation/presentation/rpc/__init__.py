@@ -1,3 +1,3 @@
-from .handler import ConversationRpcMethods
+from .methods import conversation_module
 
-__all__ = ["ConversationRpcMethods"]
+__all__ = ["conversation_module"]

@@ -24,10 +24,15 @@ from gateway.features.conversation.infrastructure.repository import (
     SQLSessionRepository,
 )
 from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
-from gateway.features.conversation.presentation.rpc.handler import (
-    ConversationRpcMethods,
+from gateway.features.conversation.presentation.rpc.methods import (
+    cancel_turn,
+    create_session,
+    finish_turn,
+    get_session,
+    prepare_turn,
+    start_turn,
 )
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     AssistantMessageItem,
     CreateSessionParams,
     SessionChannel,
@@ -78,12 +83,12 @@ class _HangingAgentRunner(AgentRunner):
         pass
 
 
-def _methods(
+def _services(
     session_repository: SQLSessionRepository,
     session_factory: async_sessionmaker[AsyncSession],
     runner: AgentRunner,
     publisher: EventPublisher | None = None,
-) -> ConversationRpcMethods:
+) -> tuple[SessionService, TurnService]:
     sessions = SessionService(session_repository)
     turns = TurnService(
         session_repository,
@@ -92,7 +97,7 @@ def _methods(
         publisher or _RecordingPublisher(),
         runner,
     )
-    return ConversationRpcMethods(sessions, turns)
+    return sessions, turns
 
 
 async def test_prepare_and_finish_turn_forward_the_session(
@@ -100,11 +105,11 @@ async def test_prepare_and_finish_turn_forward_the_session(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     runner = _LifecycleAgentRunner()
-    methods = _methods(session_repository, session_factory, runner)
-    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+    sessions, turns = _services(session_repository, session_factory, runner)
+    created = await create_session(CreateSessionParams(channel=_CHANNEL), sessions)
 
-    prepared = await methods.prepare_turn(SessionParams(session_id=created.id))
-    finished = await methods.finish_turn(SessionParams(session_id=created.id))
+    prepared = await prepare_turn(SessionParams(session_id=created.id), turns)
+    finished = await finish_turn(SessionParams(session_id=created.id), turns)
 
     assert prepared.session_id == created.id
     assert finished.session_id == created.id
@@ -116,18 +121,18 @@ async def test_start_turn_runs_the_agent_in_the_background(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     publisher = _RecordingPublisher()
-    methods = _methods(
+    sessions, turns = _services(
         session_repository, session_factory, _LifecycleAgentRunner(), publisher
     )
-    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
+    created = await create_session(CreateSessionParams(channel=_CHANNEL), sessions)
 
-    result = await methods.start_turn(
-        StartTurnParams(session_id=created.id, message="hello")
+    result = await start_turn(
+        StartTurnParams(session_id=created.id, message="hello"), turns
     )
     await _wait_for_turn_completed(publisher)
 
     assert result.session_id == created.id
-    snapshot = await methods.get_session(SessionParams(session_id=created.id))
+    snapshot = await get_session(SessionParams(session_id=created.id), sessions)
     reply = snapshot.items[-1]
     assert isinstance(reply, AssistantMessageItem)
     assert reply.content == "done"
@@ -138,14 +143,14 @@ async def test_cancel_turn_releases_the_session_for_a_new_turn(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     runner = _HangingAgentRunner()
-    methods = _methods(session_repository, session_factory, runner)
-    created = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
-    await methods.start_turn(StartTurnParams(session_id=created.id, message="hello"))
+    sessions, turns = _services(session_repository, session_factory, runner)
+    created = await create_session(CreateSessionParams(channel=_CHANNEL), sessions)
+    await start_turn(StartTurnParams(session_id=created.id, message="hello"), turns)
     await asyncio.wait_for(runner.started.wait(), timeout=1)
 
-    await methods.cancel_turn(SessionParams(session_id=created.id))
-    result = await methods.start_turn(
-        StartTurnParams(session_id=created.id, message="hello again")
+    await cancel_turn(SessionParams(session_id=created.id), turns)
+    result = await start_turn(
+        StartTurnParams(session_id=created.id, message="hello again"), turns
     )
 
     assert result.session_id == created.id
@@ -155,10 +160,10 @@ async def test_turn_methods_raise_for_an_unknown_session(
     session_repository: SQLSessionRepository,
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    methods = _methods(session_repository, session_factory, _LifecycleAgentRunner())
+    _, turns = _services(session_repository, session_factory, _LifecycleAgentRunner())
 
     with pytest.raises(SessionNotFoundError):
-        await methods.prepare_turn(SessionParams(session_id=uuid4()))
+        await prepare_turn(SessionParams(session_id=uuid4()), turns)
 
 
 async def _wait_for_turn_completed(

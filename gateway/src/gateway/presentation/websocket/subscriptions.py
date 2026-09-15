@@ -9,7 +9,7 @@ from gateway.features.conversation.application import (
     EventPublisher,
     SessionService,
 )
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     SessionParams,
     SubscriptionResult,
     UnsubscriptionResult,

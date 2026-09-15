@@ -6,7 +6,7 @@ from gateway.features.conversation.domain import (
     ToolCallSequence,
     UserMessage,
 )
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     SESSION_EVENT_ADAPTER,
     AssistantMessageItem,
     Item,

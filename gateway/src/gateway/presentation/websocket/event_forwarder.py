@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable
 import pyrpckit as rpc
 
 from gateway.features.conversation.presentation.rpc.mapping import session_event
-from gateway.features.conversation.presentation.rpc.schemas import (
+from gateway.features.conversation.presentation.rpc.models import (
     RpcNotificationMethod,
 )
 from gateway.presentation.websocket.subscriptions import EventReceiver
