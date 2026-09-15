@@ -7,6 +7,8 @@ from zoneinfo import ZoneInfo
 from pydantic import Field, field_validator
 from pyrpckit import RpcModel
 
+from gateway.features.automation.domain import ScheduleKind
+
 
 class AutomationRpcMethod(StrEnum):
     LIST = "automation.list"
@@ -14,12 +16,6 @@ class AutomationRpcMethod(StrEnum):
     CREATE = "automation.create"
     UPDATE = "automation.update"
     DELETE = "automation.delete"
-
-
-class ScheduleKind(StrEnum):
-    AT = "at"
-    INTERVAL = "interval"
-    CRON = "cron"
 
 
 class AtSchedule(RpcModel):

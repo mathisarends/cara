@@ -14,7 +14,9 @@ from gateway.features.automation.domain import (
     CronSchedule,
     IntervalSchedule,
     PromptAction,
+    ScheduleKind,
     SessionTarget,
+    TargetKind,
 )
 from gateway.features.automation.infrastructure.orm import AutomationModel
 from gateway.platform.database import Repository
@@ -64,9 +66,9 @@ class SQLAutomationRepository(
             created_at=domain.created_at,
             owner_id=domain.owner_id,
             name=domain.name,
-            target_kind="session",
+            target_kind=domain.target.kind,
             target_session_id=domain.target.session_id,
-            schedule_kind=_schedule_kind(domain.schedule),
+            schedule_kind=domain.schedule.kind,
             instruction=domain.action.instruction,
             created_from_turn_id=domain.origin.created_from_turn_id,
             next_run_at=domain.next_run_at,
@@ -94,27 +96,23 @@ class SQLAutomationRepository(
 
 def _target(model: AutomationModel) -> AutomationTarget:
     match model:
-        case AutomationModel(target_kind="session", target_session_id=UUID() as id):
+        case AutomationModel(
+            target_kind=TargetKind.SESSION,
+            target_session_id=UUID() as id,
+        ):
             return SessionTarget(id)
     raise ValueError(f"Automation {model.id} has an invalid target")
 
 
-def _schedule_kind(schedule: AutomationSchedule) -> str:
-    match schedule:
-        case AtSchedule():
-            return "at"
-        case IntervalSchedule():
-            return "interval"
-        case CronSchedule():
-            return "cron"
-
-
 def _schedule(model: AutomationModel) -> AutomationSchedule:
     match model:
-        case AutomationModel(schedule_kind="at", schedule_run_at=datetime() as run_at):
+        case AutomationModel(
+            schedule_kind=ScheduleKind.AT,
+            schedule_run_at=datetime() as run_at,
+        ):
             return AtSchedule(run_at=_as_utc(run_at))
         case AutomationModel(
-            schedule_kind="interval",
+            schedule_kind=ScheduleKind.INTERVAL,
             schedule_every_seconds=float() as every_seconds,
             schedule_run_immediately=bool() as run_immediately,
         ):
@@ -123,7 +121,7 @@ def _schedule(model: AutomationModel) -> AutomationSchedule:
                 run_immediately=run_immediately,
             )
         case AutomationModel(
-            schedule_kind="cron",
+            schedule_kind=ScheduleKind.CRON,
             schedule_cron_expression=str() as expression,
             schedule_cron_timezone=str() as timezone,
         ):

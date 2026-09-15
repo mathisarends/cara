@@ -1,10 +1,19 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import StrEnum
+from typing import ClassVar, Literal
 from zoneinfo import ZoneInfo
+
+
+class ScheduleKind(StrEnum):
+    AT = "at"
+    INTERVAL = "interval"
+    CRON = "cron"
 
 
 @dataclass(frozen=True, slots=True)
 class AtSchedule:
+    kind: ClassVar[Literal[ScheduleKind.AT]] = ScheduleKind.AT
     run_at: datetime
 
     def __post_init__(self) -> None:
@@ -14,6 +23,7 @@ class AtSchedule:
 
 @dataclass(frozen=True, slots=True)
 class IntervalSchedule:
+    kind: ClassVar[Literal[ScheduleKind.INTERVAL]] = ScheduleKind.INTERVAL
     every: timedelta
     run_immediately: bool = False
 
@@ -24,6 +34,7 @@ class IntervalSchedule:
 
 @dataclass(frozen=True, slots=True)
 class CronSchedule:
+    kind: ClassVar[Literal[ScheduleKind.CRON]] = ScheduleKind.CRON
     expression: str
     timezone: str
 

@@ -7,8 +7,9 @@ from .schedule import (
     AutomationSchedule,
     CronSchedule,
     IntervalSchedule,
+    ScheduleKind,
 )
-from .target import AutomationTarget, SessionTarget
+from .target import AutomationTarget, SessionTarget, TargetKind
 
 __all__ = [
     "AtSchedule",
@@ -21,5 +22,7 @@ __all__ = [
     "CronSchedule",
     "IntervalSchedule",
     "PromptAction",
+    "ScheduleKind",
     "SessionTarget",
+    "TargetKind",
 ]
