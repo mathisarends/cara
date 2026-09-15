@@ -31,6 +31,7 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
 
     assert {
         "alembic_version",
+        "gateway_automations",
         "gateway_sessions",
         "gateway_session_assistant_messages",
         "gateway_session_tool_call_sequences",

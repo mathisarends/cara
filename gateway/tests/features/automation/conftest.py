@@ -1,34 +1,32 @@
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from gateway.features.automation.application import (
-    AutomationService,
-    AutomationTargetResolver,
+from features.automation.fakes import AcceptAllTargets, RecordingScheduler
+from gateway.features.automation.application import AutomationService
+from gateway.features.automation.infrastructure.repository import (
+    SQLAutomationRepository,
 )
-from gateway.features.automation.domain import AutomationTarget
-from gateway.features.automation.infrastructure.codec import AutomationRecord
-from gateway.features.automation.infrastructure.scheduler_repository import (
-    SchedulerAutomationRepository,
-)
-from scheduler import MemoryJobStore, ScheduledRun, Scheduler
-
-
-class AcceptAllTargets(AutomationTargetResolver):
-    async def require(self, target: AutomationTarget) -> None:
-        pass
-
-
-async def _runner(run: ScheduledRun[AutomationRecord]) -> None:
-    pass
 
 
 @pytest.fixture
-def automation_scheduler() -> Scheduler[AutomationRecord]:
-    return Scheduler(_runner, MemoryJobStore[AutomationRecord]())
+def automation_repository(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> SQLAutomationRepository:
+    return SQLAutomationRepository(session_factory)
+
+
+@pytest.fixture
+def recording_scheduler() -> RecordingScheduler:
+    return RecordingScheduler()
 
 
 @pytest.fixture
 def automation_service(
-    automation_scheduler: Scheduler[AutomationRecord],
+    automation_repository: SQLAutomationRepository,
+    recording_scheduler: RecordingScheduler,
 ) -> AutomationService:
-    repository = SchedulerAutomationRepository(automation_scheduler)
-    return AutomationService(repository, AcceptAllTargets())
+    return AutomationService(
+        automation_repository,
+        AcceptAllTargets(),
+        recording_scheduler,
+    )

@@ -1,9 +1,7 @@
-from .codec import AutomationRecordCodec
 from .provider import AutomationProvider
-from .scheduler_repository import SchedulerAutomationRepository
+from .repository import SQLAutomationRepository
 
 __all__ = [
     "AutomationProvider",
-    "AutomationRecordCodec",
-    "SchedulerAutomationRepository",
+    "SQLAutomationRepository",
 ]

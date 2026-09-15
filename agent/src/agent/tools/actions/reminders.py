@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from agenttoolkit import Inject, Tools, provided
@@ -39,17 +40,11 @@ class CreateReminderParams(_ReminderParams):
 
 
 class UpdateReminderParams(_ReminderParams):
-    reminder_id: str = Field(
-        min_length=1,
-        description="Reminder id from list_reminders.",
-    )
+    reminder_id: UUID = Field(description="Reminder id from list_reminders.")
 
 
 class DeleteReminderParams(ToolParams):
-    reminder_id: str = Field(
-        min_length=1,
-        description="Reminder id from list_reminders.",
-    )
+    reminder_id: UUID = Field(description="Reminder id from list_reminders.")
 
 
 class ListRemindersParams(ToolParams):

@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from uuid import UUID
 
-from gateway.features.automation.domain import AutomationTarget, PromptAction
+from gateway.features.automation.domain import (
+    Automation,
+    AutomationSchedule,
+    AutomationTarget,
+    PromptAction,
+)
 
 
 class AutomationTargetResolver(ABC):
@@ -13,8 +19,22 @@ class AutomationActionExecutor(ABC):
     @abstractmethod
     async def execute(
         self,
-        automation_id: str,
+        automation_id: UUID,
         target: AutomationTarget,
         action: PromptAction,
         scheduled_for: datetime,
     ) -> None: ...
+
+
+class AutomationScheduler(ABC):
+    """Runtime timer for persisted automations; it never owns their state."""
+
+    @abstractmethod
+    def first_run_at(self, schedule: AutomationSchedule) -> datetime: ...
+
+    @abstractmethod
+    def arm(self, automation: Automation) -> None:
+        """Start or replace the timer, resuming at ``automation.next_run_at``."""
+
+    @abstractmethod
+    def disarm(self, automation: Automation) -> None: ...

@@ -1204,7 +1204,6 @@ name = "scheduler"
 version = "0.1.0"
 source = { editable = "libs/scheduler" }
 dependencies = [
-    { name = "aiosqlite", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "croniter", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -1214,10 +1213,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "aiosqlite", specifier = ">=0.22.0,<0.23" },
-    { name = "croniter", specifier = ">=6.0.0,<7" },
-]
+requires-dist = [{ name = "croniter", specifier = ">=6.0.0,<7" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.0.0" }]

@@ -34,8 +34,6 @@ from gateway.features.automation.presentation.rpc.models import (
 
 
 def automation_response(automation: Automation) -> AutomationResponse:
-    if automation.next_run_at is None:
-        raise ValueError(f"Automation {automation.id!r} has not been scheduled")
     return AutomationResponse(
         id=automation.id,
         owner_id=automation.owner_id,

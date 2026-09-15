@@ -44,7 +44,7 @@ gateway/src/gateway/
 ├── app.py, container.py, lifespan.py, main.py    composition root, startup/shutdown, uvicorn entry
 ├── presentation/       rpc/ (channel, contract, schema export, client codegen), websocket/ (the /v1/gateway route)
 ├── features/            health/, automation/, conversation/ (feature-owned RPC methods and events)
-├── infrastructure/      SQLModel ORM, generic Repository, Alembic runner, Scheduler wiring
+├── infrastructure/      SQLModel ORM, generic Repository, Alembic runner
 └── agent_plugins/        entry-point discovery, loading, validation, DI wiring for the AgentRunner
 ```
 
@@ -86,7 +86,10 @@ a sequenced `GatewayEvent`.
 
 SQLModel over SQLite (`aiosqlite`), migrated with Alembic. Persisted domain:
 sessions, user/assistant messages, tool call sequences — not a raw chat
-"runs" table.
+"runs" table — and automations. The in-memory scheduler never owns automation
+state: startup re-arms every stored automation at its persisted `next_run_at`,
+and each run writes the following `next_run_at` back (or removes a finished
+one-shot).
 
 ## Configuration
 
@@ -99,7 +102,7 @@ local SQLite file.
 ## Dependencies
 
 - [`agent_plugin_api`](plugin_api) — the plugin loading contract.
-- [`scheduler`](../libs/scheduler) — periodic housekeeping jobs.
+- [`scheduler`](../libs/scheduler) — in-memory timers that run automations.
 - `cara-gateway-client-generate` (`presentation/rpc/client_codegen.py`) reads
   this package's exported OpenRPC schema to regenerate
   [`gateway-client`](../generated/gateway_client).

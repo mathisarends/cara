@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from features.automation.fakes import AcceptAllTargets, RecordingScheduler
 from gateway.features.automation.application import (
     AutomationService,
     AutomationTargetResolver,
@@ -16,11 +17,9 @@ from gateway.features.automation.domain import (
     PromptAction,
     SessionTarget,
 )
-from gateway.features.automation.infrastructure.codec import AutomationRecord
-from gateway.features.automation.infrastructure.scheduler_repository import (
-    SchedulerAutomationRepository,
+from gateway.features.automation.infrastructure.repository import (
+    SQLAutomationRepository,
 )
-from scheduler import Scheduler
 
 _OWNER = "owner"
 _OTHER_OWNER = "someone-else"
@@ -72,16 +71,36 @@ async def test_list_spans_every_target_of_the_owner(
     assert {automation.id for automation in listed} == {first.id, second.id}
 
 
+async def test_create_persists_the_first_run_and_arms_it(
+    automation_service: AutomationService,
+    recording_scheduler: RecordingScheduler,
+) -> None:
+    created = await automation_service.create(
+        _OWNER,
+        target=SessionTarget(uuid4()),
+        schedule=IntervalSchedule(every=timedelta(hours=1)),
+        action=PromptAction("Drink water"),
+        origin=AutomationOrigin(uuid4()),
+    )
+
+    fetched = await automation_service.get(created.id, _OWNER)
+
+    assert fetched.next_run_at == recording_scheduler.next_run_at
+    assert recording_scheduler.armed == {created.id: recording_scheduler.next_run_at}
+
+
 async def test_create_validates_the_target_before_scheduling(
-    automation_scheduler: Scheduler[AutomationRecord],
+    automation_repository: SQLAutomationRepository,
+    recording_scheduler: RecordingScheduler,
 ) -> None:
     class RejectAllTargets(AutomationTargetResolver):
         async def require(self, target: AutomationTarget) -> None:
             raise LookupError(target)
 
     service = AutomationService(
-        SchedulerAutomationRepository(automation_scheduler),
+        automation_repository,
         RejectAllTargets(),
+        recording_scheduler,
     )
 
     with pytest.raises(LookupError):
@@ -93,6 +112,7 @@ async def test_create_validates_the_target_before_scheduling(
             origin=AutomationOrigin(uuid4()),
         )
     assert await service.list(_OWNER) == ()
+    assert recording_scheduler.armed == {}
 
 
 async def test_get_raises_for_an_automation_of_another_owner(
@@ -114,11 +134,12 @@ async def test_get_raises_for_an_unknown_automation_id(
     automation_service: AutomationService,
 ) -> None:
     with pytest.raises(AutomationNotFoundError):
-        await automation_service.get("missing", _OWNER)
+        await automation_service.get(uuid4(), _OWNER)
 
 
 async def test_update_replaces_schedule_action_and_name_but_keeps_identity(
     automation_service: AutomationService,
+    recording_scheduler: RecordingScheduler,
 ) -> None:
     target = SessionTarget(uuid4())
     created = await automation_service.create(
@@ -129,8 +150,9 @@ async def test_update_replaces_schedule_action_and_name_but_keeps_identity(
         origin=AutomationOrigin(uuid4()),
         name="Stretch",
     )
+    recording_scheduler.next_run_at = datetime(2027, 2, 1, tzinfo=UTC)
 
-    updated = await automation_service.update(
+    await automation_service.update(
         created.id,
         _OWNER,
         schedule=IntervalSchedule(every=timedelta(hours=1)),
@@ -138,14 +160,16 @@ async def test_update_replaces_schedule_action_and_name_but_keeps_identity(
         origin=AutomationOrigin(uuid4()),
         name="Stretch more",
     )
+    updated = await automation_service.get(created.id, _OWNER)
 
-    assert updated.id == created.id
     assert updated.created_at == created.created_at
     assert updated.owner_id == _OWNER
     assert updated.target == target
     assert updated.schedule == IntervalSchedule(every=timedelta(hours=1))
     assert updated.action == PromptAction("Stretch more")
     assert updated.name == "Stretch more"
+    assert updated.next_run_at == datetime(2027, 2, 1, tzinfo=UTC)
+    assert recording_scheduler.armed == {created.id: updated.next_run_at}
 
 
 async def test_update_refuses_to_touch_an_automation_of_another_owner(
@@ -169,8 +193,9 @@ async def test_update_refuses_to_touch_an_automation_of_another_owner(
         )
 
 
-async def test_delete_removes_the_automation(
+async def test_delete_removes_and_disarms_the_automation(
     automation_service: AutomationService,
+    recording_scheduler: RecordingScheduler,
 ) -> None:
     automation = await automation_service.create(
         _OWNER,
@@ -183,6 +208,7 @@ async def test_delete_removes_the_automation(
     await automation_service.delete(automation.id, _OWNER)
 
     assert await automation_service.list(_OWNER) == ()
+    assert recording_scheduler.armed == {}
 
 
 async def test_delete_refuses_to_touch_an_automation_of_another_owner(
@@ -198,3 +224,37 @@ async def test_delete_refuses_to_touch_an_automation_of_another_owner(
 
     with pytest.raises(AutomationNotFoundError):
         await automation_service.delete(automation.id, _OTHER_OWNER)
+
+
+async def test_resume_arms_every_persisted_automation_at_its_stored_next_run(
+    automation_repository: SQLAutomationRepository,
+    automation_service: AutomationService,
+    recording_scheduler: RecordingScheduler,
+) -> None:
+    first = await automation_service.create(
+        _OWNER,
+        target=SessionTarget(uuid4()),
+        schedule=IntervalSchedule(every=timedelta(hours=1)),
+        action=PromptAction("First"),
+        origin=AutomationOrigin(uuid4()),
+    )
+    recording_scheduler.next_run_at = datetime(2027, 3, 1, tzinfo=UTC)
+    second = await automation_service.create(
+        _OTHER_OWNER,
+        target=SessionTarget(uuid4()),
+        schedule=IntervalSchedule(every=timedelta(hours=2)),
+        action=PromptAction("Second"),
+        origin=AutomationOrigin(uuid4()),
+    )
+    restarted = RecordingScheduler()
+
+    await AutomationService(
+        automation_repository,
+        AcceptAllTargets(),
+        restarted,
+    ).resume()
+
+    assert restarted.armed == {
+        first.id: first.next_run_at,
+        second.id: second.next_run_at,
+    }

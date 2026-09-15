@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -129,7 +130,7 @@ type ReminderSchedule = RemindOnce | RemindEvery | RemindOnCron
 
 @dataclass(frozen=True, slots=True)
 class Reminder:
-    id: str
+    id: UUID
     instruction: str
     schedule: ReminderSchedule
     next_run_at: datetime
@@ -158,7 +159,7 @@ class Reminders(ABC):
     @abstractmethod
     async def update(
         self,
-        reminder_id: str,
+        reminder_id: UUID,
         *,
         instruction: str,
         schedule: ReminderSchedule,
@@ -166,7 +167,7 @@ class Reminders(ABC):
     ) -> Reminder: ...
 
     @abstractmethod
-    async def delete(self, reminder_id: str) -> None: ...
+    async def delete(self, reminder_id: UUID) -> None: ...
 
 
 # WMO weather interpretation codes, condensed to spoken English phrases.

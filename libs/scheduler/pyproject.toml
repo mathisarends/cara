@@ -1,11 +1,10 @@
 [project]
 name = "scheduler"
 version = "0.1.0"
-description = "Async scheduling primitives for agent heartbeats, reminders, and cron jobs."
+description = "In-memory async scheduling primitives for at, interval, and cron jobs."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "aiosqlite>=0.22.0,<0.23",
     "croniter>=6.0.0,<7",
 ]
 

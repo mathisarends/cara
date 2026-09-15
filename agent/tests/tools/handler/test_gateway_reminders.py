@@ -18,11 +18,12 @@ from gateway_client.models import (
 
 _SESSION_ID = uuid4()
 _TURN_ID = uuid4()
+_AUTOMATION_ID = uuid4()
 
 
 def _automation(schedule) -> AutomationResponse:
     return AutomationResponse(
-        id="a",
+        id=_AUTOMATION_ID,
         owner_id="local",
         name="Zahnarzt",
         created_at=datetime(2026, 8, 25, tzinfo=UTC),
@@ -85,7 +86,7 @@ def test_reminder_carries_the_instruction_and_next_run() -> None:
         _automation(IntervalSchedule(every_seconds=60, run_immediately=False))
     )
 
-    assert reminder.id == "a"
+    assert reminder.id == _AUTOMATION_ID
     assert reminder.name == "Zahnarzt"
     assert reminder.instruction == "Zahnarzt"
     assert reminder.next_run_at == datetime(2026, 8, 26, 5, 30, tzinfo=UTC)

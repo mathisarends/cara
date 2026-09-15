@@ -117,7 +117,7 @@ testable standalone.
 | [`cli`](clients/cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](libs/llm#readme)                      | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
 | [`retrieval`](libs/retrieval#readme)          | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
-| [`scheduler`](libs/scheduler#readme)          | A small in-memory/SQLite async scheduler, independent of agent runtimes.                       |
+| [`scheduler`](libs/scheduler#readme)          | A small in-memory async scheduler, independent of agent runtimes and persistence.              |
 
 ## Run
 

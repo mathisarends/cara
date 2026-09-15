@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from uuid import UUID
 
 from gateway.features.automation.application import (
     AutomationActionExecutor,
@@ -10,12 +11,7 @@ from gateway.features.automation.domain import (
     PromptAction,
     SessionTarget,
 )
-from gateway.features.automation.infrastructure.codec import (
-    AutomationRecord,
-    automation_target,
-)
 from gateway.features.conversation.application import SessionService, TurnService
-from scheduler import ScheduledRun
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +32,7 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
 
     async def execute(
         self,
-        automation_id: str,
+        automation_id: UUID,
         target: AutomationTarget,
         action: PromptAction,
         scheduled_for: datetime,
@@ -44,7 +40,7 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
         metadata: dict[str, object] = {
             "origin": "automation",
             "automation_kind": "reminder",
-            "job_id": automation_id,
+            "automation_id": str(automation_id),
             "scheduled_for": scheduled_for.isoformat(),
         }
         logger.info("Running scheduled automation %s", automation_id)
@@ -55,19 +51,6 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
                     text=_automation_prompt(action.instruction),
                     metadata=metadata,
                 )
-
-
-class SchedulerAutomationRunner:
-    def __init__(self, executor: AutomationActionExecutor) -> None:
-        self._executor = executor
-
-    async def __call__(self, run: ScheduledRun[AutomationRecord]) -> None:
-        await self._executor.execute(
-            run.job_id,
-            automation_target(run.payload.target),
-            PromptAction(run.payload.payload.instruction),
-            run.scheduled_for,
-        )
 
 
 def _automation_prompt(instruction: str) -> str:

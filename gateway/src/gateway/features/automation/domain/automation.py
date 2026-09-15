@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 from typing import Self
+from uuid import UUID
 
 from gateway.features.automation.domain.action import AutomationOrigin, PromptAction
 from gateway.features.automation.domain.errors import AutomationNotFoundError
@@ -11,18 +12,16 @@ from gateway.features.automation.domain.target import AutomationTarget
 class Automation:
     def __init__(
         self,
-        id: str,
+        id: UUID,
         created_at: datetime,
         owner_id: str,
         target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
         origin: AutomationOrigin,
+        next_run_at: datetime,
         name: str | None = None,
-        next_run_at: datetime | None = None,
     ) -> None:
-        if not id.strip():
-            raise ValueError("Automation id must not be empty")
         if not owner_id.strip():
             raise ValueError("Automation owner id must not be empty")
         self._id = id
@@ -32,8 +31,8 @@ class Automation:
         self._schedule = schedule
         self._action = action
         self._origin = origin
-        self._name = name
         self._next_run_at = next_run_at
+        self._name = name
 
     @classmethod
     def create(
@@ -44,21 +43,23 @@ class Automation:
         schedule: AutomationSchedule,
         action: PromptAction,
         origin: AutomationOrigin,
+        next_run_at: datetime,
         name: str | None = None,
     ) -> Self:
         return cls(
-            id=uuid.uuid4().hex,
+            id=uuid.uuid4(),
             created_at=datetime.now(UTC),
             owner_id=owner_id,
             target=target,
             schedule=schedule,
             action=action,
             origin=origin,
+            next_run_at=next_run_at,
             name=name,
         )
 
     @property
-    def id(self) -> str:
+    def id(self) -> UUID:
         return self._id
 
     @property
@@ -86,12 +87,12 @@ class Automation:
         return self._origin
 
     @property
-    def name(self) -> str | None:
-        return self._name
+    def next_run_at(self) -> datetime:
+        return self._next_run_at
 
     @property
-    def next_run_at(self) -> datetime | None:
-        return self._next_run_at
+    def name(self) -> str | None:
+        return self._name
 
     def is_owned_by(self, owner_id: str) -> bool:
         return self._owner_id == owner_id
@@ -107,9 +108,14 @@ class Automation:
         action: PromptAction,
         origin: AutomationOrigin,
         name: str | None,
+        next_run_at: datetime,
     ) -> Self:
         self._schedule = schedule
         self._action = action
         self._origin = origin
         self._name = name
+        self._next_run_at = next_run_at
         return self
+
+    def reschedule(self, next_run_at: datetime) -> None:
+        self._next_run_at = next_run_at

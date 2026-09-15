@@ -49,7 +49,7 @@ class AtSchedule(RpcModel):
 
 class AutomationResponse(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    id: str
+    id: UUID
     owner_id: str = Field(alias="ownerId")
     name: str | None
     created_at: datetime = Field(alias="createdAt")
@@ -112,18 +112,18 @@ class CronSchedule(RpcModel):
 class DeleteAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
-    automation_id: str = Field(alias="automationId")
+    automation_id: UUID = Field(alias="automationId")
 
 
 class DeleteAutomationResponse(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    deleted: str
+    deleted: UUID
 
 
 class GetAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
-    automation_id: str = Field(alias="automationId")
+    automation_id: UUID = Field(alias="automationId")
 
 
 class IntervalSchedule(RpcModel):
@@ -314,7 +314,7 @@ class UnsubscriptionResult(RpcModel):
 class UpdateAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
-    automation_id: str = Field(alias="automationId")
+    automation_id: UUID = Field(alias="automationId")
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None

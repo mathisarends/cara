@@ -6,21 +6,21 @@ frameworks, persistence layers, and payload domains. Three triggers (`At`,
 registration through execution — the host owns their meaning.
 
 ```python
-scheduler = Scheduler(run_agent, MemoryJobStore[AgentWork]())
-await scheduler.interval(every=timedelta(minutes=30), payload=AgentWork(...), name="heartbeat")
+scheduler = Scheduler(run_agent)
+scheduler.schedule("heartbeat", trigger=Interval(timedelta(minutes=30)), payload=AgentWork(...))
+await scheduler.start()
 ```
 
-- `JobStore[PayloadT]` — async add/update/remove/get/list. `MemoryJobStore`
-  for tests/ephemeral processes; `SqliteJobStore` (with a host-provided
-  `Codec`) for restart persistence.
 - `JobRunner[PayloadT]` — translates a due `ScheduledRun` into host behavior.
+  Each run carries `next_run_at` (`None` on the final run).
+- The scheduler keeps no persistence. Hosts store `next_run_at` themselves and
+  resume after a restart with `schedule(..., next_run_at=...)`;
+  `first_run(trigger, now)` computes the initial run without arming a job.
 
-At-least-once delivery: a run in progress when the process exits may be
-redelivered after restart. V1 does not lease jobs across processes, so
-multiple schedulers against one database can double-run a job.
+At-least-once delivery: a run in progress when the process exits is
+redelivered after restart if the host only persists `next_run_at` afterwards.
 
 ## Dependencies
 
-None beyond the standard library for `MemoryJobStore`; `SqliteJobStore` needs
-a host-supplied payload `Codec`. Used by [`gateway-server`](../../gateway)
-for periodic housekeeping via `SchedulerProvider`.
+`croniter`. Used by [`gateway-server`](../../gateway) to run automations
+persisted in the gateway database.

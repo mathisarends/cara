@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
@@ -52,6 +54,7 @@ def test_automation_list_runs_over_gateway_socket(client: TestClient) -> None:
 
 
 def test_unknown_automation_yields_resource_not_found(client: TestClient) -> None:
+    automation_id = uuid4()
     with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
         socket.send_json(
             {
@@ -60,7 +63,7 @@ def test_unknown_automation_yields_resource_not_found(client: TestClient) -> Non
                 "method": "automation.get",
                 "params": {
                     "owner_id": "local",
-                    "automation_id": "missing",
+                    "automation_id": str(automation_id),
                 },
             }
         )
@@ -71,7 +74,7 @@ def test_unknown_automation_yields_resource_not_found(client: TestClient) -> Non
         "id": "automation",
         "error": {
             "code": -32004,
-            "message": "Not found: Automation 'missing' not found",
+            "message": f"Not found: Automation {automation_id} not found",
         },
     }
 

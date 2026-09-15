@@ -1,4 +1,9 @@
-from gateway.features.automation.application.ports import AutomationTargetResolver
+from uuid import UUID
+
+from gateway.features.automation.application.ports import (
+    AutomationScheduler,
+    AutomationTargetResolver,
+)
 from gateway.features.automation.domain import (
     Automation,
     AutomationNotFoundError,
@@ -15,15 +20,17 @@ class AutomationService:
         self,
         repository: AutomationRepository,
         targets: AutomationTargetResolver,
+        scheduler: AutomationScheduler,
     ) -> None:
         self._repository = repository
         self._targets = targets
+        self._scheduler = scheduler
 
     async def list(self, owner_id: str) -> tuple[Automation, ...]:
-        return await self._repository.list_for_owner(owner_id)
+        return await self._repository.find_by_owner(owner_id)
 
-    async def get(self, automation_id: str, owner_id: str) -> Automation:
-        automation = await self._repository.get(automation_id)
+    async def get(self, automation_id: UUID, owner_id: str) -> Automation:
+        automation = await self._repository.find_by_id(automation_id)
         if automation is None:
             raise AutomationNotFoundError(automation_id)
         automation.require_owner(owner_id)
@@ -46,13 +53,14 @@ class AutomationService:
             schedule=schedule,
             action=action,
             origin=origin,
+            next_run_at=self._scheduler.first_run_at(schedule),
             name=name,
         )
-        return await self._repository.save(automation)
+        return await self._save_and_arm(automation)
 
     async def update(
         self,
-        automation_id: str,
+        automation_id: UUID,
         owner_id: str,
         *,
         schedule: AutomationSchedule,
@@ -61,14 +69,27 @@ class AutomationService:
         name: str | None = None,
     ) -> Automation:
         automation = await self.get(automation_id, owner_id)
+        self._scheduler.disarm(automation)
         automation.update(
             schedule=schedule,
             action=action,
             origin=origin,
             name=name,
+            next_run_at=self._scheduler.first_run_at(schedule),
         )
-        return await self._repository.save(automation)
+        return await self._save_and_arm(automation)
 
-    async def delete(self, automation_id: str, owner_id: str) -> None:
+    async def delete(self, automation_id: UUID, owner_id: str) -> None:
         automation = await self.get(automation_id, owner_id)
+        self._scheduler.disarm(automation)
         await self._repository.remove(automation)
+
+    async def resume(self) -> None:
+        for automation in await self._repository.find_all():
+            self._scheduler.arm(automation)
+
+    async def _save_and_arm(self, automation: Automation) -> Automation:
+        # Persist before arming so a due run always finds the stored automation.
+        saved = await self._repository.save(automation)
+        self._scheduler.arm(saved)
+        return saved

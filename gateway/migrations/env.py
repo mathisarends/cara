@@ -6,6 +6,9 @@ from sqlalchemy import Connection, pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
+from gateway.features.automation.infrastructure.orm import (  # noqa: F401
+    AutomationModel,
+)
 from gateway.features.conversation.infrastructure.orm import (  # noqa: F401
     SessionAssistantMessageModel,
     SessionModel,

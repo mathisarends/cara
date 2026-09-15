@@ -40,10 +40,11 @@ from gateway.features.automation.presentation.rpc.models import (
 def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> None:
     created_at = datetime(2027, 1, 1, tzinfo=UTC)
     next_run_at = datetime(2027, 1, 2, tzinfo=UTC)
+    automation_id = uuid4()
     session_id = uuid4()
     turn_id = uuid4()
     automation = Automation(
-        id="reminder-1",
+        id=automation_id,
         created_at=created_at,
         owner_id="owner",
         target=SessionTarget(session_id),
@@ -56,7 +57,7 @@ def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> Non
 
     response = automation_response(automation)
 
-    assert response.id == "reminder-1"
+    assert response.id == automation_id
     assert response.owner_id == "owner"
     assert response.name == "Hydration"
     assert response.created_at == created_at
@@ -76,31 +77,17 @@ def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> Non
     )
 
 
-def test_automation_response_requires_a_scheduled_next_run() -> None:
-    automation = Automation(
-        id="reminder-1",
-        created_at=datetime.now(UTC),
-        owner_id="owner",
-        target=SessionTarget(uuid4()),
-        schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
-        action=PromptAction("Drink water"),
-        origin=AutomationOrigin(uuid4()),
-    )
-
-    with pytest.raises(ValueError, match="has not been scheduled"):
-        automation_response(automation)
-
-
 def test_automation_requires_an_owner() -> None:
     with pytest.raises(ValueError, match="owner id"):
         Automation(
-            id="reminder-1",
+            id=uuid4(),
             created_at=datetime.now(UTC),
             owner_id=" ",
             target=SessionTarget(uuid4()),
             schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
             action=PromptAction("Drink water"),
             origin=AutomationOrigin(uuid4()),
+            next_run_at=datetime(2027, 1, 1, tzinfo=UTC),
         )
 
 

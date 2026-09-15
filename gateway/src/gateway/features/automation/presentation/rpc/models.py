@@ -69,7 +69,7 @@ class ReminderAutomationPayload(RpcModel):
 
 
 class AutomationResponse(RpcModel):
-    id: str
+    id: UUID
     owner_id: str
     name: str | None
     created_at: datetime
@@ -89,7 +89,7 @@ class ListAutomationsResponse(RpcModel):
 
 class GetAutomationParams(RpcModel):
     owner_id: str = Field(min_length=1)
-    automation_id: str = Field(min_length=1)
+    automation_id: UUID
 
 
 class CreateAutomationParams(RpcModel):
@@ -102,7 +102,7 @@ class CreateAutomationParams(RpcModel):
 
 class UpdateAutomationParams(RpcModel):
     owner_id: str = Field(min_length=1)
-    automation_id: str = Field(min_length=1)
+    automation_id: UUID
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None
@@ -110,8 +110,8 @@ class UpdateAutomationParams(RpcModel):
 
 class DeleteAutomationParams(RpcModel):
     owner_id: str = Field(min_length=1)
-    automation_id: str = Field(min_length=1)
+    automation_id: UUID
 
 
 class DeleteAutomationResponse(RpcModel):
-    deleted: str
+    deleted: UUID

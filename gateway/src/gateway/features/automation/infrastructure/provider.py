@@ -1,46 +1,34 @@
 from collections.abc import AsyncIterator
+from uuid import UUID
 
 from dishka import Provider, Scope, provide
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from gateway.features.automation.application import (
     AutomationActionExecutor,
+    AutomationExecution,
+    AutomationScheduler,
     AutomationService,
     AutomationTargetResolver,
 )
 from gateway.features.automation.domain import AutomationRepository
-from gateway.features.automation.infrastructure.codec import (
-    AutomationRecord,
-    AutomationRecordCodec,
-)
-from gateway.features.automation.infrastructure.runner import (
+from gateway.features.automation.infrastructure.conversation import (
     ConversationAutomationActionExecutor,
     ConversationAutomationTargetResolver,
-    SchedulerAutomationRunner,
 )
-from gateway.features.automation.infrastructure.scheduler_repository import (
-    SchedulerAutomationRepository,
+from gateway.features.automation.infrastructure.repository import (
+    SQLAutomationRepository,
+)
+from gateway.features.automation.infrastructure.scheduling import (
+    AutomationJobRunner,
+    InProcessAutomationScheduler,
 )
 from gateway.features.conversation.application import SessionService, TurnService
-from scheduler import Scheduler, SqliteJobStore
-
-
-class SchedulerSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-    scheduler_database: str = "./scheduler.sqlite3"
+from scheduler import Scheduler
 
 
 class AutomationProvider(Provider):
     scope = Scope.APP
-
-    @provide
-    def settings(self) -> SchedulerSettings:
-        return SchedulerSettings()
 
     @provide
     def target_resolver(
@@ -57,16 +45,26 @@ class AutomationProvider(Provider):
         return ConversationAutomationActionExecutor(turns)
 
     @provide
+    def repository(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> AutomationRepository:
+        return SQLAutomationRepository(session_factory)
+
+    @provide
+    def execution(
+        self,
+        repository: AutomationRepository,
+        executor: AutomationActionExecutor,
+    ) -> AutomationExecution:
+        return AutomationExecution(repository, executor)
+
+    @provide
     async def scheduler(
         self,
-        settings: SchedulerSettings,
-        executor: AutomationActionExecutor,
-    ) -> AsyncIterator[Scheduler[AutomationRecord]]:
-        store = SqliteJobStore[AutomationRecord](
-            settings.scheduler_database,
-            payload_codec=AutomationRecordCodec(),
-        )
-        scheduler = Scheduler(runner=SchedulerAutomationRunner(executor), store=store)
+        execution: AutomationExecution,
+    ) -> AsyncIterator[Scheduler[UUID]]:
+        scheduler = Scheduler(AutomationJobRunner(execution))
         await scheduler.start()
         try:
             yield scheduler
@@ -74,16 +72,19 @@ class AutomationProvider(Provider):
             await scheduler.stop()
 
     @provide
-    def repository(
+    def automation_scheduler(
         self,
-        scheduler: Scheduler[AutomationRecord],
-    ) -> AutomationRepository:
-        return SchedulerAutomationRepository(scheduler)
+        scheduler: Scheduler[UUID],
+    ) -> AutomationScheduler:
+        return InProcessAutomationScheduler(scheduler)
 
     @provide
-    def service(
+    async def service(
         self,
         repository: AutomationRepository,
         targets: AutomationTargetResolver,
+        scheduler: AutomationScheduler,
     ) -> AutomationService:
-        return AutomationService(repository, targets)
+        service = AutomationService(repository, targets, scheduler)
+        await service.resume()
+        return service

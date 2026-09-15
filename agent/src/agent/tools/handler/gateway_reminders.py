@@ -83,7 +83,7 @@ class GatewayReminders(Reminders):
 
     async def update(
         self,
-        reminder_id: str,
+        reminder_id: UUID,
         *,
         instruction: str,
         schedule: ReminderSchedule,
@@ -99,7 +99,7 @@ class GatewayReminders(Reminders):
             )
         return _reminder(automation)
 
-    async def delete(self, reminder_id: str) -> None:
+    async def delete(self, reminder_id: UUID) -> None:
         async with self._client() as client:
             await client.automation.delete(
                 owner_id=self._owner_id,
