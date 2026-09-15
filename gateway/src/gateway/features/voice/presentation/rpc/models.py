@@ -7,7 +7,7 @@ from pydantic import Field, TypeAdapter
 
 from gateway.features.voice.application import VoiceEventType
 from gateway.features.voice.domain import Activation
-from gateway.presentation.rpc import WireSchema
+from gateway.presentation.models import ApiModel
 
 
 class VoiceRpcMethod(StrEnum):
@@ -20,13 +20,13 @@ class VoiceNotificationMethod(StrEnum):
     VOICE_EVENT = "voice.event"
 
 
-class StartVoiceTurnParams(WireSchema):
+class StartVoiceTurnParams(ApiModel):
     voice_session_id: UUID
     activation: Activation
     pre_roll_sequence: int | None = Field(default=None, ge=0)
 
 
-class VoiceTurnParams(WireSchema):
+class VoiceTurnParams(ApiModel):
     voice_turn_id: UUID
 
 
@@ -34,12 +34,12 @@ class InterruptVoiceTurnParams(VoiceTurnParams):
     input_sequence: int | None = Field(default=None, ge=0)
 
 
-class VoiceTurnCommandResult(WireSchema):
+class VoiceTurnCommandResult(ApiModel):
     voice_session_id: UUID
     voice_turn_id: UUID
 
 
-class VoiceEventBase(WireSchema):
+class VoiceEventBase(ApiModel):
     event_id: UUID
     timestamp: datetime
     voice_session_id: UUID
@@ -86,7 +86,7 @@ class VoiceTurnFailed(VoiceEventBase):
     message: str
 
 
-class VoiceTranscriptPartial(WireSchema):
+class VoiceTranscriptPartial(ApiModel):
     type: Literal[VoiceEventType.TRANSCRIPT_PARTIAL]
     event_id: UUID
     timestamp: datetime
@@ -97,7 +97,7 @@ class VoiceTranscriptPartial(WireSchema):
     text: str
 
 
-class VoiceSessionClosed(WireSchema):
+class VoiceSessionClosed(ApiModel):
     type: Literal[VoiceEventType.SESSION_CLOSED]
     event_id: UUID
     timestamp: datetime

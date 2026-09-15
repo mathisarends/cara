@@ -12,15 +12,15 @@ from gateway.features.alarm.domain import (
     Weekday,
 )
 from gateway.features.alarm.domain.target import TargetKind
-from gateway.presentation.rpc import WireSchema
+from gateway.presentation.models import ApiModel
 
 
-class OnceAlarmRecurrence(WireSchema):
+class OnceAlarmRecurrence(ApiModel):
     kind: Literal[RecurrenceKind.ONCE]
     wake_at: AwareDatetime
 
 
-class WeeklyAlarmRecurrence(WireSchema):
+class WeeklyAlarmRecurrence(ApiModel):
     kind: Literal[RecurrenceKind.WEEKLY]
     days: tuple[Weekday, ...] = Field(min_length=1)
     local_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$", examples=["06:30"])
@@ -42,7 +42,7 @@ type AlarmRecurrence = Annotated[
 ]
 
 
-class SessionAlarmTarget(WireSchema):
+class SessionAlarmTarget(ApiModel):
     kind: Literal[TargetKind.SESSION] = TargetKind.SESSION
     session_id: UUID
 
@@ -50,24 +50,24 @@ class SessionAlarmTarget(WireSchema):
 type AlarmTarget = SessionAlarmTarget
 
 
-class AlarmRoutine(WireSchema):
+class AlarmRoutine(ApiModel):
     skill: str = Field(min_length=1, pattern=r"\S", examples=["wake-up"])
     note: str | None = None
 
 
-class AlarmOccurrence(WireSchema):
+class AlarmOccurrence(ApiModel):
     wake_at: datetime
     state: OccurrenceState
     snooze_count: int
     snoozed_until: datetime | None
 
 
-class AlarmNextRun(WireSchema):
+class AlarmNextRun(ApiModel):
     phase: AlarmPhase
     due_at: datetime
 
 
-class CreateAlarmRequest(WireSchema):
+class CreateAlarmRequest(ApiModel):
     target: AlarmTarget
     recurrence: AlarmRecurrence
     routine: AlarmRoutine
@@ -75,22 +75,22 @@ class CreateAlarmRequest(WireSchema):
     name: str | None = None
 
 
-class UpdateAlarmRequest(WireSchema):
+class UpdateAlarmRequest(ApiModel):
     recurrence: AlarmRecurrence
     routine: AlarmRoutine
     pre_wake_minutes: int | None = Field(default=None, ge=1, le=120)
     name: str | None = None
 
 
-class SetAlarmEnabledRequest(WireSchema):
+class SetAlarmEnabledRequest(ApiModel):
     enabled: bool
 
 
-class SnoozeAlarmRequest(WireSchema):
+class SnoozeAlarmRequest(ApiModel):
     minutes: int = Field(ge=1, le=60)
 
 
-class AlarmResponse(WireSchema):
+class AlarmResponse(ApiModel):
     id: UUID
     owner_id: str
     name: str | None
@@ -105,9 +105,9 @@ class AlarmResponse(WireSchema):
     next_run: AlarmNextRun | None
 
 
-class AlarmListResponse(WireSchema):
+class AlarmListResponse(ApiModel):
     alarms: tuple[AlarmResponse, ...]
 
 
-class DismissAlarmResponse(WireSchema):
+class DismissAlarmResponse(ApiModel):
     alarm: AlarmResponse | None

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field, TypeAdapter
 
-from gateway.presentation.rpc import WireSchema
+from gateway.presentation.models import ApiModel
 
 
 class ConversationRpcMethod(StrEnum):
@@ -24,11 +24,11 @@ class RpcNotificationMethod(StrEnum):
     SESSION_EVENT = "session.event"
 
 
-class SessionParams(WireSchema):
+class SessionParams(ApiModel):
     session_id: UUID
 
 
-class ChannelParams(WireSchema):
+class ChannelParams(ApiModel):
     channel: str = Field(min_length=1)
 
 
@@ -41,23 +41,23 @@ class SteerTurnParams(SessionParams):
     message: str = Field(min_length=1)
 
 
-class SubscriptionResult(WireSchema):
+class SubscriptionResult(ApiModel):
     subscribed: UUID
 
 
-class UnsubscriptionResult(WireSchema):
+class UnsubscriptionResult(ApiModel):
     unsubscribed: UUID
 
 
-class ChannelSubscriptionResult(WireSchema):
+class ChannelSubscriptionResult(ApiModel):
     subscribed_channel: str
 
 
-class ChannelUnsubscriptionResult(WireSchema):
+class ChannelUnsubscriptionResult(ApiModel):
     unsubscribed_channel: str
 
 
-class TurnCommandResult(WireSchema):
+class TurnCommandResult(ApiModel):
     session_id: UUID
 
 
@@ -73,7 +73,7 @@ class SessionEventType(StrEnum):
     TURN_FAILED = "turn.failed"
 
 
-class EventBase(WireSchema):
+class EventBase(ApiModel):
     event_id: UUID
     timestamp: datetime
     session_id: UUID

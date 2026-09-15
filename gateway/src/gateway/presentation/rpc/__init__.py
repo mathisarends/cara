@@ -7,7 +7,6 @@ from .errors import (
     TurnAlreadyRunningError,
     VoiceTurnAlreadyActiveRpcError,
 )
-from .models import WireSchema
 
 __all__ = [
     "GatewayErrorCode",
@@ -17,5 +16,4 @@ __all__ = [
     "ResourceNotFoundError",
     "TurnAlreadyRunningError",
     "VoiceTurnAlreadyActiveRpcError",
-    "WireSchema",
 ]

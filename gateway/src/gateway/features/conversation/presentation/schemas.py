@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from gateway.presentation.rpc import WireSchema
+from gateway.presentation.models import ApiModel
 
 
 class ItemType(StrEnum):
@@ -25,31 +25,31 @@ class SortOrder(StrEnum):
     DESC = "desc"
 
 
-class SessionChannel(WireSchema):
+class SessionChannel(ApiModel):
     name: str = Field(min_length=1)
 
 
-class CreateSessionRequest(WireSchema):
+class CreateSessionRequest(ApiModel):
     channel: SessionChannel
     inactivity_timeout_seconds: float | None = Field(default=None, gt=0)
 
 
-class OpenSessionRequest(WireSchema):
+class OpenSessionRequest(ApiModel):
     channel: SessionChannel
     inactivity_timeout_seconds: float | None = Field(default=None, gt=0)
 
 
-class SessionResponse(WireSchema):
+class SessionResponse(ApiModel):
     id: UUID
     created_at: datetime
     channel: SessionChannel
 
 
-class SessionListResponse(WireSchema):
+class SessionListResponse(ApiModel):
     sessions: tuple[SessionResponse, ...]
 
 
-class ItemBase(WireSchema):
+class ItemBase(ApiModel):
     id: UUID
     created_at: datetime
 
@@ -80,7 +80,7 @@ type Item = Annotated[
 ]
 
 
-class SessionSnapshotResponse(WireSchema):
+class SessionSnapshotResponse(ApiModel):
     session: SessionResponse
     items: tuple[Item, ...]
     turn_active: bool

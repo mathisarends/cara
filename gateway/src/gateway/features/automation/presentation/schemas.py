@@ -7,25 +7,25 @@ from zoneinfo import ZoneInfo
 from pydantic import AwareDatetime, Field, field_validator
 
 from gateway.features.automation.domain import ScheduleKind, TargetKind
-from gateway.presentation.rpc import WireSchema
+from gateway.presentation.models import ApiModel
 
 
 class PayloadKind(StrEnum):
     REMINDER = "reminder"
 
 
-class AtSchedule(WireSchema):
+class AtSchedule(ApiModel):
     kind: Literal[ScheduleKind.AT]
     run_at: AwareDatetime
 
 
-class IntervalSchedule(WireSchema):
+class IntervalSchedule(ApiModel):
     kind: Literal[ScheduleKind.INTERVAL]
     every_seconds: float = Field(gt=0)
     run_immediately: bool = False
 
 
-class CronSchedule(WireSchema):
+class CronSchedule(ApiModel):
     kind: Literal[ScheduleKind.CRON]
     expression: str = Field(
         pattern=r"^\s*\S+(\s+\S+){4}\s*$",
@@ -49,12 +49,12 @@ type AutomationSchedule = Annotated[
 ]
 
 
-class SessionTarget(WireSchema):
+class SessionTarget(ApiModel):
     kind: Literal[TargetKind.SESSION]
     session_id: UUID
 
 
-class ChannelTarget(WireSchema):
+class ChannelTarget(ApiModel):
     kind: Literal[TargetKind.CHANNEL]
     channel: str = Field(min_length=1, pattern=r"\S")
 
@@ -65,25 +65,25 @@ type AutomationTarget = Annotated[
 ]
 
 
-class ReminderPayload(WireSchema):
+class ReminderPayload(ApiModel):
     kind: Literal[PayloadKind.REMINDER] = PayloadKind.REMINDER
     instruction: str = Field(min_length=1, pattern=r"\S")
 
 
-class CreateAutomationRequest(WireSchema):
+class CreateAutomationRequest(ApiModel):
     target: AutomationTarget
     schedule: AutomationSchedule
     payload: ReminderPayload
     name: str | None = None
 
 
-class UpdateAutomationRequest(WireSchema):
+class UpdateAutomationRequest(ApiModel):
     schedule: AutomationSchedule
     payload: ReminderPayload
     name: str | None = None
 
 
-class AutomationResponse(WireSchema):
+class AutomationResponse(ApiModel):
     id: UUID
     owner_id: str
     name: str | None
@@ -94,5 +94,5 @@ class AutomationResponse(WireSchema):
     payload: ReminderPayload
 
 
-class AutomationListResponse(WireSchema):
+class AutomationListResponse(ApiModel):
     automations: tuple[AutomationResponse, ...]

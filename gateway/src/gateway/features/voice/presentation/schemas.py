@@ -9,23 +9,23 @@ from gateway.features.voice.domain import (
     VoiceSessionStatus,
     VoiceTurnStatus,
 )
-from gateway.presentation.rpc import WireSchema
+from gateway.presentation.models import ApiModel
 
 
-class AudioFormat(WireSchema):
+class AudioFormat(ApiModel):
     encoding: AudioEncoding
     sample_rate: int = Field(gt=0)
     channels: int = Field(ge=1)
 
 
-class OpenVoiceSessionRequest(WireSchema):
+class OpenVoiceSessionRequest(ApiModel):
     session_id: UUID
     device_id: str = Field(min_length=1)
     input_formats: tuple[AudioFormat, ...] = Field(min_length=1)
     output_formats: tuple[AudioFormat, ...] = Field(min_length=1)
 
 
-class VoiceSessionResponse(WireSchema):
+class VoiceSessionResponse(ApiModel):
     id: UUID
     session_id: UUID
     device_id: str
@@ -39,7 +39,7 @@ class VoiceSessionResponse(WireSchema):
     close_reason: str | None
 
 
-class VoiceTurnResponse(WireSchema):
+class VoiceTurnResponse(ApiModel):
     id: UUID
     index: int
     activation: Activation
@@ -54,11 +54,11 @@ class VoiceTurnResponse(WireSchema):
     ended_at: datetime | None
 
 
-class VoiceSessionListResponse(WireSchema):
+class VoiceSessionListResponse(ApiModel):
     voice_sessions: tuple[VoiceSessionResponse, ...]
 
 
-class VoiceSessionSnapshotResponse(WireSchema):
+class VoiceSessionSnapshotResponse(ApiModel):
     voice_session: VoiceSessionResponse
     turns: tuple[VoiceTurnResponse, ...]
     active_turn_id: UUID | None
