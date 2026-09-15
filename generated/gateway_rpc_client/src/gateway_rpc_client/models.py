@@ -27,6 +27,27 @@ class SessionEventType(StrEnum):
     TURN_STEERED = "turn.steered"
 
 
+class VoiceEventMessageType(StrEnum):
+    VOICE_ASSISTANT_AUDIO_COMPLETED = "voice.assistant_audio.completed"
+    VOICE_ASSISTANT_AUDIO_STARTED = "voice.assistant_audio.started"
+    VOICE_SESSION_CLOSED = "voice.session.closed"
+    VOICE_TRANSCRIPT_FINAL = "voice.transcript.final"
+    VOICE_TRANSCRIPT_PARTIAL = "voice.transcript.partial"
+    VOICE_TURN_CANCELLED = "voice.turn.cancelled"
+    VOICE_TURN_COMPLETED = "voice.turn.completed"
+    VOICE_TURN_DISCARDED = "voice.turn.discarded"
+    VOICE_TURN_FAILED = "voice.turn.failed"
+    VOICE_TURN_STARTED = "voice.turn.started"
+
+
+class Activation(StrEnum):
+    WAKE_WORD = "wake_word"
+    MANUAL = "manual"
+    FOLLOW_UP = "follow_up"
+    BARGE_IN = "barge_in"
+    PROACTIVE = "proactive"
+
+
 class ChannelParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     channel: str
@@ -65,6 +86,12 @@ class ChatDelta(RpcModel):
     text: str
 
 
+class InterruptVoiceTurnParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    voice_turn_id: UUID = Field(alias="voiceTurnId")
+    input_sequence: int | None = Field(None, alias="inputSequence")
+
+
 class SessionParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     session_id: UUID = Field(alias="sessionId")
@@ -75,6 +102,13 @@ class StartTurnParams(RpcModel):
     session_id: UUID = Field(alias="sessionId")
     message: str
     metadata: dict[str, Any] | None = None
+
+
+class StartVoiceTurnParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    voice_session_id: UUID = Field(alias="voiceSessionId")
+    activation: Activation
+    pre_roll_sequence: int | None = Field(None, alias="preRollSequence")
 
 
 class SteerTurnParams(RpcModel):
@@ -182,11 +216,166 @@ class UnsubscriptionResult(RpcModel):
     unsubscribed: UUID
 
 
+class VoiceAssistantAudioCompleted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_ASSISTANT_AUDIO_COMPLETED] = (
+        VoiceEventMessageType.VOICE_ASSISTANT_AUDIO_COMPLETED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceAssistantAudioStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_ASSISTANT_AUDIO_STARTED] = (
+        VoiceEventMessageType.VOICE_ASSISTANT_AUDIO_STARTED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceSessionClosed(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_SESSION_CLOSED] = (
+        VoiceEventMessageType.VOICE_SESSION_CLOSED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+    reason: str
+
+
+class VoiceTranscriptFinal(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TRANSCRIPT_FINAL] = (
+        VoiceEventMessageType.VOICE_TRANSCRIPT_FINAL
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+    text: str
+    user_message_id: UUID
+
+
+class VoiceTranscriptPartial(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TRANSCRIPT_PARTIAL] = (
+        VoiceEventMessageType.VOICE_TRANSCRIPT_PARTIAL
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    revision: int
+    text: str
+
+
+class VoiceTurnCancelled(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TURN_CANCELLED] = (
+        VoiceEventMessageType.VOICE_TURN_CANCELLED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+    reason: str
+
+
+class VoiceTurnCommandResult(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    voice_session_id: UUID = Field(alias="voiceSessionId")
+    voice_turn_id: UUID = Field(alias="voiceTurnId")
+
+
+class VoiceTurnCompleted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TURN_COMPLETED] = (
+        VoiceEventMessageType.VOICE_TURN_COMPLETED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceTurnDiscarded(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TURN_DISCARDED] = (
+        VoiceEventMessageType.VOICE_TURN_DISCARDED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceTurnFailed(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TURN_FAILED] = (
+        VoiceEventMessageType.VOICE_TURN_FAILED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+    code: str
+    message: str
+
+
+class VoiceTurnParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    voice_turn_id: UUID = Field(alias="voiceTurnId")
+
+
+class VoiceTurnStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_TURN_STARTED] = (
+        VoiceEventMessageType.VOICE_TURN_STARTED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+    activation: Activation
+
+
 class SessionEventNotification(RpcModel):
     model_config = ConfigDict(extra="forbid")
     jsonrpc: Literal["2.0"]
     method: Literal["session.event"]
     params: SessionEvent
+
+
+class VoiceEventNotification(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    jsonrpc: Literal["2.0"]
+    method: Literal["voice.event"]
+    params: VoiceEventMessage
 
 
 type SessionEvent = Annotated[
@@ -203,13 +392,30 @@ type SessionEvent = Annotated[
 ]
 
 
+type VoiceEventMessage = Annotated[
+    VoiceTurnStarted
+    | VoiceTranscriptPartial
+    | VoiceTranscriptFinal
+    | VoiceAssistantAudioStarted
+    | VoiceAssistantAudioCompleted
+    | VoiceTurnCompleted
+    | VoiceTurnDiscarded
+    | VoiceTurnCancelled
+    | VoiceTurnFailed
+    | VoiceSessionClosed,
+    Field(discriminator="type"),
+]
+
+
 ChannelParams.model_rebuild()
 ChannelSubscriptionResult.model_rebuild()
 ChannelUnsubscriptionResult.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
+InterruptVoiceTurnParams.model_rebuild()
 SessionParams.model_rebuild()
 StartTurnParams.model_rebuild()
+StartVoiceTurnParams.model_rebuild()
 SteerTurnParams.model_rebuild()
 SubscriptionResult.model_rebuild()
 ToolCallCompleted.model_rebuild()
@@ -221,4 +427,17 @@ TurnFailed.model_rebuild()
 TurnStarted.model_rebuild()
 TurnSteered.model_rebuild()
 UnsubscriptionResult.model_rebuild()
+VoiceAssistantAudioCompleted.model_rebuild()
+VoiceAssistantAudioStarted.model_rebuild()
+VoiceSessionClosed.model_rebuild()
+VoiceTranscriptFinal.model_rebuild()
+VoiceTranscriptPartial.model_rebuild()
+VoiceTurnCancelled.model_rebuild()
+VoiceTurnCommandResult.model_rebuild()
+VoiceTurnCompleted.model_rebuild()
+VoiceTurnDiscarded.model_rebuild()
+VoiceTurnFailed.model_rebuild()
+VoiceTurnParams.model_rebuild()
+VoiceTurnStarted.model_rebuild()
 SessionEventNotification.model_rebuild()
+VoiceEventNotification.model_rebuild()

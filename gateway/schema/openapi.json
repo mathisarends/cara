@@ -1197,10 +1197,361 @@
           }
         }
       }
+    },
+    "/v1/voice-sessions": {
+      "post": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Open Voice Session",
+        "operationId": "open_voice_session",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenVoiceSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Voice session already open",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionAlreadyOpenProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid voice session",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidVoiceSessionProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "List Voice Sessions",
+        "operationId": "list_voice_sessions",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "device_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/VoiceSessionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/voice-sessions/{voice_session_id}": {
+      "get": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Get Voice Session",
+        "operationId": "get_voice_session",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "voice_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Voice Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionSnapshotResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Voice session not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/voice-sessions/{voice_session_id}/close": {
+      "post": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Close Voice Session",
+        "operationId": "close_voice_session",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "voice_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Voice Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Voice session not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceSessionNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/voice-sessions/{voice_session_id}/turns/{voice_turn_id}": {
+      "get": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Get Voice Turn",
+        "operationId": "get_voice_turn",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "voice_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Voice Session Id"
+            }
+          },
+          {
+            "name": "voice_turn_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Voice Turn Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceTurnResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Possible problems: Voice session not found, Voice turn not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VoiceSessionNotFoundProblem"
+                    },
+                    {
+                      "$ref": "#/components/schemas/VoiceTurnNotFoundProblem"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "code",
+                    "mapping": {
+                      "voice_session_not_found": "#/components/schemas/VoiceSessionNotFoundProblem",
+                      "voice_turn_not_found": "#/components/schemas/VoiceTurnNotFoundProblem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Activation": {
+        "type": "string",
+        "enum": [
+          "wake_word",
+          "manual",
+          "follow_up",
+          "barge_in",
+          "proactive"
+        ],
+        "title": "Activation"
+      },
       "AlarmListResponse": {
         "properties": {
           "alarms": {
@@ -1501,6 +1852,38 @@
           "run_at"
         ],
         "title": "AtSchedule"
+      },
+      "AudioEncoding": {
+        "type": "string",
+        "enum": [
+          "pcm_s16le"
+        ],
+        "title": "AudioEncoding"
+      },
+      "AudioFormat": {
+        "properties": {
+          "encoding": {
+            "$ref": "#/components/schemas/AudioEncoding"
+          },
+          "sample_rate": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Sample Rate"
+          },
+          "channels": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Channels"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "encoding",
+          "sample_rate",
+          "channels"
+        ],
+        "title": "AudioFormat"
       },
       "AutomationListResponse": {
         "properties": {
@@ -1917,6 +2300,45 @@
         ],
         "title": "OpenSessionRequest"
       },
+      "OpenVoiceSessionRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Device Id"
+          },
+          "input_formats": {
+            "items": {
+              "$ref": "#/components/schemas/AudioFormat"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Input Formats"
+          },
+          "output_formats": {
+            "items": {
+              "$ref": "#/components/schemas/AudioFormat"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Output Formats"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "session_id",
+          "device_id",
+          "input_formats",
+          "output_formats"
+        ],
+        "title": "OpenVoiceSessionRequest"
+      },
       "ReadinessResponse": {
         "properties": {
           "status": {
@@ -2304,6 +2726,286 @@
         ],
         "title": "ValidationError"
       },
+      "VoiceSessionListResponse": {
+        "properties": {
+          "voice_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceSessionResponse"
+            },
+            "type": "array",
+            "title": "Voice Sessions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "voice_sessions"
+        ],
+        "title": "VoiceSessionListResponse"
+      },
+      "VoiceSessionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VoiceSessionStatus"
+          },
+          "input_format": {
+            "$ref": "#/components/schemas/AudioFormat"
+          },
+          "output_format": {
+            "$ref": "#/components/schemas/AudioFormat"
+          },
+          "media_path": {
+            "type": "string",
+            "title": "Media Path"
+          },
+          "media_connected": {
+            "type": "boolean",
+            "title": "Media Connected"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "close_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "session_id",
+          "device_id",
+          "status",
+          "input_format",
+          "output_format",
+          "media_path",
+          "media_connected",
+          "created_at",
+          "closed_at",
+          "close_reason"
+        ],
+        "title": "VoiceSessionResponse"
+      },
+      "VoiceSessionSnapshotResponse": {
+        "properties": {
+          "voice_session": {
+            "$ref": "#/components/schemas/VoiceSessionResponse"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceTurnResponse"
+            },
+            "type": "array",
+            "title": "Turns"
+          },
+          "active_turn_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Turn Id"
+          },
+          "last_sequence": {
+            "type": "integer",
+            "title": "Last Sequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "voice_session",
+          "turns",
+          "active_turn_id",
+          "last_sequence"
+        ],
+        "title": "VoiceSessionSnapshotResponse"
+      },
+      "VoiceSessionStatus": {
+        "type": "string",
+        "enum": [
+          "open",
+          "closed"
+        ],
+        "title": "VoiceSessionStatus"
+      },
+      "VoiceTurnResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "activation": {
+            "$ref": "#/components/schemas/Activation"
+          },
+          "status": {
+            "$ref": "#/components/schemas/VoiceTurnStatus"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
+          },
+          "user_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Message Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "input_ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Ended At"
+          },
+          "transcribed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcribed At"
+          },
+          "speech_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speech Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "index",
+          "activation",
+          "status",
+          "transcript",
+          "user_message_id",
+          "error",
+          "started_at",
+          "input_ended_at",
+          "transcribed_at",
+          "speech_started_at",
+          "ended_at"
+        ],
+        "title": "VoiceTurnResponse"
+      },
+      "VoiceTurnStatus": {
+        "type": "string",
+        "enum": [
+          "listening",
+          "transcribing",
+          "waiting_for_assistant",
+          "speaking",
+          "completed",
+          "discarded",
+          "cancelled",
+          "failed"
+        ],
+        "title": "VoiceTurnStatus"
+      },
       "Weekday": {
         "type": "string",
         "enum": [
@@ -2621,6 +3323,226 @@
         ],
         "additionalProperties": true
       },
+      "VoiceSessionNotFoundProblem": {
+        "type": "object",
+        "title": "VoiceSessionNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/voice_session_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Voice session not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "voice_session_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "VoiceTurnNotFoundProblem": {
+        "type": "object",
+        "title": "VoiceTurnNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/voice_turn_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Voice turn not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "voice_turn_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "VoiceSessionAlreadyOpenProblem": {
+        "type": "object",
+        "title": "VoiceSessionAlreadyOpenProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/voice_session_already_open"
+          },
+          "title": {
+            "type": "string",
+            "const": "Voice session already open"
+          },
+          "status": {
+            "type": "integer",
+            "const": 409
+          },
+          "code": {
+            "type": "string",
+            "const": "voice_session_already_open"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "VoiceSessionClosedProblem": {
+        "type": "object",
+        "title": "VoiceSessionClosedProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/voice_session_closed"
+          },
+          "title": {
+            "type": "string",
+            "const": "Voice session closed"
+          },
+          "status": {
+            "type": "integer",
+            "const": 409
+          },
+          "code": {
+            "type": "string",
+            "const": "voice_session_closed"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "InvalidVoiceSessionProblem": {
+        "type": "object",
+        "title": "InvalidVoiceSessionProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/invalid_voice_session"
+          },
+          "title": {
+            "type": "string",
+            "const": "Invalid voice session"
+          },
+          "status": {
+            "type": "integer",
+            "const": 422
+          },
+          "code": {
+            "type": "string",
+            "const": "invalid_voice_session"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
       "RequestValidationProblem": {
         "type": "object",
         "title": "RequestValidationProblem",
@@ -2728,6 +3650,10 @@
     {
       "name": "alarms",
       "description": "Wake-up alarms with agentic routines."
+    },
+    {
+      "name": "voice",
+      "description": "Persistent voice and media sessions."
     }
   ]
 }

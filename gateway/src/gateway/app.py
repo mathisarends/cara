@@ -24,6 +24,7 @@ def create_app() -> FastAPI:
             {"name": "sessions", "description": "Conversation session lifecycle."},
             {"name": "automations", "description": "Scheduled agent runs."},
             {"name": "alarms", "description": "Wake-up alarms with agentic routines."},
+            {"name": "voice", "description": "Persistent voice and media sessions."},
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)

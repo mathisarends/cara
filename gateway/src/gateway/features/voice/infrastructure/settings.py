@@ -1,0 +1,20 @@
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class VoiceSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="CARA_GATEWAY_VOICE_",
+        extra="ignore",
+        frozen=True,
+    )
+
+    deepgram_api_key: SecretStr | None = None
+    stt_model: str = "flux-general-en"
+    tts_model: str = "aura-2-thalia-en"
+    language: str = "en"
+    input_queue_size: int = Field(default=64, ge=1)
+    text_queue_size: int = Field(default=8, ge=1)
+    reconnect_window_seconds: float = Field(default=30, ge=0)

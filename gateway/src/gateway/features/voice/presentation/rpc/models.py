@@ -1,0 +1,124 @@
+from datetime import datetime
+from enum import StrEnum
+from typing import Annotated, Literal
+from uuid import UUID
+
+from pydantic import Field, TypeAdapter
+
+from gateway.features.voice.application import VoiceEventType
+from gateway.features.voice.domain import Activation
+from gateway.presentation.rpc import WireSchema
+
+
+class VoiceRpcMethod(StrEnum):
+    TURN_START = "voice.turn.start"
+    TURN_INTERRUPT = "voice.turn.interrupt"
+    TURN_PLAYBACK_COMPLETED = "voice.turn.playback_completed"
+
+
+class VoiceNotificationMethod(StrEnum):
+    VOICE_EVENT = "voice.event"
+
+
+class StartVoiceTurnParams(WireSchema):
+    voice_session_id: UUID
+    activation: Activation
+    pre_roll_sequence: int | None = Field(default=None, ge=0)
+
+
+class VoiceTurnParams(WireSchema):
+    voice_turn_id: UUID
+
+
+class InterruptVoiceTurnParams(VoiceTurnParams):
+    input_sequence: int | None = Field(default=None, ge=0)
+
+
+class VoiceTurnCommandResult(WireSchema):
+    voice_session_id: UUID
+    voice_turn_id: UUID
+
+
+class VoiceEventBase(WireSchema):
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceTurnStarted(VoiceEventBase):
+    type: Literal[VoiceEventType.TURN_STARTED]
+    activation: Activation
+
+
+class VoiceTranscriptFinal(VoiceEventBase):
+    type: Literal[VoiceEventType.TRANSCRIPT_FINAL]
+    text: str
+    user_message_id: UUID
+
+
+class VoiceAssistantAudioStarted(VoiceEventBase):
+    type: Literal[VoiceEventType.ASSISTANT_AUDIO_STARTED]
+
+
+class VoiceAssistantAudioCompleted(VoiceEventBase):
+    type: Literal[VoiceEventType.ASSISTANT_AUDIO_COMPLETED]
+
+
+class VoiceTurnCompleted(VoiceEventBase):
+    type: Literal[VoiceEventType.TURN_COMPLETED]
+
+
+class VoiceTurnDiscarded(VoiceEventBase):
+    type: Literal[VoiceEventType.TURN_DISCARDED]
+
+
+class VoiceTurnCancelled(VoiceEventBase):
+    type: Literal[VoiceEventType.TURN_CANCELLED]
+    reason: str
+
+
+class VoiceTurnFailed(VoiceEventBase):
+    type: Literal[VoiceEventType.TURN_FAILED]
+    code: str
+    message: str
+
+
+class VoiceTranscriptPartial(WireSchema):
+    type: Literal[VoiceEventType.TRANSCRIPT_PARTIAL]
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    revision: int
+    text: str
+
+
+class VoiceSessionClosed(WireSchema):
+    type: Literal[VoiceEventType.SESSION_CLOSED]
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+    reason: str
+
+
+type VoiceEventMessage = Annotated[
+    VoiceTurnStarted
+    | VoiceTranscriptPartial
+    | VoiceTranscriptFinal
+    | VoiceAssistantAudioStarted
+    | VoiceAssistantAudioCompleted
+    | VoiceTurnCompleted
+    | VoiceTurnDiscarded
+    | VoiceTurnCancelled
+    | VoiceTurnFailed
+    | VoiceSessionClosed,
+    Field(discriminator="type"),
+]
+
+VOICE_EVENT_ADAPTER: TypeAdapter[VoiceEventMessage] = TypeAdapter(VoiceEventMessage)

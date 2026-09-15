@@ -28,6 +28,7 @@ def test_openrpc_only_carries_connection_bound_methods() -> None:
     assert {method["name"].split(".")[0] for method in document["methods"]} == {
         "subscription",
         "turn",
+        "voice",
     }
 
 

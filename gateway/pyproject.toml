@@ -22,6 +22,7 @@ dependencies = [
     "tavily-python>=0.7.26",
     "tzdata>=2024.1",
     "uvicorn>=0.30.0",
+    "vocalbin[deepgram]>=0.7.0",
     # Uvicorn only serves the WebSocket API when a WS implementation is present.
     "websockets>=13.0",
     "pyrpckit==0.4.0",

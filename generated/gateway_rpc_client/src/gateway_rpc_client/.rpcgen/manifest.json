@@ -3,7 +3,7 @@
   "generatorVersion": "0.4.0",
   "layoutVersion": 7,
   "language": "python",
-  "contractSha256": "16f3a147f76c5b37e18f0d7674b976212e5233f09ece17acca36f7134afbfd17",
+  "contractSha256": "3557bfcfcac10261b56828d10ae3c2b8e2438801ff8c0fa6fc8024e31d3bb9ad",
   "files": [
     ".rpcgen/manifest.json",
     "__init__.py",
@@ -22,6 +22,7 @@
     "namespaces/session.py",
     "namespaces/subscription.py",
     "namespaces/turn.py",
+    "namespaces/voice.py",
     "routes.py",
     "transport.py"
   ]

@@ -1,0 +1,459 @@
+import asyncio
+import time
+from contextlib import suppress
+from uuid import UUID
+
+from gateway.features.conversation.application import (
+    ConversationEventType,
+    EventSource,
+    TurnService,
+)
+from gateway.features.conversation.domain import NoActiveTurnError
+from gateway.features.voice.application.events import VoiceEvent, VoiceEventType
+from gateway.features.voice.application.ports import (
+    MediaSessions,
+    SpeechToText,
+    TextToSpeech,
+    VoiceEventPublisher,
+)
+from gateway.features.voice.application.voice_session_service import VoiceSessionService
+from gateway.features.voice.domain import (
+    Activation,
+    MediaNotConnectedError,
+    VoiceSessionRepository,
+    VoiceTurn,
+    VoiceTurnNotFoundError,
+)
+from gateway.shared import UnitOfWork
+
+
+class VoiceTurnService:
+    def __init__(
+        self,
+        repositories: UnitOfWork[VoiceSessionRepository],
+        sessions: VoiceSessionService,
+        turns: TurnService,
+        events: VoiceEventPublisher,
+        media: MediaSessions,
+        conversation_events: EventSource,
+        speech_to_text: SpeechToText,
+        text_to_speech: TextToSpeech,
+        input_queue_size: int,
+    ) -> None:
+        self._repositories = repositories
+        self._sessions = sessions
+        self._turns = turns
+        self._events = events
+        self._media = media
+        self._conversation_events = conversation_events
+        self._speech_to_text = speech_to_text
+        self._text_to_speech = text_to_speech
+        self._input_queue_size = input_queue_size
+        self._partial_revisions: dict[UUID, int] = {}
+        self._input_sequences: dict[UUID, int] = {}
+        self._input_queues: dict[UUID, asyncio.Queue[bytes | None]] = {}
+        self._tasks: dict[UUID, set[asyncio.Task[None]]] = {}
+
+    async def start(
+        self,
+        voice_session_id: UUID,
+        activation: Activation,
+    ) -> VoiceTurn:
+        if not self._media.connected(voice_session_id):
+            raise MediaNotConnectedError(
+                f"Voice session {voice_session_id} has no media connection"
+            )
+        voice_session = await self._sessions.get(voice_session_id)
+        turn = voice_session.start_turn(activation)
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_STARTED,
+                voice_session.id,
+                voice_session.session_id,
+                {"activation": activation},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+        queue: asyncio.Queue[bytes | None] = asyncio.Queue(self._input_queue_size)
+        self._input_queues[turn.id] = queue
+        self._start_task(turn.id, self._transcribe(turn.id, queue))
+        return turn
+
+    async def partial_transcript(self, voice_turn_id: UUID, text: str) -> None:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        revision = self._partial_revisions.get(turn.id, 0) + 1
+        self._partial_revisions[turn.id] = revision
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TRANSCRIPT_PARTIAL,
+                voice_session.id,
+                voice_session.session_id,
+                {"text": text},
+                voice_turn_id=turn.id,
+                revision=revision,
+            )
+        )
+
+    async def final_transcript(self, voice_turn_id: UUID, text: str) -> VoiceTurn:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        normalized = " ".join(text.split())
+        if not normalized:
+            turn.discard()
+            event_type = VoiceEventType.TURN_DISCARDED
+            data: dict[str, object] = {}
+        else:
+            ready = asyncio.Event()
+            speech_task = self._start_task(
+                turn.id,
+                self._conversation_to_speech(
+                    voice_session.id,
+                    turn.id,
+                    ready,
+                ),
+            )
+            await ready.wait()
+            user_message_id = await self._turns.start(
+                session_id=voice_session.session_id,
+                text=normalized,
+                metadata={"modality": "voice", "voice_turn_id": str(turn.id)},
+            )
+            turn.transcribe(normalized, user_message_id)
+            event_type = VoiceEventType.TRANSCRIPT_FINAL
+            data = {"text": normalized, "user_message_id": user_message_id}
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                event_type,
+                voice_session.id,
+                voice_session.session_id,
+                data,
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+        self._partial_revisions.pop(turn.id, None)
+        if not normalized:
+            self._cancel_tasks(turn.id)
+        elif speech_task.done() and (error := speech_task.exception()) is not None:
+            await self._fail(turn.id, type(error).__name__, str(error))
+        return turn
+
+    async def interrupt(self, voice_turn_id: UUID) -> VoiceTurn:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        if turn.user_message_id is not None:
+            await self._turns.cancel(voice_session.session_id)
+        turn.cancel()
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_CANCELLED,
+                voice_session.id,
+                voice_session.session_id,
+                {"reason": "client"},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+        return turn
+
+    async def playback_completed(self, voice_turn_id: UUID) -> VoiceTurn:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        turn.complete()
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_COMPLETED,
+                voice_session.id,
+                voice_session.session_id,
+                {},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+        return turn
+
+    async def voice_session_id_for(self, voice_turn_id: UUID) -> UUID:
+        voice_session, _ = await self._find_turn(voice_turn_id)
+        return voice_session.id
+
+    async def receive_media(
+        self,
+        voice_session_id: UUID,
+        voice_turn_index: int,
+        sequence: int,
+        payload: bytes,
+        *,
+        end: bool,
+    ) -> None:
+        voice_session = await self._sessions.get(voice_session_id)
+        turn = voice_session.active_turn
+        if turn is None or turn.index != voice_turn_index:
+            raise ValueError("Media frame does not belong to the active voice turn")
+        previous = self._input_sequences.get(turn.id, -1)
+        if sequence <= previous:
+            raise ValueError("Media frame sequence must increase monotonically")
+        self._input_sequences[turn.id] = sequence
+        queue = self._input_queues.get(turn.id)
+        if queue is None:
+            raise ValueError("The active voice turn has no input stream")
+        if end:
+            turn.end_input()
+            async with self._repositories() as repository:
+                await repository.save(voice_session)
+            await queue.put(None)
+        else:
+            try:
+                queue.put_nowait(payload)
+            except asyncio.QueueFull:
+                await self._fail(
+                    turn.id,
+                    "input_overrun",
+                    "The speech-to-text input queue is full",
+                )
+
+    async def media_disconnected(self, voice_session_id: UUID) -> None:
+        voice_session = await self._sessions.get(voice_session_id)
+        turn = voice_session.active_turn
+        if turn is None:
+            return
+        if turn.user_message_id is not None:
+            with suppress(NoActiveTurnError):
+                await self._turns.cancel(voice_session.session_id)
+        turn.cancel()
+        sequence = voice_session.next_sequence()
+        self._input_sequences.pop(turn.id, None)
+        self._partial_revisions.pop(turn.id, None)
+        self._input_queues.pop(turn.id, None)
+        self._cancel_tasks(turn.id)
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_CANCELLED,
+                voice_session.id,
+                voice_session.session_id,
+                {"reason": "media_disconnected"},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+
+    async def close(self) -> None:
+        tasks = tuple(task for group in self._tasks.values() for task in group)
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _transcribe(
+        self,
+        voice_turn_id: UUID,
+        queue: asyncio.Queue[bytes | None],
+    ) -> None:
+        try:
+            async for update in self._speech_to_text.transcribe(_audio(queue)):
+                if update.is_final:
+                    await self.final_transcript(voice_turn_id, update.text)
+                    return
+                await self.partial_transcript(voice_turn_id, update.text)
+            await self.final_transcript(voice_turn_id, "")
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            await self._fail(voice_turn_id, type(error).__name__, str(error))
+        finally:
+            self._input_queues.pop(voice_turn_id, None)
+
+    async def _conversation_to_speech(
+        self,
+        voice_session_id: UUID,
+        voice_turn_id: UUID,
+        ready: asyncio.Event,
+    ) -> None:
+        voice_session = await self._sessions.get(voice_session_id)
+        text: asyncio.Queue[str | None] = asyncio.Queue(8)
+        synthesis = self._start_task(
+            voice_turn_id,
+            self._synthesize(voice_session_id, voice_turn_id, text),
+        )
+        async with self._conversation_events.listen(
+            voice_session.session_id
+        ) as subscription:
+            ready.set()
+            try:
+                while True:
+                    event = await subscription.receive()
+                    if event.type is ConversationEventType.CHAT_DELTA:
+                        await text.put(str(event.data["text"]))
+                    elif event.type is ConversationEventType.CHAT_COMPLETED:
+                        await text.put(None)
+                    elif event.type is ConversationEventType.TURN_COMPLETED:
+                        await synthesis
+                        return
+                    elif event.type is ConversationEventType.TURN_CANCELLED:
+                        self._cancel_tasks(voice_turn_id, except_task=synthesis)
+                        return
+                    elif event.type is ConversationEventType.TURN_FAILED:
+                        await self._fail(
+                            voice_turn_id,
+                            str(event.data.get("code", "conversation_failed")),
+                            str(event.data.get("message", "Conversation turn failed")),
+                        )
+                        return
+            finally:
+                if not synthesis.done():
+                    synthesis.cancel()
+                await asyncio.gather(synthesis, return_exceptions=True)
+
+    async def _synthesize(
+        self,
+        voice_session_id: UUID,
+        voice_turn_id: UUID,
+        text: asyncio.Queue[str | None],
+    ) -> None:
+        sequence = 0
+        started = False
+        async for chunk in self._text_to_speech.synthesize(_text(text)):
+            if not started:
+                await self._speech_started(voice_turn_id)
+                started = True
+            voice_session, turn = await self._find_turn(voice_turn_id)
+            sequence += 1
+            await self._media.send_audio(
+                voice_session_id,
+                turn.index,
+                sequence,
+                time.time_ns() // 1_000_000,
+                chunk,
+            )
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        sequence += 1
+        await self._media.send_audio(
+            voice_session_id,
+            turn.index,
+            sequence,
+            time.time_ns() // 1_000_000,
+            b"",
+            end=True,
+        )
+        lifecycle_sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.ASSISTANT_AUDIO_COMPLETED,
+                voice_session.id,
+                voice_session.session_id,
+                {},
+                voice_turn_id=turn.id,
+                sequence=lifecycle_sequence,
+            )
+        )
+
+    async def _speech_started(self, voice_turn_id: UUID) -> None:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        turn.start_speaking()
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.ASSISTANT_AUDIO_STARTED,
+                voice_session.id,
+                voice_session.session_id,
+                {},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+
+    async def _fail(self, voice_turn_id: UUID, code: str, message: str) -> None:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        if turn.status.terminal:
+            return
+        turn.fail(code, message)
+        sequence = voice_session.next_sequence()
+        self._cancel_tasks(voice_turn_id)
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_FAILED,
+                voice_session.id,
+                voice_session.session_id,
+                {"code": code, "message": message},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+
+    def _start_task(
+        self,
+        voice_turn_id: UUID,
+        coroutine,
+    ) -> asyncio.Task[None]:
+        task = asyncio.create_task(coroutine)
+        tasks = self._tasks.setdefault(voice_turn_id, set())
+        tasks.add(task)
+        task.add_done_callback(
+            lambda completed, turn_id=voice_turn_id: self._discard_task(
+                turn_id,
+                completed,
+            )
+        )
+        return task
+
+    def _discard_task(self, voice_turn_id: UUID, task: asyncio.Task[None]) -> None:
+        tasks = self._tasks.get(voice_turn_id)
+        if tasks is None:
+            return
+        tasks.discard(task)
+        if not tasks:
+            self._tasks.pop(voice_turn_id, None)
+
+    def _cancel_tasks(
+        self,
+        voice_turn_id: UUID,
+        *,
+        except_task: asyncio.Task[None] | None = None,
+    ) -> None:
+        current = asyncio.current_task()
+        for task in tuple(self._tasks.get(voice_turn_id, set())):
+            if task is not current and task is not except_task:
+                task.cancel()
+
+    async def _find_turn(self, voice_turn_id: UUID) -> tuple:
+        async with self._repositories() as repository:
+            sessions = await repository.find_many()
+        for voice_session in sessions:
+            try:
+                return voice_session, voice_session.get_turn(voice_turn_id)
+            except VoiceTurnNotFoundError:
+                pass
+        raise VoiceTurnNotFoundError(voice_turn_id)
+
+
+async def _audio(queue: asyncio.Queue[bytes | None]):
+    while True:
+        chunk = await queue.get()
+        if chunk is None:
+            return
+        yield chunk
+
+
+async def _text(queue: asyncio.Queue[str | None]):
+    while True:
+        chunk = await queue.get()
+        if chunk is None:
+            return
+        yield chunk

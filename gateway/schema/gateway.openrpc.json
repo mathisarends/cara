@@ -320,6 +320,222 @@
       ]
     },
     {
+      "name": "voice.turn.start",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "voiceSessionId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Voicesessionid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "activation",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Activation"
+          }
+        },
+        {
+          "name": "preRollSequence",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prerollsequence"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/VoiceTurnCommandResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/StartVoiceTurnRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/StartVoiceTurnParams"
+      },
+      "errors": [
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32012,
+          "message": "Media not connected",
+          "x-rpckit-name": "MediaNotConnectedRpc"
+        },
+        {
+          "code": -32011,
+          "message": "Voice turn already active",
+          "x-rpckit-name": "VoiceTurnAlreadyActiveRpc"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "voice.turn.interrupt",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "voiceTurnId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Voiceturnid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "inputSequence",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inputsequence"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/VoiceTurnCommandResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/InterruptVoiceTurnRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/InterruptVoiceTurnParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "voice.turn.playback_completed",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "voiceTurnId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Voiceturnid",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/VoiceTurnCommandResult"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/CompleteVoicePlaybackRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/VoiceTurnParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
       "name": "subscription.subscribe",
       "paramStructure": "by-name",
       "params": [
@@ -507,6 +723,17 @@
   ],
   "components": {
     "schemas": {
+      "Activation": {
+        "enum": [
+          "wake_word",
+          "manual",
+          "follow_up",
+          "barge_in",
+          "proactive"
+        ],
+        "title": "Activation",
+        "type": "string"
+      },
       "ChannelParams": {
         "additionalProperties": false,
         "properties": {
@@ -651,6 +878,34 @@
         "title": "ChatDelta",
         "type": "object"
       },
+      "InterruptVoiceTurnParams": {
+        "additionalProperties": false,
+        "properties": {
+          "voiceTurnId": {
+            "format": "uuid",
+            "title": "Voiceturnid",
+            "type": "string"
+          },
+          "inputSequence": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inputsequence"
+          }
+        },
+        "required": [
+          "voiceTurnId"
+        ],
+        "title": "InterruptVoiceTurnParams",
+        "type": "object"
+      },
       "SessionEvent": {
         "discriminator": {
           "mapping": {
@@ -735,6 +990,38 @@
           "message"
         ],
         "title": "StartTurnParams",
+        "type": "object"
+      },
+      "StartVoiceTurnParams": {
+        "additionalProperties": false,
+        "properties": {
+          "voiceSessionId": {
+            "format": "uuid",
+            "title": "Voicesessionid",
+            "type": "string"
+          },
+          "activation": {
+            "$ref": "#/components/schemas/Activation"
+          },
+          "preRollSequence": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prerollsequence"
+          }
+        },
+        "required": [
+          "voiceSessionId",
+          "activation"
+        ],
+        "title": "StartVoiceTurnParams",
         "type": "object"
       },
       "SteerTurnParams": {
@@ -1154,6 +1441,625 @@
         "title": "UnsubscriptionResult",
         "type": "object"
       },
+      "VoiceAssistantAudioCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.assistant_audio.completed",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type"
+        ],
+        "title": "VoiceAssistantAudioCompleted",
+        "type": "object"
+      },
+      "VoiceAssistantAudioStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.assistant_audio.started",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type"
+        ],
+        "title": "VoiceAssistantAudioStarted",
+        "type": "object"
+      },
+      "VoiceEventMessage": {
+        "discriminator": {
+          "mapping": {
+            "voice.assistant_audio.completed": "#/components/schemas/VoiceAssistantAudioCompleted",
+            "voice.assistant_audio.started": "#/components/schemas/VoiceAssistantAudioStarted",
+            "voice.session.closed": "#/components/schemas/VoiceSessionClosed",
+            "voice.transcript.final": "#/components/schemas/VoiceTranscriptFinal",
+            "voice.transcript.partial": "#/components/schemas/VoiceTranscriptPartial",
+            "voice.turn.cancelled": "#/components/schemas/VoiceTurnCancelled",
+            "voice.turn.completed": "#/components/schemas/VoiceTurnCompleted",
+            "voice.turn.discarded": "#/components/schemas/VoiceTurnDiscarded",
+            "voice.turn.failed": "#/components/schemas/VoiceTurnFailed",
+            "voice.turn.started": "#/components/schemas/VoiceTurnStarted"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/VoiceTurnStarted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceTranscriptPartial"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceTranscriptFinal"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceAssistantAudioStarted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceAssistantAudioCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceTurnCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceTurnDiscarded"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceTurnCancelled"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceTurnFailed"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceSessionClosed"
+          }
+        ]
+      },
+      "VoiceSessionClosed": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "voice.session.closed",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "session_id",
+          "sequence",
+          "reason"
+        ],
+        "title": "VoiceSessionClosed",
+        "type": "object"
+      },
+      "VoiceTranscriptFinal": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.transcript.final",
+            "title": "Type",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "user_message_id": {
+            "format": "uuid",
+            "title": "User Message Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type",
+          "text",
+          "user_message_id"
+        ],
+        "title": "VoiceTranscriptFinal",
+        "type": "object"
+      },
+      "VoiceTranscriptPartial": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "voice.transcript.partial",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "revision",
+          "text"
+        ],
+        "title": "VoiceTranscriptPartial",
+        "type": "object"
+      },
+      "VoiceTurnCancelled": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.turn.cancelled",
+            "title": "Type",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type",
+          "reason"
+        ],
+        "title": "VoiceTurnCancelled",
+        "type": "object"
+      },
+      "VoiceTurnCommandResult": {
+        "additionalProperties": false,
+        "properties": {
+          "voiceSessionId": {
+            "format": "uuid",
+            "title": "Voicesessionid",
+            "type": "string"
+          },
+          "voiceTurnId": {
+            "format": "uuid",
+            "title": "Voiceturnid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voiceSessionId",
+          "voiceTurnId"
+        ],
+        "title": "VoiceTurnCommandResult",
+        "type": "object"
+      },
+      "VoiceTurnCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.turn.completed",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type"
+        ],
+        "title": "VoiceTurnCompleted",
+        "type": "object"
+      },
+      "VoiceTurnDiscarded": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.turn.discarded",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type"
+        ],
+        "title": "VoiceTurnDiscarded",
+        "type": "object"
+      },
+      "VoiceTurnFailed": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.turn.failed",
+            "title": "Type",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type",
+          "code",
+          "message"
+        ],
+        "title": "VoiceTurnFailed",
+        "type": "object"
+      },
+      "VoiceTurnParams": {
+        "additionalProperties": false,
+        "properties": {
+          "voiceTurnId": {
+            "format": "uuid",
+            "title": "Voiceturnid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voiceTurnId"
+        ],
+        "title": "VoiceTurnParams",
+        "type": "object"
+      },
+      "VoiceTurnStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.turn.started",
+            "title": "Type",
+            "type": "string"
+          },
+          "activation": {
+            "$ref": "#/components/schemas/Activation"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type",
+          "activation"
+        ],
+        "title": "VoiceTurnStarted",
+        "type": "object"
+      },
       "PrepareTurnRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -1339,6 +2245,117 @@
           "params"
         ]
       },
+      "StartVoiceTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "StartVoiceTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "voice.turn.start",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/StartVoiceTurnParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "InterruptVoiceTurnRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InterruptVoiceTurnRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "voice.turn.interrupt",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/InterruptVoiceTurnParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "CompleteVoicePlaybackRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CompleteVoicePlaybackRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "voice.turn.playback_completed",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/VoiceTurnParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
       "SubscribeSessionRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -1509,6 +2526,29 @@
           "method",
           "params"
         ]
+      },
+      "VoiceEventNotification": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "VoiceEventNotification",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "method": {
+            "const": "voice.event",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/VoiceEventMessage"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
       }
     }
   },
@@ -1521,6 +2561,26 @@
       },
       "message": {
         "$ref": "#/components/schemas/SessionEventNotification"
+      },
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "voice.event",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceEventMessage"
+      },
+      "message": {
+        "$ref": "#/components/schemas/VoiceEventNotification"
       },
       "servers": [
         {
@@ -1588,6 +2648,66 @@
       "name": "turn.failed",
       "payload": {
         "$ref": "#/components/schemas/TurnFailed"
+      }
+    },
+    {
+      "name": "voice.turn.started",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTurnStarted"
+      }
+    },
+    {
+      "name": "voice.transcript.partial",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTranscriptPartial"
+      }
+    },
+    {
+      "name": "voice.transcript.final",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTranscriptFinal"
+      }
+    },
+    {
+      "name": "voice.assistant_audio.started",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceAssistantAudioStarted"
+      }
+    },
+    {
+      "name": "voice.assistant_audio.completed",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceAssistantAudioCompleted"
+      }
+    },
+    {
+      "name": "voice.turn.completed",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTurnCompleted"
+      }
+    },
+    {
+      "name": "voice.turn.discarded",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTurnDiscarded"
+      }
+    },
+    {
+      "name": "voice.turn.cancelled",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTurnCancelled"
+      }
+    },
+    {
+      "name": "voice.turn.failed",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceTurnFailed"
+      }
+    },
+    {
+      "name": "voice.session.closed",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceSessionClosed"
       }
     }
   ]

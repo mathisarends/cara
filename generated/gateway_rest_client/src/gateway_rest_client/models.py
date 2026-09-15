@@ -35,6 +35,14 @@ class ItemType(StrEnum):
     TOOL_CALL = "tool_call"
 
 
+class Activation(StrEnum):
+    WAKE_WORD = "wake_word"
+    MANUAL = "manual"
+    FOLLOW_UP = "follow_up"
+    BARGE_IN = "barge_in"
+    PROACTIVE = "proactive"
+
+
 class AlarmPhase(StrEnum):
     PRE_WAKE = "pre_wake"
     WAKE = "wake"
@@ -169,6 +177,18 @@ class AtSchedule(BaseModel):
 
     kind: Literal[AutomationScheduleKind.AT]
     run_at: datetime
+
+
+class AudioEncoding(StrEnum):
+    PCM_S16LE = "pcm_s16le"
+
+
+class AudioFormat(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    encoding: AudioEncoding
+    sample_rate: int = Field(gt=0.0)
+    channels: int = Field(ge=1.0)
 
 
 class CronSchedule(BaseModel):
@@ -318,6 +338,17 @@ class InvalidAlarmProblem(BaseModel):
     instance: str | None = None
 
 
+class InvalidVoiceSessionProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/invalid_voice_session"]
+    title: Literal["Invalid voice session"]
+    status: Literal[422]
+    code: Literal["invalid_voice_session"]
+    detail: str | None = None
+    instance: str | None = None
+
+
 class ToolCallStatus(StrEnum):
     PENDING = "pending"
     COMPLETED = "completed"
@@ -358,6 +389,15 @@ class OpenSessionRequest(BaseModel):
 
     channel: SessionChannel
     inactivity_timeout_seconds: float | None = None
+
+
+class OpenVoiceSessionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    session_id: UUID
+    device_id: str = Field(min_length=1)
+    input_formats: list[AudioFormat] = Field(min_length=1)
+    output_formats: list[AudioFormat] = Field(min_length=1)
 
 
 class Problem(BaseModel):
@@ -466,6 +506,120 @@ class UpdateAutomationRequest(BaseModel):
     name: str | None = None
 
 
+class VoiceSessionAlreadyOpenProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/voice_session_already_open"]
+    title: Literal["Voice session already open"]
+    status: Literal[409]
+    code: Literal["voice_session_already_open"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class VoiceSessionClosedProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/voice_session_closed"]
+    title: Literal["Voice session closed"]
+    status: Literal[409]
+    code: Literal["voice_session_closed"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class VoiceSessionStatus(StrEnum):
+    OPEN = "open"
+    CLOSED = "closed"
+
+
+class VoiceSessionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    id: UUID
+    session_id: UUID
+    device_id: str
+    status: VoiceSessionStatus
+    input_format: AudioFormat
+    output_format: AudioFormat
+    media_path: str
+    media_connected: bool
+    created_at: datetime
+    closed_at: datetime | None
+    close_reason: str | None
+
+
+class VoiceSessionListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    voice_sessions: list[VoiceSessionResponse]
+
+
+class VoiceSessionNotFoundProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/voice_session_not_found"]
+    title: Literal["Voice session not found"]
+    status: Literal[404]
+    code: Literal["voice_session_not_found"]
+    detail: str | None = None
+    instance: str | None = None
+
+
+class VoiceTurnStatus(StrEnum):
+    LISTENING = "listening"
+    TRANSCRIBING = "transcribing"
+    WAITING_FOR_ASSISTANT = "waiting_for_assistant"
+    SPEAKING = "speaking"
+    COMPLETED = "completed"
+    DISCARDED = "discarded"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+
+
+class VoiceTurnResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    id: UUID
+    index: int
+    activation: Activation
+    status: VoiceTurnStatus
+    transcript: str | None
+    user_message_id: UUID | None
+    error: str | None
+    started_at: datetime
+    input_ended_at: datetime | None
+    transcribed_at: datetime | None
+    speech_started_at: datetime | None
+    ended_at: datetime | None
+
+
+class VoiceSessionSnapshotResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    voice_session: VoiceSessionResponse
+    turns: list[VoiceTurnResponse]
+    active_turn_id: UUID | None
+    last_sequence: int
+
+
+class VoiceTurnNotFoundProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/voice_turn_not_found"]
+    title: Literal["Voice turn not found"]
+    status: Literal[404]
+    code: Literal["voice_turn_not_found"]
+    detail: str | None = None
+    instance: str | None = None
+
+
 class ListSessionsParams(BaseModel):
     limit: int = Field(20, ge=1, le=100)
     sort: SortOrder = SortOrder.DESC
+
+
+class ListVoiceSessionsParams(BaseModel):
+    session_id: UUID | None = None
+    device_id: str | None = None
+    status: VoiceSessionStatus | None = None

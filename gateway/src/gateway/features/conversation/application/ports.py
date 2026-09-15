@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import AbstractAsyncContextManager
 from uuid import UUID
 
 from gateway.features.conversation.application.events import ConversationEvent
@@ -7,6 +8,19 @@ from gateway.features.conversation.application.events import ConversationEvent
 class EventPublisher(ABC):
     @abstractmethod
     async def publish(self, event: ConversationEvent) -> None: ...
+
+
+class EventSubscription(ABC):
+    @abstractmethod
+    async def receive(self) -> ConversationEvent: ...
+
+
+class EventSource(ABC):
+    @abstractmethod
+    def listen(
+        self,
+        session_id: UUID,
+    ) -> AbstractAsyncContextManager[EventSubscription]: ...
 
 
 class TurnLease(ABC):

@@ -12,6 +12,9 @@ from gateway_rpc_client.models import (
     SubscriptionResult,
     TurnCommandResult,
     UnsubscriptionResult,
+    VoiceEventMessage,
+    VoiceEventNotification,
+    VoiceTurnCommandResult,
 )
 
 TURN_PREPARE = RpcRouteInfo(
@@ -44,6 +47,24 @@ TURN_CANCEL = RpcRouteInfo(
     server="local",
 )
 
+VOICE_TURN_START = RpcRouteInfo(
+    method="voice.turn.start",
+    result_adapter=TypeAdapter(VoiceTurnCommandResult),
+    server="local",
+)
+
+VOICE_TURN_INTERRUPT = RpcRouteInfo(
+    method="voice.turn.interrupt",
+    result_adapter=TypeAdapter(VoiceTurnCommandResult),
+    server="local",
+)
+
+VOICE_TURN_PLAYBACK_COMPLETED = RpcRouteInfo(
+    method="voice.turn.playback_completed",
+    result_adapter=TypeAdapter(VoiceTurnCommandResult),
+    server="local",
+)
+
 SUBSCRIPTION_SUBSCRIBE = RpcRouteInfo(
     method="subscription.subscribe",
     result_adapter=TypeAdapter(SubscriptionResult),
@@ -71,5 +92,11 @@ SUBSCRIPTION_UNSUBSCRIBE_CHANNEL = RpcRouteInfo(
 SESSION_EVENT: RpcNotificationInfo[SessionEvent] = RpcNotificationInfo(
     method="session.event",
     message_adapter=TypeAdapter(SessionEventNotification),
+    server="local",
+)
+
+VOICE_EVENT: RpcNotificationInfo[VoiceEventMessage] = RpcNotificationInfo(
+    method="voice.event",
+    message_adapter=TypeAdapter(VoiceEventNotification),
     server="local",
 )

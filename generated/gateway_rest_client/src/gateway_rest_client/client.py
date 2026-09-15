@@ -31,8 +31,11 @@ from gateway_rest_client.models import (
     DismissAlarmResponse,
     HealthResponse,
     InvalidAlarmProblem,
+    InvalidVoiceSessionProblem,
     ListSessionsParams,
+    ListVoiceSessionsParams,
     OpenSessionRequest,
+    OpenVoiceSessionRequest,
     ReadinessResponse,
     RequestValidationProblem,
     SessionListResponse,
@@ -44,6 +47,14 @@ from gateway_rest_client.models import (
     SortOrder,
     UpdateAlarmRequest,
     UpdateAutomationRequest,
+    VoiceSessionAlreadyOpenProblem,
+    VoiceSessionListResponse,
+    VoiceSessionNotFoundProblem,
+    VoiceSessionResponse,
+    VoiceSessionSnapshotResponse,
+    VoiceSessionStatus,
+    VoiceTurnNotFoundProblem,
+    VoiceTurnResponse,
 )
 from gateway_rest_client.serialization import (
     apply_security,
@@ -1139,6 +1150,292 @@ class GatewayRestClient:
                 return SessionSnapshotResponse.model_validate(response.json())
             if response.status_code == 404:
                 detail = SessionNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def list_voice_sessions(
+        self,
+        session_id: UUID | None = None,
+        device_id: str | None = None,
+        status: VoiceSessionStatus | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> VoiceSessionListResponse:
+        try:
+            path = "/v1/voice-sessions"
+
+            params = ListVoiceSessionsParams(
+                session_id=session_id,
+                device_id=device_id,
+                status=status,
+            )
+            query: list[tuple[str, str]] = []
+            if params.session_id is not None:
+                query.extend(serialize_query("session_id", params.session_id))
+            if params.device_id is not None:
+                query.extend(serialize_query("device_id", params.device_id))
+            if params.status is not None:
+                query.extend(serialize_query("status", params.status))
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, query, {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                params=query,
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return VoiceSessionListResponse.model_validate(response.json())
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def open_voice_session(
+        self,
+        body: OpenVoiceSessionRequest,
+        *,
+        timeout: float | None = None,
+    ) -> VoiceSessionResponse:
+        try:
+            path = "/v1/voice-sessions"
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+            json_body = TypeAdapter(OpenVoiceSessionRequest).dump_python(
+                body, mode="json", by_alias=True, exclude_none=True
+            )
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.POST,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                json=json_body,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 201:
+                return VoiceSessionResponse.model_validate(response.json())
+            if response.status_code == 409:
+                detail = VoiceSessionAlreadyOpenProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 422:
+                detail = InvalidVoiceSessionProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def get_voice_session(
+        self,
+        voice_session_id: UUID,
+        *,
+        timeout: float | None = None,
+    ) -> VoiceSessionSnapshotResponse:
+        try:
+            path = "/v1/voice-sessions/{voice_session_id}"
+            path = path.replace(
+                "{voice_session_id}",
+                serialize_path("voice_session_id", voice_session_id),
+            )
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return VoiceSessionSnapshotResponse.model_validate(response.json())
+            if response.status_code == 404:
+                detail = VoiceSessionNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def close_voice_session(
+        self,
+        voice_session_id: UUID,
+        *,
+        timeout: float | None = None,
+    ) -> VoiceSessionResponse:
+        try:
+            path = "/v1/voice-sessions/{voice_session_id}/close"
+            path = path.replace(
+                "{voice_session_id}",
+                serialize_path("voice_session_id", voice_session_id),
+            )
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.POST,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return VoiceSessionResponse.model_validate(response.json())
+            if response.status_code == 404:
+                detail = VoiceSessionNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def get_voice_turn(
+        self,
+        voice_session_id: UUID,
+        voice_turn_id: UUID,
+        *,
+        timeout: float | None = None,
+    ) -> VoiceTurnResponse:
+        try:
+            path = "/v1/voice-sessions/{voice_session_id}/turns/{voice_turn_id}"
+            path = path.replace(
+                "{voice_session_id}",
+                serialize_path("voice_session_id", voice_session_id),
+            )
+            path = path.replace(
+                "{voice_turn_id}", serialize_path("voice_turn_id", voice_turn_id)
+            )
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return VoiceTurnResponse.model_validate(response.json())
+            if response.status_code == 404:
+                detail = TypeAdapter(
+                    VoiceSessionNotFoundProblem | VoiceTurnNotFoundProblem
+                ).validate_python(response.json())
                 raise ApiError(response.status_code, response.text, detail, response)
             if response.status_code == 422:
                 detail = RequestValidationProblem.model_validate(response.json())

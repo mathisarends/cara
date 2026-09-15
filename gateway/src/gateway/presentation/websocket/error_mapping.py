@@ -8,25 +8,45 @@ from gateway.features.conversation.domain import (
     SessionBusyError,
     SessionNotFoundError,
 )
-from gateway.presentation.rpc import (
-    NoActiveTurnError as NoActiveTurnRpcError,
+from gateway.features.voice.domain import (
+    MediaNotConnectedError,
+    NotMediaOwnerError,
+    VoiceSessionNotFoundError,
+    VoiceTurnAlreadyActiveError,
+    VoiceTurnNotFoundError,
 )
 from gateway.presentation.rpc import (
+    MediaNotConnectedRpcError,
+    NotMediaOwnerRpcError,
     ResourceNotFoundError,
     TurnAlreadyRunningError,
+    VoiceTurnAlreadyActiveRpcError,
+)
+from gateway.presentation.rpc import (
+    NoActiveTurnError as NoActiveTurnRpcError,
 )
 
 
 def gateway_error_mapper(error: Exception) -> rpc.RpcError | None:
     if isinstance(
         error,
-        SessionNotFoundError | AutomationNotFoundError | AlarmNotFoundError,
+        SessionNotFoundError
+        | AutomationNotFoundError
+        | AlarmNotFoundError
+        | VoiceSessionNotFoundError
+        | VoiceTurnNotFoundError,
     ):
         return ResourceNotFoundError(f"Not found: {error}")
     if isinstance(error, SessionBusyError):
         return TurnAlreadyRunningError(f"Turn already running: {error}")
     if isinstance(error, NoActiveTurnError):
         return NoActiveTurnRpcError(str(error))
+    if isinstance(error, VoiceTurnAlreadyActiveError):
+        return VoiceTurnAlreadyActiveRpcError(str(error))
+    if isinstance(error, MediaNotConnectedError):
+        return MediaNotConnectedRpcError(str(error))
+    if isinstance(error, NotMediaOwnerError):
+        return NotMediaOwnerRpcError(str(error))
     if isinstance(error, ValidationError):
         return None
     # Invalid alarms are ValueErrors and take the branch below.

@@ -5,6 +5,7 @@ from gateway.features.conversation.presentation.rpc.events import session_events
 from gateway.features.conversation.presentation.rpc.subscriptions import (
     subscription_module,
 )
+from gateway.features.voice.presentation.rpc import voice_events_module
 
 
 def gateway_channel() -> RpcChannel:
@@ -13,4 +14,5 @@ def gateway_channel() -> RpcChannel:
         channel.include(module)
     channel.include(subscription_module)
     channel.include(session_events_module)
+    channel.include(voice_events_module)
     return channel

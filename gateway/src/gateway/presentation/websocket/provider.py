@@ -5,7 +5,12 @@ from dishka import AsyncContainer, Provider, Scope, provide
 from fastapi import WebSocket
 from pyrpckit.dishka import DishkaResolver
 
-from gateway.features.conversation.application import EventPublisher, SessionService
+from gateway.features.conversation.application import (
+    EventPublisher,
+    EventSource,
+    SessionService,
+)
+from gateway.features.voice.application import VoiceEventPublisher
 from gateway.presentation.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
@@ -41,6 +46,17 @@ class GatewayProvider(Provider):
 
     @provide(scope=Scope.APP)
     def event_publisher(self, stream: InMemoryEventStream) -> EventPublisher:
+        return stream
+
+    @provide(scope=Scope.APP)
+    def event_source(self, stream: InMemoryEventStream) -> EventSource:
+        return stream
+
+    @provide(scope=Scope.APP)
+    def voice_event_publisher(
+        self,
+        stream: InMemoryEventStream,
+    ) -> VoiceEventPublisher:
         return stream
 
     @provide(scope=Scope.SESSION)

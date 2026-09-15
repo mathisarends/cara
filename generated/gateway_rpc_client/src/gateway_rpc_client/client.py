@@ -9,6 +9,7 @@ from gateway_rpc_client.internal import ClientConnection, RpcClientCore, RpcTran
 from gateway_rpc_client.namespaces.session import Session
 from gateway_rpc_client.namespaces.subscription import Subscription
 from gateway_rpc_client.namespaces.turn import Turn
+from gateway_rpc_client.namespaces.voice import Voice
 from gateway_rpc_client.transport import WebSocketTransport
 
 
@@ -21,6 +22,7 @@ class GatewayRpcClient:
     ) -> None:
         self._rpc = RpcClientCore(transport, close_transport=close_transport)
         self.turn = Turn(self._rpc)
+        self.voice = Voice(self._rpc)
         self.subscription = Subscription(self._rpc)
         self.session = Session(self._rpc)
 

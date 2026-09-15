@@ -10,12 +10,21 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 - `turn.steer` / `turn.cancel`: control a running turn
 - `turn.prepare` / `turn.finish`: latency-sensitive agent lifecycle hints during a conversation
 - Notification `session.event`
+- `voice.turn.start` / `voice.turn.interrupt` / `voice.turn.playback_completed`: control a live voice turn
+- Notification `voice.event`: voice lifecycle for subscribed conversation sessions
+
+## Media WebSocket (`/v1/voice-sessions/{id}/media`, binary)
+
+- Full-duplex PCM audio uses a dedicated binary socket with a compact versioned frame header.
+- The authenticated connection is the sole input/output owner of that voice session.
+- Audio never passes through JSON-RPC; input completion is an ordered media frame.
 
 ## REST
 
 - Sessions: `POST /v1/sessions`, `POST /v1/sessions/open`, `GET /v1/sessions/{id}`
 - Automations: `/v1/owners/{owner_id}/automations` (CRUD)
 - Alarms: `/v1/owners/{owner_id}/alarms` (CRUD, `enabled`, `skip-next`, `snooze`, `dismiss`)
+- Voice sessions: `POST /v1/voice-sessions`, list/get/close, and persisted turn snapshots
 - Future resource features: REST only, no RPC layer
 - Every resource router requires `Authorization: Bearer <CARA_GATEWAY_TOKEN>` (`require_token`, OpenAPI scheme `GatewayToken`); only health is open
 

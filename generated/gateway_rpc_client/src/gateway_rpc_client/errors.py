@@ -24,3 +24,11 @@ class TurnAlreadyRunningError(RpcRemoteError):
 
 class NoActiveTurnError(RpcRemoteError):
     code: ClassVar[int] = -32010
+
+
+class MediaNotConnectedRpcError(RpcRemoteError):
+    code: ClassVar[int] = -32012
+
+
+class VoiceTurnAlreadyActiveRpcError(RpcRemoteError):
+    code: ClassVar[int] = -32011

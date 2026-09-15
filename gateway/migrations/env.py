@@ -17,6 +17,10 @@ from gateway.features.conversation.infrastructure.orm import (  # noqa: F401
     SessionToolCallSequenceModel,
     SessionUserMessageModel,
 )
+from gateway.features.voice.infrastructure.orm import (  # noqa: F401
+    VoiceSessionModel,
+    VoiceTurnModel,
+)
 from gateway.platform.database.settings import DatabaseSettings
 
 config = context.config

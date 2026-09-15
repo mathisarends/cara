@@ -63,24 +63,38 @@ class TurnService:
         session_id: UUID,
         text: str,
         metadata: dict[str, object],
-    ) -> None:
+    ) -> UUID:
         session = await self._session_service.get(session_id)
         if not await self._acquire_lease(session_id):
             raise SessionBusyError(session_id)
+        # Acquiring the lease marks the session active in a separate unit of work.
+        # Reload before saving the user message so stale aggregate state cannot
+        # overwrite that flag.
+        session = await self._session_service.get(session_id)
         logger.info(
             "User message for session %s on channel %s: %r",
             session_id,
             session.channel.name,
             _preview(text),
         )
+        input_message = session.add_user_message(text)
+        input_id = input_message.id
+        await self._save(session)
         task = asyncio.create_task(
-            self._execute(session_id, text, metadata, persist_input=True)
+            self._execute(
+                session_id,
+                text,
+                metadata,
+                persist_input=False,
+                input_id=input_id,
+            )
         )
         self._background_tasks[session_id] = task
         task.add_done_callback(
             lambda completed, key=session_id: self._discard_task(key, completed)
         )
         await asyncio.sleep(0)
+        return input_id
 
     async def start_scheduled(
         self,
@@ -144,6 +158,7 @@ class TurnService:
         metadata: dict[str, object],
         *,
         persist_input: bool,
+        input_id: UUID | None = None,
     ) -> None:
         session: Session | None = None
         turn: TurnExecution | None = None
@@ -151,7 +166,6 @@ class TurnService:
         terminal_data: dict[str, Any] = {}
         try:
             session = await self._session_service.get(session_id)
-            input_id: UUID | None = None
             if persist_input:
                 input_message = session.add_user_message(text)
                 input_id = input_message.id
