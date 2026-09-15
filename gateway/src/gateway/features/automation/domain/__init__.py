@@ -1,6 +1,6 @@
 from .action import AutomationOrigin, PromptAction, SessionTarget
 from .automation import Automation
-from .exceptions import AutomationNotFoundError
+from .errors import AutomationNotFoundError
 from .repository import AutomationRepository
 from .schedule import (
     AtSchedule,

@@ -8,7 +8,7 @@ from gateway.features.automation.domain.action import (
     PromptAction,
     SessionTarget,
 )
-from gateway.features.automation.domain.exceptions import AutomationNotFoundError
+from gateway.features.automation.domain.errors import AutomationNotFoundError
 from gateway.features.automation.domain.schedule import AutomationSchedule
 
 

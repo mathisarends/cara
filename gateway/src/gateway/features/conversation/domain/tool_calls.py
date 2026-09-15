@@ -4,44 +4,12 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
-from gateway.features.conversation.domain.exceptions import (
+from gateway.features.conversation.domain.errors import (
     DuplicateToolCallError,
     ToolCallAlreadyResolvedError,
     ToolCallNotFoundError,
 )
 from gateway.shared import Entity
-
-
-class UserMessage(Entity):
-    def __init__(
-        self,
-        content: str,
-        *,
-        id: UUID | None = None,
-        created_at: datetime | None = None,
-    ) -> None:
-        super().__init__(id=id, created_at=created_at)
-        self._content = content
-
-    @property
-    def content(self) -> str:
-        return self._content
-
-
-class AssistantMessage(Entity):
-    def __init__(
-        self,
-        content: str,
-        *,
-        id: UUID | None = None,
-        created_at: datetime | None = None,
-    ) -> None:
-        super().__init__(id=id, created_at=created_at)
-        self._content = content
-
-    @property
-    def content(self) -> str:
-        return self._content
 
 
 class ToolCallState(StrEnum):
@@ -156,6 +124,3 @@ class ToolCallSequence(Entity):
             if call.call_id == call_id:
                 return call
         raise ToolCallNotFoundError(call_id)
-
-
-type SessionEntry = UserMessage | AssistantMessage | ToolCallSequence

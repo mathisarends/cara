@@ -3,17 +3,13 @@ from datetime import datetime
 from typing import Any, Self
 from uuid import UUID
 
-from gateway.features.conversation.domain.entries import (
-    AssistantMessage,
-    SessionEntry,
-    ToolCall,
-    ToolCallSequence,
-    UserMessage,
-)
-from gateway.features.conversation.domain.exceptions import (
+from gateway.features.conversation.domain.errors import (
     NoPendingToolCallSequenceError,
     PendingToolCallsError,
 )
+from gateway.features.conversation.domain.messages import AssistantMessage, UserMessage
+from gateway.features.conversation.domain.session_entry import SessionEntry
+from gateway.features.conversation.domain.tool_calls import ToolCall, ToolCallSequence
 from gateway.features.conversation.domain.values import ChannelRef
 from gateway.shared import Aggregate
 
