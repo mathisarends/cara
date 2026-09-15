@@ -45,9 +45,9 @@ flowchart TD
     Cli --> Client
     Client -- "JSON-RPC 2.0 over WebSocket<br/>'/v1/gateway'" --> Gateway
     Gateway --> Agent
-    Agent --> Manager
+    Gateway --> Manager
     Manager --> Sandbox
-    Agent --> MCP
+    Gateway --> MCP
 ```
 
 Three ideas hold this together:
@@ -67,8 +67,7 @@ Three ideas hold this together:
 - **The gateway owns the agent runtime.** The model/tool loop is composed directly in the Gateway;
   arbitrary Python plugins are never loaded into that privileged process. Shell and workspace
   operations go through the separately deployed Sandbox Manager, while user integrations are
-  out-of-process [MCP tool servers](docs/mcp-tools.md). See the
-  [architecture vision](AGENT_RUNTIME_ARCHITECTURE_VISION.md).
+  out-of-process [MCP tool servers](docs/mcp-tools.md).
 
 [`voice`](clients/voice#readme) and [`cli`](clients/cli#readme) are both thin clients built on
 [`gateway_client`](generated/gateway_client#readme): neither talks to an LLM directly, and both get
@@ -227,7 +226,8 @@ offered to the model:
 
 ```python
 audio_output = SonosOutput()
-tools = build_tools(injected_dependencies=(audio_output,))
+context = ToolContext(workspace, command_runner, audio_output)
+tools = build_tools(context=context)
 ```
 
 ## Tool safety

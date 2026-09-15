@@ -11,6 +11,7 @@ docker compose up --build -d
 For host development, set `CARA_GATEWAY_TOKEN` and run
 `uv run --package gateway-server gateway-migrate` followed by
 `uv run --package gateway-server cara-gateway`. Configuration lives in
-[`gateway.yaml`](../gateway.yaml). See the
-[architecture vision](../AGENT_RUNTIME_ARCHITECTURE_VISION.md) and
+[`gateway.yaml`](../gateway.yaml). The Gateway owns workspace configuration and
+the Sandbox Manager client lifecycle, then injects the resulting workspace and
+command-runner capabilities into the agent. See the
 [MCP guide](../docs/mcp-tools.md).

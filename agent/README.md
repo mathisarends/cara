@@ -8,5 +8,6 @@ command runner, reminders, and MCP tools.
 from agent import Agent, AgentFactory, AgentSettings
 ```
 
-Docker lifecycle and network transports live outside this package. See the
-[architecture vision](../AGENT_RUNTIME_ARCHITECTURE_VISION.md).
+`AgentFactory` requires an explicit `Workspace` and `CommandRunner`; the package
+does not create a local execution fallback. Workspace configuration, sandbox
+lifecycle, and network transports belong to the embedding host.
