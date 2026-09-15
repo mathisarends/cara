@@ -25,5 +25,4 @@ class AutomationModel(DatabaseEntity, table=True):
     schedule_cron_expression: str | None = None
     schedule_cron_timezone: str | None = None
     instruction: str
-    created_from_turn_id: UUID
     next_run_at: datetime = Field(sa_type=DateTime(timezone=True))

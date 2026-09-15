@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
             {"name": "gateway", "description": "Cara gateway protocol."},
             {"name": "sessions", "description": "Conversation session lifecycle."},
             {"name": "automations", "description": "Scheduled agent runs."},
+            {"name": "alarms", "description": "Wake-up alarms with agentic routines."},
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)

@@ -33,6 +33,54 @@ class SessionEventType(StrEnum):
     TURN_STEERED = "turn.steered"
 
 
+class AlarmNextRun(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    phase: AlarmPhase
+    due_at: datetime = Field(alias="dueAt")
+
+
+class AlarmOccurrence(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    wake_at: datetime = Field(alias="wakeAt")
+    state: OccurrenceState
+    snooze_count: int = Field(alias="snoozeCount")
+    snoozed_until: datetime | None = Field(alias="snoozedUntil")
+
+
+class AlarmPhase(StrEnum):
+    PRE_WAKE = "pre_wake"
+    WAKE = "wake"
+    SNOOZE_END = "snooze_end"
+
+
+class AlarmResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    owner_id: str = Field(alias="ownerId")
+    name: str | None
+    created_at: datetime = Field(alias="createdAt")
+    enabled: bool
+    target: AlarmTarget
+    recurrence: AlarmRecurrence
+    routine: AlarmRoutine
+    pre_wake_minutes: int | None = Field(alias="preWakeMinutes")
+    skipped_dates: list[str] = Field(alias="skippedDates")
+    occurrence: AlarmOccurrence | None
+    next_run: AlarmNextRun | None = Field(alias="nextRun")
+
+
+class AlarmRoutine(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    skill: str
+    note: str | None = None
+
+
+class AlarmTarget(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["session"] = "session"
+    session_id: UUID = Field(alias="sessionId")
+
+
 class AssistantMessageItem(RpcModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal[ItemType.ASSISTANT_MESSAGE] = ItemType.ASSISTANT_MESSAGE
@@ -88,6 +136,16 @@ class ChatDelta(RpcModel):
     text: str
 
 
+class CreateAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    target: AlarmTarget
+    recurrence: AlarmRecurrence
+    routine: AlarmRoutine
+    pre_wake_minutes: int | None = Field(None, alias="preWakeMinutes")
+    name: str | None = None
+
+
 class CreateAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
@@ -109,6 +167,17 @@ class CronSchedule(RpcModel):
     timezone: str
 
 
+class DeleteAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
+
+
+class DeleteAlarmResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    deleted: UUID
+
+
 class DeleteAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
@@ -118,6 +187,23 @@ class DeleteAutomationParams(RpcModel):
 class DeleteAutomationResponse(RpcModel):
     model_config = ConfigDict(extra="forbid")
     deleted: UUID
+
+
+class DismissAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
+
+
+class DismissAlarmResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    alarm: AlarmResponse | None
+
+
+class GetAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
 
 
 class GetAutomationParams(RpcModel):
@@ -133,6 +219,16 @@ class IntervalSchedule(RpcModel):
     run_immediately: bool = Field(alias="runImmediately")
 
 
+class ListAlarmsParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+
+
+class ListAlarmsResponse(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    alarms: list[AlarmResponse]
+
+
 class ListAutomationsParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
@@ -141,6 +237,19 @@ class ListAutomationsParams(RpcModel):
 class ListAutomationsResponse(RpcModel):
     model_config = ConfigDict(extra="forbid")
     automations: list[AutomationResponse]
+
+
+class OccurrenceState(StrEnum):
+    UPCOMING = "upcoming"
+    PRE_WAKE = "pre_wake"
+    ACTIVE = "active"
+    SNOOZED = "snoozed"
+
+
+class OnceAlarmRecurrence(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["once"] = "once"
+    wake_at: datetime = Field(alias="wakeAt")
 
 
 class OpenSessionParams(RpcModel):
@@ -152,7 +261,6 @@ class ReminderAutomationPayload(RpcModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["reminder"] = "reminder"
     instruction: str
-    created_from_turn_id: UUID = Field(alias="createdFromTurnId")
 
 
 class SessionChannel(RpcModel):
@@ -177,6 +285,26 @@ class SessionSnapshotResponse(RpcModel):
     session: SessionResponse
     items: list[Item]
     turn_active: bool = Field(alias="turnActive")
+
+
+class SetAlarmEnabledParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
+    enabled: bool
+
+
+class SkipNextAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
+
+
+class SnoozeAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
+    minutes: int
 
 
 class StartTurnParams(RpcModel):
@@ -310,6 +438,16 @@ class UnsubscriptionResult(RpcModel):
     unsubscribed: UUID
 
 
+class UpdateAlarmParams(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    owner_id: str = Field(alias="ownerId")
+    alarm_id: UUID = Field(alias="alarmId")
+    recurrence: AlarmRecurrence
+    routine: AlarmRoutine
+    pre_wake_minutes: int | None = Field(None, alias="preWakeMinutes")
+    name: str | None = None
+
+
 class UpdateAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     owner_id: str = Field(alias="ownerId")
@@ -327,11 +465,34 @@ class UserMessageItem(RpcModel):
     content: str
 
 
+class Weekday(StrEnum):
+    MON = "mon"
+    TUE = "tue"
+    WED = "wed"
+    THU = "thu"
+    FRI = "fri"
+    SAT = "sat"
+    SUN = "sun"
+
+
+class WeeklyAlarmRecurrence(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["weekly"] = "weekly"
+    days: list[Weekday]
+    local_time: str = Field(alias="localTime")
+    timezone: str
+
+
 class SessionEventNotification(RpcModel):
     model_config = ConfigDict(extra="forbid")
     jsonrpc: Literal["2.0"]
     method: Literal["session.event"]
     params: SessionEvent
+
+
+type AlarmRecurrence = Annotated[
+    OnceAlarmRecurrence | WeeklyAlarmRecurrence, Field(discriminator="kind")
+]
 
 
 type AutomationSchedule = Annotated[
@@ -358,27 +519,44 @@ type SessionEvent = Annotated[
 ]
 
 
+AlarmNextRun.model_rebuild()
+AlarmOccurrence.model_rebuild()
+AlarmResponse.model_rebuild()
+AlarmRoutine.model_rebuild()
+AlarmTarget.model_rebuild()
 AssistantMessageItem.model_rebuild()
 AtSchedule.model_rebuild()
 AutomationResponse.model_rebuild()
 AutomationTarget.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
+CreateAlarmParams.model_rebuild()
 CreateAutomationParams.model_rebuild()
 CreateSessionParams.model_rebuild()
 CronSchedule.model_rebuild()
+DeleteAlarmParams.model_rebuild()
+DeleteAlarmResponse.model_rebuild()
 DeleteAutomationParams.model_rebuild()
 DeleteAutomationResponse.model_rebuild()
+DismissAlarmParams.model_rebuild()
+DismissAlarmResponse.model_rebuild()
+GetAlarmParams.model_rebuild()
 GetAutomationParams.model_rebuild()
 IntervalSchedule.model_rebuild()
+ListAlarmsParams.model_rebuild()
+ListAlarmsResponse.model_rebuild()
 ListAutomationsParams.model_rebuild()
 ListAutomationsResponse.model_rebuild()
+OnceAlarmRecurrence.model_rebuild()
 OpenSessionParams.model_rebuild()
 ReminderAutomationPayload.model_rebuild()
 SessionChannel.model_rebuild()
 SessionParams.model_rebuild()
 SessionResponse.model_rebuild()
 SessionSnapshotResponse.model_rebuild()
+SetAlarmEnabledParams.model_rebuild()
+SkipNextAlarmParams.model_rebuild()
+SnoozeAlarmParams.model_rebuild()
 StartTurnParams.model_rebuild()
 SteerTurnParams.model_rebuild()
 SubscriptionResult.model_rebuild()
@@ -392,6 +570,8 @@ TurnFailed.model_rebuild()
 TurnStarted.model_rebuild()
 TurnSteered.model_rebuild()
 UnsubscriptionResult.model_rebuild()
+UpdateAlarmParams.model_rebuild()
 UpdateAutomationParams.model_rebuild()
 UserMessageItem.model_rebuild()
+WeeklyAlarmRecurrence.model_rebuild()
 SessionEventNotification.model_rebuild()

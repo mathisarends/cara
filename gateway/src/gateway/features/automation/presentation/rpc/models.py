@@ -65,7 +65,6 @@ type AutomationTarget = SessionAutomationTarget
 class ReminderAutomationPayload(RpcModel):
     kind: Literal[PayloadKind.REMINDER] = PayloadKind.REMINDER
     instruction: str
-    created_from_turn_id: UUID
 
 
 class AutomationResponse(RpcModel):

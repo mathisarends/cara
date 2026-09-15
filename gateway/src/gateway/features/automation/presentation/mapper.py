@@ -32,10 +32,7 @@ def to_automation_response(automation: domain.Automation) -> AutomationResponse:
         next_run_at=automation.next_run_at,
         schedule=_to_schedule_schema(automation.schedule),
         target=_to_target_schema(automation.target),
-        payload=ReminderPayload(
-            instruction=automation.action.instruction,
-            created_from_turn_id=automation.origin.created_from_turn_id,
-        ),
+        payload=ReminderPayload(instruction=automation.action.instruction),
     )
 
 
@@ -63,10 +60,6 @@ def to_target(target: AutomationTarget) -> domain.AutomationTarget:
 
 def to_action(payload: ReminderPayload) -> domain.PromptAction:
     return domain.PromptAction(payload.instruction)
-
-
-def to_origin(payload: ReminderPayload) -> domain.AutomationOrigin:
-    return domain.AutomationOrigin(payload.created_from_turn_id)
 
 
 def _to_schedule_schema(schedule: domain.AutomationSchedule) -> AutomationSchedule:

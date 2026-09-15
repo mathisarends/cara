@@ -10,7 +10,6 @@ from gateway.features.automation.application import (
 from gateway.features.automation.domain import (
     AtSchedule,
     Automation,
-    AutomationOrigin,
     IntervalSchedule,
     PromptAction,
     SessionTarget,
@@ -43,7 +42,6 @@ async def test_a_due_one_shot_runs_once_and_is_removed(
             target=SessionTarget(uuid4()),
             schedule=AtSchedule(run_at=datetime.now(UTC) + timedelta(milliseconds=20)),
             action=PromptAction("Stand up"),
-            origin=AutomationOrigin(uuid4()),
         )
         async with asyncio.timeout(1):
             while await automation_repository.find_by_id(automation.id) is not None:
@@ -64,7 +62,6 @@ async def test_resume_catches_up_a_missed_run_and_persists_the_next_one(
             target=SessionTarget(uuid4()),
             schedule=IntervalSchedule(every=timedelta(hours=1)),
             action=PromptAction("Drink water"),
-            origin=AutomationOrigin(uuid4()),
             next_run_at=missed_at,
         )
     )

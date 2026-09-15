@@ -7,7 +7,6 @@ from gateway.features.automation.application.ports import (
 from gateway.features.automation.domain import (
     Automation,
     AutomationNotFoundError,
-    AutomationOrigin,
     AutomationRepository,
     AutomationSchedule,
     AutomationTarget,
@@ -43,7 +42,6 @@ class AutomationService:
         target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
-        origin: AutomationOrigin,
         name: str | None = None,
     ) -> Automation:
         await self._targets.require(target)
@@ -52,7 +50,6 @@ class AutomationService:
             target=target,
             schedule=schedule,
             action=action,
-            origin=origin,
             next_run_at=self._scheduler.first_run_at(schedule),
             name=name,
         )
@@ -65,7 +62,6 @@ class AutomationService:
         *,
         schedule: AutomationSchedule,
         action: PromptAction,
-        origin: AutomationOrigin,
         name: str | None = None,
     ) -> Automation:
         automation = await self.get(automation_id, owner_id)
@@ -73,7 +69,6 @@ class AutomationService:
         automation.update(
             schedule=schedule,
             action=action,
-            origin=origin,
             name=name,
             next_run_at=self._scheduler.first_run_at(schedule),
         )

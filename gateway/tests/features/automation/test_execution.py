@@ -7,7 +7,6 @@ from features.automation.fakes import RecordingExecutor
 from gateway.features.automation.application import AutomationExecution
 from gateway.features.automation.domain import (
     Automation,
-    AutomationOrigin,
     IntervalSchedule,
     PromptAction,
     SessionTarget,
@@ -92,6 +91,5 @@ def _automation() -> Automation:
         target=SessionTarget(uuid4()),
         schedule=IntervalSchedule(every=timedelta(hours=1)),
         action=PromptAction("Drink water"),
-        origin=AutomationOrigin(uuid4()),
         next_run_at=_SCHEDULED_FOR,
     )

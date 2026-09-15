@@ -7,3 +7,4 @@ withings  github.com/mathisarends/go-withings/cmd/withings   v0.1.0
 sonos     github.com/steipete/sonoscli/cmd/sonos             v0.3.4
 fitbitctl github.com/mathisarends/fitbitctl/cmd/fitbitctl  v0.0.0-20260801103216-0a9b3dca8e22
 elevenfx  github.com/mathisarends/elevenfx/cmd/elevenfx       v0.0.0-20260806134619-4fb9b039e539
+huerise   github.com/mathisarends/huerise/cli/cmd/huerise    v0.0.0-20260901065008-07186f3228bc

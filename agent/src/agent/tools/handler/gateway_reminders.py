@@ -44,20 +44,13 @@ class GatewayConnection(BaseSettings):
 class GatewayReminders(Reminders):
     """Reminders backed by the gateway automation API over its typed client."""
 
-    def __init__(
-        self,
-        connection: GatewayConnection,
-        *,
-        session_id: UUID,
-        turn_id: UUID,
-    ) -> None:
+    def __init__(self, connection: GatewayConnection, *, session_id: UUID) -> None:
         if connection.token is None:
             raise ValueError("A gateway token is required to schedule reminders")
         self._connection = connection
         self._token = connection.token.get_secret_value()
         self._owner_id = connection.owner_id
         self._session_id = session_id
-        self._turn_id = turn_id
 
     async def list(self) -> tuple[Reminder, ...]:
         async with self._client() as client:
@@ -76,7 +69,7 @@ class GatewayReminders(Reminders):
                 owner_id=self._owner_id,
                 target=AutomationTarget(session_id=self._session_id),
                 schedule=_automation_schedule(schedule),
-                payload=self._payload(instruction),
+                payload=ReminderAutomationPayload(instruction=instruction),
                 name=name,
             )
         return _reminder(automation)
@@ -94,7 +87,7 @@ class GatewayReminders(Reminders):
                 owner_id=self._owner_id,
                 automation_id=reminder_id,
                 schedule=_automation_schedule(schedule),
-                payload=self._payload(instruction),
+                payload=ReminderAutomationPayload(instruction=instruction),
                 name=name,
             )
         return _reminder(automation)
@@ -105,12 +98,6 @@ class GatewayReminders(Reminders):
                 owner_id=self._owner_id,
                 automation_id=reminder_id,
             )
-
-    def _payload(self, instruction: str) -> ReminderAutomationPayload:
-        return ReminderAutomationPayload(
-            instruction=instruction,
-            created_from_turn_id=self._turn_id,
-        )
 
     @asynccontextmanager
     async def _client(self) -> AsyncGenerator[GatewayClient]:

@@ -6,7 +6,6 @@ import pytest
 from gateway.features.automation.domain import (
     AtSchedule,
     Automation,
-    AutomationOrigin,
     AutomationSchedule,
     CronSchedule,
     IntervalSchedule,
@@ -73,7 +72,6 @@ def _automation(
         target=SessionTarget(uuid4()),
         schedule=schedule,
         action=PromptAction("Stretch"),
-        origin=AutomationOrigin(uuid4()),
         next_run_at=datetime(2027, 1, 1, 9, tzinfo=UTC),
         name=name,
     )
@@ -87,7 +85,6 @@ def _state(automation: Automation) -> tuple[object, ...]:
         automation.target,
         automation.schedule,
         automation.action,
-        automation.origin,
         automation.next_run_at,
         automation.name,
     )

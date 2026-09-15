@@ -11,7 +11,6 @@ from gateway.features.automation.application import (
 from gateway.features.automation.domain import (
     AtSchedule,
     AutomationNotFoundError,
-    AutomationOrigin,
     AutomationTarget,
     IntervalSchedule,
     PromptAction,
@@ -33,14 +32,12 @@ async def test_create_and_list_are_scoped_to_the_owner(
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("Visible"),
-        origin=AutomationOrigin(uuid4()),
     )
     await automation_service.create(
         _OTHER_OWNER,
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 2, tzinfo=UTC)),
         action=PromptAction("Hidden"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     listed = await automation_service.list(_OWNER)
@@ -56,14 +53,12 @@ async def test_list_spans_every_target_of_the_owner(
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("From the kitchen"),
-        origin=AutomationOrigin(uuid4()),
     )
     second = await automation_service.create(
         _OWNER,
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 2, tzinfo=UTC)),
         action=PromptAction("From the office"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     listed = await automation_service.list(_OWNER)
@@ -80,7 +75,6 @@ async def test_create_persists_the_first_run_and_arms_it(
         target=SessionTarget(uuid4()),
         schedule=IntervalSchedule(every=timedelta(hours=1)),
         action=PromptAction("Drink water"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     fetched = await automation_service.get(created.id, _OWNER)
@@ -109,7 +103,6 @@ async def test_create_validates_the_target_before_scheduling(
             target=SessionTarget(uuid4()),
             schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
             action=PromptAction("Unreachable"),
-            origin=AutomationOrigin(uuid4()),
         )
     assert await service.list(_OWNER) == ()
     assert recording_scheduler.armed == {}
@@ -123,7 +116,6 @@ async def test_get_raises_for_an_automation_of_another_owner(
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("Private"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     with pytest.raises(AutomationNotFoundError):
@@ -147,7 +139,6 @@ async def test_update_replaces_schedule_action_and_name_but_keeps_identity(
         target=target,
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("Stretch"),
-        origin=AutomationOrigin(uuid4()),
         name="Stretch",
     )
     recording_scheduler.next_run_at = datetime(2027, 2, 1, tzinfo=UTC)
@@ -157,7 +148,6 @@ async def test_update_replaces_schedule_action_and_name_but_keeps_identity(
         _OWNER,
         schedule=IntervalSchedule(every=timedelta(hours=1)),
         action=PromptAction("Stretch more"),
-        origin=AutomationOrigin(uuid4()),
         name="Stretch more",
     )
     updated = await automation_service.get(created.id, _OWNER)
@@ -180,7 +170,6 @@ async def test_update_refuses_to_touch_an_automation_of_another_owner(
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("Private"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     with pytest.raises(AutomationNotFoundError):
@@ -189,7 +178,6 @@ async def test_update_refuses_to_touch_an_automation_of_another_owner(
             _OTHER_OWNER,
             schedule=AtSchedule(run_at=datetime(2027, 2, 1, tzinfo=UTC)),
             action=PromptAction("Hijacked"),
-            origin=AutomationOrigin(uuid4()),
         )
 
 
@@ -202,7 +190,6 @@ async def test_delete_removes_and_disarms_the_automation(
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("Once"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     await automation_service.delete(automation.id, _OWNER)
@@ -219,7 +206,6 @@ async def test_delete_refuses_to_touch_an_automation_of_another_owner(
         target=SessionTarget(uuid4()),
         schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
         action=PromptAction("Private"),
-        origin=AutomationOrigin(uuid4()),
     )
 
     with pytest.raises(AutomationNotFoundError):
@@ -236,7 +222,6 @@ async def test_resume_arms_every_persisted_automation_at_its_stored_next_run(
         target=SessionTarget(uuid4()),
         schedule=IntervalSchedule(every=timedelta(hours=1)),
         action=PromptAction("First"),
-        origin=AutomationOrigin(uuid4()),
     )
     recording_scheduler.next_run_at = datetime(2027, 3, 1, tzinfo=UTC)
     second = await automation_service.create(
@@ -244,7 +229,6 @@ async def test_resume_arms_every_persisted_automation_at_its_stored_next_run(
         target=SessionTarget(uuid4()),
         schedule=IntervalSchedule(every=timedelta(hours=2)),
         action=PromptAction("Second"),
-        origin=AutomationOrigin(uuid4()),
     )
     restarted = RecordingScheduler()
 

@@ -5,7 +5,6 @@ from gateway.features.automation.domain import (
 )
 from gateway.features.automation.domain import (
     Automation,
-    AutomationOrigin,
     PromptAction,
     SessionTarget,
 )
@@ -42,10 +41,7 @@ def automation_response(automation: Automation) -> AutomationResponse:
         next_run_at=automation.next_run_at,
         schedule=schedule_response(automation.schedule),
         target=target_response(automation.target),
-        payload=ReminderAutomationPayload(
-            instruction=automation.action.instruction,
-            created_from_turn_id=automation.origin.created_from_turn_id,
-        ),
+        payload=ReminderAutomationPayload(instruction=automation.action.instruction),
     )
 
 
@@ -73,10 +69,6 @@ def automation_target(target: AutomationTarget) -> DomainAutomationTarget:
 
 def prompt_action(payload: ReminderAutomationPayload) -> PromptAction:
     return PromptAction(payload.instruction)
-
-
-def automation_origin(payload: ReminderAutomationPayload) -> AutomationOrigin:
-    return AutomationOrigin(payload.created_from_turn_id)
 
 
 def schedule_response(schedule: DomainAutomationSchedule) -> AutomationSchedule:

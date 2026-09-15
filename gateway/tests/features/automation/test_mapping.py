@@ -6,7 +6,6 @@ import pytest
 from gateway.features.automation.domain import (
     AtSchedule,
     Automation,
-    AutomationOrigin,
     AutomationSchedule,
     CronSchedule,
     IntervalSchedule,
@@ -14,7 +13,6 @@ from gateway.features.automation.domain import (
     SessionTarget,
 )
 from gateway.features.automation.presentation.rpc.mapping import (
-    automation_origin,
     automation_response,
     automation_schedule,
     automation_target,
@@ -42,7 +40,6 @@ def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> Non
     next_run_at = datetime(2027, 1, 2, tzinfo=UTC)
     automation_id = uuid4()
     session_id = uuid4()
-    turn_id = uuid4()
     automation = Automation(
         id=automation_id,
         created_at=created_at,
@@ -50,7 +47,6 @@ def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> Non
         target=SessionTarget(session_id),
         schedule=IntervalSchedule(every=timedelta(minutes=30)),
         action=PromptAction("Drink water"),
-        origin=AutomationOrigin(turn_id),
         name="Hydration",
         next_run_at=next_run_at,
     )
@@ -67,10 +63,7 @@ def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> Non
         run_immediately=False,
     )
     assert response.target == SessionAutomationTarget(session_id=session_id)
-    assert response.payload == ReminderAutomationPayload(
-        instruction="Drink water",
-        created_from_turn_id=turn_id,
-    )
+    assert response.payload == ReminderAutomationPayload(instruction="Drink water")
 
 
 def test_automation_requires_an_owner() -> None:
@@ -82,7 +75,6 @@ def test_automation_requires_an_owner() -> None:
             target=SessionTarget(uuid4()),
             schedule=AtSchedule(run_at=datetime(2027, 1, 1, tzinfo=UTC)),
             action=PromptAction("Drink water"),
-            origin=AutomationOrigin(uuid4()),
             next_run_at=datetime(2027, 1, 1, tzinfo=UTC),
         )
 
@@ -121,12 +113,7 @@ def test_target_mapping_round_trips_between_domain_and_wire() -> None:
     assert automation_target(wire_target) == domain_target
 
 
-def test_prompt_action_and_origin_are_read_from_the_reminder_payload() -> None:
-    turn_id = uuid4()
-    payload = ReminderAutomationPayload(
-        instruction="Drink water",
-        created_from_turn_id=turn_id,
-    )
+def test_prompt_action_is_read_from_the_reminder_payload() -> None:
+    payload = ReminderAutomationPayload(instruction="Drink water")
 
     assert prompt_action(payload) == PromptAction("Drink water")
-    assert automation_origin(payload) == AutomationOrigin(turn_id)

@@ -5,8 +5,12 @@ from pydantic import TypeAdapter
 
 from gateway_client.internal import RpcNotificationInfo, RpcRouteInfo
 from gateway_client.models import (
+    AlarmResponse,
     AutomationResponse,
+    DeleteAlarmResponse,
     DeleteAutomationResponse,
+    DismissAlarmResponse,
+    ListAlarmsResponse,
     ListAutomationsResponse,
     SessionEvent,
     SessionEventNotification,
@@ -15,6 +19,60 @@ from gateway_client.models import (
     SubscriptionResult,
     TurnCommandResult,
     UnsubscriptionResult,
+)
+
+ALARM_LIST = RpcRouteInfo(
+    method="alarm.list",
+    result_adapter=TypeAdapter(ListAlarmsResponse),
+    server="local",
+)
+
+ALARM_GET = RpcRouteInfo(
+    method="alarm.get",
+    result_adapter=TypeAdapter(AlarmResponse),
+    server="local",
+)
+
+ALARM_CREATE = RpcRouteInfo(
+    method="alarm.create",
+    result_adapter=TypeAdapter(AlarmResponse),
+    server="local",
+)
+
+ALARM_UPDATE = RpcRouteInfo(
+    method="alarm.update",
+    result_adapter=TypeAdapter(AlarmResponse),
+    server="local",
+)
+
+ALARM_DELETE = RpcRouteInfo(
+    method="alarm.delete",
+    result_adapter=TypeAdapter(DeleteAlarmResponse),
+    server="local",
+)
+
+ALARM_SET_ENABLED = RpcRouteInfo(
+    method="alarm.set_enabled",
+    result_adapter=TypeAdapter(AlarmResponse),
+    server="local",
+)
+
+ALARM_SKIP_NEXT = RpcRouteInfo(
+    method="alarm.skip_next",
+    result_adapter=TypeAdapter(AlarmResponse),
+    server="local",
+)
+
+ALARM_SNOOZE = RpcRouteInfo(
+    method="alarm.snooze",
+    result_adapter=TypeAdapter(AlarmResponse),
+    server="local",
+)
+
+ALARM_DISMISS = RpcRouteInfo(
+    method="alarm.dismiss",
+    result_adapter=TypeAdapter(DismissAlarmResponse),
+    server="local",
 )
 
 AUTOMATION_LIST = RpcRouteInfo(

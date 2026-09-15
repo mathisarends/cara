@@ -6,6 +6,7 @@ from sqlalchemy import Connection, pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
 
+from gateway.features.alarm.infrastructure.orm import AlarmModel  # noqa: F401
 from gateway.features.automation.infrastructure.orm import (  # noqa: F401
     AutomationModel,
 )

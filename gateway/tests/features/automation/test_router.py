@@ -7,7 +7,7 @@ _AUTOMATIONS = "/v1/owners/owner/automations"
 
 def test_create_list_update_and_delete_an_automation(client: TestClient) -> None:
     session = client.post("/v1/sessions", json={"channel": {"name": "cli"}}).json()
-    payload = {"instruction": "Drink water", "created_from_turn_id": str(uuid4())}
+    payload = {"instruction": "Drink water"}
 
     created = client.post(
         _AUTOMATIONS,
@@ -47,7 +47,7 @@ def test_an_automation_is_hidden_from_other_owners(client: TestClient) -> None:
         json={
             "target": {"kind": "session", "session_id": session["id"]},
             "schedule": {"kind": "interval", "every_seconds": 60},
-            "payload": {"instruction": "Stretch", "created_from_turn_id": str(uuid4())},
+            "payload": {"instruction": "Stretch"},
         },
     ).json()
 
@@ -66,7 +66,7 @@ def test_creating_an_automation_for_an_unknown_session_is_not_found(
         json={
             "target": {"kind": "session", "session_id": str(uuid4())},
             "schedule": {"kind": "interval", "every_seconds": 60},
-            "payload": {"instruction": "Stretch", "created_from_turn_id": str(uuid4())},
+            "payload": {"instruction": "Stretch"},
         },
     )
 
@@ -79,7 +79,7 @@ def test_rejects_invalid_requests(client: TestClient) -> None:
     valid = {
         "target": {"kind": "session", "session_id": session["id"]},
         "schedule": {"kind": "interval", "every_seconds": 60},
-        "payload": {"instruction": "Stretch", "created_from_turn_id": str(uuid4())},
+        "payload": {"instruction": "Stretch"},
     }
     for override in (
         {"schedule": {"kind": "cron", "expression": "0 9 * * *", "timezone": "Mars"}},

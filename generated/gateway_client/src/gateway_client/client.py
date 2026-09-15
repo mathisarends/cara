@@ -6,6 +6,7 @@ from typing import Self
 
 from gateway_client.endpoints import Endpoint, ServerName, resolve_endpoints
 from gateway_client.internal import ClientConnection, RpcClientCore, RpcTransport
+from gateway_client.namespaces.alarm import Alarm
 from gateway_client.namespaces.automation import Automation
 from gateway_client.namespaces.session import Session
 from gateway_client.namespaces.subscription import Subscription
@@ -21,6 +22,7 @@ class GatewayClient:
         close_transport: bool = True,
     ) -> None:
         self._rpc = RpcClientCore(transport, close_transport=close_transport)
+        self.alarm = Alarm(self._rpc)
         self.automation = Automation(self._rpc)
         self.session = Session(self._rpc)
         self.turn = Turn(self._rpc)

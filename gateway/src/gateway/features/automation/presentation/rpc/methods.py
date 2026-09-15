@@ -2,7 +2,6 @@ from pyrpckit import Inject, RpcInternalError, RpcInvalidParamsError, RpcModule
 
 from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation.rpc.mapping import (
-    automation_origin,
     automation_response,
     automation_schedule,
     automation_target,
@@ -59,7 +58,6 @@ async def create_automation(
         target=automation_target(params.target),
         schedule=automation_schedule(params.schedule),
         action=prompt_action(params.payload),
-        origin=automation_origin(params.payload),
         name=params.name,
     )
     return automation_response(automation)
@@ -78,7 +76,6 @@ async def update_automation(
         params.owner_id,
         schedule=automation_schedule(params.schedule),
         action=prompt_action(params.payload),
-        origin=automation_origin(params.payload),
         name=params.name,
     )
     return automation_response(automation)

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Self
 from uuid import UUID
 
-from gateway.features.automation.domain.action import AutomationOrigin, PromptAction
+from gateway.features.automation.domain.action import PromptAction
 from gateway.features.automation.domain.errors import AutomationNotFoundError
 from gateway.features.automation.domain.schedule import AutomationSchedule
 from gateway.features.automation.domain.target import AutomationTarget
@@ -18,7 +18,6 @@ class Automation:
         target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
-        origin: AutomationOrigin,
         next_run_at: datetime,
         name: str | None = None,
     ) -> None:
@@ -30,7 +29,6 @@ class Automation:
         self._target = target
         self._schedule = schedule
         self._action = action
-        self._origin = origin
         self._next_run_at = next_run_at
         self._name = name
 
@@ -42,7 +40,6 @@ class Automation:
         target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
-        origin: AutomationOrigin,
         next_run_at: datetime,
         name: str | None = None,
     ) -> Self:
@@ -53,7 +50,6 @@ class Automation:
             target=target,
             schedule=schedule,
             action=action,
-            origin=origin,
             next_run_at=next_run_at,
             name=name,
         )
@@ -83,10 +79,6 @@ class Automation:
         return self._action
 
     @property
-    def origin(self) -> AutomationOrigin:
-        return self._origin
-
-    @property
     def next_run_at(self) -> datetime:
         return self._next_run_at
 
@@ -106,13 +98,11 @@ class Automation:
         *,
         schedule: AutomationSchedule,
         action: PromptAction,
-        origin: AutomationOrigin,
         name: str | None,
         next_run_at: datetime,
     ) -> Self:
         self._schedule = schedule
         self._action = action
-        self._origin = origin
         self._name = name
         self._next_run_at = next_run_at
         return self

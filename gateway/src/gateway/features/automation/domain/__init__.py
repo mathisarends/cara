@@ -1,4 +1,4 @@
-from .action import AutomationOrigin, PromptAction
+from .action import PromptAction
 from .automation import Automation
 from .errors import AutomationNotFoundError
 from .repository import AutomationRepository
@@ -15,7 +15,6 @@ __all__ = [
     "AtSchedule",
     "Automation",
     "AutomationNotFoundError",
-    "AutomationOrigin",
     "AutomationRepository",
     "AutomationSchedule",
     "AutomationTarget",

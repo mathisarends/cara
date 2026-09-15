@@ -18,6 +18,669 @@
   ],
   "methods": [
     {
+      "name": "alarm.list",
+      "summary": "List alarms belonging to an owner, across all of their targets.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ListAlarmsResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/ListAlarmsRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/ListAlarmsParams"
+      },
+      "errors": [
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.get",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/GetAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/GetAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.create",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "target",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AlarmTarget"
+          }
+        },
+        {
+          "name": "recurrence",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          }
+        },
+        {
+          "name": "routine",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          }
+        },
+        {
+          "name": "preWakeMinutes",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "maximum": 120,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prewakeminutes"
+          }
+        },
+        {
+          "name": "name",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/CreateAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/CreateAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.update",
+      "summary": "Replace an alarm's recurrence, routine, pre-wake lead, and name.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "recurrence",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          }
+        },
+        {
+          "name": "routine",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          }
+        },
+        {
+          "name": "preWakeMinutes",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "maximum": 120,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prewakeminutes"
+          }
+        },
+        {
+          "name": "name",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/UpdateAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/UpdateAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.delete",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DeleteAlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/DeleteAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/DeleteAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.set_enabled",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "enabled",
+          "required": true,
+          "schema": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/SetAlarmEnabledRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SetAlarmEnabledParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.skip_next",
+      "summary": "Skip the next upcoming occurrence of a recurring alarm.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/SkipNextAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SkipNextAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.snooze",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "minutes",
+          "required": true,
+          "schema": {
+            "maximum": 60,
+            "minimum": 1,
+            "title": "Minutes",
+            "type": "integer"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/AlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/SnoozeAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/SnoozeAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
+      "name": "alarm.dismiss",
+      "summary": "Dismiss the current occurrence; a one-time alarm is removed.",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "ownerId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "alarmId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/DismissAlarmResponse"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/DismissAlarmRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/DismissAlarmParams"
+      },
+      "errors": [
+        {
+          "code": -32004,
+          "message": "Resource not found",
+          "x-rpckit-name": "ResourceNotFound"
+        },
+        {
+          "code": -32602,
+          "message": "Invalid params",
+          "x-rpckit-name": "RpcInvalidParams"
+        },
+        {
+          "code": -32603,
+          "message": "Internal error",
+          "x-rpckit-name": "RpcInternal"
+        }
+      ],
+      "servers": [
+        {
+          "name": "local",
+          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          }
+        }
+      ]
+    },
+    {
       "name": "automation.list",
       "summary": "List automations belonging to an owner, across all of their targets.",
       "paramStructure": "by-name",
@@ -908,6 +1571,234 @@
   ],
   "components": {
     "schemas": {
+      "AlarmNextRun": {
+        "additionalProperties": false,
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/AlarmPhase"
+          },
+          "dueAt": {
+            "format": "date-time",
+            "title": "Dueat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phase",
+          "dueAt"
+        ],
+        "title": "AlarmNextRun",
+        "type": "object"
+      },
+      "AlarmOccurrence": {
+        "additionalProperties": false,
+        "properties": {
+          "wakeAt": {
+            "format": "date-time",
+            "title": "Wakeat",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OccurrenceState"
+          },
+          "snoozeCount": {
+            "title": "Snoozecount",
+            "type": "integer"
+          },
+          "snoozedUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snoozeduntil"
+          }
+        },
+        "required": [
+          "wakeAt",
+          "state",
+          "snoozeCount",
+          "snoozedUntil"
+        ],
+        "title": "AlarmOccurrence",
+        "type": "object"
+      },
+      "AlarmPhase": {
+        "enum": [
+          "pre_wake",
+          "wake",
+          "snooze_end"
+        ],
+        "title": "AlarmPhase",
+        "type": "string"
+      },
+      "AlarmRecurrence": {
+        "discriminator": {
+          "mapping": {
+            "once": "#/components/schemas/OnceAlarmRecurrence",
+            "weekly": "#/components/schemas/WeeklyAlarmRecurrence"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OnceAlarmRecurrence"
+          },
+          {
+            "$ref": "#/components/schemas/WeeklyAlarmRecurrence"
+          }
+        ]
+      },
+      "AlarmResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ownerId": {
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AlarmTarget"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          },
+          "preWakeMinutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prewakeminutes"
+          },
+          "skippedDates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Skippeddates",
+            "type": "array"
+          },
+          "occurrence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlarmOccurrence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextRun": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlarmNextRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "name",
+          "createdAt",
+          "enabled",
+          "target",
+          "recurrence",
+          "routine",
+          "preWakeMinutes",
+          "skippedDates",
+          "occurrence",
+          "nextRun"
+        ],
+        "title": "AlarmResponse",
+        "type": "object"
+      },
+      "AlarmRoutine": {
+        "additionalProperties": false,
+        "properties": {
+          "skill": {
+            "minLength": 1,
+            "title": "Skill",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          }
+        },
+        "required": [
+          "skill"
+        ],
+        "title": "AlarmRoutine",
+        "type": "object"
+      },
+      "AlarmTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "session",
+            "default": "session",
+            "title": "Kind",
+            "type": "string"
+          },
+          "sessionId": {
+            "format": "uuid",
+            "title": "Sessionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId"
+        ],
+        "title": "SessionAlarmTarget",
+        "type": "object"
+      },
       "AssistantMessageItem": {
         "additionalProperties": false,
         "properties": {
@@ -1160,6 +2051,59 @@
         "title": "ChatDelta",
         "type": "object"
       },
+      "CreateAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AlarmTarget"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          },
+          "preWakeMinutes": {
+            "anyOf": [
+              {
+                "maximum": 120,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prewakeminutes"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "ownerId",
+          "target",
+          "recurrence",
+          "routine"
+        ],
+        "title": "CreateAlarmParams",
+        "type": "object"
+      },
       "CreateAutomationParams": {
         "additionalProperties": false,
         "properties": {
@@ -1237,6 +2181,42 @@
         "title": "CronSchedule",
         "type": "object"
       },
+      "DeleteAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId"
+        ],
+        "title": "DeleteAlarmParams",
+        "type": "object"
+      },
+      "DeleteAlarmResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "format": "uuid",
+            "title": "Deleted",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "DeleteAlarmResponse",
+        "type": "object"
+      },
       "DeleteAutomationParams": {
         "additionalProperties": false,
         "properties": {
@@ -1271,6 +2251,68 @@
           "deleted"
         ],
         "title": "DeleteAutomationResponse",
+        "type": "object"
+      },
+      "DismissAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId"
+        ],
+        "title": "DismissAlarmParams",
+        "type": "object"
+      },
+      "DismissAlarmResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "alarm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlarmResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "alarm"
+        ],
+        "title": "DismissAlarmResponse",
+        "type": "object"
+      },
+      "GetAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId"
+        ],
+        "title": "GetAlarmParams",
         "type": "object"
       },
       "GetAutomationParams": {
@@ -1341,6 +2383,38 @@
           }
         ]
       },
+      "ListAlarmsParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ownerId"
+        ],
+        "title": "ListAlarmsParams",
+        "type": "object"
+      },
+      "ListAlarmsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "alarms": {
+            "items": {
+              "$ref": "#/components/schemas/AlarmResponse"
+            },
+            "title": "Alarms",
+            "type": "array"
+          }
+        },
+        "required": [
+          "alarms"
+        ],
+        "title": "ListAlarmsResponse",
+        "type": "object"
+      },
       "ListAutomationsParams": {
         "additionalProperties": false,
         "properties": {
@@ -1373,6 +2447,37 @@
         "title": "ListAutomationsResponse",
         "type": "object"
       },
+      "OccurrenceState": {
+        "enum": [
+          "upcoming",
+          "pre_wake",
+          "active",
+          "snoozed"
+        ],
+        "title": "OccurrenceState",
+        "type": "string"
+      },
+      "OnceAlarmRecurrence": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "once",
+            "default": "once",
+            "title": "Kind",
+            "type": "string"
+          },
+          "wakeAt": {
+            "format": "date-time",
+            "title": "Wakeat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wakeAt"
+        ],
+        "title": "OnceAlarmRecurrence",
+        "type": "object"
+      },
       "OpenSessionParams": {
         "additionalProperties": false,
         "properties": {
@@ -1398,16 +2503,10 @@
           "instruction": {
             "title": "Instruction",
             "type": "string"
-          },
-          "createdFromTurnId": {
-            "format": "uuid",
-            "title": "Createdfromturnid",
-            "type": "string"
           }
         },
         "required": [
-          "instruction",
-          "createdFromTurnId"
+          "instruction"
         ],
         "title": "ReminderAutomationPayload",
         "type": "object"
@@ -1536,6 +2635,81 @@
           "turnActive"
         ],
         "title": "SessionSnapshotResponse",
+        "type": "object"
+      },
+      "SetAlarmEnabledParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId",
+          "enabled"
+        ],
+        "title": "SetAlarmEnabledParams",
+        "type": "object"
+      },
+      "SkipNextAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId"
+        ],
+        "title": "SkipNextAlarmParams",
+        "type": "object"
+      },
+      "SnoozeAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          },
+          "minutes": {
+            "maximum": 60,
+            "minimum": 1,
+            "title": "Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId",
+          "minutes"
+        ],
+        "title": "SnoozeAlarmParams",
         "type": "object"
       },
       "StartTurnParams": {
@@ -2053,6 +3227,61 @@
         "title": "UnsubscriptionResult",
         "type": "object"
       },
+      "UpdateAlarmParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "alarmId": {
+            "format": "uuid",
+            "title": "Alarmid",
+            "type": "string"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          },
+          "preWakeMinutes": {
+            "anyOf": [
+              {
+                "maximum": 120,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prewakeminutes"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          }
+        },
+        "required": [
+          "ownerId",
+          "alarmId",
+          "recurrence",
+          "routine"
+        ],
+        "title": "UpdateAlarmParams",
+        "type": "object"
+      },
       "UpdateAutomationParams": {
         "additionalProperties": false,
         "properties": {
@@ -2125,6 +3354,394 @@
         ],
         "title": "UserMessageItem",
         "type": "object"
+      },
+      "Weekday": {
+        "enum": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ],
+        "title": "Weekday",
+        "type": "string"
+      },
+      "WeeklyAlarmRecurrence": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "weekly",
+            "default": "weekly",
+            "title": "Kind",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/Weekday"
+            },
+            "minItems": 1,
+            "title": "Days",
+            "type": "array"
+          },
+          "localTime": {
+            "examples": [
+              "06:30"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Localtime",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "days",
+          "localTime",
+          "timezone"
+        ],
+        "title": "WeeklyAlarmRecurrence",
+        "type": "object"
+      },
+      "ListAlarmsRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ListAlarmsRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.list",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ListAlarmsParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "List alarms belonging to an owner, across all of their targets."
+      },
+      "GetAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GetAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.get",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/GetAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "CreateAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CreateAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.create",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/CreateAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "UpdateAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UpdateAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.update",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/UpdateAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Replace an alarm's recurrence, routine, pre-wake lead, and name."
+      },
+      "DeleteAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DeleteAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.delete",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/DeleteAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "SetAlarmEnabledRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SetAlarmEnabledRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.set_enabled",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SetAlarmEnabledParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "SkipNextAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SkipNextAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.skip_next",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SkipNextAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Skip the next upcoming occurrence of a recurring alarm."
+      },
+      "SnoozeAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SnoozeAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.snooze",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/SnoozeAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "DismissAlarmRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DismissAlarmRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "alarm.dismiss",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/DismissAlarmParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ],
+        "description": "Dismiss the current occurrence; a one-time alarm is removed."
       },
       "ListAutomationsRequest": {
         "additionalProperties": false,

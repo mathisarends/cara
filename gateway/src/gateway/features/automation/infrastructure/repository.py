@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from gateway.features.automation.domain import (
     AtSchedule,
     Automation,
-    AutomationOrigin,
     AutomationRepository,
     AutomationSchedule,
     AutomationTarget,
@@ -55,7 +54,6 @@ class SQLAutomationRepository(
             target=_target(orm),
             schedule=_schedule(orm),
             action=PromptAction(orm.instruction),
-            origin=AutomationOrigin(orm.created_from_turn_id),
             next_run_at=_as_utc(orm.next_run_at),
             name=orm.name,
         )
@@ -70,7 +68,6 @@ class SQLAutomationRepository(
             target_session_id=domain.target.session_id,
             schedule_kind=domain.schedule.kind,
             instruction=domain.action.instruction,
-            created_from_turn_id=domain.origin.created_from_turn_id,
             next_run_at=domain.next_run_at,
         )
         match domain.schedule:

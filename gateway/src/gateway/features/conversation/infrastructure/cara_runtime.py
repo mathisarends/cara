@@ -235,10 +235,4 @@ def _turn_tool_dependencies(request: AgentRunRequest) -> tuple[object, ...]:
     connection = GatewayConnection()
     if connection.token is None:
         return ()
-    return (
-        GatewayReminders(
-            connection,
-            session_id=request.session.id,
-            turn_id=request.turn_id,
-        ),
-    )
+    return (GatewayReminders(connection, session_id=request.session.id),)

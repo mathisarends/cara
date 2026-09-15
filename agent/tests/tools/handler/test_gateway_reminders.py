@@ -17,7 +17,6 @@ from gateway_client.models import (
 )
 
 _SESSION_ID = uuid4()
-_TURN_ID = uuid4()
 _AUTOMATION_ID = uuid4()
 
 
@@ -30,20 +29,13 @@ def _automation(schedule) -> AutomationResponse:
         next_run_at=datetime(2026, 8, 26, 5, 30, tzinfo=UTC),
         schedule=schedule,
         target=AutomationTarget(session_id=_SESSION_ID),
-        payload=ReminderAutomationPayload(
-            instruction="Zahnarzt",
-            created_from_turn_id=_TURN_ID,
-        ),
+        payload=ReminderAutomationPayload(instruction="Zahnarzt"),
     )
 
 
 def test_gateway_reminders_require_a_token() -> None:
     with pytest.raises(ValueError, match="gateway token"):
-        GatewayReminders(
-            GatewayConnection(token=None),
-            session_id=_SESSION_ID,
-            turn_id=_TURN_ID,
-        )
+        GatewayReminders(GatewayConnection(token=None), session_id=_SESSION_ID)
 
 
 def test_gateway_connection_reads_the_cli_token_variable(

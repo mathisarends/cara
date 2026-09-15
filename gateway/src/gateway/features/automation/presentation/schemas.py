@@ -60,7 +60,6 @@ type AutomationTarget = SessionTarget
 class ReminderPayload(WireSchema):
     kind: Literal[PayloadKind.REMINDER] = PayloadKind.REMINDER
     instruction: str = Field(min_length=1, pattern=r"\S")
-    created_from_turn_id: UUID
 
 
 class CreateAutomationRequest(WireSchema):

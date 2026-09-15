@@ -13,7 +13,6 @@ from gateway.features.automation.presentation.mapper import (
     to_action,
     to_automation_list_response,
     to_automation_response,
-    to_origin,
     to_schedule,
     to_target,
 )
@@ -81,7 +80,6 @@ async def create_automation(
         target=to_target(request.target),
         schedule=to_schedule(request.schedule),
         action=to_action(request.payload),
-        origin=to_origin(request.payload),
         name=request.name,
     )
     return to_automation_response(automation)
@@ -105,7 +103,6 @@ async def update_automation(
         owner_id,
         schedule=to_schedule(request.schedule),
         action=to_action(request.payload),
-        origin=to_origin(request.payload),
         name=request.name,
     )
     return to_automation_response(automation)
