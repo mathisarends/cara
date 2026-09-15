@@ -1,6 +1,6 @@
 import asyncio
 
-from agenttoolkit import DependencyProvider, provide
+from agenttoolkit import DependencyProvider, ToolContext, provide
 
 from agent.tools import build_tools
 from agent.tools.factory import _create_tools
@@ -27,11 +27,13 @@ class _Dependencies(DependencyProvider):
 
 
 def _tools(client: WebSearch):
-    return _create_tools(dependencies=(_Dependencies(client),))
+    return _create_tools(ToolContext(), dependencies=(_Dependencies(client),))
 
 
-def test_web_search_tool_is_registered_without_availability_checks() -> None:
-    assert build_tools().get("web_search") is not None
+def test_web_search_tool_is_registered_without_availability_checks(
+    make_tool_context,
+) -> None:
+    assert build_tools(context=make_tool_context()).get("web_search") is not None
 
 
 def test_web_search_returns_the_client_summary() -> None:

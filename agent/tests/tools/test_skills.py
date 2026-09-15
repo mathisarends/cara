@@ -17,8 +17,8 @@ def _skills(tmp_path: Path) -> Skills:
     return Skills.from_dir(tmp_path)
 
 
-def test_load_skill_tool_is_unavailable_without_skills() -> None:
-    tools = build_tools()
+def test_load_skill_tool_is_unavailable_without_skills(make_tool_context) -> None:
+    tools = build_tools(context=make_tool_context())
 
     assert tools.get("load_skill") is not None
     assert all(
@@ -27,22 +27,26 @@ def test_load_skill_tool_is_unavailable_without_skills() -> None:
     )
 
 
-def test_load_skill_tool_is_available_with_skills(tmp_path: Path) -> None:
-    tools = build_tools(skills=_skills(tmp_path))
+def test_load_skill_tool_is_available_with_skills(
+    tmp_path: Path, make_tool_context
+) -> None:
+    tools = build_tools(context=make_tool_context(_skills(tmp_path)))
 
     assert "load_skill" in {schema.name for schema in tools.get_schema()}
 
 
-def test_load_skill_returns_full_instructions(tmp_path: Path) -> None:
-    tools = build_tools(skills=_skills(tmp_path))
+def test_load_skill_returns_full_instructions(
+    tmp_path: Path, make_tool_context
+) -> None:
+    tools = build_tools(context=make_tool_context(_skills(tmp_path)))
 
     result = asyncio.run(tools.execute("load_skill", {"name": "pdf"}))
 
     assert result == "Use the bundled parser to extract text."
 
 
-def test_loading_unknown_skill_fails(tmp_path: Path) -> None:
-    tools = build_tools(skills=_skills(tmp_path))
+def test_loading_unknown_skill_fails(tmp_path: Path, make_tool_context) -> None:
+    tools = build_tools(context=make_tool_context(_skills(tmp_path)))
 
     result = asyncio.run(tools.execute("load_skill", {"name": "missing"}))
 

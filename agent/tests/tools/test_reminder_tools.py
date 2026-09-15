@@ -6,9 +6,10 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from agenttoolkit import ToolContext
+from agenttoolkit.builtins import CommandDefaults, LocalShellRunner, LocalWorkspace
 
 from agent.clock import LocalClock
-from agent.tools.factory import _create_tool_context, _create_tools
+from agent.tools.factory import _create_tools
 from agent.tools.handler import (
     Reminder,
     Reminders,
@@ -78,12 +79,12 @@ def _reminder(
 
 
 def _context(reminders: Reminders | None, tmp_path: Path) -> ToolContext:
-    from agenttoolkit.builtins import LocalWorkspace
-
-    return _create_tool_context(
+    workspace = LocalWorkspace(tmp_path)
+    return ToolContext(
+        workspace,
+        LocalShellRunner(CommandDefaults(working_directory=workspace.root)),
+        _CLOCK,
         reminders,
-        workspace=LocalWorkspace(tmp_path),
-        clock=_CLOCK,
     )
 
 

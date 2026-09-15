@@ -32,8 +32,8 @@ def _models(*, fail_name: str | None = None) -> ModelSwitch:
     )
 
 
-def test_model_control_tools_expose_runtime_configuration() -> None:
-    tools = build_tools(injected_dependencies=(_models(),))
+def test_model_control_tools_expose_runtime_configuration(make_tool_context) -> None:
+    tools = build_tools(context=make_tool_context(_models()))
     names = {schema.name for schema in tools.get_schema()}
 
     assert {
@@ -45,9 +45,9 @@ def test_model_control_tools_expose_runtime_configuration() -> None:
     assert {"current_reasoning_effort", "list_reasoning_efforts"}.isdisjoint(names)
 
 
-def test_agent_can_inspect_and_change_model_configuration() -> None:
+def test_agent_can_inspect_and_change_model_configuration(make_tool_context) -> None:
     models = _models()
-    tools = build_tools(injected_dependencies=(models,))
+    tools = build_tools(context=make_tool_context(models))
 
     before = asyncio.run(tools.execute("current_model", {}))
     options = asyncio.run(tools.execute("list_models", {}))
@@ -67,10 +67,12 @@ def test_agent_can_inspect_and_change_model_configuration() -> None:
     assert models.current_reasoning_effort == "high"
 
 
-def test_failed_smoke_test_keeps_current_model_configuration() -> None:
+def test_failed_smoke_test_keeps_current_model_configuration(
+    make_tool_context,
+) -> None:
     models = _models(fail_name="second")
     active_model = models.current
-    tools = build_tools(injected_dependencies=(models,))
+    tools = build_tools(context=make_tool_context(models))
 
     result = asyncio.run(tools.execute("switch_model", {"name": "second"}))
 

@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 
-from agenttoolkit import DependencyProvider, provide
+from agenttoolkit import DependencyProvider, ToolContext, provide
 
 from agent.tools import build_tools
 from agent.tools.actions.weather import WeatherPeriod, _render_weather_report
@@ -81,7 +81,9 @@ class _Dependencies(DependencyProvider):
 
 
 def _tools(client: Weather, location_client: LocationLookup):
-    return _create_tools(dependencies=(_Dependencies(client, location_client),))
+    return _create_tools(
+        ToolContext(), dependencies=(_Dependencies(client, location_client),)
+    )
 
 
 def _render(report: WeatherReport) -> str:
@@ -155,8 +157,10 @@ def test_render_days_uses_the_daily_outlook() -> None:
     )
 
 
-def test_weather_tool_is_registered_without_availability_checks() -> None:
-    assert build_tools().get("weather_report") is not None
+def test_weather_tool_is_registered_without_availability_checks(
+    make_tool_context,
+) -> None:
+    assert build_tools(context=make_tool_context()).get("weather_report") is not None
 
 
 def test_weather_tool_description_lets_location_be_omitted() -> None:

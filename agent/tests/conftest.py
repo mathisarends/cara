@@ -2,15 +2,39 @@ from collections.abc import Callable
 
 import pytest
 from agenttoolkit import ToolContext
+from agenttoolkit.builtins import (
+    CommandDefaults,
+    CommandRunner,
+    LocalShellRunner,
+    LocalWorkspace,
+    Workspace,
+)
 
+from agent.clock import LocalClock
 from agent.tools import AgentTools
-from agent.tools.factory import _create_tool_context, _create_tools
+from agent.tools.factory import _create_tools
 
 
 @pytest.fixture
-def make_tool_context() -> Callable[..., ToolContext]:
-    """Builds tool contexts that `build_tools` does not expose, e.g. with a runner."""
-    return _create_tool_context
+def make_tool_context(tmp_path) -> Callable[..., ToolContext]:
+    def create(
+        *dependencies: object,
+        workspace: Workspace | None = None,
+        runner: CommandRunner | None = None,
+        clock: LocalClock | None = None,
+    ) -> ToolContext:
+        selected_workspace = workspace or LocalWorkspace(tmp_path)
+        selected_runner = runner or LocalShellRunner(
+            CommandDefaults(working_directory=selected_workspace.root)
+        )
+        return ToolContext(
+            selected_workspace,
+            selected_runner,
+            clock or LocalClock(),
+            *dependencies,
+        )
+
+    return create
 
 
 @pytest.fixture
