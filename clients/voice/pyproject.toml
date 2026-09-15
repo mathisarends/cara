@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Voice modality: audio I/O, wake word detection, and speech sessions."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "gateway-client",
+    "gateway-rest-client",
+    "gateway-rpc-client",
+    "httpx2>=2.9.1",
     "numpy>=2.4.6",
     "onnxruntime>=1.24.3",
     "pyaudio>=0.2.14",

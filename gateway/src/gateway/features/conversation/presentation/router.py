@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import status
+from fastapi import Depends, status
 from fastapi_canon import CanonRouter
 
 from gateway.features.conversation.application import SessionService
@@ -20,12 +20,14 @@ from gateway.features.conversation.presentation.schemas import (
     SessionResponse,
     SessionSnapshotResponse,
 )
+from gateway.presentation.authentication import require_token
 
 conversation_router = CanonRouter(
     prefix="/v1/sessions",
     tags=["sessions"],
     route_class=DishkaRoute,
     error_registry=CONVERSATION_ERRORS,
+    dependencies=[Depends(require_token)],
 )
 
 

@@ -3,10 +3,10 @@ from gateway.features.conversation.application import (
     ConversationEventType,
 )
 from gateway.features.conversation.domain import ChannelRef, Session
-from gateway.features.conversation.presentation.rpc.mapping import (
-    session_event,
-    session_snapshot,
+from gateway.features.conversation.presentation.mapper import (
+    to_session_snapshot_response,
 )
+from gateway.features.conversation.presentation.rpc.mapping import session_event
 
 _CHANNEL = ChannelRef("test")
 
@@ -16,7 +16,7 @@ def test_session_snapshot_maps_persisted_entries() -> None:
     session.add_user_message("hello")
     session.add_assistant_message("hi")
 
-    snapshot = session_snapshot(session)
+    snapshot = to_session_snapshot_response(session)
 
     assert snapshot.session.id == session.id
     assert snapshot.session.channel.name == "test"

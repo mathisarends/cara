@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from uuid import UUID
 
+import httpx2
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,20 +15,25 @@ from agent.tools.handler.ports import (
     RemindOnCron,
 )
 from agent.tools.middleware import ToolError
-from gateway_client import GatewayClient, RpcClientError, connect_gateway
-from gateway_client.models import (
+from gateway_rest_client import (
     AtSchedule,
     AutomationResponse,
     AutomationSchedule,
+    AutomationScheduleKind,
     AutomationTarget,
+    ClientError,
+    CreateAutomationRequest,
     CronSchedule,
+    GatewayRestClient,
     IntervalSchedule,
-    ReminderAutomationPayload,
+    ReminderPayload,
+    TransportError,
+    UpdateAutomationRequest,
 )
 
 
 class GatewayConnection(BaseSettings):
-    """Gateway WebSocket endpoint and the owner the agent schedules reminders for."""
+    """Gateway base URL and the owner the agent schedules reminders for."""
 
     model_config = SettingsConfigDict(
         env_prefix="CARA_GATEWAY_",
@@ -36,13 +42,13 @@ class GatewayConnection(BaseSettings):
         extra="ignore",
     )
 
-    url: str = "ws://127.0.0.1:8000/v1/gateway"
+    url: str = "http://127.0.0.1:8000"
     token: SecretStr | None = None
     owner_id: str = Field(default="local", min_length=1)
 
 
 class GatewayReminders(Reminders):
-    """Reminders backed by the gateway automation API over its typed client."""
+    """Reminders backed by the gateway automation REST API."""
 
     def __init__(self, connection: GatewayConnection, *, session_id: UUID) -> None:
         if connection.token is None:
@@ -54,7 +60,7 @@ class GatewayReminders(Reminders):
 
     async def list(self) -> tuple[Reminder, ...]:
         async with self._client() as client:
-            response = await client.automation.list(owner_id=self._owner_id)
+            response = await client.list_automations(self._owner_id)
         return tuple(_reminder(automation) for automation in response.automations)
 
     async def create(
@@ -65,12 +71,14 @@ class GatewayReminders(Reminders):
         name: str | None = None,
     ) -> Reminder:
         async with self._client() as client:
-            automation = await client.automation.create(
-                owner_id=self._owner_id,
-                target=AutomationTarget(session_id=self._session_id),
-                schedule=_automation_schedule(schedule),
-                payload=ReminderAutomationPayload(instruction=instruction),
-                name=name,
+            automation = await client.create_automation(
+                self._owner_id,
+                CreateAutomationRequest(
+                    target=AutomationTarget(session_id=self._session_id),
+                    schedule=_automation_schedule(schedule),
+                    payload=ReminderPayload(instruction=instruction),
+                    name=name,
+                ),
             )
         return _reminder(automation)
 
@@ -83,36 +91,35 @@ class GatewayReminders(Reminders):
         name: str | None = None,
     ) -> Reminder:
         async with self._client() as client:
-            automation = await client.automation.update(
-                owner_id=self._owner_id,
-                automation_id=reminder_id,
-                schedule=_automation_schedule(schedule),
-                payload=ReminderAutomationPayload(instruction=instruction),
-                name=name,
+            automation = await client.update_automation(
+                self._owner_id,
+                reminder_id,
+                UpdateAutomationRequest(
+                    schedule=_automation_schedule(schedule),
+                    payload=ReminderPayload(instruction=instruction),
+                    name=name,
+                ),
             )
         return _reminder(automation)
 
     async def delete(self, reminder_id: UUID) -> None:
         async with self._client() as client:
-            await client.automation.delete(
-                owner_id=self._owner_id,
-                automation_id=reminder_id,
-            )
+            await client.delete_automation(self._owner_id, reminder_id)
 
     @asynccontextmanager
-    async def _client(self) -> AsyncGenerator[GatewayClient]:
-        try:
-            client = await connect_gateway(
+    async def _client(self) -> AsyncGenerator[GatewayRestClient]:
+        async with httpx2.AsyncClient() as http:
+            client = GatewayRestClient(
+                http,
                 self._connection.url,
-                token=self._token,
+                credentials={"GatewayToken": self._token},
             )
-        except OSError as error:
-            raise ToolError(f"The gateway is unreachable: {error}") from error
-        try:
-            async with client:
+            try:
                 yield client
-        except RpcClientError as error:
-            raise ToolError(f"The gateway rejected the request: {error}") from error
+            except TransportError as error:
+                raise ToolError(f"The gateway is unreachable: {error}") from error
+            except ClientError as error:
+                raise ToolError(f"The gateway rejected the request: {error}") from error
 
 
 def _reminder(automation: AutomationResponse) -> Reminder:
@@ -138,8 +145,16 @@ def _reminder_schedule(schedule: AutomationSchedule) -> ReminderSchedule:
 def _automation_schedule(schedule: ReminderSchedule) -> AutomationSchedule:
     match schedule:
         case RemindOnce(when=when):
-            return AtSchedule(run_at=when)
+            return AtSchedule(kind=AutomationScheduleKind.AT, run_at=when)
         case RemindEvery(seconds=seconds):
-            return IntervalSchedule(every_seconds=seconds, run_immediately=False)
+            return IntervalSchedule(
+                kind=AutomationScheduleKind.INTERVAL,
+                every_seconds=seconds,
+                run_immediately=False,
+            )
         case RemindOnCron(expression=expression, timezone=timezone):
-            return CronSchedule(expression=expression, timezone=timezone)
+            return CronSchedule(
+                kind=AutomationScheduleKind.CRON,
+                expression=expression,
+                timezone=timezone,
+            )

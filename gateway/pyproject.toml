@@ -1,7 +1,7 @@
 [project]
 name = "gateway-server"
 version = "0.1.0"
-description = "JSON-RPC WebSocket gateway for Cara clients."
+description = "REST and JSON-RPC WebSocket gateway for Cara clients."
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "agent",
@@ -27,8 +27,8 @@ dependencies = [
 
 [project.scripts]
 cara-gateway = "gateway.main:main"
-cara-gateway-schema = "gateway.presentation.rpc.schema_export:main"
-cara-gateway-client-generate = "gateway.presentation.rpc.client_codegen:main"
+cara-gateway-schema = "gateway.presentation.schema_export:main"
+cara-gateway-rpc-client-generate = "gateway.presentation.rpc.client_codegen:main"
 gateway-migrate = "gateway.platform.database.migrations:main"
 
 [build-system]

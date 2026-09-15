@@ -1,0 +1,32 @@
+[project]
+name = "gateway-rpc-client"
+version = "0.1.0"
+description = "Generated, fully typed JSON-RPC WebSocket client for live Cara Gateway conversations."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "pydantic>=2.7.0",
+    "pyrpckit==0.4.0",
+    "websockets>=13.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=1.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gateway_rpc_client"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+
+[tool.coverage.run]
+omit = [
+    "*/gateway_rpc_client/*",
+    "*/gateway_rpc_client/tests/*",
+]

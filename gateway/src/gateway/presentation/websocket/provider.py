@@ -5,14 +5,12 @@ import pyrpckit as rpc
 from dishka import Provider, Scope, provide
 from fastapi import WebSocket
 
-from gateway.features.alarm.application import AlarmService
-from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import (
     EventPublisher,
     SessionService,
     TurnService,
 )
-from gateway.presentation.websocket.authentication import (
+from gateway.presentation.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
 )
@@ -53,8 +51,6 @@ class GatewayProvider(Provider):
         self,
         websocket: WebSocket,
         authenticator: GatewayAuthenticator,
-        alarm_service: AlarmService,
-        automation_service: AutomationService,
         sessions: SessionService,
         turns: TurnService,
         stream: InMemoryEventStream,
@@ -62,9 +58,6 @@ class GatewayProvider(Provider):
         authenticator.authenticate(websocket)
         client_id = str(uuid.uuid4())
         handlers = (
-            alarm_service,
-            automation_service,
-            sessions,
             turns,
             EventStreamRpcMethods(sessions, stream, client_id),
         )

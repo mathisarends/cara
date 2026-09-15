@@ -16,7 +16,8 @@ supported-markers = [
 members = [
     "agent",
     "cli",
-    "gateway-client",
+    "gateway-rest-client",
+    "gateway-rpc-client",
     "gateway-server",
     "llm",
     "sandbox-manager",
@@ -40,8 +41,9 @@ name = "agent"
 version = "0.1.0"
 source = { editable = "agent" }
 dependencies = [
-    { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "llm", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "mm-agenttoolkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -54,8 +56,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gateway-client", editable = "generated/gateway_client" },
+    { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "httpx", specifier = ">=0.28.0" },
+    { name = "httpx2", specifier = ">=2.9.1" },
     { name = "llm", editable = "libs/llm" },
     { name = "mm-agenttoolkit", specifier = ">=0.4.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
@@ -201,14 +204,18 @@ name = "cli"
 version = "0.1.0"
 source = { editable = "clients/cli" }
 dependencies = [
-    { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "gateway-rpc-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "gateway-client", editable = "generated/gateway_client" },
+    { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
+    { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
+    { name = "httpx2", specifier = ">=2.9.1" },
     { name = "pyrpckit", specifier = "==0.4.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
@@ -403,9 +410,24 @@ wheels = [
 ]
 
 [[package]]
-name = "gateway-client"
+name = "gateway-rest-client"
 version = "0.1.0"
-source = { editable = "generated/gateway_client" }
+source = { editable = "generated/gateway_rest_client" }
+dependencies = [
+    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx2", specifier = ">=2.9.1" },
+    { name = "pydantic", specifier = ">=2.7.0" },
+]
+
+[[package]]
+name = "gateway-rpc-client"
+version = "0.1.0"
+source = { editable = "generated/gateway_rpc_client" }
 dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1815,7 +1837,9 @@ name = "voice"
 version = "0.1.0"
 source = { editable = "clients/voice" }
 dependencies = [
-    { name = "gateway-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "gateway-rpc-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1836,7 +1860,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gateway-client", editable = "generated/gateway_client" },
+    { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
+    { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
+    { name = "httpx2", specifier = ">=2.9.1" },
     { name = "hueify", specifier = ">=0.9.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },

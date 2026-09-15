@@ -14,15 +14,24 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 - Sessions: `POST /v1/sessions`, `POST /v1/sessions/open`, `GET /v1/sessions/{id}`
 - Automations: `/v1/owners/{owner_id}/automations` (CRUD)
-- Alarms and future features: REST only, no RPC layer
+- Alarms: `/v1/owners/{owner_id}/alarms` (CRUD, `enabled`, `skip-next`, `snooze`, `dismiss`)
+- Future resource features: REST only, no RPC layer
+- Every resource router requires `Authorization: Bearer <CARA_GATEWAY_TOKEN>` (`require_token`, OpenAPI scheme `GatewayToken`); only health is open
 
-## Removed from RPC
+## Contracts and clients
 
-- `automation.*`: duplicated REST
-- `session.create` / `session.open` / `session.get`: duplicated REST
+| Contract | Schema | Generated client |
+| --- | --- | --- |
+| REST | `gateway/schema/openapi.json` | `generated/gateway_rest_client` (`GatewayRestClient`, httpxgen) |
+| RPC | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, pyrpckit) |
+
+- Regenerate both: `scripts/codegen/generate_gateway_clients.sh`
+- CI (`gateway-schema-drift.yml`) reruns it and fails on any diff or untracked file
+- Clients configure one base URL (`http://host:port`); `connect_gateway` derives `ws(s)://host:port/v1/gateway`
+- REST discriminated-union members declare their tag (`kind`/`type`) without a default: httpxgen rejects a discriminator that is both required and defaulted
 
 ## Client flow
 
 1. Get or create the session via REST.
-2. Connect the socket and call `subscription.subscribe`.
-3. Load the snapshot via `GET /v1/sessions/{id}` and drop any event whose `sequence` is at or below the snapshot state. Subscribe before loading the snapshot so no event is lost in between.
+2. Load the snapshot via `GET /v1/sessions/{id}`, then call `subscription.subscribe` on the socket.
+3. The snapshot carries no event `sequence` yet, so events between steps 2 and 3 can be missed; a snapshot sequence would allow subscribe-first with dedupe.

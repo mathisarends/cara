@@ -1,0 +1,2588 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Cara Gateway API",
+    "summary": "REST resources and a JSON-RPC WebSocket for Cara clients.",
+    "description": "Resources such as sessions, automations, and alarms are plain REST. Commands and events of a live conversation share one JSON-RPC WebSocket connection at /v1/gateway.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Check gateway health",
+        "operationId": "get_gateway_health",
+        "responses": {
+          "200": {
+            "description": "The gateway process is alive.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/readiness": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Check gateway readiness",
+        "operationId": "get_gateway_readiness",
+        "responses": {
+          "200": {
+            "description": "The gateway application stack is ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/alarms": {
+      "get": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "List an owner's alarms",
+        "operationId": "list_alarms",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Create an alarm",
+        "operationId": "create_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAlarmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid alarm",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidAlarmProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/alarms/{alarm_id}": {
+      "get": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Get an alarm",
+        "operationId": "get_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Replace an alarm's recurrence, routine, and pre-wake lead",
+        "operationId": "update_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAlarmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid alarm",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidAlarmProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Delete an alarm",
+        "operationId": "delete_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The alarm was deleted."
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/alarms/{alarm_id}/enabled": {
+      "put": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Enable or disable an alarm",
+        "operationId": "set_alarm_enabled",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAlarmEnabledRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid alarm",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidAlarmProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/alarms/{alarm_id}/skip-next": {
+      "post": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Skip the next occurrence of a recurring alarm",
+        "operationId": "skip_next_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Alarm state conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmStateConflictProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/alarms/{alarm_id}/snooze": {
+      "post": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Snooze a ringing alarm",
+        "operationId": "snooze_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnoozeAlarmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Alarm state conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmStateConflictProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/alarms/{alarm_id}/dismiss": {
+      "post": {
+        "tags": [
+          "alarms"
+        ],
+        "summary": "Dismiss the current occurrence of an alarm",
+        "operationId": "dismiss_alarm",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "alarm_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alarm Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DismissAlarmResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Alarm not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmNotFoundProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Alarm state conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmStateConflictProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/automations": {
+      "get": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "List an owner's automations",
+        "operationId": "list_automations",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "Create an automation",
+        "operationId": "create_automation",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAutomationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/owners/{owner_id}/automations/{automation_id}": {
+      "get": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "Get an automation",
+        "operationId": "get_automation",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "Replace an automation's schedule and payload",
+        "operationId": "update_automation",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAutomationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "Delete an automation",
+        "operationId": "delete_automation",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Owner Id"
+            }
+          },
+          {
+            "name": "automation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Automation Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The automation was deleted."
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Create a session",
+        "operationId": "create_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sessions/open": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Open the latest session of a channel, creating one if none exists",
+        "operationId": "open_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Get a session snapshot",
+        "operationId": "get_session",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSnapshotResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlarmListResponse": {
+        "properties": {
+          "alarms": {
+            "items": {
+              "$ref": "#/components/schemas/AlarmResponse"
+            },
+            "type": "array",
+            "title": "Alarms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "alarms"
+        ],
+        "title": "AlarmListResponse"
+      },
+      "AlarmNextRun": {
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/AlarmPhase"
+          },
+          "due_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Due At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phase",
+          "due_at"
+        ],
+        "title": "AlarmNextRun"
+      },
+      "AlarmOccurrence": {
+        "properties": {
+          "wake_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Wake At"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OccurrenceState"
+          },
+          "snooze_count": {
+            "type": "integer",
+            "title": "Snooze Count"
+          },
+          "snoozed_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snoozed Until"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "wake_at",
+          "state",
+          "snooze_count",
+          "snoozed_until"
+        ],
+        "title": "AlarmOccurrence"
+      },
+      "AlarmPhase": {
+        "type": "string",
+        "enum": [
+          "pre_wake",
+          "wake",
+          "snooze_end"
+        ],
+        "title": "AlarmPhase"
+      },
+      "AlarmRecurrence": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/OnceAlarmRecurrence"
+          },
+          {
+            "$ref": "#/components/schemas/WeeklyAlarmRecurrence"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "once": "#/components/schemas/OnceAlarmRecurrence",
+            "weekly": "#/components/schemas/WeeklyAlarmRecurrence"
+          }
+        }
+      },
+      "AlarmResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AlarmTarget"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          },
+          "pre_wake_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pre Wake Minutes"
+          },
+          "skipped_dates": {
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "type": "array",
+            "title": "Skipped Dates"
+          },
+          "occurrence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlarmOccurrence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlarmNextRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "owner_id",
+          "name",
+          "created_at",
+          "enabled",
+          "target",
+          "recurrence",
+          "routine",
+          "pre_wake_minutes",
+          "skipped_dates",
+          "occurrence",
+          "next_run"
+        ],
+        "title": "AlarmResponse"
+      },
+      "AlarmRoutine": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Skill",
+            "examples": [
+              "wake-up"
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "skill"
+        ],
+        "title": "AlarmRoutine"
+      },
+      "AlarmTarget": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "session",
+            "title": "Kind",
+            "default": "session"
+          },
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
+        "title": "SessionAlarmTarget"
+      },
+      "AssistantMessageItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "type": {
+            "type": "string",
+            "const": "assistant_message",
+            "title": "Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "type",
+          "content"
+        ],
+        "title": "AssistantMessageItem"
+      },
+      "AtSchedule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "at",
+            "title": "Kind"
+          },
+          "run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Run At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "run_at"
+        ],
+        "title": "AtSchedule"
+      },
+      "AutomationListResponse": {
+        "properties": {
+          "automations": {
+            "items": {
+              "$ref": "#/components/schemas/AutomationResponse"
+            },
+            "type": "array",
+            "title": "Automations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "automations"
+        ],
+        "title": "AutomationListResponse"
+      },
+      "AutomationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Next Run At"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AutomationTarget"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ReminderPayload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "owner_id",
+          "name",
+          "created_at",
+          "next_run_at",
+          "schedule",
+          "target",
+          "payload"
+        ],
+        "title": "AutomationResponse"
+      },
+      "AutomationSchedule": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AtSchedule"
+          },
+          {
+            "$ref": "#/components/schemas/IntervalSchedule"
+          },
+          {
+            "$ref": "#/components/schemas/CronSchedule"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "at": "#/components/schemas/AtSchedule",
+            "cron": "#/components/schemas/CronSchedule",
+            "interval": "#/components/schemas/IntervalSchedule"
+          }
+        }
+      },
+      "AutomationTarget": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "session",
+            "title": "Kind",
+            "default": "session"
+          },
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
+        "title": "SessionTarget"
+      },
+      "CreateAlarmRequest": {
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/AlarmTarget"
+          },
+          "recurrence": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          },
+          "pre_wake_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pre Wake Minutes"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target",
+          "recurrence",
+          "routine"
+        ],
+        "title": "CreateAlarmRequest"
+      },
+      "CreateAutomationRequest": {
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/AutomationTarget"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ReminderPayload"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target",
+          "schedule",
+          "payload"
+        ],
+        "title": "CreateAutomationRequest"
+      },
+      "CreateSessionRequest": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/SessionChannel"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel"
+        ],
+        "title": "CreateSessionRequest"
+      },
+      "CronSchedule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "cron",
+            "title": "Kind"
+          },
+          "expression": {
+            "type": "string",
+            "pattern": "^\\s*\\S+(\\s+\\S+){4}\\s*$",
+            "title": "Expression",
+            "examples": [
+              "0 9 * * 1-5"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "examples": [
+              "Europe/Berlin"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "expression",
+          "timezone"
+        ],
+        "title": "CronSchedule"
+      },
+      "DismissAlarmResponse": {
+        "properties": {
+          "alarm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlarmResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "alarm"
+        ],
+        "title": "DismissAlarmResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "IntervalSchedule": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "interval",
+            "title": "Kind"
+          },
+          "every_seconds": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Every Seconds"
+          },
+          "run_immediately": {
+            "type": "boolean",
+            "title": "Run Immediately",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "every_seconds"
+        ],
+        "title": "IntervalSchedule"
+      },
+      "Item": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/UserMessageItem"
+          },
+          {
+            "$ref": "#/components/schemas/AssistantMessageItem"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCallItem"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "assistant_message": "#/components/schemas/AssistantMessageItem",
+            "tool_call": "#/components/schemas/ToolCallItem",
+            "user_message": "#/components/schemas/UserMessageItem"
+          }
+        }
+      },
+      "OccurrenceState": {
+        "type": "string",
+        "enum": [
+          "upcoming",
+          "pre_wake",
+          "active",
+          "snoozed"
+        ],
+        "title": "OccurrenceState"
+      },
+      "OnceAlarmRecurrence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "once",
+            "title": "Kind"
+          },
+          "wake_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Wake At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "wake_at"
+        ],
+        "title": "OnceAlarmRecurrence"
+      },
+      "OpenSessionRequest": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/SessionChannel"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "channel"
+        ],
+        "title": "OpenSessionRequest"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ready",
+            "title": "Status",
+            "default": "ready"
+          }
+        },
+        "type": "object",
+        "title": "ReadinessResponse"
+      },
+      "ReminderPayload": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "reminder",
+            "title": "Kind",
+            "default": "reminder"
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Instruction"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instruction"
+        ],
+        "title": "ReminderPayload"
+      },
+      "SessionChannel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SessionChannel"
+      },
+      "SessionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/SessionChannel"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "channel"
+        ],
+        "title": "SessionResponse"
+      },
+      "SessionSnapshotResponse": {
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/SessionResponse"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "turn_active": {
+            "type": "boolean",
+            "title": "Turn Active"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "session",
+          "items",
+          "turn_active"
+        ],
+        "title": "SessionSnapshotResponse"
+      },
+      "SetAlarmEnabledRequest": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "SetAlarmEnabledRequest"
+      },
+      "SnoozeAlarmRequest": {
+        "properties": {
+          "minutes": {
+            "type": "integer",
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Minutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "minutes"
+        ],
+        "title": "SnoozeAlarmRequest"
+      },
+      "ToolCallItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "type": {
+            "type": "string",
+            "const": "tool_call",
+            "title": "Type"
+          },
+          "call_id": {
+            "type": "string",
+            "title": "Call Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Arguments"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ToolCallStatus"
+          },
+          "result": {
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "type",
+          "call_id",
+          "name",
+          "arguments",
+          "status"
+        ],
+        "title": "ToolCallItem"
+      },
+      "ToolCallStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "completed",
+          "failed"
+        ],
+        "title": "ToolCallStatus"
+      },
+      "UpdateAlarmRequest": {
+        "properties": {
+          "recurrence": {
+            "$ref": "#/components/schemas/AlarmRecurrence"
+          },
+          "routine": {
+            "$ref": "#/components/schemas/AlarmRoutine"
+          },
+          "pre_wake_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pre Wake Minutes"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recurrence",
+          "routine"
+        ],
+        "title": "UpdateAlarmRequest"
+      },
+      "UpdateAutomationRequest": {
+        "properties": {
+          "schedule": {
+            "$ref": "#/components/schemas/AutomationSchedule"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ReminderPayload"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schedule",
+          "payload"
+        ],
+        "title": "UpdateAutomationRequest"
+      },
+      "UserMessageItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "type": {
+            "type": "string",
+            "const": "user_message",
+            "title": "Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "type",
+          "content"
+        ],
+        "title": "UserMessageItem"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Weekday": {
+        "type": "string",
+        "enum": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ],
+        "title": "Weekday"
+      },
+      "WeeklyAlarmRecurrence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "weekly",
+            "title": "Kind"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/Weekday"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Days"
+          },
+          "local_time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Local Time",
+            "examples": [
+              "06:30"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "examples": [
+              "Europe/Berlin"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "days",
+          "local_time",
+          "timezone"
+        ],
+        "title": "WeeklyAlarmRecurrence"
+      },
+      "Problem": {
+        "type": "object",
+        "title": "Problem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,}$"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "AlarmNotFoundProblem": {
+        "type": "object",
+        "title": "AlarmNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/alarm_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Alarm not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "alarm_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "AlarmStateConflictProblem": {
+        "type": "object",
+        "title": "AlarmStateConflictProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/alarm_state_conflict"
+          },
+          "title": {
+            "type": "string",
+            "const": "Alarm state conflict"
+          },
+          "status": {
+            "type": "integer",
+            "const": 409
+          },
+          "code": {
+            "type": "string",
+            "const": "alarm_state_conflict"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "InvalidAlarmProblem": {
+        "type": "object",
+        "title": "InvalidAlarmProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/invalid_alarm"
+          },
+          "title": {
+            "type": "string",
+            "const": "Invalid alarm"
+          },
+          "status": {
+            "type": "integer",
+            "const": 422
+          },
+          "code": {
+            "type": "string",
+            "const": "invalid_alarm"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "SessionNotFoundProblem": {
+        "type": "object",
+        "title": "SessionNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/session_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Session not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "session_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "AutomationNotFoundProblem": {
+        "type": "object",
+        "title": "AutomationNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/automation_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Automation not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "automation_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "RequestValidationProblem": {
+        "type": "object",
+        "title": "RequestValidationProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/request_validation_error"
+          },
+          "title": {
+            "type": "string",
+            "const": "Request validation failed"
+          },
+          "status": {
+            "type": "integer",
+            "const": 422
+          },
+          "code": {
+            "type": "string",
+            "const": "request_validation_error"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "pointer": {
+                  "type": "string"
+                },
+                "parameter": {
+                  "type": "string"
+                },
+                "in": {
+                  "type": "string",
+                  "enum": [
+                    "path",
+                    "query",
+                    "header",
+                    "cookie"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "errors"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "securitySchemes": {
+      "GatewayToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "system",
+      "description": "Gateway availability."
+    },
+    {
+      "name": "gateway",
+      "description": "Cara gateway protocol."
+    },
+    {
+      "name": "sessions",
+      "description": "Conversation session lifecycle."
+    },
+    {
+      "name": "automations",
+      "description": "Scheduled agent runs."
+    },
+    {
+      "name": "alarms",
+      "description": "Wake-up alarms with agentic routines."
+    }
+  ]
+}

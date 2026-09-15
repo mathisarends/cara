@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import status
+from fastapi import Depends, status
 from fastapi_canon import CanonResponse, CanonRouter
 
 from gateway.features.alarm.application import AlarmService
@@ -30,12 +30,14 @@ from gateway.features.alarm.presentation.schemas import (
     UpdateAlarmRequest,
 )
 from gateway.features.conversation.presentation import SESSION_NOT_FOUND
+from gateway.presentation.authentication import require_token
 
 alarm_router = CanonRouter(
     prefix="/v1/owners/{owner_id}/alarms",
     tags=["alarms"],
     route_class=DishkaRoute,
     error_registry=ALARM_ERRORS,
+    dependencies=[Depends(require_token)],
 )
 
 

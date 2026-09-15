@@ -8,69 +8,7 @@ from pydantic import Field, TypeAdapter
 from gateway.presentation.rpc import WireSchema
 
 
-class ItemType(StrEnum):
-    USER_MESSAGE = "user_message"
-    ASSISTANT_MESSAGE = "assistant_message"
-    TOOL_CALL = "tool_call"
-
-
-class ToolCallStatus(StrEnum):
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-class SessionChannel(WireSchema):
-    name: str = Field(min_length=1)
-
-
-class SessionResponse(WireSchema):
-    id: UUID
-    created_at: datetime
-    channel: SessionChannel
-
-
-class ItemBase(WireSchema):
-    id: UUID
-    created_at: datetime
-
-
-class UserMessageItem(ItemBase):
-    type: Literal[ItemType.USER_MESSAGE] = ItemType.USER_MESSAGE
-    content: str
-
-
-class AssistantMessageItem(ItemBase):
-    type: Literal[ItemType.ASSISTANT_MESSAGE] = ItemType.ASSISTANT_MESSAGE
-    content: str
-
-
-class ToolCallItem(ItemBase):
-    type: Literal[ItemType.TOOL_CALL] = ItemType.TOOL_CALL
-    call_id: str
-    name: str
-    arguments: dict[str, Any]
-    status: ToolCallStatus
-    result: Any = None
-    error: str | None = None
-
-
-type Item = Annotated[
-    UserMessageItem | AssistantMessageItem | ToolCallItem,
-    Field(discriminator="type"),
-]
-
-
-class SessionSnapshotResponse(WireSchema):
-    session: SessionResponse
-    items: tuple[Item, ...]
-    turn_active: bool
-
-
 class ConversationRpcMethod(StrEnum):
-    SESSION_CREATE = "session.create"
-    SESSION_OPEN = "session.open"
-    SESSION_GET = "session.get"
     SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
     SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
     TURN_PREPARE = "turn.prepare"
@@ -86,14 +24,6 @@ class RpcNotificationMethod(StrEnum):
 
 class SessionParams(WireSchema):
     session_id: UUID
-
-
-class CreateSessionParams(WireSchema):
-    channel: SessionChannel
-
-
-class OpenSessionParams(CreateSessionParams):
-    pass
 
 
 class StartTurnParams(SessionParams):

@@ -29,10 +29,7 @@ load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
 
-_GATEWAY_URL = os.environ.get(
-    "CARA_GATEWAY_URL",
-    "ws://127.0.0.1:8000/v1/gateway",
-)
+_GATEWAY_URL = os.environ.get("CARA_GATEWAY_URL", "http://127.0.0.1:8000")
 _GATEWAY_TOKEN = os.environ["CARA_GATEWAY_TOKEN"]
 _INTERVAL_SECONDS = float(os.environ.get("CARA_VOICE_ACTIVATION_INTERVAL", "30"))
 _HEARTBEAT_PROMPT = (

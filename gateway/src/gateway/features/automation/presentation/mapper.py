@@ -65,14 +65,19 @@ def to_action(payload: ReminderPayload) -> domain.PromptAction:
 def _to_schedule_schema(schedule: domain.AutomationSchedule) -> AutomationSchedule:
     match schedule:
         case domain.AtSchedule(run_at=run_at):
-            return AtSchedule(run_at=run_at)
+            return AtSchedule(kind=domain.ScheduleKind.AT, run_at=run_at)
         case domain.IntervalSchedule(every=every, run_immediately=run_immediately):
             return IntervalSchedule(
+                kind=domain.ScheduleKind.INTERVAL,
                 every_seconds=every.total_seconds(),
                 run_immediately=run_immediately,
             )
         case domain.CronSchedule(expression=expression, timezone=timezone):
-            return CronSchedule(expression=expression, timezone=timezone)
+            return CronSchedule(
+                kind=domain.ScheduleKind.CRON,
+                expression=expression,
+                timezone=timezone,
+            )
 
 
 def _to_target_schema(target: domain.AutomationTarget) -> AutomationTarget:

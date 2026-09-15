@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Interactive console client for manual Cara Gateway testing."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "gateway-client",
+    "gateway-rest-client",
+    "gateway-rpc-client",
+    "httpx2>=2.9.1",
     "pyrpckit==0.4.0",
     "python-dotenv>=1.0.0",
 ]
@@ -20,7 +22,8 @@ build-backend = "hatchling.build"
 packages = ["src/cli"]
 
 [tool.uv.sources]
-gateway-client = { workspace = true }
+gateway-rest-client = { workspace = true }
+gateway-rpc-client = { workspace = true }
 
 [tool.ruff]
 extend = "../../pyproject.toml"

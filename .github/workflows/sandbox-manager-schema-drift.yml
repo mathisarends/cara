@@ -46,7 +46,12 @@ jobs:
           uv run --frozen ruff check --fix generated/sandbox_manager_client/src
 
       - name: Check generated artifacts for drift
-        run: >-
-          git diff --exit-code --
-          sandbox_manager/schema/openapi.json
-          generated/sandbox_manager_client/src/sandbox_manager_client
+        run: |
+          paths="sandbox_manager/schema generated/sandbox_manager_client/src"
+          drift="$(git status --porcelain -- ${paths})"
+          if [ -n "${drift}" ]; then
+            echo "${drift}"
+            git diff -- ${paths}
+            echo "::error::Sandbox Manager schema or client is stale. Run scripts/codegen/generate_sandbox_manager_client.sh and commit the result."
+            exit 1
+          fi

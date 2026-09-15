@@ -9,10 +9,12 @@ _AUTH_HEADERS = {
 }
 
 
-def test_gateway_socket_rejects_missing_credentials(client: TestClient) -> None:
+def test_gateway_socket_rejects_missing_credentials(
+    anonymous_client: TestClient,
+) -> None:
     with (
         pytest.raises(WebSocketDisconnect) as error,
-        client.websocket_connect("/v1/gateway"),
+        anonymous_client.websocket_connect("/v1/gateway"),
     ):
         pass
 
@@ -20,10 +22,12 @@ def test_gateway_socket_rejects_missing_credentials(client: TestClient) -> None:
     assert error.value.reason == "Unauthorized"
 
 
-def test_gateway_socket_rejects_invalid_credentials(client: TestClient) -> None:
+def test_gateway_socket_rejects_invalid_credentials(
+    anonymous_client: TestClient,
+) -> None:
     with (
         pytest.raises(WebSocketDisconnect) as error,
-        client.websocket_connect(
+        anonymous_client.websocket_connect(
             "/v1/gateway",
             headers={"Authorization": "Bearer invalid-gateway-token"},
         ),
@@ -34,49 +38,34 @@ def test_gateway_socket_rejects_invalid_credentials(client: TestClient) -> None:
     assert error.value.reason == "Unauthorized"
 
 
-def test_automation_list_runs_over_gateway_socket(client: TestClient) -> None:
+def test_turn_command_for_an_unknown_session_yields_resource_not_found(
+    client: TestClient,
+) -> None:
     with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
         socket.send_json(
             {
                 "jsonrpc": "2.0",
-                "id": "automations",
-                "method": "automation.list",
-                "params": {"ownerId": "local"},
+                "id": "prepare",
+                "method": "turn.prepare",
+                "params": {"sessionId": str(uuid4())},
             }
         )
         response = socket.receive_json()
 
-    assert response == {
-        "jsonrpc": "2.0",
-        "id": "automations",
-        "result": {"automations": []},
-    }
+    assert response["id"] == "prepare"
+    assert response["error"]["code"] == -32004
 
 
-def test_unknown_automation_yields_resource_not_found(client: TestClient) -> None:
-    automation_id = uuid4()
+@pytest.mark.parametrize("method", ["session.open", "automation.list", "alarm.list"])
+def test_resource_methods_are_served_over_rest_only(
+    client: TestClient,
+    method: str,
+) -> None:
     with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
-        socket.send_json(
-            {
-                "jsonrpc": "2.0",
-                "id": "automation",
-                "method": "automation.get",
-                "params": {
-                    "owner_id": "local",
-                    "automation_id": str(automation_id),
-                },
-            }
-        )
+        socket.send_json({"jsonrpc": "2.0", "id": "resource", "method": method})
         response = socket.receive_json()
 
-    assert response == {
-        "jsonrpc": "2.0",
-        "id": "automation",
-        "error": {
-            "code": -32004,
-            "message": f"Not found: Automation {automation_id} not found",
-        },
-    }
+    assert response["error"]["code"] == -32601
 
 
 def test_malformed_gateway_message_yields_json_rpc_parse_error(

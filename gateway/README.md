@@ -1,6 +1,7 @@
 # gateway-server
 
-Cara's central FastAPI process. It owns the JSON-RPC WebSocket API, sessions,
+Cara's central FastAPI process. It owns the REST resource API, the JSON-RPC
+WebSocket for live turns ([transport split](../docs/gateway-transport.md)), sessions,
 persistence, and the agent runtime. It composes [`agent`](../agent) directly;
 shell/files run through the Sandbox Manager and custom tools through MCP.
 

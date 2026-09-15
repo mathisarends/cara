@@ -2,7 +2,8 @@
 # Every value can be overridden by an env var, e.g. CARA_GATEWAY_URL.
 # The gateway token is a secret and stays in .env (CARA_GATEWAY_TOKEN).
 gateway:
-  url: ws://127.0.0.1:8000/v1/gateway
+  # Gateway base URL: REST lives here, the socket at /v1/gateway (ws/wss).
+  url: http://127.0.0.1:8000
 
 voice:
   channel: voice

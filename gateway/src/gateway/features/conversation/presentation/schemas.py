@@ -44,17 +44,17 @@ class ItemBase(WireSchema):
 
 
 class UserMessageItem(ItemBase):
-    type: Literal[ItemType.USER_MESSAGE] = ItemType.USER_MESSAGE
+    type: Literal[ItemType.USER_MESSAGE]
     content: str
 
 
 class AssistantMessageItem(ItemBase):
-    type: Literal[ItemType.ASSISTANT_MESSAGE] = ItemType.ASSISTANT_MESSAGE
+    type: Literal[ItemType.ASSISTANT_MESSAGE]
     content: str
 
 
 class ToolCallItem(ItemBase):
-    type: Literal[ItemType.TOOL_CALL] = ItemType.TOOL_CALL
+    type: Literal[ItemType.TOOL_CALL]
     call_id: str
     name: str
     arguments: dict[str, Any]

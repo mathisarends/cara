@@ -20,7 +20,8 @@ members = [
     "clients/cli",
     "clients/voice",
     "gateway",
-    "generated/gateway_client",
+    "generated/gateway_rest_client",
+    "generated/gateway_rpc_client",
     "generated/sandbox_manager_client",
     "libs/llm",
     "libs/scheduler",
@@ -35,7 +36,8 @@ asyncio_mode = "auto"
 agent = { workspace = true }
 cli = { workspace = true }
 gateway-server = { workspace = true }
-gateway-client = { workspace = true }
+gateway-rest-client = { workspace = true }
+gateway-rpc-client = { workspace = true }
 llm = { workspace = true }
 memory = { workspace = true }
 scheduler = { workspace = true }
@@ -69,7 +71,8 @@ known-first-party = [
     "cli",
     "experiments",
     "gateway",
-    "gateway_client",
+    "gateway_rest_client",
+    "gateway_rpc_client",
     "llm",
     "memory",
     "sandbox_manager_client",

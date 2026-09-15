@@ -29,8 +29,8 @@ jobs:
       - name: Run Gateway tests
         run: uv run --frozen --package gateway-server pytest gateway/tests -q
 
-  gateway-client:
-    name: Gateway client tests
+  gateway-rpc-client:
+    name: Gateway RPC client tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -47,10 +47,10 @@ jobs:
       - name: Install Python
         run: uv python install 3.13
 
-      - name: Run Gateway client tests
+      - name: Run Gateway RPC client tests
         run: >-
-          uv run --frozen --package gateway-client
-          pytest generated/gateway_client/tests -q
+          uv run --frozen --package gateway-rpc-client
+          pytest generated/gateway_rpc_client/tests -q
 
   voice:
     name: Voice tests

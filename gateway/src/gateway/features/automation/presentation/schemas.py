@@ -15,18 +15,18 @@ class PayloadKind(StrEnum):
 
 
 class AtSchedule(WireSchema):
-    kind: Literal[ScheduleKind.AT] = ScheduleKind.AT
+    kind: Literal[ScheduleKind.AT]
     run_at: AwareDatetime
 
 
 class IntervalSchedule(WireSchema):
-    kind: Literal[ScheduleKind.INTERVAL] = ScheduleKind.INTERVAL
+    kind: Literal[ScheduleKind.INTERVAL]
     every_seconds: float = Field(gt=0)
     run_immediately: bool = False
 
 
 class CronSchedule(WireSchema):
-    kind: Literal[ScheduleKind.CRON] = ScheduleKind.CRON
+    kind: Literal[ScheduleKind.CRON]
     expression: str = Field(
         pattern=r"^\s*\S+(\s+\S+){4}\s*$",
         examples=["0 9 * * 1-5"],

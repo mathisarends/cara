@@ -10,10 +10,11 @@ from gateway.presentation import RequestLoggingMiddleware
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Cara Gateway API",
-        summary="JSON-RPC gateway for Cara clients.",
+        summary="REST resources and a JSON-RPC WebSocket for Cara clients.",
         description=(
-            "Requests, commands, responses, and live events share one typed, "
-            "long-lived WebSocket connection at /v1/gateway."
+            "Resources such as sessions, automations, and alarms are plain REST. "
+            "Commands and events of a live conversation share one JSON-RPC "
+            "WebSocket connection at /v1/gateway."
         ),
         version="0.1.0",
         lifespan=lifespan,

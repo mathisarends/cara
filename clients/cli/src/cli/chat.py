@@ -4,24 +4,29 @@ from uuid import UUID
 from cli import commands
 from cli.console import Console
 from cli.keyboard import Character, ControlKey, Keyboard
-from gateway_client import GatewayClient, RpcRemoteError
-from gateway_client.models import (
+from gateway_rest_client import (
     AssistantMessageItem,
+    CreateSessionRequest,
+    GatewayRestClient,
+    Item,
+    OpenSessionRequest,
+    SessionChannel,
+    ToolCallItem,
+    ToolCallStatus,
+    UserMessageItem,
+)
+from gateway_rpc_client import GatewayRpcClient, RpcRemoteError
+from gateway_rpc_client.models import (
     ChatCompleted,
     ChatDelta,
-    Item,
-    SessionChannel,
     SessionEvent,
     ToolCallCompleted,
-    ToolCallItem,
     ToolCallStarted,
-    ToolCallStatus,
     TurnCancelled,
     TurnCompleted,
     TurnFailed,
     TurnStarted,
     TurnSteered,
-    UserMessageItem,
 )
 
 # gateway.presentation.rpc.GatewayErrorCode.NO_ACTIVE_TURN
@@ -46,13 +51,15 @@ _VALUE_LIMIT = 60
 class ChatSession:
     def __init__(
         self,
-        client: GatewayClient,
+        client: GatewayRpcClient,
+        sessions: GatewayRestClient,
         console: Console,
         keyboard: Keyboard,
         channel: SessionChannel,
         trace: bool,
     ) -> None:
         self._client = client
+        self._sessions = sessions
         self._console = console
         self._keyboard = keyboard
         self._channel = channel
@@ -74,18 +81,22 @@ class ChatSession:
 
     async def _open(self, session_id: UUID | None) -> None:
         if session_id is None:
-            session = await self._client.session.open(channel=self._channel)
+            session = await self._sessions.open_session(
+                OpenSessionRequest(channel=self._channel)
+            )
             session_id = session.id
         await self._attach(session_id)
 
     async def _create(self) -> None:
-        session = await self._client.session.create(channel=self._channel)
+        session = await self._sessions.create_session(
+            CreateSessionRequest(channel=self._channel)
+        )
         await self._attach(session.id)
 
     async def _attach(self, session_id: UUID) -> None:
         if self._session_id is not None:
             await self._client.subscription.unsubscribe(session_id=self._session_id)
-        snapshot = await self._client.session.get(session_id=session_id)
+        snapshot = await self._sessions.get_session(session_id)
         self._session_id = session_id
         self._turn_active = snapshot.turn_active
         self._console.field("channel", self._channel.name)
@@ -154,7 +165,7 @@ class ChatSession:
             case "/session":
                 self._console.info(str(self._session_id))
             case "/history":
-                snapshot = await self._client.session.get(session_id=self._session_id)
+                snapshot = await self._sessions.get_session(self._session_id)
                 self._replay(snapshot.items)
             case "/cancel":
                 await self._cancel_turn()

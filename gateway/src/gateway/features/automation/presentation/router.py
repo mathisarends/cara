@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import status
+from fastapi import Depends, status
 from fastapi_canon import CanonResponse, CanonRouter
 
 from gateway.features.automation.application import AutomationService
@@ -23,12 +23,14 @@ from gateway.features.automation.presentation.schemas import (
     UpdateAutomationRequest,
 )
 from gateway.features.conversation.presentation import SESSION_NOT_FOUND
+from gateway.presentation.authentication import require_token
 
 automation_router = CanonRouter(
     prefix="/v1/owners/{owner_id}/automations",
     tags=["automations"],
     route_class=DishkaRoute,
     error_registry=AUTOMATION_ERRORS,
+    dependencies=[Depends(require_token)],
 )
 
 

@@ -1,13 +1,16 @@
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+import httpx2
 import pytest
 
-from gateway_client import GatewayClient
-from gateway_client.models import SessionEventType
+from gateway_rest_client import GatewayRestClient
+from gateway_rpc_client import GatewayRpcClient
+from gateway_rpc_client.models import SessionEventType
 from voice.activation import PromptActivation
 from voice.llm import (
     GatewayAgentSession,
@@ -17,6 +20,7 @@ from voice.llm import (
     ToolStarted,
     TurnCompleted,
 )
+from voice.llm.gateway import _resolve_session
 
 
 class _Transport:
@@ -28,12 +32,6 @@ class _Transport:
     async def request(self, method: str, params: dict[str, Any]) -> Any:
         method_name = str(method)
         self.requests.append((method_name, params))
-        if method_name in {"session.open", "session.create"}:
-            return {
-                "id": str(self.session_id),
-                "created_at": datetime.now(UTC).isoformat(),
-                "channel": params["channel"],
-            }
         if method_name == "subscription.subscribe":
             return {"subscribed": str(self.session_id)}
         if method_name == "subscription.unsubscribe":
@@ -79,17 +77,20 @@ class _Transport:
         )
 
 
-def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
+async def _attach(transport: _Transport) -> GatewayAgentSession:
+    return await GatewayAgentSession.attach(
+        GatewayRpcClient(transport), transport.session_id
+    )
+
+
+def test_gateway_agent_session_translates_events() -> None:
     async def run() -> tuple[
         UUID,
         list[object],
         list[tuple[str, dict[str, Any]]],
     ]:
         transport = _Transport()
-        session = await GatewayAgentSession.attach(
-            GatewayClient(transport),
-            channel="voice",
-        )
+        session = await _attach(transport)
         await transport.emit(SessionEventType.CHAT_DELTA, sequence=1, text="Hallo ")
         await transport.emit(
             SessionEventType.TOOL_CALL_STARTED,
@@ -131,10 +132,6 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
         TurnCompleted("Hallo Berlin"),
     ]
     assert requests == [
-        (
-            "session.open",
-            {"channel": {"name": "voice"}},
-        ),
         ("subscription.subscribe", {"sessionId": str(session_id)}),
         ("turn.prepare", {"sessionId": str(session_id)}),
         (
@@ -150,27 +147,44 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
     ]
 
 
-def test_gateway_agent_session_can_explicitly_create_a_fresh_session() -> None:
-    async def run() -> list[str]:
-        transport = _Transport()
-        session = await GatewayAgentSession.attach(
-            GatewayClient(transport),
-            new_session=True,
-        )
-        await session.close()
-        return [method for method, _ in transport.requests]
+@pytest.mark.parametrize(
+    ("new_session", "path"),
+    [(False, "/v1/sessions/open"), (True, "/v1/sessions")],
+)
+def test_session_is_resolved_over_rest(new_session: bool, path: str) -> None:
+    session_id = uuid4()
+    requests: list[httpx2.Request] = []
 
-    assert asyncio.run(run()) == [
-        "session.create",
-        "subscription.subscribe",
-        "subscription.unsubscribe",
-    ]
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        requests.append(request)
+        return httpx2.Response(
+            201 if new_session else 200,
+            json={
+                "id": str(session_id),
+                "created_at": datetime.now(UTC).isoformat(),
+                "channel": json.loads(request.content)["channel"],
+            },
+        )
+
+    async def run() -> UUID:
+        async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as http:
+            sessions = GatewayRestClient(
+                http, "http://gateway.test", credentials={"GatewayToken": "secret"}
+            )
+            return await _resolve_session(
+                sessions, channel="voice", new_session=new_session
+            )
+
+    assert asyncio.run(run()) == session_id
+    assert requests[0].url.path == path
+    assert json.loads(requests[0].content) == {"channel": {"name": "voice"}}
+    assert requests[0].headers["Authorization"] == "Bearer secret"
 
 
 def test_server_started_turn_activates_voice_without_starting_a_second_turn() -> None:
     async def run() -> tuple[object, list[object], list[str]]:
         transport = _Transport()
-        session = await GatewayAgentSession.attach(GatewayClient(transport))
+        session = await _attach(transport)
         activations = session.activations()
 
         await transport.emit(
@@ -200,17 +214,13 @@ def test_server_started_turn_activates_voice_without_starting_a_second_turn() ->
         TextDelta("Zeit aufzuwachen!"),
         TurnCompleted("Zeit aufzuwachen!"),
     ]
-    assert methods == [
-        "session.open",
-        "subscription.subscribe",
-        "subscription.unsubscribe",
-    ]
+    assert methods == ["subscription.subscribe", "subscription.unsubscribe"]
 
 
 def test_interrupt_cancels_the_active_gateway_turn_and_drains_its_terminal() -> None:
     async def run() -> list[str]:
         transport = _Transport()
-        session = await GatewayAgentSession.attach(GatewayClient(transport))
+        session = await _attach(transport)
         stream = await session.start_turn("Stop me")
         consuming = asyncio.create_task(anext(stream))
         await asyncio.sleep(0)
@@ -222,7 +232,6 @@ def test_interrupt_cancels_the_active_gateway_turn_and_drains_its_terminal() -> 
         return [method for method, _ in transport.requests]
 
     assert asyncio.run(run()) == [
-        "session.open",
         "subscription.subscribe",
         "turn.start",
         "turn.cancel",
@@ -233,7 +242,7 @@ def test_interrupt_cancels_the_active_gateway_turn_and_drains_its_terminal() -> 
 def test_gateway_turn_failure_is_exposed_to_the_voice_bridge() -> None:
     async def run() -> None:
         transport = _Transport()
-        session = await GatewayAgentSession.attach(GatewayClient(transport))
+        session = await _attach(transport)
         await transport.emit(
             SessionEventType.TURN_FAILED,
             sequence=1,

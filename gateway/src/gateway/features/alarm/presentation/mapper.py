@@ -87,13 +87,14 @@ def to_pre_wake_lead(minutes: int | None) -> timedelta | None:
 def _to_recurrence_schema(recurrence: domain.AlarmRecurrence) -> AlarmRecurrence:
     match recurrence:
         case domain.OnceRecurrence(wake_at=wake_at):
-            return OnceAlarmRecurrence(wake_at=wake_at)
+            return OnceAlarmRecurrence(kind=domain.RecurrenceKind.ONCE, wake_at=wake_at)
         case domain.WeeklyRecurrence(
             days=days,
             local_time=local_time,
             timezone=timezone,
         ):
             return WeeklyAlarmRecurrence(
+                kind=domain.RecurrenceKind.WEEKLY,
                 days=tuple(day for day in domain.Weekday if day in days),
                 local_time=f"{local_time:%H:%M}",
                 timezone=timezone,

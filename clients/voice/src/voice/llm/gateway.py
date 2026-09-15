@@ -4,11 +4,18 @@ from dataclasses import dataclass
 from typing import Self
 from uuid import UUID
 
-from gateway_client import GatewayClient, connect_gateway
-from gateway_client.models import (
+import httpx2
+
+from gateway_rest_client import (
+    CreateSessionRequest,
+    GatewayRestClient,
+    OpenSessionRequest,
+    SessionChannel,
+)
+from gateway_rpc_client import GatewayRpcClient, connect_gateway
+from gateway_rpc_client.models import (
     ChatCompleted,
     ChatDelta,
-    SessionChannel,
     SessionEvent,
     ToolCallCompleted,
     ToolCallStarted,
@@ -16,7 +23,7 @@ from gateway_client.models import (
     TurnFailed,
     TurnStarted,
 )
-from gateway_client.models import (
+from gateway_rpc_client.models import (
     TurnCompleted as GatewayTurnCompleted,
 )
 from voice.activation import Activation, ActivationSource, PromptActivation
@@ -55,7 +62,7 @@ type _QueuedEvent = SessionEvent | _GatewayDisconnected
 
 
 class GatewayAgentSession(ActivationSource):
-    def __init__(self, client: GatewayClient, session_id: UUID) -> None:
+    def __init__(self, client: GatewayRpcClient, session_id: UUID) -> None:
         self._client = client
         self._session_id = session_id
         self._turn_queue: asyncio.Queue[_QueuedEvent] | None = None
@@ -77,32 +84,22 @@ class GatewayAgentSession(ActivationSource):
         channel: str = "voice",
         new_session: bool = False,
     ) -> Self:
+        async with httpx2.AsyncClient() as http:
+            sessions = GatewayRestClient(http, url, credentials={"GatewayToken": token})
+            session_id = await _resolve_session(
+                sessions, channel=channel, new_session=new_session
+            )
         client = await connect_gateway(url, token=token)
         try:
-            return await cls.attach(
-                client,
-                channel=channel,
-                new_session=new_session,
-            )
+            return await cls.attach(client, session_id)
         except BaseException:
             await client.close()
             raise
 
     @classmethod
-    async def attach(
-        cls,
-        client: GatewayClient,
-        *,
-        channel: str = "voice",
-        new_session: bool = False,
-    ) -> Self:
-        channel_ref = SessionChannel(name=channel)
-        if new_session:
-            session = await client.session.create(channel=channel_ref)
-        else:
-            session = await client.session.open(channel=channel_ref)
-        await client.subscription.subscribe(session_id=session.id)
-        return cls(client, session.id)
+    async def attach(cls, client: GatewayRpcClient, session_id: UUID) -> Self:
+        await client.subscription.subscribe(session_id=session_id)
+        return cls(client, session_id)
 
     @property
     def session_id(self) -> UUID:
@@ -261,3 +258,19 @@ class GatewayAgentSession(ActivationSource):
         terminal, self._turn_terminal = self._turn_terminal, None
         if terminal is not None and not terminal.done():
             terminal.cancel()
+
+
+async def _resolve_session(
+    sessions: GatewayRestClient,
+    *,
+    channel: str,
+    new_session: bool,
+) -> UUID:
+    channel_ref = SessionChannel(name=channel)
+    if new_session:
+        session = await sessions.create_session(
+            CreateSessionRequest(channel=channel_ref)
+        )
+    else:
+        session = await sessions.open_session(OpenSessionRequest(channel=channel_ref))
+    return session.id

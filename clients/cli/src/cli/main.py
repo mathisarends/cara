@@ -4,16 +4,17 @@ import os
 import sys
 from uuid import UUID
 
+import httpx2
 from dotenv import load_dotenv
 
 from cli import commands
 from cli.chat import ChatSession
 from cli.console import Console
 from cli.keyboard import Keyboard
-from gateway_client import RpcClientError, connect_gateway
-from gateway_client.models import SessionChannel
+from gateway_rest_client import ClientError, GatewayRestClient, SessionChannel
+from gateway_rpc_client import RpcClientError, connect_gateway
 
-DEFAULT_URL = "ws://127.0.0.1:8000/v1/gateway"
+DEFAULT_URL = "http://127.0.0.1:8000"
 DEFAULT_CHANNEL = "cli"
 
 
@@ -48,11 +49,16 @@ async def _run(args: argparse.Namespace) -> None:
         raise SystemExit(1) from error
 
     channel = SessionChannel(name=args.channel)
-    async with client, keyboard:
-        chat = ChatSession(client, console, keyboard, channel, trace=args.events)
+    async with httpx2.AsyncClient() as http, client, keyboard:
+        sessions = GatewayRestClient(
+            http, args.url, credentials={"GatewayToken": token}
+        )
+        chat = ChatSession(
+            client, sessions, console, keyboard, channel, trace=args.events
+        )
         try:
             await chat.run(args.session)
-        except RpcClientError as error:
+        except (RpcClientError, ClientError) as error:
             console.error(str(error))
             raise SystemExit(1) from error
 
@@ -62,7 +68,7 @@ def _parse_args() -> argparse.Namespace:
         prog="cara-chat",
         description="Interactive console client for manual gateway testing.",
     )
-    parser.add_argument("--url", default=DEFAULT_URL)
+    parser.add_argument("--url", default=DEFAULT_URL, help="gateway base URL")
     parser.add_argument(
         "--channel",
         default=DEFAULT_CHANNEL,

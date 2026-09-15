@@ -2,6 +2,7 @@ from gateway.features.conversation import domain
 from gateway.features.conversation.presentation.schemas import (
     AssistantMessageItem,
     Item,
+    ItemType,
     SessionChannel,
     SessionResponse,
     SessionSnapshotResponse,
@@ -36,6 +37,7 @@ def _to_items(entry: domain.SessionEntry) -> tuple[Item, ...]:
         case domain.UserMessage():
             return (
                 UserMessageItem(
+                    type=ItemType.USER_MESSAGE,
                     id=entry.id,
                     created_at=entry.created_at,
                     content=entry.content,
@@ -44,6 +46,7 @@ def _to_items(entry: domain.SessionEntry) -> tuple[Item, ...]:
         case domain.AssistantMessage():
             return (
                 AssistantMessageItem(
+                    type=ItemType.ASSISTANT_MESSAGE,
                     id=entry.id,
                     created_at=entry.created_at,
                     content=entry.content,
@@ -55,6 +58,7 @@ def _to_items(entry: domain.SessionEntry) -> tuple[Item, ...]:
 
 def _to_tool_call_item(call: domain.ToolCall) -> ToolCallItem:
     return ToolCallItem(
+        type=ItemType.TOOL_CALL,
         id=call.id,
         created_at=call.created_at,
         call_id=call.call_id,

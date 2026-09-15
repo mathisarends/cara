@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from gateway.features.alarm.application import AlarmService
 from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import AgentRuntime
-from gateway.presentation.websocket.authentication import GatewayAuthenticator
+from gateway.presentation.authentication import GatewayAuthenticator
 
 logger = logging.getLogger(__name__)
 

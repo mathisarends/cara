@@ -1,9 +1,10 @@
 # cli
 
 Small interactive terminal client for manually exercising the Cara Gateway
-during development. Connects over JSON-RPC/WebSocket via
-[`gateway_client`](../../generated/gateway_client), opens or resumes a session on a given
-channel, and renders the streamed reply — including tool-call events — live.
+during development. Opens or resumes a session on a given channel over REST via
+[`gateway_rest_client`](../../generated/gateway_rest_client), runs turns over the
+JSON-RPC WebSocket via [`gateway_rpc_client`](../../generated/gateway_rpc_client),
+and renders the streamed reply — including tool-call events — live.
 
 Typing stays live while a turn runs: a message sent during a turn is queued
 with `turn.steer` and reaches the model at its next tool-call boundary, and
@@ -18,8 +19,8 @@ uv run cara-chat
 ```
 
 Requires `CARA_GATEWAY_TOKEN` (same shared token as the Gateway). Flags:
-`--url`, `--channel`, `--session`, `--events`, `--no-color` — no
-env vars or config files otherwise.
+`--url` (Gateway base URL, default `http://127.0.0.1:8000`), `--channel`,
+`--session`, `--events`, `--no-color` — no env vars or config files otherwise.
 
 In-session commands: `/new`, `/session`, `/history`, `/events`, `/cancel`,
 `/help`, `/quit`.
@@ -62,7 +63,8 @@ headline and no result.
 
 ## Dependencies
 
-- [`gateway_client`](../../generated/gateway_client) — typed RPC client and event models.
+- [`gateway_rest_client`](../../generated/gateway_rest_client) — sessions and snapshots.
+- [`gateway_rpc_client`](../../generated/gateway_rpc_client) — turns, subscriptions, and event models.
 - A running [`gateway-server`](../../gateway) to connect to.
 
 ## Layout

@@ -23,6 +23,8 @@ from gateway.features.conversation.application import (
 )
 from gateway.platform.database.migrations import run_migrations
 
+_TOKEN = "test-gateway-token-with-32-characters"
+
 
 class _TestAgentRuntime:
     async def prepare(self, session: AgentSessionRef) -> None:
@@ -46,7 +48,7 @@ def app(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> FastAPI:
     database_url = f"sqlite+aiosqlite:///{(tmp_path / 'gateway.sqlite3').as_posix()}"
     asyncio.run(_migrate(database_url))
     monkeypatch.setenv("DATABASE_URL", database_url)
-    monkeypatch.setenv("CARA_GATEWAY_TOKEN", "test-gateway-token-with-32-characters")
+    monkeypatch.setenv("CARA_GATEWAY_TOKEN", _TOKEN)
     monkeypatch.setattr(
         "gateway.agent_runtime.provider.CaraAgentRuntime",
         lambda *args: _TestAgentRuntime(),
@@ -56,6 +58,12 @@ def app(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> FastAPI:
 
 @pytest.fixture
 def client(app: FastAPI) -> TestClient:
+    with TestClient(app, headers={"Authorization": f"Bearer {_TOKEN}"}) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def anonymous_client(app: FastAPI) -> TestClient:
     with TestClient(app) as test_client:
         yield test_client
 

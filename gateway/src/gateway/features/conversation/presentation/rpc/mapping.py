@@ -1,71 +1,8 @@
 from gateway.features.conversation.application import ConversationEvent
-from gateway.features.conversation.domain import (
-    AssistantMessage,
-    ChannelRef,
-    Session,
-    ToolCallSequence,
-    UserMessage,
-)
 from gateway.features.conversation.presentation.rpc.models import (
     SESSION_EVENT_ADAPTER,
-    AssistantMessageItem,
-    Item,
-    SessionChannel,
     SessionEvent,
-    SessionResponse,
-    SessionSnapshotResponse,
-    ToolCallItem,
-    ToolCallStatus,
-    UserMessageItem,
 )
-
-
-def session_snapshot(session: Session) -> SessionSnapshotResponse:
-    items: list[Item] = []
-    for entry in session.entries:
-        if isinstance(entry, UserMessage):
-            items.append(
-                UserMessageItem(
-                    id=entry.id, created_at=entry.created_at, content=entry.content
-                )
-            )
-        elif isinstance(entry, AssistantMessage):
-            items.append(
-                AssistantMessageItem(
-                    id=entry.id, created_at=entry.created_at, content=entry.content
-                )
-            )
-        elif isinstance(entry, ToolCallSequence):
-            items.extend(
-                ToolCallItem(
-                    id=call.id,
-                    created_at=call.created_at,
-                    call_id=call.call_id,
-                    name=call.function_name,
-                    arguments=call.function_arguments,
-                    status=ToolCallStatus(call.state.value),
-                    result=call.result,
-                    error=call.error,
-                )
-                for call in entry.calls
-            )
-    return SessionSnapshotResponse(
-        session=session_response(session),
-        items=tuple(items),
-        turn_active=session.turn_active,
-    )
-
-
-def session_response(session: Session) -> SessionResponse:
-    return SessionResponse(
-        id=session.id,
-        created_at=session.created_at,
-        channel=_session_channel(session.channel),
-    )
-
-
-def _session_channel(channel: ChannelRef) -> SessionChannel:
-    return SessionChannel(name=channel.name)
 
 
 def session_event(event: ConversationEvent) -> SessionEvent:

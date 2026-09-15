@@ -4,9 +4,10 @@ version = "0.1.0"
 description = "Agentic core: agent loop, tools, memory, and prompt assembly."
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "gateway-client",
+    "gateway-rest-client",
     "llm",
     "httpx>=0.28.0",
+    "httpx2>=2.9.1",
     "mm-agenttoolkit>=0.4.0",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.14.2",

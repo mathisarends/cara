@@ -9,9 +9,5 @@ FEATURES: tuple[Feature, ...] = (
     automation.feature,
     conversation.feature,
 )
-RPC_MODULES: tuple[rpc.RpcModule, ...] = (
-    alarm.rpc_module,
-    automation.rpc_module,
-    conversation.rpc_module,
-)
+RPC_MODULES: tuple[rpc.RpcModule, ...] = (conversation.rpc_module,)
 __all__ = ["FEATURES", "RPC_MODULES"]

@@ -16,12 +16,12 @@ from gateway.presentation.rpc import WireSchema
 
 
 class OnceAlarmRecurrence(WireSchema):
-    kind: Literal[RecurrenceKind.ONCE] = RecurrenceKind.ONCE
+    kind: Literal[RecurrenceKind.ONCE]
     wake_at: AwareDatetime
 
 
 class WeeklyAlarmRecurrence(WireSchema):
-    kind: Literal[RecurrenceKind.WEEKLY] = RecurrenceKind.WEEKLY
+    kind: Literal[RecurrenceKind.WEEKLY]
     days: tuple[Weekday, ...] = Field(min_length=1)
     local_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$", examples=["06:30"])
     timezone: str = Field(examples=["Europe/Berlin"])

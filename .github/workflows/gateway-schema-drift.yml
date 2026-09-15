@@ -14,6 +14,12 @@ jobs:
     name: Generated artifacts are current
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      UV_FROZEN: "1"
+      GENERATED_PATHS: >-
+        gateway/schema
+        generated/gateway_rest_client/src
+        generated/gateway_rpc_client/src
 
     steps:
       - name: Check out repository
@@ -28,17 +34,15 @@ jobs:
       - name: Install Python
         run: uv python install 3.13
 
-      - name: Regenerate Gateway schema
-        run: uv run --frozen --package gateway-server cara-gateway-schema
-
-      - name: Regenerate Python client
-        run: >-
-          uv run --frozen --package gateway-server cara-gateway-client-generate
-          gateway/schema/gateway.openrpc.json
+      - name: Regenerate schemas and clients
+        run: ./scripts/codegen/generate_gateway_clients.sh
 
       - name: Check generated artifacts for drift
-        run: >-
-          git diff --exit-code --
-          gateway/schema/gateway.schema.json
-          gateway/schema/gateway.openrpc.json
-          generated/gateway_client/src/gateway_client
+        run: |
+          drift="$(git status --porcelain -- ${GENERATED_PATHS})"
+          if [ -n "${drift}" ]; then
+            echo "${drift}"
+            git diff -- ${GENERATED_PATHS}
+            echo "::error::Gateway schemas or clients are stale. Run scripts/codegen/generate_gateway_clients.sh and commit the result."
+            exit 1
+          fi

@@ -15,7 +15,7 @@ DEFAULT_CONFIG_FILE = Path("voice.yaml")
 class GatewayConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    url: str = "ws://127.0.0.1:8000/v1/gateway"
+    url: str = "http://127.0.0.1:8000"
     token: str = Field(min_length=1)
 
 

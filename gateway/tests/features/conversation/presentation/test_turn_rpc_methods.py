@@ -17,28 +17,27 @@ from gateway.features.conversation.application import (
     SessionService,
     TurnService,
 )
-from gateway.features.conversation.domain import SessionNotFoundError
+from gateway.features.conversation.domain import (
+    AssistantMessage,
+    ChannelRef,
+    SessionNotFoundError,
+)
 from gateway.features.conversation.infrastructure.repository import (
     SQLSessionRepository,
 )
 from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
 from gateway.features.conversation.presentation.rpc.methods import (
     cancel_turn,
-    create_session,
     finish_turn,
-    get_session,
     prepare_turn,
     start_turn,
 )
 from gateway.features.conversation.presentation.rpc.models import (
-    AssistantMessageItem,
-    CreateSessionParams,
-    SessionChannel,
     SessionParams,
     StartTurnParams,
 )
 
-_CHANNEL = SessionChannel(name="voice")
+_CHANNEL = ChannelRef("voice")
 
 
 class _RecordingPublisher(EventPublisher):
@@ -104,7 +103,7 @@ async def test_prepare_and_finish_turn_forward_the_session(
 ) -> None:
     runner = _LifecycleAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, runner)
-    created = await create_session(CreateSessionParams(channel=_CHANNEL), sessions)
+    created = await sessions.create(channel=_CHANNEL)
 
     prepared = await prepare_turn(SessionParams(session_id=created.id), turns)
     finished = await finish_turn(SessionParams(session_id=created.id), turns)
@@ -122,7 +121,7 @@ async def test_start_turn_runs_the_agent_in_the_background(
     sessions, turns = _services(
         session_repository, session_factory, _LifecycleAgentRuntime(), publisher
     )
-    created = await create_session(CreateSessionParams(channel=_CHANNEL), sessions)
+    created = await sessions.create(channel=_CHANNEL)
 
     result = await start_turn(
         StartTurnParams(session_id=created.id, message="hello"), turns
@@ -130,9 +129,9 @@ async def test_start_turn_runs_the_agent_in_the_background(
     await _wait_for_turn_completed(publisher)
 
     assert result.session_id == created.id
-    snapshot = await get_session(SessionParams(session_id=created.id), sessions)
-    reply = snapshot.items[-1]
-    assert isinstance(reply, AssistantMessageItem)
+    session = await sessions.get(created.id)
+    reply = session.entries[-1]
+    assert isinstance(reply, AssistantMessage)
     assert reply.content == "done"
 
 
@@ -142,7 +141,7 @@ async def test_cancel_turn_releases_the_session_for_a_new_turn(
 ) -> None:
     runner = _HangingAgentRuntime()
     sessions, turns = _services(session_repository, session_factory, runner)
-    created = await create_session(CreateSessionParams(channel=_CHANNEL), sessions)
+    created = await sessions.create(channel=_CHANNEL)
     await start_turn(StartTurnParams(session_id=created.id, message="hello"), turns)
     await asyncio.wait_for(runner.started.wait(), timeout=1)
 

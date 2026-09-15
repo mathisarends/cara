@@ -97,8 +97,10 @@ async with agent_session:
 
 ## Dependencies
 
-- [`gateway_client`](../../generated/gateway_client) via `GatewayAgentSession` — the sole
-  path to an LLM.
+- [`gateway_rest_client`](../../generated/gateway_rest_client) and
+  [`gateway_rpc_client`](../../generated/gateway_rpc_client) via `GatewayAgentSession` —
+  the sole path to an LLM. `connect` resolves the session over REST, then runs
+  turns over the socket.
 - Injecting a `VolumeControl`-capable `AudioOutput` into `agent`'s tool
   context is what enables its volume tools — see [repo root
   README](../../README.md#audio-outputs).
