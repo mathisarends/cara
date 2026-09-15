@@ -15,7 +15,7 @@ _CHANNEL = ChannelRef("test")
 
 
 def test_session_owns_an_ordered_conversation() -> None:
-    session = Session.create(_CHANNEL, metadata={"source": "terminal"})
+    session = Session.create(_CHANNEL)
 
     user_message = session.add_user_message("How is the weather?")
     first_call = session.add_tool_call(
@@ -33,7 +33,6 @@ def test_session_owns_an_ordered_conversation() -> None:
     assistant_message = session.add_assistant_message("It is 21 degrees.")
 
     assert session.channel == _CHANNEL
-    assert session.metadata == {"source": "terminal"}
     assert [type(entry) for entry in session.entries] == [
         UserMessage,
         ToolCallSequence,
@@ -48,16 +47,11 @@ def test_session_owns_an_ordered_conversation() -> None:
 
 
 def test_session_does_not_expose_mutable_collections() -> None:
-    metadata = {"source": "terminal"}
     entries = [UserMessage("Hello")]
-    session = Session(channel=_CHANNEL, metadata=metadata, entries=entries)
+    session = Session(channel=_CHANNEL, entries=entries)
 
-    metadata["source"] = "web"
     entries.append(AssistantMessage("Changed outside"))
-    returned_metadata = session.metadata
-    returned_metadata["source"] = "voice"
 
-    assert session.metadata == {"source": "terminal"}
     assert len(session.entries) == 1
 
 

@@ -142,10 +142,7 @@ async def test_prepare_and_finish_forward_the_session_to_the_agent(
 ) -> None:
     runner = _StreamingAgentRunner()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
-    session = await sessions.create(
-        channel=ChannelRef("voice", "kitchen"),
-        metadata={},
-    )
+    session = await sessions.create(channel=ChannelRef("voice", "kitchen"))
 
     await turns.prepare(session.id)
     await turns.finish(session.id)
@@ -167,7 +164,7 @@ async def test_failed_turn_publishes_turn_failed_event(
         publisher,
         _FailingAgentRunner(),
     )
-    session = await sessions.create(channel=_CHANNEL, metadata={})
+    session = await sessions.create(channel=_CHANNEL)
 
     await turns.start(session_id=session.id, text="hello", metadata={})
     await _wait_for_event(publisher, ConversationEventType.TURN_FAILED)
@@ -193,7 +190,7 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
 ) -> None:
     runner = _StreamingAgentRunner()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
-    session = await sessions.create(channel=_CHANNEL, metadata={})
+    session = await sessions.create(channel=_CHANNEL)
 
     await turns.start(session_id=session.id, text="hello", metadata={})
     await _wait_for_event(publisher, ConversationEventType.TURN_COMPLETED)
@@ -235,7 +232,7 @@ async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
 ) -> None:
     runner = _SteerableAgentRunner()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
-    session = await sessions.create(channel=_CHANNEL, metadata={})
+    session = await sessions.create(channel=_CHANNEL)
     await turns.start(session_id=session.id, text="hello", metadata={})
     await asyncio.wait_for(runner.tool_started.wait(), timeout=1)
 
@@ -276,7 +273,7 @@ async def test_steering_without_an_active_turn_is_rejected(
         publisher,
         _SteerableAgentRunner(),
     )
-    session = await sessions.create(channel=_CHANNEL, metadata={})
+    session = await sessions.create(channel=_CHANNEL)
 
     with pytest.raises(NoActiveTurnError):
         await turns.steer(session_id=session.id, text="anybody there?")
@@ -289,7 +286,7 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
 ) -> None:
     runner = _StreamingAgentRunner()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
-    session = await sessions.create(channel=_CHANNEL, metadata={})
+    session = await sessions.create(channel=_CHANNEL)
 
     await turns.start_scheduled(
         session_id=session.id,
@@ -319,7 +316,7 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
 ) -> None:
     runner = _BlockingFirstAgentRunner()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
-    session = await sessions.create(channel=_CHANNEL, metadata={})
+    session = await sessions.create(channel=_CHANNEL)
     await turns.start(session_id=session.id, text="Schedule this", metadata={})
     await asyncio.wait_for(runner.first_started.wait(), timeout=1)
 

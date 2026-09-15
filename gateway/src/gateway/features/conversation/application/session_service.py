@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Any
 from uuid import UUID
 
 from gateway.features.conversation.domain import (
@@ -22,9 +21,8 @@ class SessionService:
         self,
         *,
         channel: ChannelRef,
-        metadata: dict[str, Any],
     ) -> Session:
-        session = Session.create(channel, metadata)
+        session = Session.create(channel)
         saved = await self._sessions.save(session)
         logger.info(
             "Created conversation session %s for channel %s",
@@ -37,7 +35,6 @@ class SessionService:
         self,
         *,
         channel: ChannelRef,
-        metadata: dict[str, Any],
     ) -> Session:
         async with self._open_lock:
             session = await self._sessions.find_latest_by_channel(channel)
@@ -48,7 +45,7 @@ class SessionService:
                     _channel_label(channel),
                 )
                 return session
-            return await self.create(channel=channel, metadata=metadata)
+            return await self.create(channel=channel)
 
     async def get(self, session_id: UUID) -> Session:
         session = await self._sessions.find_by_id(session_id)

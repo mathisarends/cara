@@ -67,4 +67,3 @@ type AgentContextEntry = (
 @dataclass(frozen=True, slots=True)
 class AgentContext:
     entries: tuple[AgentContextEntry, ...]
-    session_metadata: dict[str, Any] = field(default_factory=dict)

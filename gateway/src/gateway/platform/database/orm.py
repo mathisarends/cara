@@ -28,10 +28,6 @@ class SessionModel(DatabaseEntity, table=True):
 
     channel_name: str
     channel_account_id: str | None = None
-    metadata_json: dict[str, Any] = Field(
-        default_factory=dict,
-        sa_column=Column("metadata", JSON, nullable=False),
-    )
     turn_active: bool = Field(default=False, nullable=False)
     user_messages: list["SessionUserMessageModel"] = Relationship(
         back_populates="session",

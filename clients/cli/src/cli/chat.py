@@ -24,8 +24,6 @@ from gateway_client.models import (
     UserMessageItem,
 )
 
-_METADATA = {"client": "cara-cli"}
-
 # gateway.presentation.rpc.GatewayErrorCode.NO_ACTIVE_TURN
 _NO_ACTIVE_TURN = -32010
 
@@ -76,18 +74,12 @@ class ChatSession:
 
     async def _open(self, session_id: UUID | None) -> None:
         if session_id is None:
-            session = await self._client.session.open(
-                channel=self._channel,
-                metadata=_METADATA,
-            )
+            session = await self._client.session.open(channel=self._channel)
             session_id = session.id
         await self._attach(session_id)
 
     async def _create(self) -> None:
-        session = await self._client.session.create(
-            channel=self._channel,
-            metadata=_METADATA,
-        )
+        session = await self._client.session.create(channel=self._channel)
         await self._attach(session.id)
 
     async def _attach(self, session_id: UUID) -> None:

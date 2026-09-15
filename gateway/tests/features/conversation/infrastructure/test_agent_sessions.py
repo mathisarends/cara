@@ -18,7 +18,7 @@ from gateway.features.conversation.infrastructure.persistence import (
 async def test_reader_returns_only_context_before_the_current_input(
     session_repository: SQLSessionRepository,
 ) -> None:
-    session = Session.create(ChannelRef("voice", "local"), {"locale": "de"})
+    session = Session.create(ChannelRef("voice", "local"))
     first_input = session.add_user_message("First")
     session.add_assistant_message("Answer")
     current_input = session.add_user_message("Current")
@@ -27,7 +27,6 @@ async def test_reader_returns_only_context_before_the_current_input(
 
     context = await reader.context_for_turn(session.id, current_input.id)
 
-    assert context.session_metadata == {"locale": "de"}
     assert context.entries == (
         AgentUserMessage(first_input.id, "First"),
         AgentAssistantMessage(session.entries[1].id, "Answer"),
@@ -67,7 +66,7 @@ async def test_reader_rejects_an_input_from_another_session(
 async def test_reader_returns_full_context_for_a_server_initiated_turn(
     session_repository: SQLSessionRepository,
 ) -> None:
-    session = Session.create(ChannelRef("voice"), {"locale": "de"})
+    session = Session.create(ChannelRef("voice"))
     input_message = session.add_user_message("Wake me in twenty minutes")
     session.add_assistant_message("Okay")
     await session_repository.save(session)

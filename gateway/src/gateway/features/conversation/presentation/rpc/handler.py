@@ -26,17 +26,11 @@ class ConversationRpcMethods:
         self._turns = turns
 
     async def create_session(self, params: CreateSessionParams) -> SessionResponse:
-        session = await self._sessions.create(
-            channel=_channel_ref(params),
-            metadata=params.metadata,
-        )
+        session = await self._sessions.create(channel=_channel_ref(params))
         return session_response(session)
 
     async def open_session(self, params: OpenSessionParams) -> SessionResponse:
-        session = await self._sessions.open(
-            channel=_channel_ref(params),
-            metadata=params.metadata,
-        )
+        session = await self._sessions.open(channel=_channel_ref(params))
         return session_response(session)
 
     async def get_session(self, params: SessionParams) -> SessionSnapshotResponse:

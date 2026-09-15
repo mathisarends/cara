@@ -61,7 +61,6 @@ def session_response(session: Session) -> SessionResponse:
         id=session.id,
         created_at=session.created_at,
         channel=_session_channel(session.channel),
-        metadata=session.metadata,
     )
 
 

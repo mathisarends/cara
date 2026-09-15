@@ -33,7 +33,6 @@ class _Transport:
                 "id": str(self.session_id),
                 "created_at": datetime.now(UTC).isoformat(),
                 "channel": params["channel"],
-                "metadata": params.get("metadata"),
             }
         if method_name == "subscription.subscribe":
             return {"subscribed": str(self.session_id)}
@@ -135,10 +134,7 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
     assert requests == [
         (
             "session.open",
-            {
-                "channel": {"name": "voice", "accountId": "kitchen"},
-                "metadata": {"client": "cara-voice"},
-            },
+            {"channel": {"name": "voice", "accountId": "kitchen"}},
         ),
         ("subscription.subscribe", {"sessionId": str(session_id)}),
         ("turn.prepare", {"sessionId": str(session_id)}),

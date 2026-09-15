@@ -364,15 +364,6 @@
           "schema": {
             "$ref": "#/components/schemas/SessionChannel"
           }
-        },
-        {
-          "name": "metadata",
-          "required": false,
-          "schema": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
-          }
         }
       ],
       "result": {
@@ -420,15 +411,6 @@
           "required": true,
           "schema": {
             "$ref": "#/components/schemas/SessionChannel"
-          }
-        },
-        {
-          "name": "metadata",
-          "required": false,
-          "schema": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
           }
         }
       ],
@@ -1183,11 +1165,6 @@
         "properties": {
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
           }
         },
         "required": [
@@ -1361,11 +1338,6 @@
         "properties": {
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
           }
         },
         "required": [
@@ -1524,11 +1496,6 @@
           },
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
           }
         },
         "required": [

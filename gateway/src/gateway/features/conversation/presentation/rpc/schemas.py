@@ -29,7 +29,6 @@ class SessionResponse(WireSchema):
     id: UUID
     created_at: datetime
     channel: SessionChannel
-    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ItemBase(WireSchema):
@@ -92,7 +91,6 @@ class SessionParams(WireSchema):
 
 class CreateSessionParams(WireSchema):
     channel: SessionChannel
-    metadata: dict[str, object] = Field(default_factory=dict)
 
 
 class OpenSessionParams(CreateSessionParams):

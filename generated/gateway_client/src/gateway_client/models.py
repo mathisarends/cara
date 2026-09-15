@@ -92,7 +92,6 @@ class CreateAutomationParams(RpcModel):
 class CreateSessionParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     channel: SessionChannel
-    metadata: dict[str, Any] | None = None
 
 
 class CronSchedule(RpcModel):
@@ -139,7 +138,6 @@ class ListAutomationsResponse(RpcModel):
 class OpenSessionParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     channel: SessionChannel
-    metadata: dict[str, Any] | None = None
 
 
 class ReminderAutomationPayload(RpcModel):
@@ -171,7 +169,6 @@ class SessionResponse(RpcModel):
     id: UUID
     created_at: datetime = Field(alias="createdAt")
     channel: SessionChannel
-    metadata: dict[str, Any] | None = None
 
 
 class SessionSnapshotResponse(RpcModel):

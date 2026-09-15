@@ -97,7 +97,6 @@ class SQLSessionRepository(
             ),
             id=orm.id,
             created_at=_as_utc(orm.created_at),
-            metadata=dict(orm.metadata_json),
             turn_active=orm.turn_active,
             entries=[entry for _, entry in positioned_entries],
         )
@@ -108,7 +107,6 @@ class SQLSessionRepository(
             created_at=domain.created_at,
             channel_name=domain.channel.name,
             channel_account_id=domain.channel.account_id,
-            metadata_json=dict(domain.metadata),
             turn_active=domain.turn_active,
         )
         for position, entry in enumerate(domain.entries):

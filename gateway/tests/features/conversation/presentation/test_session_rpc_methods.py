@@ -65,16 +65,13 @@ def methods(
     return ConversationRpcMethods(sessions, turns)
 
 
-async def test_create_session_persists_metadata(
+async def test_create_session_persists_the_session(
     methods: ConversationRpcMethods,
     session_repository: SQLSessionRepository,
 ) -> None:
-    response = await methods.create_session(
-        CreateSessionParams(channel=_CHANNEL, metadata={"c": "t"})
-    )
+    response = await methods.create_session(CreateSessionParams(channel=_CHANNEL))
 
     assert response.channel == _CHANNEL
-    assert response.metadata == {"c": "t"}
     assert await session_repository.find_by_id(response.id) is not None
 
 

@@ -16,7 +16,7 @@ _CHANNEL = ChannelRef("web", account_id="local")
 async def test_session_aggregate_round_trips_with_complete_history(
     session_repository: SQLSessionRepository,
 ) -> None:
-    session = Session.create(_CHANNEL, metadata={"mode": "chat"})
+    session = Session.create(_CHANNEL)
     user_message = session.add_user_message("Weather in Hamburg")
     tool_call = session.add_tool_call("call-1", "weather", {"city": "Hamburg"})
     session.resolve_tool_call("call-1", {"temperature": 21})
@@ -28,7 +28,6 @@ async def test_session_aggregate_round_trips_with_complete_history(
     assert restored is not None
     assert restored.id == session.id
     assert restored.channel == _CHANNEL
-    assert restored.metadata == {"mode": "chat"}
     assert [type(entry) for entry in restored.entries] == [
         UserMessage,
         ToolCallSequence,

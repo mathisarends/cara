@@ -28,7 +28,6 @@ from voice.llm.events import (
     TurnCompleted,
 )
 
-_SESSION_METADATA = {"client": "cara-voice"}
 _TURN_METADATA = {"modality": "voice"}
 
 
@@ -102,15 +101,9 @@ class GatewayAgentSession(ActivationSource):
     ) -> Self:
         channel_ref = SessionChannel(name=channel, account_id=account_id)
         if new_session:
-            session = await client.session.create(
-                channel=channel_ref,
-                metadata=_SESSION_METADATA,
-            )
+            session = await client.session.create(channel=channel_ref)
         else:
-            session = await client.session.open(
-                channel=channel_ref,
-                metadata=_SESSION_METADATA,
-            )
+            session = await client.session.open(channel=channel_ref)
         await client.subscription.subscribe(session_id=session.id)
         return cls(client, session.id)
 

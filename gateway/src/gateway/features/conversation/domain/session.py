@@ -18,7 +18,6 @@ class Session(Aggregate):
     def __init__(
         self,
         channel: ChannelRef,
-        metadata: Mapping[str, Any] | None = None,
         entries: Sequence[SessionEntry] = (),
         turn_active: bool = False,
         *,
@@ -27,25 +26,16 @@ class Session(Aggregate):
     ) -> None:
         super().__init__(id=id, created_at=created_at)
         self._channel = channel
-        self._metadata = dict(metadata or {})
         self._entries = list(entries)
         self._turn_active = turn_active
 
     @classmethod
-    def create(
-        cls,
-        channel: ChannelRef,
-        metadata: Mapping[str, Any] | None = None,
-    ) -> Self:
-        return cls(channel=channel, metadata=metadata)
+    def create(cls, channel: ChannelRef) -> Self:
+        return cls(channel=channel)
 
     @property
     def channel(self) -> ChannelRef:
         return self._channel
-
-    @property
-    def metadata(self) -> dict[str, Any]:
-        return dict(self._metadata)
 
     @property
     def entries(self) -> tuple[SessionEntry, ...]:

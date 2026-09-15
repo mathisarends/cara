@@ -38,10 +38,10 @@ class GatewayAgentSessionReader(AgentSessionReader):
         entries: list[AgentContextEntry] = []
         for entry in session.entries:
             if entry.id == input_id:
-                return AgentContext(tuple(entries), session.metadata)
+                return AgentContext(tuple(entries))
             entries.append(_context_entry(entry))
         if input_id is None:
-            return AgentContext(tuple(entries), session.metadata)
+            return AgentContext(tuple(entries))
         raise ValueError(f"Input {input_id} does not belong to session {session_id}")
 
 

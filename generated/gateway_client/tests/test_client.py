@@ -24,7 +24,6 @@ class FakeTransport:
             "id": str(uuid4()),
             "created_at": "2026-08-20T12:00:00Z",
             "channel": params["channel"],
-            "metadata": params.get("metadata", {}),
         }
 
     async def notifications(self) -> AsyncIterator[dict[str, Any]]:
@@ -40,13 +39,9 @@ async def test_namespaced_method_returns_typed_model() -> None:
     transport = FakeTransport()
     client = GatewayClient(transport)
 
-    session = await client.session.create(
-        channel=_CHANNEL,
-        metadata={"client": "test"},
-    )
+    session = await client.session.create(channel=_CHANNEL)
 
     assert session.channel == _CHANNEL
-    assert session.metadata == {"client": "test"}
     assert transport.calls == [
         (
             "session.create",
@@ -55,7 +50,6 @@ async def test_namespaced_method_returns_typed_model() -> None:
                     "name": "voice",
                     "accountId": "local",
                 },
-                "metadata": {"client": "test"},
             },
         ),
     ]
