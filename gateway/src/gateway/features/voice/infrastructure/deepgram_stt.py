@@ -14,12 +14,19 @@ class DeepgramSpeechToText(SpeechToText):
         model: str,
         sample_rate: int = 16_000,
     ) -> None:
-        self._client = StreamingSpeechToText(
-            api_key,
-            model=model,
-            sample_rate=sample_rate,
-            eot_timeout_ms=2_000,
-        )
+        if api_key is None:
+            self._client = StreamingSpeechToText(
+                model=model,
+                sample_rate=sample_rate,
+                eot_timeout_ms=2_000,
+            )
+        else:
+            self._client = StreamingSpeechToText(
+                api_key,
+                model=model,
+                sample_rate=sample_rate,
+                eot_timeout_ms=2_000,
+            )
 
     async def transcribe(
         self,

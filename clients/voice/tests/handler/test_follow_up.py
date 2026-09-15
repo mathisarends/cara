@@ -1,155 +1,16 @@
 import asyncio
-from collections.abc import AsyncIterable, AsyncIterator
+from uuid import uuid4
 
-from voice.audio import (
-    AudioBridge,
-    AudioInput,
-    AudioOutput,
-    BufferedAudioInput,
-    UserAudioProducer,
-)
+from voice.activation import ActivationKind
 from voice.events import (
-    FollowUpCountdown,
+    AssistantPlaybackCompleted,
     FollowUpTimedOut,
-    SessionEnded,
-    SessionStarted,
+    UserSpeechStarted,
+    VoiceTurnTimedOut,
 )
 from voice.events.bus import EventBus
-from voice.events.models import VoiceResourcesClosing, VoiceTurnRequested
-from voice.handler import (
-    CommandBridge,
-    FollowUpHandler,
-    FollowUpSettings,
-    TurnCoordinator,
-    TurnListener,
-)
-from voice.llm import AgentBridge, AgentEvent, TextDelta, TurnCompleted
-from voice.stt import (
-    SpeechToText,
-    SpeechToTextBridge,
-    Transcription,
-    TranscriptionKind,
-)
-from voice.tts import TextToSpeech, TextToSpeechBridge
-
-
-class _Input(AudioInput):
-    def __init__(self) -> None:
-        self._active = False
-
-    @property
-    def sample_rate(self) -> int:
-        return 16_000
-
-    @property
-    def channels(self) -> int:
-        return 1
-
-    @property
-    def frames_per_chunk(self) -> int:
-        return 1280
-
-    @property
-    def is_active(self) -> bool:
-        return self._active
-
-    async def start(self) -> None:
-        self._active = True
-
-    async def stop(self) -> None:
-        self._active = False
-
-    async def stream_chunks(self) -> AsyncIterator[bytes]:
-        while self._active:
-            yield bytes(2_560)
-            await asyncio.sleep(0)
-
-
-class _SpeechToText(SpeechToText):
-    """Transcribes the first turn and stays silent for every follow-up turn."""
-
-    def __init__(self) -> None:
-        self.calls = 0
-
-    async def transcribe(
-        self, audio: AsyncIterable[bytes]
-    ) -> AsyncIterator[Transcription]:
-        await anext(aiter(audio))
-        self.calls += 1
-        if self.calls > 1:
-            await asyncio.sleep(3_600)
-        yield Transcription("Hey Mycroft command", True, TranscriptionKind.END)
-
-
-class _WordlessSpeechToText(_SpeechToText):
-    """Reports wordless updates on a silent turn, the way Deepgram's Flux does."""
-
-    async def transcribe(
-        self, audio: AsyncIterable[bytes]
-    ) -> AsyncIterator[Transcription]:
-        await anext(aiter(audio))
-        self.calls += 1
-        if self.calls == 1:
-            yield Transcription("Hey Mycroft command", True, TranscriptionKind.END)
-            return
-        while True:
-            yield Transcription("", False, TranscriptionKind.UPDATE)
-            await asyncio.sleep(0.05)
-
-
-class _AgentSession:
-    async def prepare_turn(self) -> None:
-        pass
-
-    async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
-        return self._stream_turn()
-
-    async def _stream_turn(self) -> AsyncIterator[AgentEvent]:
-        yield TextDelta("ok")
-        yield TurnCompleted()
-
-    async def steer(self, text: str) -> None:
-        pass
-
-    async def finish_turn(self) -> None:
-        pass
-
-    async def interrupt(self) -> None:
-        pass
-
-
-class _TextToSpeech(TextToSpeech):
-    @property
-    def sample_rate(self) -> int:
-        return 24_000
-
-    async def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]:
-        async for chunk in text:
-            yield chunk.encode()
-
-
-class _Output(AudioOutput):
-    def __init__(self) -> None:
-        self.chunks: list[bytes] = []
-
-    @property
-    def is_playing(self) -> bool:
-        return False
-
-    async def start(self, *, sample_rate: int, channels: int) -> None:
-        pass
-
-    async def stop(self) -> None:
-        pass
-
-    async def play_chunk(self, chunk: bytes) -> None:
-        self.chunks.append(chunk)
-
-    async def finish_response(self) -> None:
-        pass
-
-    async def clear_buffer(self) -> None:
-        pass
+from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
+from voice.handler import FollowUpHandler, FollowUpSettings
 
 
 def test_follow_up_settings_use_expected_defaults() -> None:
@@ -159,66 +20,65 @@ def test_follow_up_settings_use_expected_defaults() -> None:
     assert settings.countdown_seconds == 3
 
 
-def test_a_finished_response_opens_a_follow_up_turn_without_a_wake_word() -> None:
-    stt = _SpeechToText()
+def test_finished_response_requests_a_gateway_follow_up_turn() -> None:
+    async def run() -> VoiceTurnRequested:
+        event_bus = EventBus()
+        FollowUpHandler(event_bus=event_bus)
+        requested = asyncio.get_running_loop().create_future()
 
-    countdowns, timed_out = asyncio.run(_run_session(stt))
+        async def capture(event: VoiceTurnRequested) -> None:
+            requested.set_result(event)
 
-    assert stt.calls == 2
-    assert countdowns == [1]
-    assert timed_out.timeout_seconds == 1.0
+        event_bus.on_request(VoiceTurnRequested, capture)
+        turn_id = uuid4()
+        await event_bus.dispatch(AssistantPlaybackCompleted(turn_id=turn_id))
+        await event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
+        return await requested
 
+    request = asyncio.run(run())
 
-def test_a_follow_up_turn_times_out_while_transcripts_stay_wordless() -> None:
-    stt = _WordlessSpeechToText()
-
-    countdowns, timed_out = asyncio.run(_run_session(stt))
-
-    assert stt.calls == 2
-    assert countdowns == [1]
-    assert timed_out.timeout_seconds == 1.0
+    assert request.activation is ActivationKind.FOLLOW_UP
+    assert request.speech_start_timeout == 5.0
 
 
-async def _run_session(stt: _SpeechToText) -> tuple[list[int], FollowUpTimedOut]:
-    event_bus = EventBus()
-    buffered_audio_input = BufferedAudioInput(_Input())
-    AudioBridge(event_bus=event_bus, output_device=_Output())
-    UserAudioProducer(
-        event_bus=event_bus,
-        buffered_audio_input=buffered_audio_input,
-    )
-    AgentBridge(event_bus=event_bus, session=_AgentSession())
-    TextToSpeechBridge(event_bus=event_bus, text_to_speech=_TextToSpeech())
-    SpeechToTextBridge(
-        event_bus=event_bus,
-        buffered_audio_input=buffered_audio_input,
-        speech_to_text=stt,
-    )
-    CommandBridge(event_bus=event_bus, wake_word_phrase="hey mycroft")
-    TurnListener(event_bus=event_bus, coordinator=TurnCoordinator())
-    follow_up = FollowUpHandler(
-        event_bus=event_bus,
-        settings=FollowUpSettings(window_seconds=1.0, countdown_seconds=1),
-    )
-    countdowns: list[int] = []
-    timed_out_event = asyncio.get_running_loop().create_future()
+def test_gateway_timeout_closes_the_follow_up_window() -> None:
+    async def run() -> FollowUpTimedOut:
+        event_bus = EventBus()
+        handler = FollowUpHandler(
+            event_bus=event_bus,
+            settings=FollowUpSettings(window_seconds=1.0, countdown_seconds=0),
+        )
+        event_bus.on_request(VoiceTurnRequested, lambda _: None)
+        timed_out = asyncio.get_running_loop().create_future()
 
-    async def capture_countdown(event: FollowUpCountdown) -> None:
-        countdowns.append(event.remaining_seconds)
+        async def capture(event: FollowUpTimedOut) -> None:
+            timed_out.set_result(event)
 
-    async def capture_timeout(event: FollowUpTimedOut) -> None:
-        timed_out_event.set_result(event)
+        event_bus.on(FollowUpTimedOut, capture)
+        turn_id = uuid4()
+        await event_bus.dispatch(AssistantPlaybackCompleted(turn_id=turn_id))
+        await event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
+        await event_bus.dispatch(VoiceTurnTimedOut(turn_id=uuid4()))
+        result = await timed_out
+        handler.close()
+        return result
 
-    event_bus.on(FollowUpCountdown, capture_countdown)
-    event_bus.on(FollowUpTimedOut, capture_timeout)
+    assert asyncio.run(run()).timeout_seconds == 1.0
 
-    await event_bus.dispatch(SessionStarted())
-    try:
-        await event_bus.request(VoiceTurnRequested(sequence=0))
-        timed_out = await asyncio.wait_for(timed_out_event, timeout=5.0)
-    finally:
-        follow_up.close()
-        await event_bus.dispatch(SessionEnded())
-        await event_bus.dispatch(VoiceResourcesClosing())
 
-    return countdowns, timed_out
+def test_user_speech_closes_the_follow_up_window() -> None:
+    async def run() -> list[FollowUpTimedOut]:
+        event_bus = EventBus()
+        handler = FollowUpHandler(event_bus=event_bus)
+        event_bus.on_request(VoiceTurnRequested, lambda _: None)
+        timed_out: list[FollowUpTimedOut] = []
+        event_bus.on(FollowUpTimedOut, lambda event: timed_out.append(event))
+        turn_id = uuid4()
+        await event_bus.dispatch(AssistantPlaybackCompleted(turn_id=turn_id))
+        await event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
+        await event_bus.dispatch(UserSpeechStarted())
+        await event_bus.dispatch(VoiceTurnTimedOut(turn_id=uuid4()))
+        handler.close()
+        return timed_out
+
+    assert asyncio.run(run()) == []

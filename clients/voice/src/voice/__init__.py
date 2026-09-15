@@ -1,10 +1,10 @@
 from .acknowledgement import ToolAcknowledgementObserver
 from .activation import (
     Activation,
+    ActivationKind,
     ActivationSource,
     ExternalActivationSource,
     ListenActivation,
-    PromptActivation,
 )
 from .barge_in import (
     BargeInContext,
@@ -17,6 +17,7 @@ from .barge_in import (
 from .channel import VoiceChannel
 from .config import VoiceChannelConfig
 from .conversation import ConversationAudioMixer, ConversationAudioRecorder
+from .gateway import GatewayVoiceSession
 from .handler import FollowUpSettings
 from .lights import HueObserver, LightingState
 from .models import AgentResult
@@ -32,6 +33,7 @@ from .wakeword import WakeWord, WakeWordSettings
 
 __all__ = [
     "Activation",
+    "ActivationKind",
     "ActivationSource",
     "AgentResult",
     "BargeInContext",
@@ -42,6 +44,7 @@ __all__ = [
     "Earcon",
     "ExternalActivationSource",
     "FollowUpSettings",
+    "GatewayVoiceSession",
     "HueObserver",
     "LightingState",
     "ListenActivation",
@@ -49,7 +52,6 @@ __all__ = [
     "Observer",
     "ObserverBridge",
     "ObserverContext",
-    "PromptActivation",
     "SpeechBargeIn",
     "SoundObserver",
     "SonosAudioFocusObserver",

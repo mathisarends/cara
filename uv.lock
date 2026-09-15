@@ -1881,8 +1881,8 @@ dependencies = [
     { name = "pysilero-vad", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "vocalbin", extra = ["deepgram"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "wakewordkit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.dev-dependencies]
@@ -1904,8 +1904,8 @@ requires-dist = [
     { name = "pysilero-vad", specifier = ">=3.4.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "sonosify", specifier = ">=0.5.0" },
-    { name = "vocalbin", extras = ["deepgram"], specifier = ">=0.7.0" },
     { name = "wakewordkit", specifier = ">=0.4.0" },
+    { name = "websockets", specifier = ">=15.0" },
 ]
 
 [package.metadata.requires-dev]

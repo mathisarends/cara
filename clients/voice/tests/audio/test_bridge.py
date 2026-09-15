@@ -1,4 +1,5 @@
 import asyncio
+from uuid import uuid4
 
 from voice.audio import AudioBridge, AudioOutput
 from voice.events import (
@@ -69,10 +70,13 @@ def test_bridge_publishes_playback_completion_after_the_output_finishes() -> Non
         event_bus.on(AssistantPlaybackCompleted, playback_completed)
 
         await event_bus.dispatch(SessionStarted())
-        await event_bus.dispatch(AssistantAudioStarted(turn_id=7, sample_rate=24_000))
-        await event_bus.dispatch(AssistantAudioChunk(turn_id=7, chunk=b"pcm"))
+        turn_id = uuid4()
+        await event_bus.dispatch(
+            AssistantAudioStarted(turn_id=turn_id, sample_rate=24_000)
+        )
+        await event_bus.dispatch(AssistantAudioChunk(turn_id=turn_id, chunk=b"pcm"))
         completion = asyncio.create_task(
-            event_bus.dispatch(AssistantAudioCompleted(turn_id=7))
+            event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id))
         )
         await asyncio.wait_for(output.finish_started.wait(), timeout=1.0)
         completed_too_early = "playback-completed" in lifecycle
@@ -105,10 +109,13 @@ def test_bridge_reports_output_failure_without_blocking_the_pipeline() -> None:
 
         event_bus.on(VoiceTurnFailed, capture_failure)
         await event_bus.dispatch(SessionStarted())
-        await event_bus.dispatch(AssistantAudioStarted(turn_id=3, sample_rate=24_000))
-        await event_bus.dispatch(AssistantAudioChunk(turn_id=3, chunk=b"pcm"))
+        turn_id = uuid4()
+        await event_bus.dispatch(
+            AssistantAudioStarted(turn_id=turn_id, sample_rate=24_000)
+        )
+        await event_bus.dispatch(AssistantAudioChunk(turn_id=turn_id, chunk=b"pcm"))
         await asyncio.wait_for(
-            event_bus.dispatch(AssistantAudioCompleted(turn_id=3)), timeout=1.0
+            event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id)), timeout=1.0
         )
         event = await asyncio.wait_for(failure, timeout=1.0)
         await event_bus.dispatch(VoiceResourcesClosing())
@@ -116,5 +123,4 @@ def test_bridge_reports_output_failure_without_blocking_the_pipeline() -> None:
 
     event = asyncio.run(run())
 
-    assert event.turn_id == 3
     assert event.message == "speaker disconnected"

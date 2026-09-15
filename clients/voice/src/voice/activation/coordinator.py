@@ -6,12 +6,10 @@ from voice.activation.port import (
     Activation,
     ActivationSource,
     ListenActivation,
-    PromptActivation,
 )
 from voice.events import SessionEnded, SessionStarted
 from voice.events.bus import EventBus
 from voice.events.models import (
-    PromptTurnRequested,
     Request,
     VoiceTurnEnded,
     VoiceTurnRequested,
@@ -96,9 +94,8 @@ def _turn_request_for(activation: Activation) -> Request:
             return VoiceTurnRequested(
                 sequence=activation.sequence,
                 speech_start_timeout=activation.speech_start_timeout,
+                activation=activation.kind,
             )
-        case PromptActivation():
-            return PromptTurnRequested(prompt=activation.prompt)
 
 
 async def _cancel(tasks: Sequence[asyncio.Task[None]]) -> None:

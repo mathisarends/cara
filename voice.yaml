@@ -7,6 +7,8 @@ gateway:
 
 voice:
   channel: voice
+  # Stable identity used to resume this device's open voice session.
+  device_id: default-voice-device
   new_session: false
   # Start fresh after 30 minutes without persisted conversation activity.
   inactivity_timeout_seconds: 1800

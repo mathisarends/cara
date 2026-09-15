@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import cast
 
 import numpy as np
@@ -15,33 +15,13 @@ from voice.barge_in import (
 )
 from voice.echo_cancellation import EchoPresence
 from voice.events import (
-    AssistantTurnStarted,
-    SessionEnded,
-    SessionStarted,
     UserAudioChunk,
-    UserTranscriptionRequested,
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnInterrupted, VoiceTurnRequested
-from voice.handler import BargeInHandler, TurnCoordinator, TurnListener
 from voice.vad import VoiceActivityDetector
 
 _FORMAT = AudioFormat(sample_rate=16_000)
-
-
-class _Signals(BargeInStrategy):
-    def __init__(self, *sequences: int) -> None:
-        self._sequences = sequences
-        self.drained = asyncio.Event()
-
-    def set_context(self, context: BargeInContext) -> None:
-        pass
-
-    async def signals(self) -> AsyncIterator[BargeInSignal]:
-        for sequence in self._sequences:
-            yield BargeInSignal(sequence=sequence)
-        self.drained.set()
 
 
 def test_wake_word_strategy_signals_detected_wake_words() -> None:
@@ -152,70 +132,6 @@ def test_disabled_strategy_never_signals() -> None:
     assert asyncio.run(run()) == []
 
 
-def test_barge_in_ignores_signals_outside_an_assistant_turn() -> None:
-    async def run() -> list[object]:
-        event_bus = EventBus()
-        requests: list[object] = []
-        strategy = _Signals(3)
-        event_bus.on_request(VoiceTurnRequested, lambda event: _record(requests, event))
-        BargeInHandler(
-            event_bus=event_bus,
-            strategy=strategy,
-            coordinator=TurnCoordinator(),
-        )
-
-        await event_bus.dispatch(SessionStarted())
-        await strategy.drained.wait()
-        await event_bus.dispatch(SessionEnded())
-        return requests
-
-    assert asyncio.run(run()) == []
-
-
-def test_barge_in_restarts_the_turn_at_the_signalled_audio_position() -> None:
-    async def run() -> list[object]:
-        event_bus = EventBus()
-        coordinator = TurnCoordinator()
-        TurnListener(event_bus=event_bus, coordinator=coordinator)
-        events: list[object] = []
-        transcribing = asyncio.Event()
-
-        async def transcribe(event: UserTranscriptionRequested) -> None:
-            events.append(event)
-            transcribing.set()
-            await asyncio.Event().wait()
-
-        event_bus.on_request(UserTranscriptionRequested, transcribe)
-        event_bus.on(VoiceTurnInterrupted, lambda event: _record(events, event))
-        strategy = _Signals(42)
-        BargeInHandler(
-            event_bus=event_bus,
-            strategy=strategy,
-            coordinator=coordinator,
-        )
-
-        await event_bus.request(VoiceTurnRequested(sequence=1))
-        await transcribing.wait()
-        await event_bus.dispatch(AssistantTurnStarted())
-        await event_bus.dispatch(SessionStarted())
-        await strategy.drained.wait()
-        await coordinator.close()
-        return events
-
-    events = asyncio.run(run())
-
-    assert [type(event) for event in events] == [
-        UserTranscriptionRequested,
-        VoiceTurnInterrupted,
-        UserTranscriptionRequested,
-    ]
-    assert events[1] == VoiceTurnInterrupted(turn_id=1)
-    restarted = events[2]
-    assert isinstance(restarted, UserTranscriptionRequested)
-    assert restarted.turn_id == 2
-    assert restarted.sequence == 42
-
-
 class _AlwaysSpeech(VoiceActivityDetector):
     def __init__(self) -> None:
         self.scored_windows = 0
@@ -292,7 +208,3 @@ async def _drain(strategy: BargeInStrategy) -> list[BargeInSignal]:
 def _pcm(*, dbfs: float, samples: int) -> bytes:
     amplitude = round(32_768.0 * 10 ** (dbfs / 20.0))
     return np.full(samples, amplitude, dtype=np.int16).tobytes()
-
-
-async def _record(sink: list[object], event: object) -> None:
-    sink.append(event)

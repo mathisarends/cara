@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
+from uuid import UUID
 
 from voice.audio.player import AudioPlayer
 from voice.audio.ports import AudioOutput
@@ -14,6 +15,7 @@ from voice.events.models import (
     VoiceResourcesClosing,
     VoiceTurnEnded,
     VoiceTurnFailed,
+    VoiceTurnInterrupted,
 )
 
 _END = object()
@@ -37,7 +39,7 @@ class AudioBridge:
         self._state_lock = asyncio.Lock()
         self._playback_task: asyncio.Task[None] | None = None
         self._audio_queue: asyncio.Queue[bytes | object] | None = None
-        self._active_turn_id: int | None = None
+        self._active_turn_id: UUID | None = None
         self._speech_started = False
         self._closed = False
 
@@ -45,6 +47,7 @@ class AudioBridge:
         event_bus.on(AssistantAudioChunk, self._on_audio_chunk)
         event_bus.on(AssistantAudioCompleted, self._on_audio_completed)
         event_bus.on(VoiceTurnEnded, self._on_turn_ended)
+        event_bus.on(VoiceTurnInterrupted, self._on_turn_interrupted)
         event_bus.on(VoiceResourcesClosing, self._on_resources_closing)
 
         event_bus.on_request(AudioPlaybackRequested, self._on_playback_requested)
@@ -89,7 +92,7 @@ class AudioBridge:
         await self._finish_playback(event.turn_id, task, publish_completion=True)
 
     async def _enqueue_audio(
-        self, turn_id: int, item: bytes | object
+        self, turn_id: UUID, item: bytes | object
     ) -> tuple[asyncio.Task[None] | None, bool]:
         async with self._state_lock:
             if turn_id != self._active_turn_id or self._audio_queue is None:
@@ -119,7 +122,7 @@ class AudioBridge:
 
     async def _finish_playback(
         self,
-        turn_id: int,
+        turn_id: UUID,
         task: asyncio.Task[None],
         *,
         publish_completion: bool,
@@ -144,6 +147,10 @@ class AudioBridge:
     async def _on_turn_ended(self, event: VoiceTurnEnded) -> None:
         await self._stop_active_playback(turn_id=event.turn_id)
 
+    async def _on_turn_interrupted(self, event: VoiceTurnInterrupted) -> None:
+        await self._stop_active_playback(turn_id=event.turn_id)
+        await self._playback.interrupt()
+
     async def _on_resources_closing(self, _: VoiceResourcesClosing) -> None:
         if self._closed:
             return
@@ -152,7 +159,7 @@ class AudioBridge:
         await self._playback.interrupt()
         await self._playback.stop()
 
-    async def _stop_active_playback(self, turn_id: int | None = None) -> None:
+    async def _stop_active_playback(self, turn_id: UUID | None = None) -> None:
         async with self._state_lock:
             if turn_id is not None and turn_id != self._active_turn_id:
                 return

@@ -117,35 +117,36 @@ def test_hue_observer_reflects_voice_turn_and_tool_lifecycle() -> None:
         await _dispatch_and_drain(event_bus, observer, UserTurnStarted())
         await _dispatch_and_drain(event_bus, observer, AssistantTurnStarted())
         await _dispatch_and_drain(event_bus, observer, AssistantSpeechStarted())
+        turn_id = UUID("00000000-0000-0000-0000-000000000003")
         await _dispatch_and_drain(
             event_bus,
             observer,
-            AssistantToolStarted(turn_id=1, name="weather"),
+            AssistantToolStarted(turn_id=turn_id, name="weather"),
         )
         await _dispatch_and_drain(
             event_bus,
             observer,
-            AssistantToolCompleted(turn_id=1, name="weather"),
+            AssistantToolCompleted(turn_id=turn_id, name="weather"),
         )
         await _dispatch_and_drain(
             event_bus,
             observer,
-            AssistantToolStarted(turn_id=1, name="calendar"),
+            AssistantToolStarted(turn_id=turn_id, name="calendar"),
         )
         await _dispatch_and_drain(
             event_bus,
             observer,
-            AssistantToolStarted(turn_id=1, name="mail"),
+            AssistantToolStarted(turn_id=turn_id, name="mail"),
         )
         await _dispatch_and_drain(
             event_bus,
             observer,
-            AssistantToolCompleted(turn_id=1, name="calendar"),
+            AssistantToolCompleted(turn_id=turn_id, name="calendar"),
         )
         await _dispatch_and_drain(
             event_bus,
             observer,
-            AssistantToolCompleted(turn_id=1, name="mail"),
+            AssistantToolCompleted(turn_id=turn_id, name="mail"),
         )
         await event_bus.dispatch(SessionEnded())
         return hue

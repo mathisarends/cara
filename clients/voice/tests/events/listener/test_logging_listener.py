@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from uuid import uuid4
 
 from voice.events import (
     FollowUpCountdown,
@@ -49,7 +50,7 @@ def test_wake_word_readiness_is_logged_after_timed_out_turn_ends(caplog) -> None
         event_bus = EventBus()
         LoggingListener(event_bus, wake_word_phrase="hey mycroft")
         await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=10.0))
-        await event_bus.dispatch(VoiceTurnEnded(turn_id=2))
+        await event_bus.dispatch(VoiceTurnEnded(turn_id=uuid4()))
 
     with caplog.at_level(logging.INFO, logger=_LOGGER):
         asyncio.run(run())

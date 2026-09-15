@@ -1,6 +1,7 @@
 import asyncio
 import wave
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
@@ -67,9 +68,10 @@ def test_plays_cached_ack_when_tool_call_follows_silence(
         event_bus.on_request(AudioPlaybackRequested, capture)
         await _prepare_observer(event_bus, tmp_path)
 
-        await event_bus.dispatch(AssistantResponseStarted(turn_id=3))
-        await event_bus.dispatch(AssistantToolStarted(turn_id=3, name="weather"))
-        await event_bus.dispatch(AssistantToolStarted(turn_id=3, name="calendar"))
+        turn_id = uuid4()
+        await event_bus.dispatch(AssistantResponseStarted(turn_id=turn_id))
+        await event_bus.dispatch(AssistantToolStarted(turn_id=turn_id, name="weather"))
+        await event_bus.dispatch(AssistantToolStarted(turn_id=turn_id, name="calendar"))
         return requested
 
     monkeypatch.setattr(
@@ -93,9 +95,12 @@ def test_stays_silent_when_assistant_already_spoke(tmp_path: Path) -> None:
         event_bus.on_request(AudioPlaybackRequested, capture)
         await _prepare_observer(event_bus, tmp_path)
 
-        await event_bus.dispatch(AssistantResponseStarted(turn_id=4))
-        await event_bus.dispatch(AssistantTextChunk(turn_id=4, chunk="I'll check."))
-        await event_bus.dispatch(AssistantToolStarted(turn_id=4, name="weather"))
+        turn_id = uuid4()
+        await event_bus.dispatch(AssistantResponseStarted(turn_id=turn_id))
+        await event_bus.dispatch(
+            AssistantTextChunk(turn_id=turn_id, chunk="I'll check.")
+        )
+        await event_bus.dispatch(AssistantToolStarted(turn_id=turn_id, name="weather"))
         return requested
 
     assert asyncio.run(run()) == []
@@ -116,7 +121,7 @@ def test_resets_state_and_avoids_repeating_the_last_ack(
         event_bus.on_request(AudioPlaybackRequested, capture)
         await _prepare_observer(event_bus, tmp_path)
 
-        for turn_id in (5, 6):
+        for turn_id in (uuid4(), uuid4()):
             await event_bus.dispatch(AssistantResponseStarted(turn_id=turn_id))
             await event_bus.dispatch(
                 AssistantToolStarted(turn_id=turn_id, name="weather")

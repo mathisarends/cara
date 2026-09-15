@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
+from uuid import uuid4
 
 import pytest
 
@@ -9,12 +10,10 @@ from voice.activation import (
     ActivationSource,
     ExternalActivationSource,
     ListenActivation,
-    PromptActivation,
 )
 from voice.events import SessionStarted
 from voice.events.bus import EventBus
 from voice.events.models import (
-    PromptTurnRequested,
     Request,
     VoiceTurnEnded,
     VoiceTurnRequested,
@@ -48,10 +47,9 @@ def _collect_requests(event_bus: EventBus) -> list[Request]:
 
     async def start_turn(event: Request) -> None:
         requests.append(event)
-        await event_bus.dispatch(VoiceTurnStarted(turn_id=len(requests)))
+        await event_bus.dispatch(VoiceTurnStarted(turn_id=uuid4()))
 
     event_bus.on_request(VoiceTurnRequested, start_turn)
-    event_bus.on_request(PromptTurnRequested, start_turn)
     return requests
 
 
@@ -95,7 +93,7 @@ def test_starts_a_turn_again_once_the_previous_one_ended() -> None:
 
         await source.activate()
         await _wait_for_requests(requests, count=1)
-        await event_bus.dispatch(VoiceTurnEnded(turn_id=1))
+        await event_bus.dispatch(VoiceTurnEnded(turn_id=uuid4()))
         await source.activate(speech_start_timeout=4.0)
         await _wait_for_requests(requests, count=2)
 
@@ -107,22 +105,6 @@ def test_starts_a_turn_again_once_the_previous_one_ended() -> None:
 
     assert [event.sequence for event in requests] == [None, None]
     assert [event.speech_start_timeout for event in requests] == [None, 4.0]
-
-
-def test_turns_a_prompt_activation_into_a_prompt_turn() -> None:
-    async def run() -> list[Request]:
-        event_bus = EventBus()
-        requests = _collect_requests(event_bus)
-        coordinator = ActivationCoordinator(
-            event_bus=event_bus,
-            sources=(_FixedSource(PromptActivation(prompt="The laundry is done")),),
-        )
-
-        await event_bus.dispatch(SessionStarted())
-        await coordinator.run()
-        return requests
-
-    assert asyncio.run(run()) == [PromptTurnRequested(prompt="The laundry is done")]
 
 
 def test_ignores_activations_before_the_session_starts() -> None:

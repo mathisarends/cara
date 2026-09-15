@@ -1,4 +1,5 @@
 import asyncio
+from uuid import uuid4
 
 from voice.events import (
     AssistantResponseStarted,
@@ -77,7 +78,7 @@ def test_assistant_response_started_plays_success_earcon() -> None:
         )
         bridge.setup()
         await bridge.prepare()
-        await event_bus.dispatch(AssistantResponseStarted(turn_id=7))
+        await event_bus.dispatch(AssistantResponseStarted(turn_id=uuid4()))
         return requested
 
     assert asyncio.run(run()) == [

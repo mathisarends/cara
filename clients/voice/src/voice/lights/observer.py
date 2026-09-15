@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
+from uuid import UUID
 
 from hueify import Hueify
 
@@ -50,16 +51,16 @@ class HueObserver(Observer):
     async def on_assistant_started_responding(self) -> None:
         self._submit_state(LightingState.SPEAKING)
 
-    async def on_assistant_interrupted(self, turn_id: int) -> None:
+    async def on_assistant_interrupted(self, turn_id: UUID) -> None:
         self._submit_state(LightingState.LISTENING)
 
     async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
         self._submit_state(LightingState.IDLE)
 
-    async def on_agent_error(self, turn_id: int, message: str) -> None:
+    async def on_agent_error(self, turn_id: UUID, message: str) -> None:
         self._submit_state(LightingState.IDLE)
 
-    async def on_voice_turn_timed_out(self, turn_id: int) -> None:
+    async def on_voice_turn_timed_out(self, turn_id: UUID) -> None:
         self._submit_state(LightingState.IDLE)
 
     async def on_channel_stopped(self) -> None:

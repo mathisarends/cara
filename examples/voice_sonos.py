@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sonosify import SonosClient
 
 from voice import (
+    GatewayVoiceSession,
     HueObserver,
     SonosAudioFocusObserver,
     SonosDuckingPolicy,
@@ -16,9 +17,7 @@ from voice import (
     WakeWordSettings,
 )
 from voice.audio.output.sonos import SonosOutput
-from voice.llm import GatewayAgentSession
 from voice.sonos import SonosSettings
-from voice.tts import DeepgramTextToSpeech, DeepgramVoice
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -27,9 +26,10 @@ load_dotenv()
 async def main() -> None:
     sonos_settings = SonosSettings()
     config = VoiceChannelConfig.from_yaml()
-    gateway_session = await GatewayAgentSession.connect(
+    gateway_session = await GatewayVoiceSession.connect(
         config.gateway.url,
         token=config.gateway.token,
+        device_id=config.voice.device_id,
         channel=config.voice.channel,
         new_session=config.voice.new_session,
         inactivity_timeout_seconds=config.voice.inactivity_timeout_seconds,
@@ -37,10 +37,8 @@ async def main() -> None:
     async with gateway_session, SonosClient(sonos_settings.ip_address) as sonos_client:
         audio_output = SonosOutput(client=sonos_client, settings=sonos_settings)
         voice_channel = VoiceChannel(
-            agent_session=gateway_session,
-            activation_sources=(gateway_session,),
+            gateway_session=gateway_session,
             audio_output=audio_output,
-            text_to_speech=DeepgramTextToSpeech(voice=DeepgramVoice.AURA_2_ATHENA_EN),
             barge_in=SpeechBargeIn(),
             wake_word_settings=WakeWordSettings(wake_word=WakeWord.HEY_JARVIS),
             observers=(

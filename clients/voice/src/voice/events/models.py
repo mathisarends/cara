@@ -1,5 +1,8 @@
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
 
+from voice.activation_kind import ActivationKind
 from voice.transcription import TranscriptionKind
 
 
@@ -56,12 +59,7 @@ class VoiceTurnRequested(Request):
 
     sequence: int | None = None
     speech_start_timeout: float | None = None
-
-
-class PromptTurnRequested(Request):
-    """Requests a voice turn on given text, bypassing the user's microphone."""
-
-    prompt: str
+    activation: ActivationKind = ActivationKind.MANUAL
 
 
 class VoiceResourcesClosing(Event):
@@ -71,27 +69,27 @@ class VoiceResourcesClosing(Event):
 class VoiceTurnStarted(Event):
     """Emitted when a voice turn is claimed, whatever kind of input drives it."""
 
-    turn_id: int
+    turn_id: UUID
 
 
 class VoiceTurnEnded(Event):
     """Emitted whenever a requested voice turn releases its resources."""
 
-    turn_id: int
+    turn_id: UUID
 
 
 class VoiceTurnInterrupted(Event):
     """Emitted when the user takes the floor before the turn finished."""
 
-    turn_id: int
+    turn_id: UUID
 
 
 class VoiceTurnTimedOut(Event):
-    turn_id: int
+    turn_id: UUID
 
 
 class VoiceTurnFailed(Event):
-    turn_id: int
+    turn_id: UUID
     message: str
 
 
@@ -108,24 +106,15 @@ class FollowUpTimedOut(Event):
 
 
 class UserTranscriptionUpdated(Event):
-    turn_id: int
+    turn_id: UUID
     text: str
     is_final: bool
     kind: TranscriptionKind
 
 
 class UserTranscriptionCompleted(Event):
-    turn_id: int
+    turn_id: UUID
     text: str
-
-
-class UserTranscriptionRequested(Request):
-    """Requests turn-scoped STT from the continuously captured audio history."""
-
-    turn_id: int
-    sequence: int | None = None
-    pre_roll_seconds: float = 0.0
-    speech_start_timeout: float
 
 
 class UserAudioChunk(Event):
@@ -136,57 +125,52 @@ class UserAudioChunk(Event):
 
 
 class AssistantResponseStarted(Event):
-    turn_id: int
-
-
-class AssistantResponseRequested(Request):
-    turn_id: int
-    text: str
+    turn_id: UUID
 
 
 class AssistantTextChunk(Event):
-    turn_id: int
+    turn_id: UUID
     chunk: str
 
 
 class AssistantTextCompleted(Event):
-    turn_id: int
+    turn_id: UUID
     text: str
 
 
 class AssistantToolStarted(Event):
-    turn_id: int
+    turn_id: UUID
     name: str
 
 
 class AssistantToolCompleted(Event):
-    turn_id: int
+    turn_id: UUID
     name: str
 
 
 class AssistantAudioStarted(Event):
     """Declares the format of the PCM stream produced for one response."""
 
-    turn_id: int
+    turn_id: UUID
     sample_rate: int
     channels: int = 1
 
 
 class AssistantAudioChunk(Event):
-    turn_id: int
+    turn_id: UUID
     chunk: bytes
 
 
 class AssistantAudioCompleted(Event):
     """Emitted when TTS has finished producing PCM for a response."""
 
-    turn_id: int
+    turn_id: UUID
 
 
 class AssistantPlaybackCompleted(Event):
     """Emitted after the produced PCM has reached the audio output."""
 
-    turn_id: int
+    turn_id: UUID
 
 
 class AudioPlaybackRequested(Request):

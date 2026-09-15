@@ -4,6 +4,7 @@ import time
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from voice.activation import ActivationKind
 from voice.events import (
     AssistantPlaybackCompleted,
     FollowUpCountdown,
@@ -84,7 +85,10 @@ class FollowUpHandler:
         self._window_open = True
         logger.debug("Opening follow-up window for %.1fs", self._window_seconds)
         await self._event_bus.request(
-            VoiceTurnRequested(speech_start_timeout=self._window_seconds)
+            VoiceTurnRequested(
+                speech_start_timeout=self._window_seconds,
+                activation=ActivationKind.FOLLOW_UP,
+            )
         )
         self._countdown = asyncio.create_task(
             self._count_down(), name="voice-follow-up-countdown"

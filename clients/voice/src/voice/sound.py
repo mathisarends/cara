@@ -1,5 +1,6 @@
 from enum import StrEnum
 from pathlib import Path
+from uuid import UUID
 
 from voice.observer import Observer, ObserverContext
 
@@ -35,7 +36,7 @@ class SoundObserver(Observer):
     ) -> None:
         await self._play(Earcon.WAKE)
 
-    async def on_assistant_response_started(self, turn_id: int) -> None:
+    async def on_assistant_response_started(self, turn_id: UUID) -> None:
         await self._play(Earcon.SUCCESS)
 
     async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:

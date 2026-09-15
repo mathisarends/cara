@@ -23,6 +23,7 @@ class SessionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     channel: str = Field(default="voice", min_length=1)
+    device_id: str = Field(default="default-voice-device", min_length=1)
     new_session: bool = False
     inactivity_timeout_seconds: float = Field(default=1800, gt=0)
 

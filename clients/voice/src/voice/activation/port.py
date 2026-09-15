@@ -2,19 +2,17 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
+from voice.activation_kind import ActivationKind
+
 
 @dataclass(frozen=True, slots=True)
 class ListenActivation:
     sequence: int | None = None
     speech_start_timeout: float | None = None
+    kind: ActivationKind = ActivationKind.MANUAL
 
 
-@dataclass(frozen=True, slots=True)
-class PromptActivation:
-    prompt: str
-
-
-type Activation = ListenActivation | PromptActivation
+type Activation = ListenActivation
 
 
 class ActivationSource(ABC):

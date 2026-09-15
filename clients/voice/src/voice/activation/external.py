@@ -5,7 +5,6 @@ from voice.activation.port import (
     Activation,
     ActivationSource,
     ListenActivation,
-    PromptActivation,
 )
 
 
@@ -20,10 +19,6 @@ class ExternalActivationSource(ActivationSource):
         await self._activations.put(
             ListenActivation(speech_start_timeout=speech_start_timeout)
         )
-
-    async def prompt(self, text: str) -> None:
-        """Run a turn on `text` and speak the answer, without listening first."""
-        await self._activations.put(PromptActivation(prompt=text))
 
     async def activations(self) -> AsyncIterator[Activation]:
         while True:

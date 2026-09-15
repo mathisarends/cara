@@ -1,5 +1,6 @@
 import random
 from pathlib import Path
+from uuid import UUID
 
 from voice.observer import Observer, ObserverContext
 
@@ -33,7 +34,7 @@ class ToolAcknowledgementObserver(Observer):
         )
         self._context: ObserverContext | None = None
         self._acknowledgements: dict[str, bytes] = {}
-        self._active_turn_id: int | None = None
+        self._active_turn_id: UUID | None = None
         self._has_spoken_text = False
         self._ack_spoken = False
         self._last_acknowledgement: str | None = None
@@ -45,12 +46,12 @@ class ToolAcknowledgementObserver(Observer):
         }
         self._context = context
 
-    async def on_assistant_response_started(self, turn_id: int) -> None:
+    async def on_assistant_response_started(self, turn_id: UUID) -> None:
         self._active_turn_id = turn_id
         self._has_spoken_text = False
         self._ack_spoken = False
 
-    async def on_assistant_text_chunk(self, turn_id: int, chunk: str) -> None:
+    async def on_assistant_text_chunk(self, turn_id: UUID, chunk: str) -> None:
         if turn_id == self._active_turn_id and chunk.strip():
             self._has_spoken_text = True
 
@@ -65,7 +66,7 @@ class ToolAcknowledgementObserver(Observer):
             )
         await self._context.audio_player.play(self._pick_acknowledgement())
 
-    async def on_voice_turn_ended(self, turn_id: int) -> None:
+    async def on_voice_turn_ended(self, turn_id: UUID) -> None:
         if turn_id == self._active_turn_id:
             self._active_turn_id = None
             self._has_spoken_text = False

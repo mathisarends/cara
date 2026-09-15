@@ -1,13 +1,10 @@
-from collections.abc import AsyncIterable, AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable
 
 import numpy as np
 import pytest
 
 from voice.audio.ports import AudioInput, AudioOutput
 from voice.events.bus import EventBus
-from voice.llm.events import AgentEvent, TurnCompleted
-from voice.stt import SpeechToText, Transcription
-from voice.tts import TextToSpeech
 
 
 class _AudioInput(AudioInput):
@@ -66,54 +63,6 @@ class _AudioOutput(AudioOutput):
         pass
 
 
-class _SpeechToText(SpeechToText):
-    def __init__(self) -> None:
-        self.closed = False
-
-    async def transcribe(
-        self, audio: AsyncIterable[bytes]
-    ) -> AsyncIterator[Transcription]:
-        if False:
-            yield Transcription(text="", is_final=False)
-
-    async def aclose(self) -> None:
-        self.closed = True
-
-
-class _TextToSpeech(TextToSpeech):
-    def __init__(self) -> None:
-        self.closed = False
-
-    @property
-    def sample_rate(self) -> int:
-        return 24_000
-
-    async def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]:
-        if False:
-            yield b""
-
-    async def aclose(self) -> None:
-        self.closed = True
-
-
-class _AgentSession:
-    async def prepare_turn(self) -> None:
-        pass
-
-    async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
-        if False:
-            yield TurnCompleted()
-
-    async def steer(self, text: str) -> None:
-        pass
-
-    async def finish_turn(self) -> None:
-        pass
-
-    async def interrupt(self) -> None:
-        pass
-
-
 @pytest.fixture
 def event_bus() -> EventBus:
     return EventBus()
@@ -127,21 +76,6 @@ def audio_input() -> AudioInput:
 @pytest.fixture
 def audio_output() -> AudioOutput:
     return _AudioOutput()
-
-
-@pytest.fixture
-def speech_to_text() -> SpeechToText:
-    return _SpeechToText()
-
-
-@pytest.fixture
-def text_to_speech() -> TextToSpeech:
-    return _TextToSpeech()
-
-
-@pytest.fixture
-def agent_session() -> _AgentSession:
-    return _AgentSession()
 
 
 @pytest.fixture

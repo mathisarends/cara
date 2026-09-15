@@ -1,114 +1,66 @@
 # voice
 
-Cara's local audio-pipeline client: wake word detection, recording,
-speech-to-text, an agent turn (over [`gateway-server`](../../gateway) by
-default), text-to-speech, and playback, wired into one event-driven
-`VoiceChannel`. Layers acoustic echo cancellation and configurable barge-in on
-top, so a user can interrupt the assistant mid-response; supports local
-playback and Sonos speakers.
+Cara's device-side voice client. It owns the microphone, speaker, wake word,
+audio buffering, acoustic echo cancellation, barge-in detection, and local
+device integrations. The Gateway owns the voice session, STT, conversation
+turn, TTS, and persisted turn state.
 
-Voice does **not** talk to an LLM directly — `voice.llm.GatewayAgentSession`
-streams turns over the Gateway's JSON-RPC WebSocket, the same protocol
-[`cli`](../../clients/cli) uses. `EchoAgentSession` exists for tests/examples without a
-running gateway. STT and TTS are both streamed rather than run in one shot,
-and barge-in + echo cancellation let a user interrupt mid-sentence.
+The client therefore needs no Deepgram SDK or provider credentials. It uses
+three Gateway transports:
+
+- REST opens or resumes a voice session and loads its snapshot.
+- JSON-RPC starts and interrupts turns and streams typed lifecycle events.
+- A binary WebSocket uploads microphone PCM and receives assistant PCM.
 
 ## Pipeline
 
 ```text
-mic -> echo-cancelled input -> WakeWordListener/ExternalActivationSource
-voice turn started -> Gateway turn.prepare -> ChatCodex.prewarm()
-gateway session events -> GatewayAgentSession (proactive activation)
-    -> ActivationCoordinator -> STT (ListenActivation) or direct (PromptActivation)
-    -> AgentBridge -> AgentSession.start_turn() -> TTS -> AudioBridge -> AudioOutput
+microphone -> echo cancellation -> ring buffer -> Gateway media input
+                     |                              |
+              wake word / VAD                Gateway STT + agent + TTS
+                     |                              |
+speaker <- AudioBridge <- Gateway media output + voice/conversation events
 ```
 
-Concurrently, `BargeInHandler` watches for interruption signals while the
-assistant speaks, cancelling the active turn and starting a new one from the
-interrupting speech. `FollowUpHandler` opens a short wake-word-free window
-after playback.
+`GatewayVoiceSession.connect()` subscribes before loading the REST snapshot.
+Persisted voice events already represented by that snapshot are filtered using
+`last_sequence`; transient transcript partials remain live. An active turn from
+the snapshot is restored when the channel starts.
 
-Echo cancellation retains the exact PCM sent to the output and acoustically
-matches microphone windows against that sample history. The resulting reference
-feeds an adaptive room filter. It does not depend on a configured playback
-latency, so the same pipeline handles local output and buffered Sonos clips.
+Barge-in stops local playback immediately, interrupts the authoritative
+Gateway turn, and starts a new turn from the retained microphone pre-roll.
 
-## Key ports
+## Wiring
+
+```python
+from voice import GatewayVoiceSession, VoiceChannel, VoiceChannelConfig
+
+config = VoiceChannelConfig.from_yaml()
+session = await GatewayVoiceSession.connect(
+    config.gateway.url,
+    token=config.gateway.token,
+    device_id=config.voice.device_id,
+    channel=config.voice.channel,
+    new_session=config.voice.new_session,
+    inactivity_timeout_seconds=config.voice.inactivity_timeout_seconds,
+)
+async with session:
+    await VoiceChannel(gateway_session=session).start()
+```
+
+The `device_id` must remain stable for a physical client so it can resume its
+open voice session after reconnecting. Set `new_session: true` to close any
+open voice session for that device and create a fresh conversation session.
+
+## Local extension points
 
 | Port | Implementations |
 | --- | --- |
 | `AudioInput` / `AudioOutput` | `MicrophoneAudioInput`; `LocalAudioOutput`, `SonosOutput` |
 | `VoiceActivityDetector` | `SileroVoiceActivityDetector` |
-| `SpeechToText` / `TextToSpeech` | Deepgram |
-| `AgentSession` | `GatewayAgentSession`, `EchoAgentSession` |
-| `BargeInStrategy` | `WakeWordBargeIn` (default), `SpeechBargeIn`, `NoBargeIn` |
-| `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource`, `GatewayAgentSession` |
+| `BargeInStrategy` | `WakeWordBargeIn`, `SpeechBargeIn`, `NoBargeIn` |
+| `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource` |
+| `Observer` | earcons, Hue lighting, Sonos audio focus, tool acknowledgements |
 
-`SpeechToText` owns end-of-speech detection — no separate silence timer.
-`ExternalActivationSource` is the out-of-band entry point (`activate()` to
-listen, `prompt()` to speak unprompted) for buttons, schedulers, etc.
-`GatewayAgentSession` also acts as an activation source. Pass it explicitly in
-`activation_sources` so that when a subscribed automation starts a turn on the
-server, Voice consumes that existing event stream instead of submitting a
-duplicate turn and speaks the result.
-
-Voice subscribes to its channel rather than one session ID. Before an
-interactive turn it reopens the channel session with the configured
-`voice.inactivity_timeout_seconds` (30 minutes by default). Once that period
-passes without persisted conversation activity, the gateway creates a fresh
-context session. Other clients retain sessions indefinitely unless they opt in
-to a timeout themselves. Reminders created in an expiring session target the
-channel, so they follow this rotation and still reach a connected Voice client.
-
-## Static tool acknowledgements
-
-When the agent starts a tool without first speaking, Voice immediately plays a
-short acknowledgement from `clients/voice/static/acknowledgements`. The WAV files are
-loaded into memory when `VoiceChannel` is constructed, so this path does not
-open a TTS connection at runtime.
-
-Regenerate all acknowledgement clips with the configured `DEEPGRAM_API_KEY`:
-
-```powershell
-uv run python scripts/setup/prepare_tool_acknowledgements.py
-```
-
-The generator defaults to Deepgram's `aura-2-athena-en` voice and 24 kHz,
-16-bit mono WAV output. Use `--voice`, `--sample-rate`, or `--output-dir` to
-override those defaults.
-
-## Layout
-
-```text
-clients/voice/src/voice/
-├── channel.py          VoiceChannel: persistent activation channel
-├── audio/                physical I/O, buffering, volume
-├── activation/            what may start a turn
-├── wakeword/, vad/, stt/, tts/     provider adapters + bridges
-├── llm/                    AgentSession port + GatewayAgentSession/EchoAgentSession
-├── barge_in/, echo_cancellation/    interruption + NLMS acoustic echo cancellation
-├── handler/               event-bus orchestration (turn, barge-in, follow-up, ...)
-├── conversation/, events/    history/recording, EventBus + event catalogue
-└── lights/, playback/     optional Hue lighting / Sonos ducking via the Observer API
-```
-
-## Wiring
-
-```python
-agent_session = await GatewayAgentSession.connect(url, token=token, channel="voice")
-async with agent_session:
-    await VoiceChannel(
-        agent_session=agent_session,
-        activation_sources=(agent_session,),
-    ).start()
-```
-
-## Dependencies
-
-- [`gateway_rest_client`](../../generated/gateway_rest_client) and
-  [`gateway_rpc_client`](../../generated/gateway_rpc_client) via `GatewayAgentSession` —
-  the sole path to an LLM. `connect` resolves the session over REST, then runs
-  turns over the socket.
-- Injecting a `VolumeControl`-capable `AudioOutput` into `agent`'s tool
-  context is what enables its volume tools — see [repo root
-  README](../../README.md#audio-outputs).
+Conversation audio recording remains local. Provider selection and
+`DEEPGRAM_API_KEY` belong to the Gateway configuration.
