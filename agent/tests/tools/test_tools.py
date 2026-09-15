@@ -248,35 +248,6 @@ def test_successful_tool_output_is_truncated_on_debug(caplog) -> None:
     assert "x" * 301 not in message
 
 
-def test_agent_tools_prepare_and_close_default_docker_sandbox(
-    monkeypatch, make_tool_context, make_tools, project_sandbox: SandboxDefinition
-) -> None:
-    opened: list[DockerSandbox] = []
-    closed: list[DockerSandbox] = []
-
-    async def open_sandbox(sandbox: DockerSandbox) -> None:
-        opened.append(sandbox)
-
-    async def close_sandbox(sandbox: DockerSandbox) -> None:
-        closed.append(sandbox)
-
-    monkeypatch.setattr(DockerSandbox, "open", open_sandbox)
-    monkeypatch.setattr(DockerSandbox, "close", close_sandbox)
-
-    async def run() -> None:
-        context = make_tool_context(sandbox=project_sandbox)
-        sandbox = context.resolve(DockerSandbox)
-        tools = make_tools(context)
-
-        await tools.prepare()
-        assert opened == [sandbox]
-        assert closed == []
-        await tools.aclose()
-        assert closed == [sandbox]
-
-    asyncio.run(run())
-
-
 def test_context_without_sandbox_runs_commands_on_the_host(make_tool_context) -> None:
     context = make_tool_context()
 

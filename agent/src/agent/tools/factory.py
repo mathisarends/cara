@@ -9,7 +9,6 @@ from agenttoolkit import (
 from agenttoolkit.builtins import (
     CommandDefaults,
     CommandRunner,
-    DockerSandbox,
     LocalShellRunner,
     LocalWorkspace,
     Workspace,
@@ -25,7 +24,7 @@ from agent.workspace import resolve_workspace_root
 
 
 class AgentTools(agenttoolkit.Tools):
-    """Agent tool catalog and the resources required to execute it."""
+    """The tools exposed to the agent model."""
 
     def __init__(
         self,
@@ -40,15 +39,6 @@ class AgentTools(agenttoolkit.Tools):
             dependencies=dependencies,
             middleware=(ToolResultMiddleware(),),
         )
-        self._sandbox = context.resolve(DockerSandbox)
-
-    async def prepare(self) -> None:
-        if self._sandbox is not None:
-            await self._sandbox.open()
-
-    async def aclose(self) -> None:
-        if self._sandbox is not None:
-            await self._sandbox.close()
 
 
 def build_tools(

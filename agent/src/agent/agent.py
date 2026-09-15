@@ -69,35 +69,10 @@ class Agent:
         self._turn: asyncio.Task[None] | None = None
         self._turn_lock = asyncio.Lock()
         self._steering: deque[str] = deque()
-        self._tool_preparation: asyncio.Task[None] | None = None
-        self._tool_lifecycle = asyncio.Lock()
-        self._tools_ready = False
-        self._tools_closed = False
 
     @property
     def _llm(self) -> ChatModel:
         return self._models.current
-
-    async def prepare_turn(self) -> None:
-        async with self._tool_lifecycle:
-            if self._tools_closed:
-                raise RuntimeError("The agent is already closed.")
-            if self._tools_ready:
-                return
-            if self._tool_preparation is None:
-                self._tool_preparation = asyncio.create_task(
-                    self._tools.prepare(),
-                    name="agent-tools-prepare",
-                )
-            try:
-                await asyncio.shield(self._tool_preparation)
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                self._tool_preparation = None
-                raise
-            self._tool_preparation = None
-            self._tools_ready = True
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         async with self._turn_lock:
@@ -105,7 +80,6 @@ class Agent:
                 raise RuntimeError(
                     "A turn is already running; steer() or interrupt() first."
                 )
-            await self.prepare_turn()
             self._steering.clear()
             self._context.add_user(text)
             events: _EventQueue = asyncio.Queue(maxsize=_EVENT_QUEUE_SIZE)
@@ -127,10 +101,7 @@ class Agent:
 
     async def aclose(self) -> None:
         await self.interrupt()
-        try:
-            await self._close_tools()
-        finally:
-            await self._models.aclose()
+        await self._models.aclose()
 
     async def _stream_turn(
         self,
@@ -164,19 +135,6 @@ class Agent:
         turn.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await turn
-
-    async def _close_tools(self) -> None:
-        async with self._tool_lifecycle:
-            if self._tools_closed:
-                return
-            preparation, self._tool_preparation = self._tool_preparation, None
-            try:
-                if preparation is not None:
-                    await asyncio.shield(preparation)
-            finally:
-                self._tools_ready = False
-                self._tools_closed = True
-                await self._tools.aclose()
 
     async def _run_loop(self, events: _EventQueue) -> None:
         response_parts: list[str] = []

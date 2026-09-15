@@ -29,15 +29,7 @@ class _Tools:
     def __init__(self, failures: dict[str, Exception] | None = None) -> None:
         self._failures = failures or {}
         self.calls: list[tuple[str, dict[str, Any]]] = []
-        self.prepare_calls = 0
-        self.close_calls = 0
         self.schema_formats: list[str] = []
-
-    async def prepare(self) -> None:
-        self.prepare_calls += 1
-
-    async def aclose(self) -> None:
-        self.close_calls += 1
 
     def get_schema(self, schema_format: str = "native") -> list[object]:
         self.schema_formats.append(schema_format)
@@ -173,17 +165,14 @@ async def test_stale_steering_is_discarded_before_the_next_turn() -> None:
     ]
 
 
-async def test_tools_live_for_the_agent_lifetime() -> None:
+async def test_tools_are_reused_across_turns() -> None:
     model = _Model([ModelResponse(completion="one"), ModelResponse(completion="two")])
     tools = _Tools()
     agent = _agent(model, tools)
 
     await _run_turn(agent, "one")
     await _run_turn(agent, "two")
-    assert tools.prepare_calls == 1
-    assert tools.close_calls == 0
     assert tools.schema_formats == ["native", "native"]
 
     await agent.aclose()
     await agent.aclose()
-    assert tools.close_calls == 1
