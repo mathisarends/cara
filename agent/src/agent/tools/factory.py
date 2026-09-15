@@ -16,7 +16,6 @@ from agenttoolkit.builtins import (
 from agenttoolkit.dependency import DependencyContainer
 
 from agent.clock import LocalClock
-from agent.sandbox import SandboxDefinition, create_sandbox
 from agent.tools.actions import register_tools
 from agent.tools.dependency_provider import BuiltinDependencies
 from agent.tools.middleware import ToolResultMiddleware
@@ -46,16 +45,12 @@ def build_tools(
     injected_dependencies: Sequence[object] = (),
     skills: Skills | None = None,
     workspace: Workspace | None = None,
-    sandbox: SandboxDefinition | None = None,
     additional_tools: agenttoolkit.Tools | None = None,
     context: ToolContext | None = None,
     container: DependencyContainer | None = None,
 ) -> AgentTools:
     if context is not None and (
-        injected_dependencies
-        or skills is not None
-        or workspace is not None
-        or sandbox is not None
+        injected_dependencies or skills is not None or workspace is not None
     ):
         raise ValueError(
             "A prebuilt context cannot be combined with context dependencies"
@@ -67,7 +62,6 @@ def build_tools(
             *injected_dependencies,
             skills,
             workspace=workspace,
-            sandbox=sandbox,
         )
     )
     tools = _create_tools(
@@ -99,12 +93,11 @@ def _create_tools(
 def _create_tool_context(
     *dependencies: object,
     workspace: Workspace | None = None,
-    sandbox: SandboxDefinition | None = None,
     runner: CommandRunner | None = None,
     clock: LocalClock | None = None,
 ) -> ToolContext:
     selected_workspace = workspace or _default_workspace()
-    selected_runner = runner or _default_runner(sandbox, selected_workspace)
+    selected_runner = runner or _default_runner(selected_workspace)
     return ToolContext(
         selected_workspace,
         selected_runner,
@@ -117,9 +110,5 @@ def _default_workspace() -> LocalWorkspace:
     return LocalWorkspace(resolve_workspace_root())
 
 
-def _default_runner(
-    sandbox: SandboxDefinition | None, workspace: Workspace
-) -> CommandRunner:
-    if sandbox is None:
-        return LocalShellRunner(CommandDefaults(working_directory=workspace.root))
-    return create_sandbox(workspace.root, sandbox)
+def _default_runner(workspace: Workspace) -> CommandRunner:
+    return LocalShellRunner(CommandDefaults(working_directory=workspace.root))

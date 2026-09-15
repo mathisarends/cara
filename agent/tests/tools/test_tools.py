@@ -7,14 +7,11 @@ from agenttoolkit import Tools
 from agenttoolkit.builtins import (
     CommandResult,
     CommandRunner,
-    DockerSandbox,
     LocalShellRunner,
     LocalWorkspace,
     SandboxPolicy,
-    Workspace,
 )
 
-from agent.sandbox import BindMount, SandboxDefinition, create_sandbox
 from agent.tools import build_tools
 
 
@@ -251,97 +248,7 @@ def test_successful_tool_output_is_truncated_on_debug(caplog) -> None:
 def test_context_without_sandbox_runs_commands_on_the_host(make_tool_context) -> None:
     context = make_tool_context()
 
-    assert context.resolve(DockerSandbox) is None
     assert isinstance(context.resolve(CommandRunner), LocalShellRunner)
-
-
-def test_default_workspace_is_an_agenttoolkit_workspace(
-    make_tool_context,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    project_sandbox: SandboxDefinition,
-) -> None:
-    monkeypatch.setenv("CARA_WORKSPACE_ROOT", str(tmp_path))
-    context = make_tool_context(sandbox=project_sandbox)
-    workspace = context.resolve(Workspace)
-    sandbox = context.resolve(DockerSandbox)
-
-    assert workspace is not None
-    assert workspace.root == tmp_path
-    assert sandbox is not None
-    assert sandbox.defaults.working_directory == workspace.root
-    assert sandbox.policy.allows_write(workspace.root)
-    workspace_mount = next(
-        argument
-        for argument in sandbox.build_open_argv(container_name="test")
-        if "dst=/workspace" in argument
-    )
-    assert not workspace_mount.endswith(",readonly")
-
-
-def test_sandbox_accepts_explicit_environment_and_mounts(
-    tmp_path: Path, project_sandbox: SandboxDefinition
-) -> None:
-    config_root = tmp_path / "example-cli"
-    config_root.mkdir()
-    mount = BindMount.read_write(config_root, "/tmp/.config/example-cli")
-
-    sandbox = create_sandbox(
-        tmp_path,
-        project_sandbox,
-        environment={"EXAMPLE_CONFIG": "/etc/example.toml"},
-        mounts=(mount,),
-    )
-
-    assert sandbox.defaults.environment["EXAMPLE_CONFIG"] == "/etc/example.toml"
-    assert sandbox.mounts[-1:] == (mount,)
-
-
-def test_sandbox_mounts_have_explicit_access_modes(
-    tmp_path: Path, project_sandbox: SandboxDefinition
-) -> None:
-    music = tmp_path / "music"
-    projects = tmp_path / "projects"
-    music.mkdir()
-    projects.mkdir()
-    mounts = (
-        BindMount.read_only(music, "/music"),
-        BindMount.read_write(projects, "/projects"),
-    )
-
-    sandbox = create_sandbox(tmp_path, project_sandbox, mounts=mounts)
-
-    assert sandbox.mounts[-len(mounts) :] == mounts
-    assert not mounts[0].writable
-    assert mounts[1].writable
-    arguments = sandbox.build_open_argv(container_name="test")
-    music_mount = next(argument for argument in arguments if "dst=/music" in argument)
-    projects_mount = next(
-        argument for argument in arguments if "dst=/projects" in argument
-    )
-    assert music_mount.endswith(",readonly")
-    assert not projects_mount.endswith(",readonly")
-
-
-def test_workspace_container_accepts_nested_mounts(
-    tmp_path: Path, project_sandbox: SandboxDefinition
-) -> None:
-    mount = BindMount.read_write(tmp_path, "/workspace/projects")
-
-    sandbox = create_sandbox(tmp_path, project_sandbox, mounts=(mount,))
-
-    assert sandbox.mounts[-1:] == (mount,)
-
-
-def test_primary_workspace_container_target_is_reserved(
-    tmp_path: Path, project_sandbox: SandboxDefinition
-) -> None:
-    with pytest.raises(ValueError, match="reserved"):
-        create_sandbox(
-            tmp_path,
-            project_sandbox,
-            mounts=(BindMount.read_write(tmp_path, "/workspace"),),
-        )
 
 
 def test_to_schema_returns_openai_function_schema() -> None:
