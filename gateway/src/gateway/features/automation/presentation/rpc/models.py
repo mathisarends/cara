@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from pydantic import Field, field_validator
 from pyrpckit import RpcModel
 
-from gateway.features.automation.domain import ScheduleKind
+from gateway.features.automation.domain import ScheduleKind, TargetKind
 
 
 class AutomationRpcMethod(StrEnum):
@@ -16,6 +16,10 @@ class AutomationRpcMethod(StrEnum):
     CREATE = "automation.create"
     UPDATE = "automation.update"
     DELETE = "automation.delete"
+
+
+class PayloadKind(StrEnum):
+    REMINDER = "reminder"
 
 
 class AtSchedule(RpcModel):
@@ -51,7 +55,7 @@ type AutomationSchedule = Annotated[
 
 
 class SessionAutomationTarget(RpcModel):
-    kind: Literal["session"]
+    kind: Literal[TargetKind.SESSION] = TargetKind.SESSION
     session_id: UUID
 
 
@@ -59,7 +63,7 @@ type AutomationTarget = SessionAutomationTarget
 
 
 class ReminderAutomationPayload(RpcModel):
-    kind: Literal["reminder"]
+    kind: Literal[PayloadKind.REMINDER] = PayloadKind.REMINDER
     instruction: str
     created_from_turn_id: UUID
 

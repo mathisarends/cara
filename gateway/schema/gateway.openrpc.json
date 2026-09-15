@@ -1043,6 +1043,7 @@
         "properties": {
           "kind": {
             "const": "session",
+            "default": "session",
             "title": "Kind",
             "type": "string"
           },
@@ -1053,7 +1054,6 @@
           }
         },
         "required": [
-          "kind",
           "sessionId"
         ],
         "title": "SessionAutomationTarget",
@@ -1391,6 +1391,7 @@
         "properties": {
           "kind": {
             "const": "reminder",
+            "default": "reminder",
             "title": "Kind",
             "type": "string"
           },
@@ -1405,7 +1406,6 @@
           }
         },
         "required": [
-          "kind",
           "instruction",
           "createdFromTurnId"
         ],

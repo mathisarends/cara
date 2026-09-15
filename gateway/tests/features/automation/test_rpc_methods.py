@@ -30,9 +30,8 @@ _OWNER = "owner"
 async def test_create_list_and_get_a_reminder_automation(
     automation_service: AutomationService,
 ) -> None:
-    target = SessionAutomationTarget(kind="session", session_id=uuid4())
+    target = SessionAutomationTarget(session_id=uuid4())
     payload = ReminderAutomationPayload(
-        kind="reminder",
         instruction="Drink water",
         created_from_turn_id=uuid4(),
     )
@@ -73,14 +72,13 @@ async def test_update_and_delete_an_automation(
     automation_service: AutomationService,
 ) -> None:
     payload = ReminderAutomationPayload(
-        kind="reminder",
         instruction="Stand up",
         created_from_turn_id=uuid4(),
     )
     created = await create_automation(
         CreateAutomationParams(
             owner_id=_OWNER,
-            target=SessionAutomationTarget(kind="session", session_id=uuid4()),
+            target=SessionAutomationTarget(session_id=uuid4()),
             schedule=IntervalSchedule(every_seconds=900, run_immediately=False),
             payload=payload,
             name="Stand up",

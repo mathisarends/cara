@@ -29,9 +29,8 @@ def _automation(schedule) -> AutomationResponse:
         created_at=datetime(2026, 8, 25, tzinfo=UTC),
         next_run_at=datetime(2026, 8, 26, 5, 30, tzinfo=UTC),
         schedule=schedule,
-        target=AutomationTarget(kind="session", session_id=_SESSION_ID),
+        target=AutomationTarget(session_id=_SESSION_ID),
         payload=ReminderAutomationPayload(
-            kind="reminder",
             instruction="Zahnarzt",
             created_from_turn_id=_TURN_ID,
         ),

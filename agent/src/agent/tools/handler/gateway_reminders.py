@@ -74,7 +74,7 @@ class GatewayReminders(Reminders):
         async with self._client() as client:
             automation = await client.automation.create(
                 owner_id=self._owner_id,
-                target=AutomationTarget(kind="session", session_id=self._session_id),
+                target=AutomationTarget(session_id=self._session_id),
                 schedule=_automation_schedule(schedule),
                 payload=self._payload(instruction),
                 name=name,
@@ -108,7 +108,6 @@ class GatewayReminders(Reminders):
 
     def _payload(self, instruction: str) -> ReminderAutomationPayload:
         return ReminderAutomationPayload(
-            kind="reminder",
             instruction=instruction,
             created_from_turn_id=self._turn_id,
         )

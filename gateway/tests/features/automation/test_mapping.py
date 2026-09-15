@@ -66,12 +66,8 @@ def test_automation_response_maps_a_domain_automation_to_the_wire_shape() -> Non
         every_seconds=1800,
         run_immediately=False,
     )
-    assert response.target == SessionAutomationTarget(
-        kind="session",
-        session_id=session_id,
-    )
+    assert response.target == SessionAutomationTarget(session_id=session_id)
     assert response.payload == ReminderAutomationPayload(
-        kind="reminder",
         instruction="Drink water",
         created_from_turn_id=turn_id,
     )
@@ -119,7 +115,7 @@ def test_schedule_mapping_round_trips_between_domain_and_wire(
 def test_target_mapping_round_trips_between_domain_and_wire() -> None:
     session_id = uuid4()
     domain_target = SessionTarget(session_id)
-    wire_target = SessionAutomationTarget(kind="session", session_id=session_id)
+    wire_target = SessionAutomationTarget(session_id=session_id)
 
     assert target_response(domain_target) == wire_target
     assert automation_target(wire_target) == domain_target
@@ -128,7 +124,6 @@ def test_target_mapping_round_trips_between_domain_and_wire() -> None:
 def test_prompt_action_and_origin_are_read_from_the_reminder_payload() -> None:
     turn_id = uuid4()
     payload = ReminderAutomationPayload(
-        kind="reminder",
         instruction="Drink water",
         created_from_turn_id=turn_id,
     )

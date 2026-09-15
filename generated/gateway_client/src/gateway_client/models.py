@@ -61,7 +61,7 @@ class AutomationResponse(RpcModel):
 
 class AutomationTarget(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["session"]
+    kind: Literal["session"] = "session"
     session_id: UUID = Field(alias="sessionId")
 
 
@@ -150,7 +150,7 @@ class OpenSessionParams(RpcModel):
 
 class ReminderAutomationPayload(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    kind: Literal["reminder"]
+    kind: Literal["reminder"] = "reminder"
     instruction: str
     created_from_turn_id: UUID = Field(alias="createdFromTurnId")
 

@@ -43,7 +43,6 @@ def automation_response(automation: Automation) -> AutomationResponse:
         schedule=schedule_response(automation.schedule),
         target=target_response(automation.target),
         payload=ReminderAutomationPayload(
-            kind="reminder",
             instruction=automation.action.instruction,
             created_from_turn_id=automation.origin.created_from_turn_id,
         ),
@@ -96,4 +95,4 @@ def schedule_response(schedule: DomainAutomationSchedule) -> AutomationSchedule:
 def target_response(target: DomainAutomationTarget) -> AutomationTarget:
     match target:
         case SessionTarget(session_id=session_id):
-            return SessionAutomationTarget(kind="session", session_id=session_id)
+            return SessionAutomationTarget(session_id=session_id)
