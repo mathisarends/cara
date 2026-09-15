@@ -1,6 +1,7 @@
 import contextlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 import docker
@@ -71,6 +72,7 @@ class DockerSdkGateway:
                     "bind": "/tmp/.config",
                     "mode": "rw",
                 },
+                **_credential_volumes(self._settings.credential_mounts()),
             },
             labels={_OWNER_LABEL: "true", _WORKSPACE_LABEL: workspace_id},
         )
@@ -114,3 +116,10 @@ class DockerSdkGateway:
 
     def _container(self, container_id: str) -> Container:
         return self._client.containers.get(container_id)
+
+
+def _credential_volumes(mounts: Mapping[str, Path]) -> dict[str, dict[str, str]]:
+    return {
+        str(host_dir): {"bind": f"/tmp/.config/{name}", "mode": "rw"}
+        for name, host_dir in mounts.items()
+    }

@@ -35,6 +35,9 @@ services:
       CARA_SANDBOX_TOKEN: ${CARA_SANDBOX_TOKEN:-change-me}
       CARA_SANDBOX_WORKSPACE_VOLUME: cara-workspace
       CARA_SANDBOX_CLI_CONFIG_VOLUME: cara-cli-config
+      # CLI name -> host config dir, bind-mounted read-write into the sandbox
+      # at /tmp/.config/<name>, so e.g. `spoti auth setup` writes back here directly.
+      CARA_SANDBOX_CLI_CREDENTIAL_MOUNTS: spoti=${APPDATA}/spoti;huego=${APPDATA}/huego
       CARA_SANDBOX_IDLE_TTL_SECONDS: ${CARA_SANDBOX_IDLE_TTL_SECONDS:-600}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
