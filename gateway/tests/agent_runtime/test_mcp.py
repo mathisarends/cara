@@ -1,67 +1,33 @@
-import json
+import pytest
+from mcp import Client
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 
-import httpx
-
+from gateway.agent_runtime import mcp as mcp_module
 from gateway.agent_runtime.mcp import McpServerSettings, McpTools
 
 
-async def test_mcp_tools_are_discovered_namespaced_and_called(monkeypatch) -> None:
-    methods: list[str] = []
+@pytest.fixture
+def server(monkeypatch: pytest.MonkeyPatch) -> MCPServer:
+    server = MCPServer("company")
 
-    def handle(request: httpx.Request) -> httpx.Response:
-        payload = json.loads(request.content)
-        methods.append(payload["method"])
-        if payload["method"] == "initialize":
-            return httpx.Response(
-                200,
-                headers={"MCP-Session-Id": "session-1"},
-                json={"jsonrpc": "2.0", "id": payload["id"], "result": {}},
-            )
-        if payload["method"] == "notifications/initialized":
-            assert request.headers["MCP-Session-Id"] == "session-1"
-            return httpx.Response(202)
-        if payload["method"] == "tools/list":
-            return httpx.Response(
-                200,
-                json={
-                    "jsonrpc": "2.0",
-                    "id": payload["id"],
-                    "result": {
-                        "tools": [
-                            {
-                                "name": "lookup",
-                                "description": "Look up a value.",
-                                "inputSchema": {
-                                    "type": "object",
-                                    "properties": {"key": {"type": "string"}},
-                                    "required": ["key"],
-                                },
-                            }
-                        ]
-                    },
-                },
-            )
-        assert payload["method"] == "tools/call"
-        return httpx.Response(
-            200,
-            json={
-                "jsonrpc": "2.0",
-                "id": payload["id"],
-                "result": {
-                    "structuredContent": {
-                        "value": payload["params"]["arguments"]["key"]
-                    }
-                },
-            },
-        )
+    @server.tool(description="Look up a value.")
+    def lookup(key: str) -> dict[str, str]:
+        return {"value": key}
 
-    transport = httpx.MockTransport(handle)
-    original = httpx.AsyncClient
+    @server.tool(description="Always fails.")
+    def explode() -> str:
+        raise ToolError("boom")
+
     monkeypatch.setattr(
-        httpx,
-        "AsyncClient",
-        lambda **kwargs: original(transport=transport, **kwargs),
+        mcp_module,
+        "Client",
+        lambda _transport, **kwargs: Client(server, **kwargs),
     )
+    return server
+
+
+async def test_mcp_tools_are_discovered_namespaced_and_called(server) -> None:
     tools = McpTools(
         (
             McpServerSettings(
@@ -73,13 +39,16 @@ async def test_mcp_tools_are_discovered_namespaced_and_called(monkeypatch) -> No
     )
 
     await tools.connect()
-    result = await tools.execute("company_lookup", {"key": "cara"})
-    await tools.aclose()
+    try:
+        lookup = tools.get("company_lookup")
+        result = await tools.execute("company_lookup", {"key": "cara"})
+        with pytest.raises(RuntimeError, match="boom"):
+            await tools.execute("company_explode", {})
+    finally:
+        await tools.aclose()
 
+    assert lookup is not None
+    assert lookup.description == "Look up a value."
+    assert lookup.plugin_name == "company"
+    assert lookup.local_name == "lookup"
     assert result == {"value": "cara"}
-    assert methods == [
-        "initialize",
-        "notifications/initialized",
-        "tools/list",
-        "tools/call",
-    ]
