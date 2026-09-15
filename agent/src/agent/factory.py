@@ -19,8 +19,8 @@ class AgentFactory:
         self,
         settings: AgentSettings,
         *,
-        workspace: Workspace | None = None,
-        command_runner: CommandRunner | None = None,
+        workspace: Workspace,
+        command_runner: CommandRunner,
         additional_tools: Tools | None = None,
     ) -> None:
         self._settings = settings

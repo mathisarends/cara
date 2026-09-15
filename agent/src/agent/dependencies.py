@@ -2,18 +2,11 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from agenttoolkit import DependencyProvider, Skills, ToolContext, provide
-from agenttoolkit.builtins import (
-    CommandDefaults,
-    CommandRunner,
-    LocalShellRunner,
-    LocalWorkspace,
-    Workspace,
-)
+from agenttoolkit.builtins import CommandRunner, Workspace
 
 from agent.clock import LocalClock
 from agent.configuration import AgentSettings
 from agent.models import ModelSwitch
-from agent.workspace import resolve_workspace_root
 from llm import ChatModel, CodexModel, CodexReasoningEffort, create_codex_model
 
 type _ModelFactories = dict[str, Callable[[str | None], ChatModel]]
@@ -32,29 +25,24 @@ class ConfiguredDependencies(DependencyProvider):
     def __init__(
         self,
         settings: AgentSettings,
+        workspace: Workspace,
+        command_runner: CommandRunner,
         tool_dependencies: Sequence[object] = (),
         initial_model: ChatModel | None = None,
-        workspace: Workspace | None = None,
-        command_runner: CommandRunner | None = None,
     ) -> None:
         self._settings = settings
-        self._tool_dependencies = tuple(tool_dependencies)
-        self._initial_model = initial_model
         self._workspace = workspace
         self._command_runner = command_runner
+        self._tool_dependencies = tuple(tool_dependencies)
+        self._initial_model = initial_model
 
     @provide
     def settings(self) -> AgentSettings:
         return self._settings
 
     @provide
-    def workspace(self, settings: AgentSettings) -> Workspace:
-        if self._workspace is not None:
-            return self._workspace
-        return LocalWorkspace(
-            resolve_workspace_root(settings.workspace.root),
-            max_file_bytes=settings.workspace.max_file_bytes,
-        )
+    def workspace(self) -> Workspace:
+        return self._workspace
 
     @provide
     def skills(self, workspace: Workspace) -> Skills | None:
@@ -62,14 +50,8 @@ class ConfiguredDependencies(DependencyProvider):
         return Skills.from_dir(skills_root) if skills_root.is_dir() else None
 
     @provide
-    def command_runner(
-        self,
-        settings: AgentSettings,
-        workspace: Workspace,
-    ) -> CommandRunner:
-        if self._command_runner is not None:
-            return self._command_runner
-        return LocalShellRunner(CommandDefaults(working_directory=workspace.root))
+    def command_runner(self) -> CommandRunner:
+        return self._command_runner
 
     @provide
     def clock(self, settings: AgentSettings) -> LocalClock:
