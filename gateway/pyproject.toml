@@ -19,7 +19,6 @@ dependencies = [
     "sandbox-manager-client",
     "scheduler",
     "sqlmodel>=0.0.31",
-    "tavily-python>=0.7.26",
     "tzdata>=2024.1",
     "uvicorn>=0.30.0",
     "vocalbin[deepgram]>=0.7.0",

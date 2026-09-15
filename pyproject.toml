@@ -17,6 +17,7 @@ environments = [
 [tool.uv.workspace]
 members = [
     "agent",
+    "cara-tools",
     "clients/cli",
     "clients/voice",
     "gateway",
@@ -34,6 +35,7 @@ asyncio_mode = "auto"
 
 [tool.uv.sources]
 agent = { workspace = true }
+cara-tools = { workspace = true }
 cli = { workspace = true }
 gateway-server = { workspace = true }
 gateway-rest-client = { workspace = true }
@@ -68,6 +70,7 @@ select = [
 [tool.ruff.lint.isort]
 known-first-party = [
     "agent",
+    "cara_tools",
     "cli",
     "experiments",
     "gateway",

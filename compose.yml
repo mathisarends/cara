@@ -14,6 +14,7 @@ services:
       CARA_GATEWAY_TOKEN: ${CARA_GATEWAY_TOKEN:-change-me-gateway-token-32-characters}
       CARA_WORKSPACE_ROOT: /workspace
       CARA_SANDBOX_URL: http://sandbox-manager:8080
+      CARA_TOOLS: '[{"name":"info","url":"http://cara-tools:8080/mcp"}]'
     ports:
       - "8000:8000"
     volumes:
@@ -24,8 +25,25 @@ services:
       - ./gateway.yaml:/app/gateway.yaml:ro
       - ./gateway.sqlite3:/app/gateway.sqlite3
     depends_on:
+      cara-tools:
+        condition: service_healthy
       sandbox-manager:
         condition: service_healthy
+
+  cara-tools:
+    build:
+      context: .
+      dockerfile: cara-tools/Dockerfile
+    environment:
+      CARA_TOOLS_HOST: 0.0.0.0
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
 
   sandbox-manager:
     build:

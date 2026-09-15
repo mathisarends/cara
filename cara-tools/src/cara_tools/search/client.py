@@ -1,14 +1,12 @@
 import httpx
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from tavily import AsyncTavilyClient
 
-from gateway.agent_runtime.tools.handler.ports import SearchResponse, WebSearch
+from cara_tools.search.models import SearchResponse
 
 
 class TavilyCredentials(BaseSettings):
-    """Tavily credentials loaded from the environment and a local .env file."""
-
     model_config = SettingsConfigDict(
         env_prefix="TAVILY_",
         env_file=".env",
@@ -16,12 +14,10 @@ class TavilyCredentials(BaseSettings):
         extra="ignore",
     )
 
-    api_key: SecretStr
+    api_key: SecretStr = Field(min_length=1)
 
 
-class TavilyWebSearch(WebSearch):
-    """Web search via the Tavily API."""
-
+class TavilyWebSearch:
     def __init__(
         self,
         *,

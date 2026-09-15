@@ -9,7 +9,6 @@ from gateway.agent_runtime.mcp import McpTools
 from gateway.agent_runtime.sandbox import WorkspaceSandboxClient
 from gateway.agent_runtime.settings import GatewaySettings
 from gateway.agent_runtime.tools import (
-    GatewayToolDependencies,
     GatewayToolSettings,
     TurnToolDependencies,
     register_tools,
@@ -78,7 +77,6 @@ class AgentRuntimeProvider(Provider):
             command_runner=sandbox,
             additional_tools=mcp_tools,
             tool_registrars=(register_tools,),
-            tool_dependency_providers=(GatewayToolDependencies(),),
         )
 
     @provide

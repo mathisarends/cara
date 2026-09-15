@@ -30,6 +30,28 @@ When `token` is present, Cara sends it as an HTTP Bearer token. Production
 tokens should be supplied through deployment secrets rather than committed to
 `gateway.yaml`.
 
+## First-party information tools
+
+The `cara-tools` workspace package is Cara's first-party MCP host. Its current
+`info` bundle publishes `weather` and `search`; the Gateway exposes them as
+`info_weather` and `info_search`. Weather's IP-based location lookup is an
+internal implementation detail and is not published as a separate agent tool.
+
+Docker Compose configures the server through the Gateway's `CARA_TOOLS`
+environment setting and waits for its `/health` route before starting the
+Gateway. For host development, start both processes and point the Gateway at
+the local MCP endpoint:
+
+```powershell
+uv run --package cara-tools cara-tools
+$env:CARA_TOOLS='[{"name":"info","url":"http://127.0.0.1:8080/mcp"}]'
+uv run --package gateway-server cara-gateway
+```
+
+`TAVILY_API_KEY` is required only when `info_search` is called. Weather uses
+Open-Meteo without an API key. If no explicit place is supplied, it currently
+uses `ipwho.is` to infer an approximate location from the server's public IP.
+
 ## Minimal Python tool server
 
 Create a separate workspace member or repository. A minimal package needs the

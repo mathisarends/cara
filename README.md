@@ -52,6 +52,7 @@ flowchart TD
     Gateway --> Manager
     Manager --> Sandbox
     Gateway --> MCP
+    Gateway -. "MCP/HTTP" .-> CaraTools["cara-tools<br/>weather · web search"]
 ```
 
 Three ideas hold this together:
@@ -105,6 +106,7 @@ flowchart TD
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | [`gateway-server`](gateway#readme)     | FastAPI process: protocol, sessions, persistence, agent runtime, and tool composition. |
 | [`agent`](agent#readme)                       | Generic model-facing loop, context assembly, tool extension API, and middleware. |
+| [`cara-tools`](cara-tools)                     | Out-of-process MCP host for information tools such as weather and web search. |
 | [`sandbox-manager`](sandbox_manager)          | Workspace-scoped Docker lifecycle and remote shell/filesystem API. |
 | [`gateway-rest-client`](generated/gateway_rest_client#readme) | Generated, fully typed client for the gateway's REST resources (sessions, automations, alarms). |
 | [`gateway-rpc-client`](generated/gateway_rpc_client#readme) | Generated, fully typed client for the gateway's JSON-RPC WebSocket (turns, events). |
