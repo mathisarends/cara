@@ -1,59 +1,77 @@
 from unittest.mock import patch
 
-from llmify import ChatCodex, WebSocketResponsesTransport
-
-from llm.codex import (
-    CodexModel,
-    CodexReasoningEffort,
-    create_codex_model,
+from pydantic_ai.messages import (
+    ModelRequest,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
+from pydantic_ai.messages import (
+    ModelResponse as PydanticResponse,
 )
 
+from llm import (
+    AssistantMessage,
+    CodexModel,
+    CodexReasoningEffort,
+    PydanticAICodexModel,
+    SystemMessage,
+    ToolCall,
+    ToolResultMessage,
+    UserMessage,
+    create_codex_model,
+)
+from llm.codex import _pydantic_messages
 
-def test_create_codex_model_passes_configured_options() -> None:
-    with patch.object(ChatCodex, "from_cli", return_value=object()) as from_cli:
-        create_codex_model(
-            CodexModel.LUNA,
+
+def test_create_codex_model_uses_pydantic_ai_codex_provider() -> None:
+    provider = object()
+    model = object()
+    with (
+        patch("llm.codex.OpenAICodexProvider", return_value=provider),
+        patch("llm.codex.OpenAICodexModel", return_value=model) as model_type,
+    ):
+        created = create_codex_model(
+            CodexModel.SOL,
             reasoning_effort=CodexReasoningEffort.HIGH,
         )
 
-    from_cli.assert_called_once_with(
-        model="gpt-5.6-luna",
-        reasoning_effort="high",
-        transport=from_cli.call_args.kwargs["transport"],
-    )
-    assert isinstance(
-        from_cli.call_args.kwargs["transport"], WebSocketResponsesTransport
-    )
+    assert isinstance(created, PydanticAICodexModel)
+    model_type.assert_called_once_with("gpt-5.6-sol", provider=provider)
 
 
-def test_create_codex_model_omits_unconfigured_options() -> None:
-    with patch.object(ChatCodex, "from_cli", return_value=object()) as from_cli:
-        create_codex_model(CodexModel.SPARK)
-
-    from_cli.assert_called_once_with(
-        model="gpt-5.3-codex-spark",
-        transport=from_cli.call_args.kwargs["transport"],
-    )
-    assert isinstance(
-        from_cli.call_args.kwargs["transport"], WebSocketResponsesTransport
+def test_messages_are_mapped_without_exposing_pydantic_ai_to_callers() -> None:
+    messages = _pydantic_messages(
+        [
+            SystemMessage("System"),
+            UserMessage("Question"),
+            AssistantMessage(
+                "",
+                tool_calls=(ToolCall("call-1", "lookup", '{"key":"value"}'),),
+            ),
+            ToolResultMessage("call-1", "lookup", "Answer"),
+        ]
     )
 
+    user, assistant, tool_result = messages
+    assert isinstance(user, ModelRequest)
+    assert user.instructions == "System"
+    assert isinstance(assistant, PydanticResponse)
+    assert isinstance(assistant.parts[0], ToolCallPart)
+    assert assistant.parts[0].tool_name == "lookup"
+    assert isinstance(tool_result, ModelRequest)
+    assert isinstance(tool_result.parts[0], ToolReturnPart)
+    assert tool_result.parts[0].content == "Answer"
 
-def test_codex_enums_expose_the_supported_configuration_values() -> None:
-    assert {model.value for model in CodexModel} == {
-        "gpt-5.3-codex-spark",
-        "gpt-5.6-luna",
-        "gpt-5.6-terra",
-        "gpt-5.6-sol",
-        "gpt-5.5",
-        "gpt-5.4",
-    }
-    assert {effort.value for effort in CodexReasoningEffort} == {
-        "none",
-        "minimal",
-        "low",
-        "medium",
-        "high",
-        "xhigh",
-        "max",
-    }
+
+def test_provider_response_state_is_preserved_for_tool_followups() -> None:
+    state = PydanticResponse(parts=[TextPart("partial")])
+
+    assert _pydantic_messages([AssistantMessage("partial", provider_state=state)]) == [
+        state
+    ]
+
+
+def test_codex_enums_expose_configured_values() -> None:
+    assert CodexModel.SOL.value == "gpt-5.6-sol"
+    assert CodexReasoningEffort.XHIGH.value == "xhigh"

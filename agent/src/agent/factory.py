@@ -3,14 +3,13 @@ from collections.abc import Sequence
 from agenttoolkit import Tools
 from agenttoolkit.builtins import CommandRunner, Workspace
 from agenttoolkit.dependency import DependencyContainer
-from llmify import ChatCodex, ChatModel, Message
 
 from agent.agent import Agent
 from agent.configuration import AgentSettings
 from agent.dependencies import AgentComponents, ConfiguredDependencies
 from agent.tools import build_tools
 from agent.tools.dependency_provider import BuiltinDependencies
-from llm import create_codex_model
+from llm import ChatModel, Message, create_codex_model
 
 
 class AgentFactory:
@@ -62,7 +61,5 @@ class AgentFactory:
             messages=messages,
         )
 
-    async def prewarm_model(self) -> ChatCodex:
-        model = create_codex_model(self._settings.models.default)
-        await model.prewarm()
-        return model
+    async def prewarm_model(self) -> ChatModel:
+        return create_codex_model(self._settings.models.default)

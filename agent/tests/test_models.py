@@ -3,9 +3,9 @@ from collections.abc import AsyncIterator
 from typing import cast
 
 import pytest
-from llmify import ChatModel, Message, StreamEnd, UserMessage
 
 from agent.models import ModelSwitch
+from llm import ChatModel, Message, ModelResponse, UserMessage
 
 
 class _StreamingModel:
@@ -16,10 +16,10 @@ class _StreamingModel:
         self,
         messages: list[Message],
         **options: object,
-    ) -> AsyncIterator[StreamEnd]:
+    ) -> AsyncIterator[ModelResponse]:
         del options
         self.requests.append(messages)
-        yield StreamEnd(completion="OK", stop_reason="stop")
+        yield ModelResponse(completion="OK", finish_reason="stop")
 
 
 def test_model_switch_smoke_tests_before_switching() -> None:

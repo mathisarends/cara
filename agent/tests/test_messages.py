@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from llmify import AssistantMessage, Function, ToolCall, ToolResultMessage
-
 from agent.messages import MessageManager
 from agent.prompt import SystemPrompt
+from llm import AssistantMessage, ToolCall, ToolResultMessage
 
 
 def _manager(root: Path) -> MessageManager:
@@ -27,13 +26,13 @@ def test_messages_are_appended_in_order(tmp_path: Path) -> None:
 
 def test_tool_round_pairs_calls_with_their_results(tmp_path: Path) -> None:
     manager = _manager(tmp_path)
-    tool_call = ToolCall(id="call-1", function=Function(name="lookup", arguments="{}"))
+    tool_call = ToolCall("call-1", "lookup")
 
     manager.add_user("Wie wird das Wetter?")
     manager.add_tool_round(
         "",
         [tool_call],
-        [ToolResultMessage(tool_call_id="call-1", content="22 Grad.")],
+        [ToolResultMessage("call-1", "lookup", "22 Grad.")],
     )
 
     llm_messages = manager.to_llm_messages()
@@ -47,14 +46,12 @@ def test_tool_round_pairs_calls_with_their_results(tmp_path: Path) -> None:
 
 def test_multiple_tool_rounds_are_stored_as_individual_pairs(tmp_path: Path) -> None:
     manager = _manager(tmp_path)
-    first = ToolCall(id="call-1", function=Function(name="lookup", arguments="{}"))
-    second = ToolCall(id="call-2", function=Function(name="read_file", arguments="{}"))
+    first = ToolCall("call-1", "lookup")
+    second = ToolCall("call-2", "read_file")
 
+    manager.add_tool_round("", [first], [ToolResultMessage("call-1", "lookup", "a")])
     manager.add_tool_round(
-        "", [first], [ToolResultMessage(tool_call_id="call-1", content="a")]
-    )
-    manager.add_tool_round(
-        "", [second], [ToolResultMessage(tool_call_id="call-2", content="b")]
+        "", [second], [ToolResultMessage("call-2", "read_file", "b")]
     )
 
     llm_messages = manager.to_llm_messages()

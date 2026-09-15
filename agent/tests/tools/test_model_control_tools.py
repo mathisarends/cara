@@ -1,10 +1,9 @@
 import asyncio
 from typing import cast
 
-from llmify import ChatModel
-
 from agent.models import ModelSwitch
 from agent.tools import build_tools
+from llm import ChatModel
 
 
 class _Model:

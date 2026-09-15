@@ -4,18 +4,6 @@ from collections.abc import AsyncIterator
 from typing import Protocol
 from uuid import UUID
 
-from llmify import (
-    AssistantMessage,
-    ChatCodex,
-    Function,
-    Message,
-    ToolResultMessage,
-    UserMessage,
-)
-from llmify import (
-    ToolCall as LlmToolCall,
-)
-
 from agent.agent import Agent
 from agent.events import (
     SteeringApplied,
@@ -50,6 +38,16 @@ from gateway.features.conversation.domain import (
 from gateway.features.conversation.domain import (
     UserMessage as StoredUserMessage,
 )
+from llm import (
+    AssistantMessage,
+    ChatModel,
+    Message,
+    ToolResultMessage,
+    UserMessage,
+)
+from llm import (
+    ToolCall as LlmToolCall,
+)
 
 
 class _SandboxPrewarmer(Protocol):
@@ -67,7 +65,7 @@ class CaraAgentRuntime:
         self._factory = factory
         self._sandbox = sandbox
         self._active_agents: dict[UUID, Agent] = {}
-        self._preparations: dict[UUID, asyncio.Task[ChatCodex]] = {}
+        self._preparations: dict[UUID, asyncio.Task[ChatModel]] = {}
         self._preparation_lock = asyncio.Lock()
 
     async def prepare(self, session: AgentSessionRef) -> None:
@@ -138,7 +136,7 @@ class CaraAgentRuntime:
             *(
                 model.aclose()
                 for model in prepared_models
-                if isinstance(model, ChatCodex)
+                if not isinstance(model, BaseException)
             )
         )
         agents = tuple(self._active_agents.values())
@@ -148,7 +146,7 @@ class CaraAgentRuntime:
     async def _take_preparation(
         self,
         session_id: UUID,
-    ) -> asyncio.Task[ChatCodex] | None:
+    ) -> asyncio.Task[ChatModel] | None:
         async with self._preparation_lock:
             return self._preparations.pop(session_id, None)
 
@@ -180,7 +178,7 @@ def _entry_messages(entry: SessionEntry) -> list[Message]:
     if isinstance(entry, ToolCallSequence):
         calls = [_llm_tool_call(call) for call in entry.calls]
         return [
-            AssistantMessage(content="", tool_calls=calls),
+            AssistantMessage(content="", tool_calls=tuple(calls)),
             *(_llm_tool_result(call) for call in entry.calls),
         ]
     raise TypeError(f"Unsupported session entry: {type(entry).__name__}")
@@ -190,11 +188,9 @@ def _llm_tool_call(call: ToolCall) -> LlmToolCall:
     if call.state is ToolCallState.PENDING:
         raise ValueError(f"Tool call {call.call_id} is still pending")
     return LlmToolCall(
-        id=call.call_id,
-        function=Function(
-            name=call.function_name,
-            arguments=json.dumps(call.function_arguments, ensure_ascii=False),
-        ),
+        call.call_id,
+        call.function_name,
+        json.dumps(call.function_arguments, ensure_ascii=False),
     )
 
 
@@ -207,7 +203,12 @@ def _llm_tool_result(call: ToolCall) -> ToolResultMessage:
         if isinstance(value, str)
         else json.dumps(value, ensure_ascii=False, sort_keys=True)
     )
-    return ToolResultMessage(tool_call_id=call.call_id, content=content)
+    return ToolResultMessage(
+        tool_call_id=call.call_id,
+        tool_name=call.function_name,
+        content=content,
+        is_error=call.state is ToolCallState.FAILED,
+    )
 
 
 def _runtime_event(event: object) -> AgentEvent:

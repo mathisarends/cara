@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Protocol, Self, runtime_checkable
 
-from llmify import ChatModel, UserMessage
+from llm import ChatModel, UserMessage
 
 type _ModelFactory = Callable[[str | None], ChatModel]
 type _ModelSmokeTest = Callable[[ChatModel], Awaitable[None]]

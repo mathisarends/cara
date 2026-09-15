@@ -2,16 +2,16 @@ from collections.abc import AsyncIterator
 from typing import Any, cast
 
 import pytest
-from llmify import ChatModel, Function, Message, StreamEnd, ToolCall
 
 from agent.agent import Agent
 from agent.events import ToolCompleted, ToolStarted, TurnCompleted
 from agent.models import ModelSwitch
 from agent.tools import AgentTools, FatalToolError
+from llm import ChatModel, Message, ModelResponse, ToolCall
 
 
 class _Model:
-    def __init__(self, responses: list[StreamEnd]) -> None:
+    def __init__(self, responses: list[ModelResponse]) -> None:
         self._responses = iter(responses)
         self.requests: list[list[Message]] = []
 
@@ -19,7 +19,7 @@ class _Model:
         self,
         messages: list[Message],
         **options: Any,
-    ) -> AsyncIterator[StreamEnd]:
+    ) -> AsyncIterator[ModelResponse]:
         del options
         self.requests.append(messages)
         yield next(self._responses)
@@ -51,10 +51,7 @@ class _Tools:
 
 
 def _tool_call(call_id: str, name: str, arguments: str) -> ToolCall:
-    return ToolCall(
-        id=call_id,
-        function=Function(name=name, arguments=arguments),
-    )
+    return ToolCall(call_id, name, arguments)
 
 
 def _agent(model: _Model, tools: _Tools) -> Agent:
@@ -78,8 +75,8 @@ async def test_tool_errors_become_results_and_the_turn_continues() -> None:
     ]
     model = _Model(
         [
-            StreamEnd(stop_reason="tool_calls", tool_calls=calls),
-            StreamEnd(completion="recovered", stop_reason="stop"),
+            ModelResponse(finish_reason="tool_calls", tool_calls=tuple(calls)),
+            ModelResponse(completion="recovered", finish_reason="stop"),
         ]
     )
     tools = _Tools({"crash": RuntimeError("boom")})
@@ -116,14 +113,14 @@ async def test_tool_errors_become_results_and_the_turn_continues() -> None:
 async def test_fatal_tool_error_aborts_the_turn() -> None:
     model = _Model(
         [
-            StreamEnd(
-                stop_reason="tool_calls",
-                tool_calls=[
+            ModelResponse(
+                finish_reason="tool_calls",
+                tool_calls=(
                     _tool_call("fatal", "fatal", "{}"),
                     _tool_call("later", "later", "{}"),
-                ],
+                ),
             ),
-            StreamEnd(completion="recovered", stop_reason="stop"),
+            ModelResponse(completion="recovered", finish_reason="stop"),
         ]
     )
     tools = _Tools({"fatal": FatalToolError("sandbox unavailable")})
@@ -141,7 +138,7 @@ async def test_fatal_tool_error_aborts_the_turn() -> None:
 
 
 async def test_start_turn_rejects_a_parallel_turn() -> None:
-    model = _Model([StreamEnd(completion="done")])
+    model = _Model([ModelResponse(completion="done")])
     tools = _Tools()
     agent = _agent(model, tools)
 
@@ -157,8 +154,8 @@ async def test_start_turn_rejects_a_parallel_turn() -> None:
 async def test_stale_steering_is_discarded_before_the_next_turn() -> None:
     model = _Model(
         [
-            StreamEnd(completion="first"),
-            StreamEnd(completion="second"),
+            ModelResponse(completion="first"),
+            ModelResponse(completion="second"),
         ]
     )
     agent = _agent(model, _Tools())
@@ -177,7 +174,7 @@ async def test_stale_steering_is_discarded_before_the_next_turn() -> None:
 
 
 async def test_tools_live_for_the_agent_lifetime() -> None:
-    model = _Model([StreamEnd(completion="one"), StreamEnd(completion="two")])
+    model = _Model([ModelResponse(completion="one"), ModelResponse(completion="two")])
     tools = _Tools()
     agent = _agent(model, tools)
 

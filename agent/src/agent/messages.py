@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
-from llmify import (
+from agent.prompt import SystemPrompt
+from llm import (
     AssistantMessage,
     Message,
     SystemMessage,
@@ -8,8 +9,6 @@ from llmify import (
     ToolResultMessage,
     UserMessage,
 )
-
-from agent.prompt import SystemPrompt
 
 
 class MessageManager:
@@ -32,10 +31,18 @@ class MessageManager:
     def add_tool_round(
         self,
         text: str,
-        tool_calls: list[ToolCall],
-        tool_results: list[ToolResultMessage],
+        tool_calls: Sequence[ToolCall],
+        tool_results: Sequence[ToolResultMessage],
+        *,
+        provider_state: object | None = None,
     ) -> None:
-        self._messages.append(AssistantMessage(content=text, tool_calls=tool_calls))
+        self._messages.append(
+            AssistantMessage(
+                content=text,
+                tool_calls=tuple(tool_calls),
+                provider_state=provider_state,
+            )
+        )
         self._messages.extend(tool_results)
 
     def to_llm_messages(self) -> list[Message]:

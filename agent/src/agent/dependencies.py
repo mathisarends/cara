@@ -9,13 +9,12 @@ from agenttoolkit.builtins import (
     LocalWorkspace,
     Workspace,
 )
-from llmify import ChatModel
 
 from agent.clock import LocalClock
 from agent.configuration import AgentSettings
 from agent.models import ModelSwitch
 from agent.workspace import resolve_workspace_root
-from llm import CodexModel, CodexReasoningEffort, create_codex_model
+from llm import ChatModel, CodexModel, CodexReasoningEffort, create_codex_model
 
 type _ModelFactories = dict[str, Callable[[str | None], ChatModel]]
 

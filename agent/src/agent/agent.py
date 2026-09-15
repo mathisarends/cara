@@ -6,19 +6,6 @@ from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
 
 from agenttoolkit import Skills
-from llmify import (
-    ChatModel,
-    LLMifyError,
-    Message,
-    RawSchemaTool,
-    StreamEnd,
-    StreamTextDelta,
-    ToolCall,
-    ToolResultMessage,
-)
-from llmify import (
-    Tool as LLMTool,
-)
 
 from agent.clock import LocalClock
 from agent.events import (
@@ -35,6 +22,18 @@ from agent.prompt import SystemPrompt
 from agent.runtime import TurnFailure
 from agent.tools import AgentTools, FatalToolError
 from agent.tools.middleware import ToolFailure
+from llm import (
+    ChatModel,
+    Message,
+    ModelError,
+    ModelResponse,
+    ModelTool,
+    ToolCall,
+    ToolResultMessage,
+)
+from llm import (
+    TextDelta as ModelTextDelta,
+)
 
 _EVENT_QUEUE_SIZE = 64
 
@@ -183,7 +182,7 @@ class Agent:
         response_parts: list[str] = []
         while True:
             end = await self._stream_completion(events)
-            completion = end.completion or ""
+            completion = end.completion
             response_parts.append(completion)
 
             if not end.tool_calls:
@@ -191,13 +190,18 @@ class Agent:
                 await events.put(
                     TurnCompleted(
                         text="".join(response_parts),
-                        finish_reason=end.stop_reason or "stop",
+                        finish_reason=end.finish_reason,
                     )
                 )
                 return
 
             tool_results = await self._execute_tools(end.tool_calls, events)
-            self._context.add_tool_round(completion, end.tool_calls, tool_results)
+            self._context.add_tool_round(
+                completion,
+                end.tool_calls,
+                tool_results,
+                provider_state=end.provider_state,
+            )
             await self._apply_steering(events)
 
     async def _apply_steering(self, events: _EventQueue) -> None:
@@ -206,26 +210,26 @@ class Agent:
             self._context.add_user(text)
             await events.put(SteeringApplied(text))
 
-    async def _stream_completion(self, events: _EventQueue) -> StreamEnd:
-        end: StreamEnd | None = None
+    async def _stream_completion(self, events: _EventQueue) -> ModelResponse:
+        end: ModelResponse | None = None
         async for event in self._llm.stream(
             self._context.to_llm_messages(), tools=self._llm_tools()
         ):
-            if isinstance(event, StreamTextDelta) and event.delta:
+            if isinstance(event, ModelTextDelta) and event.delta:
                 await events.put(TextDelta(event.delta))
-            elif isinstance(event, StreamEnd):
+            elif isinstance(event, ModelResponse):
                 end = event
 
         if end is None:
-            raise LLMifyError("The model stream ended without a terminal event.")
+            raise ModelError("The model stream ended without a terminal event.")
         return end
 
     async def _execute_tools(
-        self, tool_calls: list[ToolCall], events: _EventQueue
+        self, tool_calls: Sequence[ToolCall], events: _EventQueue
     ) -> list[ToolResultMessage]:
         results: list[ToolResultMessage] = []
         for tool_call in tool_calls:
-            name = tool_call.function.name
+            name = tool_call.name
             arguments, parse_error = _try_parse_tool_arguments(tool_call)
             await events.put(ToolStarted(name, tool_call.id, arguments))
 
@@ -240,7 +244,12 @@ class Agent:
             )
             content = "Tool completed successfully." if result is None else str(result)
             results.append(
-                ToolResultMessage(tool_call_id=tool_call.id, content=content)
+                ToolResultMessage(
+                    tool_call_id=tool_call.id,
+                    tool_name=name,
+                    content=content,
+                    is_error=is_error,
+                )
             )
         return results
 
@@ -256,12 +265,12 @@ class Agent:
         except Exception as error:
             return ToolFailure(_error_content(error))
 
-    def _llm_tools(self) -> list[LLMTool | dict]:
+    def _llm_tools(self) -> list[ModelTool]:
         return [
-            RawSchemaTool(
+            ModelTool(
                 name=schema.name,
                 description=schema.description,
-                schema=schema.parameters,
+                parameters=schema.parameters,
             )
             for schema in self._tools.get_schema()
         ]
@@ -271,11 +280,9 @@ def _try_parse_tool_arguments(
     tool_call: ToolCall,
 ) -> tuple[dict[str, object], Exception | None]:
     try:
-        arguments = json.loads(tool_call.function.arguments or "{}")
+        arguments = json.loads(tool_call.arguments or "{}")
         if not isinstance(arguments, dict):
-            raise ValueError(
-                f"Tool arguments for '{tool_call.function.name}' must be an object"
-            )
+            raise ValueError(f"Tool arguments for '{tool_call.name}' must be an object")
     except Exception as error:
         return {}, error
     return arguments, None
