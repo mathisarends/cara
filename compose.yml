@@ -13,7 +13,7 @@ services:
       CARA_GATEWAY_HOST: 0.0.0.0
       CARA_GATEWAY_TOKEN: ${CARA_GATEWAY_TOKEN:-change-me-gateway-token-32-characters}
       CARA_WORKSPACE_ROOT: /workspace
-      CARA_SANDBOX: '{"url":"http://sandbox-manager:8080","token":"${CARA_SANDBOX_TOKEN:-change-me}","workspace_id":"default"}'
+      CARA_SANDBOX_URL: http://sandbox-manager:8080
     ports:
       - "8000:8000"
     volumes:
@@ -32,17 +32,13 @@ services:
       context: .
       dockerfile: sandbox_manager/Dockerfile
     environment:
-      CARA_SANDBOX_TOKEN: ${CARA_SANDBOX_TOKEN:-change-me}
-      CARA_SANDBOX_WORKSPACE_VOLUME: cara-workspace
-      CARA_SANDBOX_CLI_CONFIG_VOLUME: cara-cli-config
-      # CLI name -> host config dir, bind-mounted read-write into the sandbox
-      # at /tmp/.config/<name>, so e.g. `spoti auth setup` writes back here directly.
-      CARA_SANDBOX_CLI_CREDENTIAL_MOUNTS: spoti=${APPDATA}/spoti;huego=${APPDATA}/huego
-      CARA_SANDBOX_IDLE_TTL_SECONDS: ${CARA_SANDBOX_IDLE_TTL_SECONDS:-600}
+      # Allows ${APPDATA} in host credential paths configured in gateway.yaml.
+      APPDATA: ${APPDATA:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - cara-workspace:/workspace
       - cara-cli-config:/tmp/.config
+      - ./gateway.yaml:/app/gateway.yaml:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/v1/readiness')"]
       interval: 5s

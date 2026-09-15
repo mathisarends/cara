@@ -1,14 +1,13 @@
 from pathlib import Path
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from sandbox_manager.settings import SandboxManagerYamlSettings
 
 
-class FilesSettings(BaseSettings):
+class FilesSettings(SandboxManagerYamlSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        env_prefix="CARA_SANDBOX_",
-        extra="ignore",
+        yaml_config_section="sandbox_manager",
     )
 
     workspace_root: Path = Path("/workspace")

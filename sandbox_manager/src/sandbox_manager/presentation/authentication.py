@@ -4,15 +4,14 @@ from typing import Annotated
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import Header, HTTPException, status
 from pydantic import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from sandbox_manager.settings import SandboxManagerYamlSettings
 
 
-class AuthSettings(BaseSettings):
+class AuthSettings(SandboxManagerYamlSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        env_prefix="CARA_SANDBOX_",
-        extra="ignore",
+        yaml_config_section="sandbox",
     )
 
     token: SecretStr

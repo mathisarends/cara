@@ -21,6 +21,25 @@ sandbox:
   token: change-me
   workspace_id: default
 
+# Sandbox Manager policy. Compose only supplies its internal service URL and
+# mounts; user-facing sandbox behavior belongs here.
+sandbox_manager:
+  image: cara-bash-sandbox:latest
+  workspace_root: /workspace
+  workspace_volume: cara-workspace
+  cli_config_volume: cara-cli-config
+  # Host CLI credentials are mounted read-write at /tmp/.config/<name>.
+  cli_credential_mounts:
+    spoti: ${APPDATA}/spoti
+    huego: ${APPDATA}/huego
+  idle_ttl_seconds: 600
+  reap_interval_seconds: 10
+  memory_bytes: 536870912
+  pids: 512
+  cpus: 1
+  network_access: true
+  max_output_bytes: 1000000
+
 # User and integration tools run out of process. Tool names are exposed as
 # <server-name>_<tool-name>. Example:
 # tools:

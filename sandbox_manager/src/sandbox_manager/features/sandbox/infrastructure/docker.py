@@ -47,7 +47,7 @@ class DockerSandboxRuntime(SandboxRuntime):
                     "bind": "/tmp/.config",
                     "mode": "rw",
                 },
-                **_credential_volumes(self._settings.credential_mounts()),
+                **_credential_volumes(self._settings.cli_credential_mounts),
             },
             labels={_OWNER_LABEL: "true", _WORKSPACE_LABEL: workspace_id},
         )

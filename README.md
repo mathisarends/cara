@@ -117,8 +117,9 @@ docker compose up --build -d
 ```
 
 The workspace sandbox is created lazily, shared across conversations, and
-stopped after 600 idle seconds by default. Set
-`CARA_SANDBOX_IDLE_TTL_SECONDS` to change that value. For host development:
+stopped after 600 idle seconds by default. Its lifecycle, resource limits, and
+host CLI credential mounts are configured under `sandbox_manager` in
+[`gateway.yaml`](gateway.yaml). For host development:
 
 ```bash
 uv run --package gateway-server gateway-migrate
