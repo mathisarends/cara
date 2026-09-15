@@ -1,7 +1,7 @@
 from .agent_adapter import GatewayAgentSessionReader
 from .echo_agent import EchoAgentRunner
-from .persistence import SQLSessionRepository
 from .provider import ConversationProvider
+from .repository import SQLSessionRepository
 from .turn_lease import SQLTurnLease
 
 __all__ = [

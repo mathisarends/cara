@@ -10,7 +10,7 @@ from agent_plugin_api import (
 )
 from gateway.features.conversation.domain import ChannelRef, Session
 from gateway.features.conversation.infrastructure import GatewayAgentSessionReader
-from gateway.features.conversation.infrastructure.persistence import (
+from gateway.features.conversation.infrastructure.repository import (
     SQLSessionRepository,
 )
 

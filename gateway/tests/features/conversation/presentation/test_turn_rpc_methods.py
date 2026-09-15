@@ -20,7 +20,7 @@ from gateway.features.conversation.application import (
     TurnService,
 )
 from gateway.features.conversation.domain import SessionNotFoundError
-from gateway.features.conversation.infrastructure.persistence import (
+from gateway.features.conversation.infrastructure.repository import (
     SQLSessionRepository,
 )
 from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease

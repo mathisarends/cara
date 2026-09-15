@@ -30,7 +30,7 @@ from gateway.features.conversation.domain import (
     ToolCallState,
     UserMessage,
 )
-from gateway.features.conversation.infrastructure.persistence import (
+from gateway.features.conversation.infrastructure.repository import (
     SQLSessionRepository,
 )
 from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease

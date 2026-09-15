@@ -15,14 +15,14 @@ from gateway.features.conversation.domain import (
     ToolCallState,
     UserMessage,
 )
-from gateway.platform.database import (
-    Repository,
+from gateway.features.conversation.infrastructure.orm import (
     SessionAssistantMessageModel,
     SessionModel,
     SessionToolCallModel,
     SessionToolCallSequenceModel,
     SessionUserMessageModel,
 )
+from gateway.platform.database import Repository
 
 
 def _as_utc(value: datetime) -> datetime:
