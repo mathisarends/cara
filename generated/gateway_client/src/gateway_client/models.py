@@ -50,12 +50,19 @@ class AtSchedule(RpcModel):
 class AutomationResponse(RpcModel):
     model_config = ConfigDict(extra="forbid")
     id: str
+    owner_id: str = Field(alias="ownerId")
     name: str | None
     created_at: datetime = Field(alias="createdAt")
     next_run_at: datetime = Field(alias="nextRunAt")
     schedule: AutomationSchedule
-    target: SessionAutomationTargetResponse
+    target: AutomationTarget
     payload: ReminderAutomationPayload
+
+
+class AutomationTarget(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["session"]
+    session_id: UUID = Field(alias="sessionId")
 
 
 class ChatCompleted(RpcModel):
@@ -83,7 +90,8 @@ class ChatDelta(RpcModel):
 
 class CreateAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    session_id: UUID = Field(alias="sessionId")
+    owner_id: str = Field(alias="ownerId")
+    target: AutomationTarget
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None
@@ -103,7 +111,7 @@ class CronSchedule(RpcModel):
 
 class DeleteAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    session_id: UUID = Field(alias="sessionId")
+    owner_id: str = Field(alias="ownerId")
     automation_id: str = Field(alias="automationId")
 
 
@@ -114,7 +122,7 @@ class DeleteAutomationResponse(RpcModel):
 
 class GetAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    session_id: UUID = Field(alias="sessionId")
+    owner_id: str = Field(alias="ownerId")
     automation_id: str = Field(alias="automationId")
 
 
@@ -127,7 +135,7 @@ class IntervalSchedule(RpcModel):
 
 class ListAutomationsParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    session_id: UUID = Field(alias="sessionId")
+    owner_id: str = Field(alias="ownerId")
 
 
 class ListAutomationsResponse(RpcModel):
@@ -145,12 +153,6 @@ class ReminderAutomationPayload(RpcModel):
     kind: Literal["reminder"]
     instruction: str
     created_from_turn_id: UUID = Field(alias="createdFromTurnId")
-
-
-class SessionAutomationTargetResponse(RpcModel):
-    model_config = ConfigDict(extra="forbid")
-    kind: Literal["session"]
-    session_id: UUID = Field(alias="sessionId")
 
 
 class SessionChannel(RpcModel):
@@ -311,7 +313,7 @@ class UnsubscriptionResult(RpcModel):
 
 class UpdateAutomationParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
-    session_id: UUID = Field(alias="sessionId")
+    owner_id: str = Field(alias="ownerId")
     automation_id: str = Field(alias="automationId")
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
@@ -360,6 +362,7 @@ type SessionEvent = Annotated[
 AssistantMessageItem.model_rebuild()
 AtSchedule.model_rebuild()
 AutomationResponse.model_rebuild()
+AutomationTarget.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
 CreateAutomationParams.model_rebuild()
@@ -373,7 +376,6 @@ ListAutomationsParams.model_rebuild()
 ListAutomationsResponse.model_rebuild()
 OpenSessionParams.model_rebuild()
 ReminderAutomationPayload.model_rebuild()
-SessionAutomationTargetResponse.model_rebuild()
 SessionChannel.model_rebuild()
 SessionParams.model_rebuild()
 SessionResponse.model_rebuild()

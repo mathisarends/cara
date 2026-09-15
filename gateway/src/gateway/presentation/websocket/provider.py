@@ -5,7 +5,7 @@ import pyrpckit as rpc
 from dishka import Provider, Scope, provide
 from fastapi import WebSocket
 
-from gateway.features.automation.application import SessionAutomationService
+from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import (
     EventPublisher,
     SessionService,
@@ -52,7 +52,7 @@ class GatewayProvider(Provider):
         self,
         websocket: WebSocket,
         authenticator: GatewayAuthenticator,
-        automation_service: SessionAutomationService,
+        automation_service: AutomationService,
         sessions: SessionService,
         turns: TurnService,
         stream: InMemoryEventStream,

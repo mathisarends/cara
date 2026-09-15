@@ -43,9 +43,10 @@ src/agent/
   [`agent_plugin_api`](../gateway/plugin_api) contract — the integration
   boundary the Gateway drives the agent through.
 - [`gateway-client`](../generated/gateway_client) is how the reminder tools call back
-  into the Gateway's automation API. They are bound to the session and turn
-  the agent is running in, and stay hidden from the model unless
-  `CARA_GATEWAY_TOKEN` is set.
+  into the Gateway's automation API. Reminders belong to the owner configured
+  by `CARA_GATEWAY_OWNER_ID` (default `local`), so they outlive the session
+  they were created in; that session is only their delivery target. The tools
+  stay hidden from the model unless `CARA_GATEWAY_TOKEN` is set.
 
 See the [repo root README](../README.md) for workspace layout and the tool
 safety model.

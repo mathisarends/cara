@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from uuid import UUID
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from agent.tools.handler.ports import (
@@ -19,6 +19,7 @@ from gateway_client.models import (
     AtSchedule,
     AutomationResponse,
     AutomationSchedule,
+    AutomationTarget,
     CronSchedule,
     IntervalSchedule,
     ReminderAutomationPayload,
@@ -26,7 +27,7 @@ from gateway_client.models import (
 
 
 class GatewayConnection(BaseSettings):
-    """Gateway WebSocket endpoint the agent schedules its reminders through."""
+    """Gateway WebSocket endpoint and the owner the agent schedules reminders for."""
 
     model_config = SettingsConfigDict(
         env_prefix="CARA_GATEWAY_",
@@ -37,6 +38,7 @@ class GatewayConnection(BaseSettings):
 
     url: str = "ws://127.0.0.1:8000/v1/gateway"
     token: SecretStr | None = None
+    owner_id: str = Field(default="local", min_length=1)
 
 
 class GatewayReminders(Reminders):
@@ -53,12 +55,13 @@ class GatewayReminders(Reminders):
             raise ValueError("A gateway token is required to schedule reminders")
         self._connection = connection
         self._token = connection.token.get_secret_value()
+        self._owner_id = connection.owner_id
         self._session_id = session_id
         self._turn_id = turn_id
 
     async def list(self) -> tuple[Reminder, ...]:
         async with self._client() as client:
-            response = await client.automation.list(session_id=self._session_id)
+            response = await client.automation.list(owner_id=self._owner_id)
         return tuple(_reminder(automation) for automation in response.automations)
 
     async def create(
@@ -70,7 +73,8 @@ class GatewayReminders(Reminders):
     ) -> Reminder:
         async with self._client() as client:
             automation = await client.automation.create(
-                session_id=self._session_id,
+                owner_id=self._owner_id,
+                target=AutomationTarget(kind="session", session_id=self._session_id),
                 schedule=_automation_schedule(schedule),
                 payload=self._payload(instruction),
                 name=name,
@@ -87,7 +91,7 @@ class GatewayReminders(Reminders):
     ) -> Reminder:
         async with self._client() as client:
             automation = await client.automation.update(
-                session_id=self._session_id,
+                owner_id=self._owner_id,
                 automation_id=reminder_id,
                 schedule=_automation_schedule(schedule),
                 payload=self._payload(instruction),
@@ -98,7 +102,7 @@ class GatewayReminders(Reminders):
     async def delete(self, reminder_id: str) -> None:
         async with self._client() as client:
             await client.automation.delete(
-                session_id=self._session_id,
+                owner_id=self._owner_id,
                 automation_id=reminder_id,
             )
 

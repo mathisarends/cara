@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from gateway.features.automation.application import (
     AutomationActionExecutor,
+    AutomationService,
     AutomationTargetResolver,
-    SessionAutomationService,
 )
 from gateway.features.automation.domain import AutomationRepository
 from gateway.features.automation.infrastructure.codec import (
@@ -85,5 +85,5 @@ class AutomationProvider(Provider):
         self,
         repository: AutomationRepository,
         targets: AutomationTargetResolver,
-    ) -> SessionAutomationService:
-        return SessionAutomationService(repository, targets)
+    ) -> AutomationService:
+        return AutomationService(repository, targets)

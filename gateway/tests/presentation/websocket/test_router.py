@@ -39,7 +39,7 @@ def test_automation_list_runs_over_gateway_socket(client: TestClient) -> None:
                 "jsonrpc": "2.0",
                 "id": "automations",
                 "method": "automation.list",
-                "params": {"sessionId": "090b4d71-8e4d-4b90-8981-8f38df122011"},
+                "params": {"ownerId": "local"},
             }
         )
         response = socket.receive_json()
@@ -59,7 +59,7 @@ def test_unknown_automation_yields_resource_not_found(client: TestClient) -> Non
                 "id": "automation",
                 "method": "automation.get",
                 "params": {
-                    "session_id": "090b4d71-8e4d-4b90-8981-8f38df122011",
+                    "owner_id": "local",
                     "automation_id": "missing",
                 },
             }

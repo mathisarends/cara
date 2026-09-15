@@ -54,9 +54,12 @@ type AutomationSchedule = Annotated[
 ]
 
 
-class SessionAutomationTargetResponse(RpcModel):
+class SessionAutomationTarget(RpcModel):
     kind: Literal["session"]
     session_id: UUID
+
+
+type AutomationTarget = SessionAutomationTarget
 
 
 class ReminderAutomationPayload(RpcModel):
@@ -67,16 +70,17 @@ class ReminderAutomationPayload(RpcModel):
 
 class AutomationResponse(RpcModel):
     id: str
+    owner_id: str
     name: str | None
     created_at: datetime
     next_run_at: datetime
     schedule: AutomationSchedule
-    target: SessionAutomationTargetResponse
+    target: AutomationTarget
     payload: ReminderAutomationPayload
 
 
 class ListAutomationsParams(RpcModel):
-    session_id: UUID
+    owner_id: str = Field(min_length=1)
 
 
 class ListAutomationsResponse(RpcModel):
@@ -84,19 +88,20 @@ class ListAutomationsResponse(RpcModel):
 
 
 class GetAutomationParams(RpcModel):
-    session_id: UUID
+    owner_id: str = Field(min_length=1)
     automation_id: str = Field(min_length=1)
 
 
 class CreateAutomationParams(RpcModel):
-    session_id: UUID
+    owner_id: str = Field(min_length=1)
+    target: AutomationTarget
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
     name: str | None = None
 
 
 class UpdateAutomationParams(RpcModel):
-    session_id: UUID
+    owner_id: str = Field(min_length=1)
     automation_id: str = Field(min_length=1)
     schedule: AutomationSchedule
     payload: ReminderAutomationPayload
@@ -104,7 +109,7 @@ class UpdateAutomationParams(RpcModel):
 
 
 class DeleteAutomationParams(RpcModel):
-    session_id: UUID
+    owner_id: str = Field(min_length=1)
     automation_id: str = Field(min_length=1)
 
 

@@ -19,15 +19,15 @@
   "methods": [
     {
       "name": "automation.list",
-      "summary": "List automations belonging to a conversation session.",
+      "summary": "List automations belonging to an owner, across all of their targets.",
       "paramStructure": "by-name",
       "params": [
         {
-          "name": "sessionId",
+          "name": "ownerId",
           "required": true,
           "schema": {
-            "format": "uuid",
-            "title": "Sessionid",
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           }
         }
@@ -68,11 +68,11 @@
       "paramStructure": "by-name",
       "params": [
         {
-          "name": "sessionId",
+          "name": "ownerId",
           "required": true,
           "schema": {
-            "format": "uuid",
-            "title": "Sessionid",
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           }
         },
@@ -127,12 +127,19 @@
       "paramStructure": "by-name",
       "params": [
         {
-          "name": "sessionId",
+          "name": "ownerId",
           "required": true,
           "schema": {
-            "format": "uuid",
-            "title": "Sessionid",
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
+          }
+        },
+        {
+          "name": "target",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AutomationTarget"
           }
         },
         {
@@ -207,11 +214,11 @@
       "paramStructure": "by-name",
       "params": [
         {
-          "name": "sessionId",
+          "name": "ownerId",
           "required": true,
           "schema": {
-            "format": "uuid",
-            "title": "Sessionid",
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           }
         },
@@ -301,11 +308,11 @@
       "paramStructure": "by-name",
       "params": [
         {
-          "name": "sessionId",
+          "name": "ownerId",
           "required": true,
           "schema": {
-            "format": "uuid",
-            "title": "Sessionid",
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           }
         },
@@ -961,6 +968,10 @@
             "title": "Id",
             "type": "string"
           },
+          "ownerId": {
+            "title": "Ownerid",
+            "type": "string"
+          },
           "name": {
             "anyOf": [
               {
@@ -986,7 +997,7 @@
             "$ref": "#/components/schemas/AutomationSchedule"
           },
           "target": {
-            "$ref": "#/components/schemas/SessionAutomationTargetResponse"
+            "$ref": "#/components/schemas/AutomationTarget"
           },
           "payload": {
             "$ref": "#/components/schemas/ReminderAutomationPayload"
@@ -994,6 +1005,7 @@
         },
         "required": [
           "id",
+          "ownerId",
           "name",
           "createdAt",
           "nextRunAt",
@@ -1024,6 +1036,27 @@
             "$ref": "#/components/schemas/CronSchedule"
           }
         ]
+      },
+      "AutomationTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "session",
+            "title": "Kind",
+            "type": "string"
+          },
+          "sessionId": {
+            "format": "uuid",
+            "title": "Sessionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "sessionId"
+        ],
+        "title": "SessionAutomationTarget",
+        "type": "object"
       },
       "ChatCompleted": {
         "additionalProperties": false,
@@ -1129,10 +1162,13 @@
       "CreateAutomationParams": {
         "additionalProperties": false,
         "properties": {
-          "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/AutomationTarget"
           },
           "schedule": {
             "$ref": "#/components/schemas/AutomationSchedule"
@@ -1154,7 +1190,8 @@
           }
         },
         "required": [
-          "sessionId",
+          "ownerId",
+          "target",
           "schedule",
           "payload"
         ],
@@ -1202,9 +1239,9 @@
       "DeleteAutomationParams": {
         "additionalProperties": false,
         "properties": {
-          "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           },
           "automationId": {
@@ -1214,7 +1251,7 @@
           }
         },
         "required": [
-          "sessionId",
+          "ownerId",
           "automationId"
         ],
         "title": "DeleteAutomationParams",
@@ -1237,9 +1274,9 @@
       "GetAutomationParams": {
         "additionalProperties": false,
         "properties": {
-          "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           },
           "automationId": {
@@ -1249,7 +1286,7 @@
           }
         },
         "required": [
-          "sessionId",
+          "ownerId",
           "automationId"
         ],
         "title": "GetAutomationParams",
@@ -1305,14 +1342,14 @@
       "ListAutomationsParams": {
         "additionalProperties": false,
         "properties": {
-          "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           }
         },
         "required": [
-          "sessionId"
+          "ownerId"
         ],
         "title": "ListAutomationsParams",
         "type": "object"
@@ -1371,27 +1408,6 @@
           "createdFromTurnId"
         ],
         "title": "ReminderAutomationPayload",
-        "type": "object"
-      },
-      "SessionAutomationTargetResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": {
-            "const": "session",
-            "title": "Kind",
-            "type": "string"
-          },
-          "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "sessionId"
-        ],
-        "title": "SessionAutomationTargetResponse",
         "type": "object"
       },
       "SessionChannel": {
@@ -2051,9 +2067,9 @@
       "UpdateAutomationParams": {
         "additionalProperties": false,
         "properties": {
-          "sessionId": {
-            "format": "uuid",
-            "title": "Sessionid",
+          "ownerId": {
+            "minLength": 1,
+            "title": "Ownerid",
             "type": "string"
           },
           "automationId": {
@@ -2081,7 +2097,7 @@
           }
         },
         "required": [
-          "sessionId",
+          "ownerId",
           "automationId",
           "schedule",
           "payload"
@@ -2157,7 +2173,7 @@
           "method",
           "params"
         ],
-        "description": "List automations belonging to a conversation session."
+        "description": "List automations belonging to an owner, across all of their targets."
       },
       "GetAutomationRequest": {
         "additionalProperties": false,

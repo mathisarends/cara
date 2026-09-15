@@ -3,11 +3,6 @@ from uuid import UUID
 
 
 @dataclass(frozen=True, slots=True)
-class SessionTarget:
-    session_id: UUID
-
-
-@dataclass(frozen=True, slots=True)
 class PromptAction:
     instruction: str
 

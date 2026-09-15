@@ -1,10 +1,11 @@
 from pyrpckit import Inject, RpcInternalError, RpcInvalidParamsError, RpcModule
 
-from gateway.features.automation.application import SessionAutomationService
+from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation.rpc.mapping import (
     automation_origin,
     automation_response,
     automation_schedule,
+    automation_target,
     prompt_action,
 )
 from gateway.features.automation.presentation.rpc.models import (
@@ -26,10 +27,10 @@ automation_module = RpcModule()
 @automation_module.method(AutomationRpcMethod.LIST, errors=(RpcInternalError,))
 async def list_automations(
     params: ListAutomationsParams,
-    service: Inject[SessionAutomationService],
+    service: Inject[AutomationService],
 ) -> ListAutomationsResponse:
-    """List automations belonging to a conversation session."""
-    automations = await service.list(params.session_id)
+    """List automations belonging to an owner, across all of their targets."""
+    automations = await service.list(params.owner_id)
     return ListAutomationsResponse(
         automations=tuple(automation_response(item) for item in automations)
     )
@@ -40,9 +41,9 @@ async def list_automations(
 )
 async def get_automation(
     params: GetAutomationParams,
-    service: Inject[SessionAutomationService],
+    service: Inject[AutomationService],
 ) -> AutomationResponse:
-    automation = await service.get(params.automation_id, params.session_id)
+    automation = await service.get(params.automation_id, params.owner_id)
     return automation_response(automation)
 
 
@@ -51,10 +52,11 @@ async def get_automation(
 )
 async def create_automation(
     params: CreateAutomationParams,
-    service: Inject[SessionAutomationService],
+    service: Inject[AutomationService],
 ) -> AutomationResponse:
     automation = await service.create(
-        params.session_id,
+        params.owner_id,
+        target=automation_target(params.target),
         schedule=automation_schedule(params.schedule),
         action=prompt_action(params.payload),
         origin=automation_origin(params.payload),
@@ -69,11 +71,11 @@ async def create_automation(
 )
 async def update_automation(
     params: UpdateAutomationParams,
-    service: Inject[SessionAutomationService],
+    service: Inject[AutomationService],
 ) -> AutomationResponse:
     automation = await service.update(
         params.automation_id,
-        params.session_id,
+        params.owner_id,
         schedule=automation_schedule(params.schedule),
         action=prompt_action(params.payload),
         origin=automation_origin(params.payload),
@@ -87,7 +89,7 @@ async def update_automation(
 )
 async def delete_automation(
     params: DeleteAutomationParams,
-    service: Inject[SessionAutomationService],
+    service: Inject[AutomationService],
 ) -> DeleteAutomationResponse:
-    await service.delete(params.automation_id, params.session_id)
+    await service.delete(params.automation_id, params.owner_id)
     return DeleteAutomationResponse(deleted=params.automation_id)

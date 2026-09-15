@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from agent_plugin_api import AgentRunner
-from gateway.features.automation.application import SessionAutomationService
+from gateway.features.automation.application import AutomationService
 from gateway.presentation.websocket.authentication import GatewayAuthenticator
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     container = app.state.dishka_container
     await container.get(GatewayAuthenticator)
     await container.get(AgentRunner)
-    await container.get(SessionAutomationService)
+    await container.get(AutomationService)
     try:
         yield
     finally:

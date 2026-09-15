@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from uuid import UUID
 
-from gateway.features.automation.domain import PromptAction, SessionTarget
+from gateway.features.automation.domain import AutomationTarget, PromptAction
 
 
 class AutomationTargetResolver(ABC):
     @abstractmethod
-    async def require_session(self, session_id: UUID) -> None: ...
+    async def require(self, target: AutomationTarget) -> None: ...
 
 
 class AutomationActionExecutor(ABC):
@@ -15,7 +14,7 @@ class AutomationActionExecutor(ABC):
     async def execute(
         self,
         automation_id: str,
-        target: SessionTarget,
+        target: AutomationTarget,
         action: PromptAction,
         scheduled_for: datetime,
     ) -> None: ...

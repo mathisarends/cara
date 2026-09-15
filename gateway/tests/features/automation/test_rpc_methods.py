@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from gateway.features.automation.application import SessionAutomationService
+from gateway.features.automation.application import AutomationService
 from gateway.features.automation.presentation.rpc.methods import (
     create_automation,
     delete_automation,
@@ -20,14 +20,17 @@ from gateway.features.automation.presentation.rpc.models import (
     IntervalSchedule,
     ListAutomationsParams,
     ReminderAutomationPayload,
+    SessionAutomationTarget,
     UpdateAutomationParams,
 )
 
+_OWNER = "owner"
+
 
 async def test_create_list_and_get_a_reminder_automation(
-    automation_service: SessionAutomationService,
+    automation_service: AutomationService,
 ) -> None:
-    session_id = uuid4()
+    target = SessionAutomationTarget(kind="session", session_id=uuid4())
     payload = ReminderAutomationPayload(
         kind="reminder",
         instruction="Drink water",
@@ -36,7 +39,8 @@ async def test_create_list_and_get_a_reminder_automation(
 
     created = await create_automation(
         CreateAutomationParams(
-            session_id=session_id,
+            owner_id=_OWNER,
+            target=target,
             schedule=IntervalSchedule(every_seconds=1800, run_immediately=False),
             payload=payload,
             name="Hydration",
@@ -44,30 +48,30 @@ async def test_create_list_and_get_a_reminder_automation(
         automation_service,
     )
     listed = await list_automations(
-        ListAutomationsParams(session_id=session_id),
+        ListAutomationsParams(owner_id=_OWNER),
         automation_service,
     )
     fetched = await get_automation(
-        GetAutomationParams(session_id=session_id, automation_id=created.id),
+        GetAutomationParams(owner_id=_OWNER, automation_id=created.id),
         automation_service,
     )
 
     assert listed.automations == (created,)
     assert fetched == created
+    assert fetched.owner_id == _OWNER
     assert fetched.name == "Hydration"
     assert fetched.schedule == IntervalSchedule(
         every_seconds=1800,
         run_immediately=False,
     )
-    assert fetched.target.session_id == session_id
+    assert fetched.target == target
     assert fetched.payload == payload
     assert fetched.created_at <= datetime.now(UTC)
 
 
 async def test_update_and_delete_an_automation(
-    automation_service: SessionAutomationService,
+    automation_service: AutomationService,
 ) -> None:
-    session_id = uuid4()
     payload = ReminderAutomationPayload(
         kind="reminder",
         instruction="Stand up",
@@ -75,7 +79,8 @@ async def test_update_and_delete_an_automation(
     )
     created = await create_automation(
         CreateAutomationParams(
-            session_id=session_id,
+            owner_id=_OWNER,
+            target=SessionAutomationTarget(kind="session", session_id=uuid4()),
             schedule=IntervalSchedule(every_seconds=900, run_immediately=False),
             payload=payload,
             name="Stand up",
@@ -85,7 +90,7 @@ async def test_update_and_delete_an_automation(
 
     updated = await update_automation(
         UpdateAutomationParams(
-            session_id=session_id,
+            owner_id=_OWNER,
             automation_id=created.id,
             schedule=CronSchedule(expression="0 9 * * *", timezone="Europe/Berlin"),
             payload=payload.model_copy(update={"instruction": "Stand up now"}),
@@ -94,6 +99,7 @@ async def test_update_and_delete_an_automation(
         automation_service,
     )
     assert updated.id == created.id
+    assert updated.target == created.target
     assert updated.schedule == CronSchedule(
         expression="0 9 * * *",
         timezone="Europe/Berlin",
@@ -102,15 +108,20 @@ async def test_update_and_delete_an_automation(
     assert updated.name == "Morning stand up"
 
     deleted = await delete_automation(
-        DeleteAutomationParams(session_id=session_id, automation_id=created.id),
+        DeleteAutomationParams(owner_id=_OWNER, automation_id=created.id),
         automation_service,
     )
     assert deleted.deleted == created.id
     listed = await list_automations(
-        ListAutomationsParams(session_id=session_id),
+        ListAutomationsParams(owner_id=_OWNER),
         automation_service,
     )
     assert listed.automations == ()
+
+
+async def test_rejects_an_empty_owner_id() -> None:
+    with pytest.raises(ValidationError):
+        ListAutomationsParams(owner_id="")
 
 
 async def test_rejects_an_unknown_cron_timezone() -> None:

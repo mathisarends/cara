@@ -1,4 +1,4 @@
-from .action import AutomationOrigin, PromptAction, SessionTarget
+from .action import AutomationOrigin, PromptAction
 from .automation import Automation
 from .errors import AutomationNotFoundError
 from .repository import AutomationRepository
@@ -8,6 +8,7 @@ from .schedule import (
     CronSchedule,
     IntervalSchedule,
 )
+from .target import AutomationTarget, SessionTarget
 
 __all__ = [
     "AtSchedule",
@@ -16,6 +17,7 @@ __all__ = [
     "AutomationOrigin",
     "AutomationRepository",
     "AutomationSchedule",
+    "AutomationTarget",
     "CronSchedule",
     "IntervalSchedule",
     "PromptAction",

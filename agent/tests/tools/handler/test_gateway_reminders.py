@@ -10,10 +10,10 @@ from agent.tools.handler.ports import RemindEvery, RemindOnce, RemindOnCron
 from gateway_client.models import (
     AtSchedule,
     AutomationResponse,
+    AutomationTarget,
     CronSchedule,
     IntervalSchedule,
     ReminderAutomationPayload,
-    SessionAutomationTargetResponse,
 )
 
 _SESSION_ID = uuid4()
@@ -23,11 +23,12 @@ _TURN_ID = uuid4()
 def _automation(schedule) -> AutomationResponse:
     return AutomationResponse(
         id="a",
+        owner_id="local",
         name="Zahnarzt",
         created_at=datetime(2026, 8, 25, tzinfo=UTC),
         next_run_at=datetime(2026, 8, 26, 5, 30, tzinfo=UTC),
         schedule=schedule,
-        target=SessionAutomationTargetResponse(kind="session", session_id=_SESSION_ID),
+        target=AutomationTarget(kind="session", session_id=_SESSION_ID),
         payload=ReminderAutomationPayload(
             kind="reminder",
             instruction="Zahnarzt",
@@ -54,6 +55,15 @@ def test_gateway_connection_reads_the_cli_token_variable(
 
     assert connection.token == SecretStr("secret")
     assert connection.url == "ws://127.0.0.1:8000/v1/gateway"
+    assert connection.owner_id == "local"
+
+
+def test_gateway_connection_reads_the_owner_variable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CARA_GATEWAY_OWNER_ID", "mathis")
+
+    assert GatewayConnection().owner_id == "mathis"
 
 
 def test_reminder_maps_every_schedule_kind_from_the_gateway() -> None:

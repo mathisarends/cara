@@ -1,4 +1,3 @@
-from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from gateway.features.automation.domain import (
@@ -11,12 +10,12 @@ from gateway.features.automation.domain import (
     CronSchedule,
     IntervalSchedule,
     PromptAction,
-    SessionTarget,
 )
 from gateway.features.automation.infrastructure.codec import (
     AutomationRecord,
     PromptActionRecord,
-    SessionTargetRecord,
+    automation_target,
+    target_record,
 )
 from scheduler import At, Cron, Interval, ScheduledJob, Scheduler, Trigger
 
@@ -25,12 +24,10 @@ class SchedulerAutomationRepository(AutomationRepository):
     def __init__(self, scheduler: Scheduler[AutomationRecord]) -> None:
         self._scheduler = scheduler
 
-    async def list_for_session(self, session_id: UUID) -> tuple[Automation, ...]:
+    async def list_for_owner(self, owner_id: str) -> tuple[Automation, ...]:
         jobs = await self._scheduler.list()
         return tuple(
-            _to_domain(job)
-            for job in jobs
-            if job.payload.target.session_id == session_id
+            _to_domain(job) for job in jobs if job.payload.owner_id == owner_id
         )
 
     async def get(self, automation_id: str) -> Automation | None:
@@ -68,7 +65,8 @@ def _to_domain(job: ScheduledJob[AutomationRecord]) -> Automation:
     return Automation(
         id=job.id,
         created_at=job.created_at,
-        target=SessionTarget(job.payload.target.session_id),
+        owner_id=job.payload.owner_id,
+        target=automation_target(job.payload.target),
         schedule=_to_schedule(job.trigger),
         action=PromptAction(job.payload.payload.instruction),
         origin=AutomationOrigin(job.payload.payload.created_from_turn_id),
@@ -79,11 +77,9 @@ def _to_domain(job: ScheduledJob[AutomationRecord]) -> Automation:
 
 def _to_record(automation: Automation) -> AutomationRecord:
     return AutomationRecord(
-        schema_version=2,
-        target=SessionTargetRecord(
-            kind="session",
-            session_id=automation.target.session_id,
-        ),
+        schema_version=3,
+        owner_id=automation.owner_id,
+        target=target_record(automation.target),
         payload=PromptActionRecord(
             kind="reminder",
             instruction=automation.action.instruction,

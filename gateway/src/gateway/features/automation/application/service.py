@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from gateway.features.automation.application.ports import AutomationTargetResolver
 from gateway.features.automation.domain import (
     Automation,
@@ -7,12 +5,12 @@ from gateway.features.automation.domain import (
     AutomationOrigin,
     AutomationRepository,
     AutomationSchedule,
+    AutomationTarget,
     PromptAction,
-    SessionTarget,
 )
 
 
-class SessionAutomationService:
+class AutomationService:
     def __init__(
         self,
         repository: AutomationRepository,
@@ -21,28 +19,30 @@ class SessionAutomationService:
         self._repository = repository
         self._targets = targets
 
-    async def list(self, session_id: UUID) -> tuple[Automation, ...]:
-        return await self._repository.list_for_session(session_id)
+    async def list(self, owner_id: str) -> tuple[Automation, ...]:
+        return await self._repository.list_for_owner(owner_id)
 
-    async def get(self, automation_id: str, session_id: UUID) -> Automation:
+    async def get(self, automation_id: str, owner_id: str) -> Automation:
         automation = await self._repository.get(automation_id)
         if automation is None:
             raise AutomationNotFoundError(automation_id)
-        automation.require_session(session_id)
+        automation.require_owner(owner_id)
         return automation
 
     async def create(
         self,
-        session_id: UUID,
+        owner_id: str,
         *,
+        target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
         origin: AutomationOrigin,
         name: str | None = None,
     ) -> Automation:
-        await self._targets.require_session(session_id)
-        automation = Automation.create_for_session(
-            target=SessionTarget(session_id),
+        await self._targets.require(target)
+        automation = Automation.create(
+            owner_id=owner_id,
+            target=target,
             schedule=schedule,
             action=action,
             origin=origin,
@@ -53,14 +53,14 @@ class SessionAutomationService:
     async def update(
         self,
         automation_id: str,
-        session_id: UUID,
+        owner_id: str,
         *,
         schedule: AutomationSchedule,
         action: PromptAction,
         origin: AutomationOrigin,
         name: str | None = None,
     ) -> Automation:
-        automation = await self.get(automation_id, session_id)
+        automation = await self.get(automation_id, owner_id)
         automation.update(
             schedule=schedule,
             action=action,
@@ -69,6 +69,6 @@ class SessionAutomationService:
         )
         return await self._repository.save(automation)
 
-    async def delete(self, automation_id: str, session_id: UUID) -> None:
-        automation = await self.get(automation_id, session_id)
+    async def delete(self, automation_id: str, owner_id: str) -> None:
+        automation = await self.get(automation_id, owner_id)
         await self._repository.remove(automation)

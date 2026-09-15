@@ -1,15 +1,11 @@
 import uuid
 from datetime import UTC, datetime
 from typing import Self
-from uuid import UUID
 
-from gateway.features.automation.domain.action import (
-    AutomationOrigin,
-    PromptAction,
-    SessionTarget,
-)
+from gateway.features.automation.domain.action import AutomationOrigin, PromptAction
 from gateway.features.automation.domain.errors import AutomationNotFoundError
 from gateway.features.automation.domain.schedule import AutomationSchedule
+from gateway.features.automation.domain.target import AutomationTarget
 
 
 class Automation:
@@ -17,7 +13,8 @@ class Automation:
         self,
         id: str,
         created_at: datetime,
-        target: SessionTarget,
+        owner_id: str,
+        target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
         origin: AutomationOrigin,
@@ -26,8 +23,11 @@ class Automation:
     ) -> None:
         if not id.strip():
             raise ValueError("Automation id must not be empty")
+        if not owner_id.strip():
+            raise ValueError("Automation owner id must not be empty")
         self._id = id
         self._created_at = created_at
+        self._owner_id = owner_id
         self._target = target
         self._schedule = schedule
         self._action = action
@@ -36,10 +36,11 @@ class Automation:
         self._next_run_at = next_run_at
 
     @classmethod
-    def create_for_session(
+    def create(
         cls,
         *,
-        target: SessionTarget,
+        owner_id: str,
+        target: AutomationTarget,
         schedule: AutomationSchedule,
         action: PromptAction,
         origin: AutomationOrigin,
@@ -48,6 +49,7 @@ class Automation:
         return cls(
             id=uuid.uuid4().hex,
             created_at=datetime.now(UTC),
+            owner_id=owner_id,
             target=target,
             schedule=schedule,
             action=action,
@@ -64,7 +66,11 @@ class Automation:
         return self._created_at
 
     @property
-    def target(self) -> SessionTarget:
+    def owner_id(self) -> str:
+        return self._owner_id
+
+    @property
+    def target(self) -> AutomationTarget:
         return self._target
 
     @property
@@ -87,11 +93,11 @@ class Automation:
     def next_run_at(self) -> datetime | None:
         return self._next_run_at
 
-    def belongs_to_session(self, session_id: UUID) -> bool:
-        return self._target.session_id == session_id
+    def is_owned_by(self, owner_id: str) -> bool:
+        return self._owner_id == owner_id
 
-    def require_session(self, session_id: UUID) -> None:
-        if not self.belongs_to_session(session_id):
+    def require_owner(self, owner_id: str) -> None:
+        if not self.is_owned_by(owner_id):
             raise AutomationNotFoundError(self._id)
 
     def update(

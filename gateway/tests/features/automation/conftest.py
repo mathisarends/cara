@@ -1,11 +1,10 @@
-from uuid import UUID
-
 import pytest
 
 from gateway.features.automation.application import (
+    AutomationService,
     AutomationTargetResolver,
-    SessionAutomationService,
 )
+from gateway.features.automation.domain import AutomationTarget
 from gateway.features.automation.infrastructure.codec import AutomationRecord
 from gateway.features.automation.infrastructure.scheduler_repository import (
     SchedulerAutomationRepository,
@@ -13,8 +12,8 @@ from gateway.features.automation.infrastructure.scheduler_repository import (
 from scheduler import MemoryJobStore, ScheduledRun, Scheduler
 
 
-class AcceptAllSessions(AutomationTargetResolver):
-    async def require_session(self, session_id: UUID) -> None:
+class AcceptAllTargets(AutomationTargetResolver):
+    async def require(self, target: AutomationTarget) -> None:
         pass
 
 
@@ -30,6 +29,6 @@ def automation_scheduler() -> Scheduler[AutomationRecord]:
 @pytest.fixture
 def automation_service(
     automation_scheduler: Scheduler[AutomationRecord],
-) -> SessionAutomationService:
+) -> AutomationService:
     repository = SchedulerAutomationRepository(automation_scheduler)
-    return SessionAutomationService(repository, AcceptAllSessions())
+    return AutomationService(repository, AcceptAllTargets())

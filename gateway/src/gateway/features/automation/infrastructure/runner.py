@@ -1,13 +1,19 @@
 import logging
 from datetime import datetime
-from uuid import UUID
 
 from gateway.features.automation.application import (
     AutomationActionExecutor,
     AutomationTargetResolver,
 )
-from gateway.features.automation.domain import PromptAction, SessionTarget
-from gateway.features.automation.infrastructure.codec import AutomationRecord
+from gateway.features.automation.domain import (
+    AutomationTarget,
+    PromptAction,
+    SessionTarget,
+)
+from gateway.features.automation.infrastructure.codec import (
+    AutomationRecord,
+    automation_target,
+)
 from gateway.features.conversation.application import SessionService, TurnService
 from scheduler import ScheduledRun
 
@@ -18,8 +24,10 @@ class ConversationAutomationTargetResolver(AutomationTargetResolver):
     def __init__(self, sessions: SessionService) -> None:
         self._sessions = sessions
 
-    async def require_session(self, session_id: UUID) -> None:
-        await self._sessions.get(session_id)
+    async def require(self, target: AutomationTarget) -> None:
+        match target:
+            case SessionTarget(session_id=session_id):
+                await self._sessions.get(session_id)
 
 
 class ConversationAutomationActionExecutor(AutomationActionExecutor):
@@ -29,7 +37,7 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
     async def execute(
         self,
         automation_id: str,
-        target: SessionTarget,
+        target: AutomationTarget,
         action: PromptAction,
         scheduled_for: datetime,
     ) -> None:
@@ -40,11 +48,13 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
             "scheduled_for": scheduled_for.isoformat(),
         }
         logger.info("Running scheduled automation %s", automation_id)
-        await self._turns.start_scheduled(
-            session_id=target.session_id,
-            text=_automation_prompt(action.instruction),
-            metadata=metadata,
-        )
+        match target:
+            case SessionTarget(session_id=session_id):
+                await self._turns.start_scheduled(
+                    session_id=session_id,
+                    text=_automation_prompt(action.instruction),
+                    metadata=metadata,
+                )
 
 
 class SchedulerAutomationRunner:
@@ -54,7 +64,7 @@ class SchedulerAutomationRunner:
     async def __call__(self, run: ScheduledRun[AutomationRecord]) -> None:
         await self._executor.execute(
             run.job_id,
-            SessionTarget(run.payload.target.session_id),
+            automation_target(run.payload.target),
             PromptAction(run.payload.payload.instruction),
             run.scheduled_for,
         )

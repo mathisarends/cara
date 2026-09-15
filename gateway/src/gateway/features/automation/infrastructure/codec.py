@@ -4,11 +4,16 @@ from uuid import UUID
 
 from pydantic import TypeAdapter
 
+from gateway.features.automation.domain import AutomationTarget, SessionTarget
+
 
 @dataclass(frozen=True, slots=True)
 class SessionTargetRecord:
     kind: Literal["session"]
     session_id: UUID
+
+
+type AutomationTargetRecord = SessionTargetRecord
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,8 +25,9 @@ class PromptActionRecord:
 
 @dataclass(frozen=True, slots=True)
 class AutomationRecord:
-    schema_version: Literal[2]
-    target: SessionTargetRecord
+    schema_version: Literal[3]
+    owner_id: str
+    target: AutomationTargetRecord
     payload: PromptActionRecord
 
 
@@ -34,3 +40,15 @@ class AutomationRecordCodec:
 
     def decode(self, value: str) -> AutomationRecord:
         return self._adapter.validate_json(value)
+
+
+def automation_target(record: AutomationTargetRecord) -> AutomationTarget:
+    match record:
+        case SessionTargetRecord(session_id=session_id):
+            return SessionTarget(session_id)
+
+
+def target_record(target: AutomationTarget) -> AutomationTargetRecord:
+    match target:
+        case SessionTarget(session_id=session_id):
+            return SessionTargetRecord(kind="session", session_id=session_id)

@@ -7,9 +7,13 @@ from gateway.features.automation.domain import (
     Automation,
     AutomationOrigin,
     PromptAction,
+    SessionTarget,
 )
 from gateway.features.automation.domain import (
     AutomationSchedule as DomainAutomationSchedule,
+)
+from gateway.features.automation.domain import (
+    AutomationTarget as DomainAutomationTarget,
 )
 from gateway.features.automation.domain import (
     CronSchedule as DomainCronSchedule,
@@ -21,10 +25,11 @@ from gateway.features.automation.presentation.rpc.models import (
     AtSchedule,
     AutomationResponse,
     AutomationSchedule,
+    AutomationTarget,
     CronSchedule,
     IntervalSchedule,
     ReminderAutomationPayload,
-    SessionAutomationTargetResponse,
+    SessionAutomationTarget,
 )
 
 
@@ -33,14 +38,12 @@ def automation_response(automation: Automation) -> AutomationResponse:
         raise ValueError(f"Automation {automation.id!r} has not been scheduled")
     return AutomationResponse(
         id=automation.id,
+        owner_id=automation.owner_id,
         name=automation.name,
         created_at=automation.created_at,
         next_run_at=automation.next_run_at,
         schedule=schedule_response(automation.schedule),
-        target=SessionAutomationTargetResponse(
-            kind="session",
-            session_id=automation.target.session_id,
-        ),
+        target=target_response(automation.target),
         payload=ReminderAutomationPayload(
             kind="reminder",
             instruction=automation.action.instruction,
@@ -65,6 +68,12 @@ def automation_schedule(schedule: AutomationSchedule) -> DomainAutomationSchedul
             return DomainCronSchedule(expression=expression, timezone=timezone)
 
 
+def automation_target(target: AutomationTarget) -> DomainAutomationTarget:
+    match target:
+        case SessionAutomationTarget(session_id=session_id):
+            return SessionTarget(session_id)
+
+
 def prompt_action(payload: ReminderAutomationPayload) -> PromptAction:
     return PromptAction(payload.instruction)
 
@@ -84,3 +93,9 @@ def schedule_response(schedule: DomainAutomationSchedule) -> AutomationSchedule:
             )
         case DomainCronSchedule(expression=expression, timezone=timezone):
             return CronSchedule(expression=expression, timezone=timezone)
+
+
+def target_response(target: DomainAutomationTarget) -> AutomationTarget:
+    match target:
+        case SessionTarget(session_id=session_id):
+            return SessionAutomationTarget(kind="session", session_id=session_id)
