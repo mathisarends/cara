@@ -134,4 +134,4 @@ async def cancel_turn(
 
 
 def _channel_ref(channel: SessionChannel) -> ChannelRef:
-    return ChannelRef(name=channel.name, account_id=channel.account_id)
+    return ChannelRef(channel.name)

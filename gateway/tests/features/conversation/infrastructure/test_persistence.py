@@ -10,7 +10,7 @@ from gateway.features.conversation.infrastructure.repository import (
     SQLSessionRepository,
 )
 
-_CHANNEL = ChannelRef("web", account_id="local")
+_CHANNEL = ChannelRef("web")
 
 
 async def test_session_aggregate_round_trips_with_complete_history(
@@ -57,13 +57,12 @@ async def test_saving_updated_aggregate_replaces_removed_child_rows(
     assert [entry.content for entry in restored.entries] == ["First", "Second"]
 
 
-async def test_latest_session_can_be_found_by_its_complete_channel_identity(
+async def test_latest_session_can_be_found_by_its_channel(
     session_repository: SQLSessionRepository,
 ) -> None:
-    other_account = ChannelRef("web", account_id="someone-else")
     first = await session_repository.save(Session.create(_CHANNEL))
     latest = await session_repository.save(Session.create(_CHANNEL))
-    await session_repository.save(Session.create(other_account))
+    await session_repository.save(Session.create(ChannelRef("voice")))
 
     restored = await session_repository.find_latest_by_channel(_CHANNEL)
 

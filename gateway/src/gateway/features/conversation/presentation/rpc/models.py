@@ -22,7 +22,6 @@ class ToolCallStatus(StrEnum):
 
 class SessionChannel(WireSchema):
     name: str = Field(min_length=1)
-    account_id: str | None = Field(default=None, min_length=1)
 
 
 class SessionResponse(WireSchema):

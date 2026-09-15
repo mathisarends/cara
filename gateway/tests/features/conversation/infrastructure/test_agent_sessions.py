@@ -18,7 +18,7 @@ from gateway.features.conversation.infrastructure.repository import (
 async def test_reader_returns_only_context_before_the_current_input(
     session_repository: SQLSessionRepository,
 ) -> None:
-    session = Session.create(ChannelRef("voice", "local"))
+    session = Session.create(ChannelRef("voice"))
     first_input = session.add_user_message("First")
     session.add_assistant_message("Answer")
     current_input = session.add_user_message("Current")

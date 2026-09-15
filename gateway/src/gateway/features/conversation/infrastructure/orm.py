@@ -13,13 +13,11 @@ class SessionModel(DatabaseEntity, table=True):
         Index(
             "ix_gateway_sessions_channel",
             "channel_name",
-            "channel_account_id",
             "created_at",
         ),
     )
 
     channel_name: str
-    channel_account_id: str | None = None
     turn_active: bool = Field(default=False, nullable=False)
     user_messages: list["SessionUserMessageModel"] = Relationship(
         back_populates="session",

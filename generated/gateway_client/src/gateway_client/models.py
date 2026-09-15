@@ -158,7 +158,6 @@ class ReminderAutomationPayload(RpcModel):
 class SessionChannel(RpcModel):
     model_config = ConfigDict(extra="forbid")
     name: str
-    account_id: str | None = Field(None, alias="accountId")
 
 
 class SessionParams(RpcModel):

@@ -27,7 +27,7 @@ class SessionService:
         logger.info(
             "Created conversation session %s for channel %s",
             saved.id,
-            _channel_label(channel),
+            channel.name,
         )
         return saved
 
@@ -42,7 +42,7 @@ class SessionService:
                 logger.info(
                     "Opened existing conversation session %s for channel %s",
                     session.id,
-                    _channel_label(channel),
+                    channel.name,
                 )
                 return session
             return await self.create(channel=channel)
@@ -52,9 +52,3 @@ class SessionService:
         if session is None:
             raise SessionNotFoundError(session_id)
         return session
-
-
-def _channel_label(channel: ChannelRef) -> str:
-    if channel.account_id is None:
-        return channel.name
-    return f"{channel.name}/{channel.account_id}"

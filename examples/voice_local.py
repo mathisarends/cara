@@ -25,7 +25,6 @@ async def main() -> None:
         config.gateway.url,
         token=config.gateway.token,
         channel=config.voice.channel,
-        account_id=config.voice.account_id,
         new_session=config.voice.new_session,
     )
     async with gateway_session:

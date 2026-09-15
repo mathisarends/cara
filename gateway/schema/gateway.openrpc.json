@@ -1419,19 +1419,6 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
-          },
-          "accountId": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Accountid"
           }
         },
         "required": [

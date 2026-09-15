@@ -7,7 +7,7 @@ import pytest
 from gateway_client import GatewayClient
 from gateway_client.models import SessionChannel
 
-_CHANNEL = SessionChannel(name="voice", account_id="local")
+_CHANNEL = SessionChannel(name="voice")
 
 
 class FakeTransport:
@@ -46,10 +46,7 @@ async def test_namespaced_method_returns_typed_model() -> None:
         (
             "session.create",
             {
-                "channel": {
-                    "name": "voice",
-                    "accountId": "local",
-                },
+                "channel": {"name": "voice"},
             },
         ),
     ]

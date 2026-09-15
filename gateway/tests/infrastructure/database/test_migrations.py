@@ -38,8 +38,6 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
         "gateway_session_tool_calls",
         "gateway_session_user_messages",
     } <= tables
-    assert {
-        "channel_name",
-        "channel_account_id",
-    } <= session_columns
+    assert "channel_name" in session_columns
+    assert "channel_account_id" not in session_columns
     assert "ix_gateway_sessions_channel" in session_indexes

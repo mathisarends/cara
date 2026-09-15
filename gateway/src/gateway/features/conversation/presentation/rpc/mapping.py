@@ -65,10 +65,7 @@ def session_response(session: Session) -> SessionResponse:
 
 
 def _session_channel(channel: ChannelRef) -> SessionChannel:
-    return SessionChannel(
-        name=channel.name,
-        account_id=channel.account_id,
-    )
+    return SessionChannel(name=channel.name)
 
 
 def session_event(event: ConversationEvent) -> SessionEvent:

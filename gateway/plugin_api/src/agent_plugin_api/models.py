@@ -7,7 +7,6 @@ from uuid import UUID
 @dataclass(frozen=True, slots=True)
 class AgentChannelRef:
     name: str
-    account_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

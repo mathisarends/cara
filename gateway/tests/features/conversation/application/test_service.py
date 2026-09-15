@@ -142,14 +142,12 @@ async def test_prepare_and_finish_forward_the_session_to_the_agent(
 ) -> None:
     runner = _StreamingAgentRunner()
     sessions, turns = _services(session_repository, session_factory, publisher, runner)
-    session = await sessions.create(channel=ChannelRef("voice", "kitchen"))
+    session = await sessions.create(channel=ChannelRef("voice"))
 
     await turns.prepare(session.id)
     await turns.finish(session.id)
 
-    assert runner.prepared == [
-        AgentSessionRef(session.id, AgentChannelRef("voice", "kitchen"))
-    ]
+    assert runner.prepared == [AgentSessionRef(session.id, AgentChannelRef("voice"))]
     assert runner.finished == runner.prepared
 
 

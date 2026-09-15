@@ -75,7 +75,6 @@ class GatewayAgentSession(ActivationSource):
         *,
         token: str,
         channel: str = "voice",
-        account_id: str | None = None,
         new_session: bool = False,
     ) -> Self:
         client = await connect_gateway(url, token=token)
@@ -83,7 +82,6 @@ class GatewayAgentSession(ActivationSource):
             return await cls.attach(
                 client,
                 channel=channel,
-                account_id=account_id,
                 new_session=new_session,
             )
         except BaseException:
@@ -96,10 +94,9 @@ class GatewayAgentSession(ActivationSource):
         client: GatewayClient,
         *,
         channel: str = "voice",
-        account_id: str | None = None,
         new_session: bool = False,
     ) -> Self:
-        channel_ref = SessionChannel(name=channel, account_id=account_id)
+        channel_ref = SessionChannel(name=channel)
         if new_session:
             session = await client.session.create(channel=channel_ref)
         else:

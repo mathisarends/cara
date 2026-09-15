@@ -53,10 +53,7 @@ class SQLSessionRepository(
     async def find_latest_by_channel(self, channel: ChannelRef) -> Session | None:
         statement = self._with_entries(
             select(SessionModel)
-            .where(
-                SessionModel.channel_name == channel.name,
-                SessionModel.channel_account_id == channel.account_id,
-            )
+            .where(SessionModel.channel_name == channel.name)
             .order_by(SessionModel.created_at.desc(), SessionModel.id.desc())
             .limit(1)
         )
@@ -91,10 +88,7 @@ class SQLSessionRepository(
         ]
         positioned_entries.sort(key=lambda item: item[0])
         return Session(
-            channel=ChannelRef(
-                name=orm.channel_name,
-                account_id=orm.channel_account_id,
-            ),
+            channel=ChannelRef(orm.channel_name),
             id=orm.id,
             created_at=_as_utc(orm.created_at),
             turn_active=orm.turn_active,
@@ -106,7 +100,6 @@ class SQLSessionRepository(
             id=domain.id,
             created_at=domain.created_at,
             channel_name=domain.channel.name,
-            channel_account_id=domain.channel.account_id,
             turn_active=domain.turn_active,
         )
         for position, entry in enumerate(domain.entries):

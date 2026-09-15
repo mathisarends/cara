@@ -21,7 +21,7 @@ from gateway.features.conversation.presentation.rpc.models import (
     SessionSnapshotResponse,
 )
 
-_CHANNEL = SessionChannel(name="voice", account_id="local")
+_CHANNEL = SessionChannel(name="voice")
 
 
 @pytest.fixture
@@ -75,12 +75,7 @@ async def test_open_session_does_not_cross_channel_boundaries(
     first = await open_session(OpenSessionParams(channel=_CHANNEL), sessions)
 
     second = await open_session(
-        OpenSessionParams(
-            channel=SessionChannel(
-                name="voice",
-                account_id="someone-else",
-            )
-        ),
+        OpenSessionParams(channel=SessionChannel(name="cli")),
         sessions,
     )
 

@@ -6,5 +6,4 @@ gateway:
 
 voice:
   channel: voice
-  account_id: null
   new_session: false

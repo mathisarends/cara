@@ -14,7 +14,7 @@ def test_run_request_keeps_turn_and_input_identity_separate() -> None:
     input_id = uuid4()
 
     request = AgentRunRequest(
-        session=AgentSessionRef(session_id, AgentChannelRef("voice", "local")),
+        session=AgentSessionRef(session_id, AgentChannelRef("voice")),
         turn_id=turn_id,
         input_id=input_id,
         input="Hello",

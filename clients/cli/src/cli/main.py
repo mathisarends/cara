@@ -47,7 +47,7 @@ async def _run(args: argparse.Namespace) -> None:
         console.error(f"cannot reach the gateway: {error}")
         raise SystemExit(1) from error
 
-    channel = SessionChannel(name=args.channel, account_id=args.account)
+    channel = SessionChannel(name=args.channel)
     async with client, keyboard:
         chat = ChatSession(client, console, keyboard, channel, trace=args.events)
         try:
@@ -68,7 +68,6 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_CHANNEL,
         help="channel whose current session is opened",
     )
-    parser.add_argument("--account", default=None, help="account id of the channel")
     parser.add_argument(
         "--session",
         type=UUID,

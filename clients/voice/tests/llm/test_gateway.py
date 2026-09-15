@@ -89,7 +89,6 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
         session = await GatewayAgentSession.attach(
             GatewayClient(transport),
             channel="voice",
-            account_id="kitchen",
         )
         await transport.emit(SessionEventType.CHAT_DELTA, sequence=1, text="Hallo ")
         await transport.emit(
@@ -134,7 +133,7 @@ def test_gateway_agent_session_reuses_channel_and_translates_events() -> None:
     assert requests == [
         (
             "session.open",
-            {"channel": {"name": "voice", "accountId": "kitchen"}},
+            {"channel": {"name": "voice"}},
         ),
         ("subscription.subscribe", {"sessionId": str(session_id)}),
         ("turn.prepare", {"sessionId": str(session_id)}),

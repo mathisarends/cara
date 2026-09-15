@@ -23,7 +23,6 @@ class SessionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     channel: str = Field(default="voice", min_length=1)
-    account_id: str | None = None
     new_session: bool = False
 
 

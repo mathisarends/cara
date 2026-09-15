@@ -40,7 +40,7 @@ from gateway.features.conversation.presentation.rpc.models import (
     StartTurnParams,
 )
 
-_CHANNEL = SessionChannel(name="voice", account_id="local")
+_CHANNEL = SessionChannel(name="voice")
 
 
 class _RecordingPublisher(EventPublisher):

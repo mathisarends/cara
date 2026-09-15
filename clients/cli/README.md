@@ -18,7 +18,7 @@ uv run cara-chat
 ```
 
 Requires `CARA_GATEWAY_TOKEN` (same shared token as the Gateway). Flags:
-`--url`, `--channel`, `--account`, `--session`, `--events`, `--no-color` — no
+`--url`, `--channel`, `--session`, `--events`, `--no-color` — no
 env vars or config files otherwise.
 
 In-session commands: `/new`, `/session`, `/history`, `/events`, `/cancel`,

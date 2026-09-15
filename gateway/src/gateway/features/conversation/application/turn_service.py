@@ -67,7 +67,7 @@ class TurnService:
         logger.info(
             "User message for session %s on channel %s: %r",
             session_id,
-            _channel_label(session),
+            session.channel.name,
             _preview(text),
         )
         task = asyncio.create_task(
@@ -101,7 +101,7 @@ class TurnService:
         logger.info(
             "Scheduled prompt for session %s on channel %s: %r",
             session_id,
-            _channel_label(session),
+            session.channel.name,
             _preview(text),
         )
         await self._execute(session_id, text, metadata, persist_input=False)
@@ -113,7 +113,7 @@ class TurnService:
         logger.info(
             "User steered session %s on channel %s: %r",
             session_id,
-            _channel_label(session),
+            session.channel.name,
             _preview(text),
         )
         await self._agent.steer(_agent_session_ref(session), text)
@@ -225,13 +225,6 @@ def _message(error: Exception) -> str:
     return str(error) or type(error).__name__
 
 
-def _channel_label(session: Session) -> str:
-    channel = session.channel
-    if channel.account_id is None:
-        return channel.name
-    return f"{channel.name}/{channel.account_id}"
-
-
 def _preview(text: str) -> str:
     normalized = " ".join(text.split())
     if len(normalized) <= _MESSAGE_PREVIEW_LENGTH:
@@ -242,8 +235,5 @@ def _preview(text: str) -> str:
 def _agent_session_ref(session: Session) -> AgentSessionRef:
     return AgentSessionRef(
         id=session.id,
-        channel=AgentChannelRef(
-            name=session.channel.name,
-            account_id=session.channel.account_id,
-        ),
+        channel=AgentChannelRef(session.channel.name),
     )
