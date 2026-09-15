@@ -48,11 +48,13 @@ class TurnService:
 
     async def prepare(self, session_id: UUID) -> None:
         session = await self._session_service.get(session_id)
-        await self._agent.prepare(_agent_session_ref(session))
+        session_ref = _agent_session_ref(session)
+        await self._agent.prepare(session_ref)
 
     async def finish(self, session_id: UUID) -> None:
         session = await self._session_service.get(session_id)
-        await self._agent.finish(_agent_session_ref(session))
+        session_ref = _agent_session_ref(session)
+        await self._agent.finish(session_ref)
 
     async def start(
         self,
@@ -116,7 +118,8 @@ class TurnService:
             session.channel.name,
             _preview(text),
         )
-        await self._agent.steer(_agent_session_ref(session), text)
+        session_ref = _agent_session_ref(session)
+        await self._agent.steer(session_ref, text)
 
     async def cancel(self, session_id: UUID) -> None:
         await self._session_service.get(session_id)
@@ -170,11 +173,12 @@ class TurnService:
         except Exception as error:
             logger.exception("Conversation turn failed for session %s", session_id)
             current_session = turn.session if turn else session
-            await self._fail_pending_tool_calls(current_session, _message(error))
+            error_message = _message(error)
+            await self._fail_pending_tool_calls(current_session, error_message)
             terminal_type = ConversationEventType.TURN_FAILED
             terminal_data = {
                 "code": type(error).__name__,
-                "message": _message(error),
+                "message": error_message,
             }
         # The lease is released first so that a client may start the next turn
         # as soon as it sees the terminal event.

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from gateway.features.alarm.application import AlarmService
-from gateway.features.automation.application import AutomationService
+from gateway.features.automation.infrastructure import AutomationRuntime
 from gateway.features.conversation.application import AgentRuntime
 from gateway.presentation.authentication import GatewayAuthenticator
 
@@ -18,10 +18,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     container = app.state.dishka_container
     await container.get(GatewayAuthenticator)
     await container.get(AgentRuntime)
-    await container.get(AutomationService)
-    await container.get(AlarmService)
+    automation = await container.get(AutomationRuntime)
+    await automation.start()
     try:
+        await container.get(AlarmService)
         yield
     finally:
+        await automation.stop()
         await container.close()
         logger.info("%s shutting down", app.title)

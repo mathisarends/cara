@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import Select, delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from gateway.features.automation.domain import (
     AtSchedule,
@@ -18,18 +18,22 @@ from gateway.features.automation.domain import (
     TargetKind,
 )
 from gateway.features.automation.infrastructure.orm import AutomationModel
-from gateway.platform.database import Repository
 
 
-class SQLAutomationRepository(
-    Repository[AutomationModel, Automation],
-    AutomationRepository,
-):
-    def __init__(
-        self,
-        session_factory: async_sessionmaker[AsyncSession],
-    ) -> None:
-        super().__init__(session_factory, AutomationModel)
+class SQLAutomationRepository(AutomationRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def find_by_id(self, id: UUID) -> Automation | None:
+        model = await self._session.get(AutomationModel, id)
+        return self._to_domain(model) if model is not None else None
+
+    async def save(self, domain: Automation) -> Automation:
+        model = self._to_orm(domain)
+        merged = await self._session.merge(model)
+        await self._session.flush()
+        await self._session.refresh(merged)
+        return self._to_domain(merged)
 
     async def find_by_owner(self, owner_id: str) -> tuple[Automation, ...]:
         return await self._find(
@@ -37,14 +41,13 @@ class SQLAutomationRepository(
         )
 
     async def find_all(self) -> tuple[Automation, ...]:
-        return await self._find(select(AutomationModel))
+        statement = select(AutomationModel)
+        return await self._find(statement)
 
     async def remove(self, domain: Automation) -> None:
-        async with self._session_factory() as database:
-            await database.execute(
-                delete(AutomationModel).where(AutomationModel.id == domain.id)
-            )
-            await database.commit()
+        statement = delete(AutomationModel).where(AutomationModel.id == domain.id)
+        await self._session.execute(statement)
+        await self._session.flush()
 
     def _to_domain(self, orm: AutomationModel) -> Automation:
         return Automation(
@@ -86,9 +89,8 @@ class SQLAutomationRepository(
         statement: Select[tuple[AutomationModel]],
     ) -> tuple[Automation, ...]:
         ordered = statement.order_by(AutomationModel.created_at, AutomationModel.id)
-        async with self._session_factory() as database:
-            models = await database.scalars(ordered)
-            return tuple(self._to_domain(model) for model in models)
+        models = await self._session.scalars(ordered)
+        return tuple(self._to_domain(model) for model in models)
 
 
 def _target(model: AutomationModel) -> AutomationTarget:

@@ -1,15 +1,11 @@
 import uuid
-from typing import cast
 
 import pyrpckit as rpc
-from dishka import Provider, Scope, provide
+from dishka import AsyncContainer, Provider, Scope, provide
 from fastapi import WebSocket
+from pyrpckit.dishka import DishkaResolver
 
-from gateway.features.conversation.application import (
-    EventPublisher,
-    SessionService,
-    TurnService,
-)
+from gateway.features.conversation.application import EventPublisher, SessionService
 from gateway.presentation.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
@@ -18,6 +14,7 @@ from gateway.presentation.websocket.connection import GatewayConnection
 from gateway.presentation.websocket.error_mapping import gateway_error_mapper
 from gateway.presentation.websocket.subscriptions import (
     EventStreamRpcMethods,
+    GatewayClient,
     InMemoryEventStream,
 )
 
@@ -47,30 +44,31 @@ class GatewayProvider(Provider):
         return stream
 
     @provide(scope=Scope.SESSION)
+    def client(self) -> GatewayClient:
+        client_id = str(uuid.uuid4())
+        return GatewayClient(client_id)
+
+    @provide(scope=Scope.SESSION)
+    def rpc_methods(
+        self,
+        sessions: SessionService,
+        stream: InMemoryEventStream,
+        client: GatewayClient,
+    ) -> EventStreamRpcMethods:
+        return EventStreamRpcMethods(sessions, stream, client)
+
+    @provide(scope=Scope.SESSION)
     def connection(
         self,
+        container: AsyncContainer,
         websocket: WebSocket,
         authenticator: GatewayAuthenticator,
-        sessions: SessionService,
-        turns: TurnService,
         stream: InMemoryEventStream,
+        client: GatewayClient,
     ) -> GatewayConnection:
         authenticator.authenticate(websocket)
-        client_id = str(uuid.uuid4())
-        handlers = (
-            turns,
-            EventStreamRpcMethods(sessions, stream, client_id),
-        )
         server = self._channel.server(
-            resolver=_GatewayResolver(handlers),
+            resolver=DishkaResolver(container),
             error_mapper=gateway_error_mapper,
         )
-        return GatewayConnection(websocket, stream, client_id, server)
-
-
-class _GatewayResolver:
-    def __init__(self, handlers: tuple[object, ...]) -> None:
-        self._handlers = {type(handler): handler for handler in handlers}
-
-    async def resolve[DependencyT](self, dependency: type[DependencyT]) -> DependencyT:
-        return cast(DependencyT, self._handlers[dependency])
+        return GatewayConnection(websocket, stream, client.id, server)

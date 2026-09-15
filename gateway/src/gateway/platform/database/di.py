@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 
 from gateway.platform.database.settings import DatabaseSettings
+from gateway.platform.database.transaction import DatabaseTransaction
+from gateway.shared.transaction import Transaction
 
 
 class DatabaseProvider(Provider):
@@ -39,14 +41,24 @@ class DatabaseProvider(Provider):
         return async_sessionmaker(engine, expire_on_commit=False)
 
     @provide(scope=Scope.REQUEST)
+    def database_transaction(self) -> DatabaseTransaction:
+        return DatabaseTransaction()
+
+    @provide(scope=Scope.REQUEST)
+    def transaction(self, transaction: DatabaseTransaction) -> Transaction:
+        return transaction
+
+    @provide(scope=Scope.REQUEST)
     async def session(
         self,
         session_factory: async_sessionmaker[AsyncSession],
+        transaction: DatabaseTransaction,
     ) -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
             try:
                 yield session
                 await session.commit()
-            except Exception:
+            except BaseException:
                 await session.rollback()
                 raise
+            transaction.complete()

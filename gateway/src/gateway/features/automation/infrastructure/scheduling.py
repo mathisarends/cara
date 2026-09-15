@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from gateway.features.automation.application import (
     AutomationExecution,
     AutomationScheduler,
+    AutomationService,
 )
 from gateway.features.automation.domain import (
     AtSchedule,
@@ -13,6 +14,7 @@ from gateway.features.automation.domain import (
     CronSchedule,
     IntervalSchedule,
 )
+from gateway.shared.unit_of_work import UnitOfWork
 from scheduler import At, Cron, Interval, ScheduledRun, Scheduler, Trigger, first_run
 
 
@@ -36,15 +38,38 @@ class InProcessAutomationScheduler(AutomationScheduler):
 
 
 class AutomationJobRunner:
-    def __init__(self, execution: AutomationExecution) -> None:
-        self._execution = execution
+    def __init__(self, unit_of_work: UnitOfWork[AutomationExecution]) -> None:
+        self._unit_of_work = unit_of_work
 
     async def __call__(self, run: ScheduledRun[UUID]) -> None:
-        await self._execution.run(
-            run.payload,
-            scheduled_for=run.scheduled_for,
-            next_run_at=run.next_run_at,
-        )
+        async with self._unit_of_work() as execution:
+            await execution.run(
+                run.payload,
+                scheduled_for=run.scheduled_for,
+                next_run_at=run.next_run_at,
+            )
+
+
+class AutomationRuntime:
+    def __init__(
+        self,
+        scheduler: Scheduler[UUID],
+        unit_of_work: UnitOfWork[AutomationService],
+    ) -> None:
+        self._scheduler = scheduler
+        self._unit_of_work = unit_of_work
+
+    async def start(self) -> None:
+        await self._scheduler.start()
+        try:
+            async with self._unit_of_work() as service:
+                await service.resume()
+        except BaseException:
+            await self._scheduler.stop()
+            raise
+
+    async def stop(self) -> None:
+        await self._scheduler.stop()
 
 
 def _to_trigger(schedule: AutomationSchedule) -> Trigger:

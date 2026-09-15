@@ -12,6 +12,12 @@ from gateway.features.automation.domain import (
     AutomationTarget,
     PromptAction,
 )
+from gateway.shared.transaction import Transaction, TransactionAction
+
+
+class ImmediateTransaction(Transaction):
+    def after_commit(self, action: TransactionAction) -> None:
+        action()
 
 
 class AcceptAllTargets(AutomationTargetResolver):

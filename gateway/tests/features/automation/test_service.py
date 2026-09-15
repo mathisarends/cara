@@ -3,7 +3,11 @@ from uuid import uuid4
 
 import pytest
 
-from features.automation.fakes import AcceptAllTargets, RecordingScheduler
+from features.automation.fakes import (
+    AcceptAllTargets,
+    ImmediateTransaction,
+    RecordingScheduler,
+)
 from gateway.features.automation.application import (
     AutomationService,
     AutomationTargetResolver,
@@ -95,6 +99,7 @@ async def test_create_validates_the_target_before_scheduling(
         automation_repository,
         RejectAllTargets(),
         recording_scheduler,
+        ImmediateTransaction(),
     )
 
     with pytest.raises(LookupError):
@@ -236,6 +241,7 @@ async def test_resume_arms_every_persisted_automation_at_its_stored_next_run(
         automation_repository,
         AcceptAllTargets(),
         restarted,
+        ImmediateTransaction(),
     ).resume()
 
     assert restarted.armed == {

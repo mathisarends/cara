@@ -1,3 +1,4 @@
+from functools import partial
 from uuid import UUID
 
 from gateway.features.automation.application.ports import (
@@ -12,6 +13,7 @@ from gateway.features.automation.domain import (
     AutomationTarget,
     PromptAction,
 )
+from gateway.shared.transaction import Transaction
 
 
 class AutomationService:
@@ -20,10 +22,12 @@ class AutomationService:
         repository: AutomationRepository,
         targets: AutomationTargetResolver,
         scheduler: AutomationScheduler,
+        transaction: Transaction,
     ) -> None:
         self._repository = repository
         self._targets = targets
         self._scheduler = scheduler
+        self._transaction = transaction
 
     async def list(self, owner_id: str) -> tuple[Automation, ...]:
         return await self._repository.find_by_owner(owner_id)
@@ -65,7 +69,6 @@ class AutomationService:
         name: str | None = None,
     ) -> Automation:
         automation = await self.get(automation_id, owner_id)
-        self._scheduler.disarm(automation)
         automation.update(
             schedule=schedule,
             action=action,
@@ -76,15 +79,17 @@ class AutomationService:
 
     async def delete(self, automation_id: UUID, owner_id: str) -> None:
         automation = await self.get(automation_id, owner_id)
-        self._scheduler.disarm(automation)
         await self._repository.remove(automation)
+        disarm = partial(self._scheduler.disarm, automation)
+        self._transaction.after_commit(disarm)
 
     async def resume(self) -> None:
         for automation in await self._repository.find_all():
-            self._scheduler.arm(automation)
+            arm = partial(self._scheduler.arm, automation)
+            self._transaction.after_commit(arm)
 
     async def _save_and_arm(self, automation: Automation) -> Automation:
-        # Persist before arming so a due run always finds the stored automation.
         saved = await self._repository.save(automation)
-        self._scheduler.arm(saved)
+        arm = partial(self._scheduler.arm, saved)
+        self._transaction.after_commit(arm)
         return saved

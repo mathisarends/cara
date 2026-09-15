@@ -48,7 +48,9 @@ class GatewayConnection:
                         "Gateway client %s sent malformed JSON",
                         _short_id(self._client_id),
                     )
-                    await self._send(self._server.failure(None, rpc.RpcParseError()))
+                    error = rpc.RpcParseError()
+                    failure = self._server.failure(None, error)
+                    await self._send(failure)
                     continue
                 await self._handle(raw_request)
         except WebSocketDisconnect as disconnect:

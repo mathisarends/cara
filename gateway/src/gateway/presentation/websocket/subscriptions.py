@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 from uuid import UUID
 
 from gateway.features.conversation.application import (
@@ -18,6 +19,11 @@ from gateway.features.conversation.presentation.rpc.models import (
 logger = logging.getLogger(__name__)
 
 _EVENT_PREVIEW_LENGTH = 200
+
+
+@dataclass(frozen=True, slots=True)
+class GatewayClient:
+    id: str
 
 
 class EventReceiver:
@@ -78,22 +84,22 @@ class EventStreamRpcMethods:
         self,
         sessions: SessionService,
         stream: InMemoryEventStream,
-        client_id: str,
+        client: GatewayClient,
     ) -> None:
         self._sessions = sessions
         self._stream = stream
-        self._client_id = client_id
+        self._client = client
 
     async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
         await self._sessions.get(params.session_id)
-        self._stream.subscribe(self._client_id, params.session_id)
+        self._stream.subscribe(self._client.id, params.session_id)
         return SubscriptionResult(subscribed=params.session_id)
 
     async def unsubscribe_session(
         self,
         params: SessionParams,
     ) -> UnsubscriptionResult:
-        self._stream.unsubscribe(self._client_id, params.session_id)
+        self._stream.unsubscribe(self._client.id, params.session_id)
         return UnsubscriptionResult(unsubscribed=params.session_id)
 
 

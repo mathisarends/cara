@@ -1,8 +1,14 @@
 import asyncio
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from features.automation.fakes import AcceptAllTargets, RecordingExecutor
+from features.automation.fakes import (
+    AcceptAllTargets,
+    ImmediateTransaction,
+    RecordingExecutor,
+)
 from gateway.features.automation.application import (
     AutomationExecution,
     AutomationService,
@@ -21,6 +27,7 @@ from gateway.features.automation.infrastructure.scheduling import (
     AutomationJobRunner,
     InProcessAutomationScheduler,
 )
+from gateway.shared.unit_of_work import UnitOfWork
 from scheduler import Scheduler
 
 
@@ -33,6 +40,7 @@ async def test_a_due_one_shot_runs_once_and_is_removed(
         automation_repository,
         AcceptAllTargets(),
         InProcessAutomationScheduler(scheduler),
+        ImmediateTransaction(),
     )
 
     await scheduler.start()
@@ -71,6 +79,7 @@ async def test_resume_catches_up_a_missed_run_and_persists_the_next_one(
         automation_repository,
         AcceptAllTargets(),
         InProcessAutomationScheduler(scheduler),
+        ImmediateTransaction(),
     )
 
     await scheduler.start()
@@ -93,4 +102,15 @@ def _scheduler(
     repository: SQLAutomationRepository,
     executor: RecordingExecutor,
 ) -> Scheduler[UUID]:
-    return Scheduler(AutomationJobRunner(AutomationExecution(repository, executor)))
+    execution = AutomationExecution(repository, executor)
+    unit_of_work = _StaticUnitOfWork(execution)
+    return Scheduler(AutomationJobRunner(unit_of_work))
+
+
+class _StaticUnitOfWork[ServiceT](UnitOfWork[ServiceT]):
+    def __init__(self, service: ServiceT) -> None:
+        self._service = service
+
+    @asynccontextmanager
+    async def __call__(self) -> AsyncGenerator[ServiceT]:
+        yield self._service
