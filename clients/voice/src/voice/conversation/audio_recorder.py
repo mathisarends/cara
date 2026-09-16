@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from voice.events import (
     AssistantAudioChunk,
@@ -44,3 +45,23 @@ class ConversationAudioRecorder:
     async def _on_resources_closing(self, _: VoiceResourcesClosing) -> None:
         self._mixer.save()
         logger.info("Recording saved to %s", self._mixer.path)
+
+
+def create_recorder(
+    event_bus: EventBus,
+    recording_path: Path | None,
+    *,
+    user_sample_rate: int,
+    assistant_sample_rate: int,
+) -> ConversationAudioRecorder | None:
+    """Start recording to ``recording_path``, or do nothing if it is None."""
+    if recording_path is None:
+        return None
+    return ConversationAudioRecorder(
+        event_bus,
+        ConversationAudioMixer(
+            recording_path,
+            user_sample_rate=user_sample_rate,
+            assistant_sample_rate=assistant_sample_rate,
+        ),
+    )

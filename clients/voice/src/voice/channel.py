@@ -19,7 +19,7 @@ from voice.audio.input import MicrophoneAudioInput
 from voice.audio.output import LocalAudioOutput
 from voice.audio.session import PortAudioSession
 from voice.barge_in import BargeInContext, BargeInStrategy, WakeWordBargeIn
-from voice.conversation import ConversationAudioMixer, ConversationAudioRecorder
+from voice.conversation import create_recorder
 from voice.echo_cancellation import (
     EchoCancellationSettings,
     wrap_with_echo_cancellation,
@@ -121,16 +121,12 @@ class VoiceChannel:
             observers=(*observers, ToolAcknowledgementObserver()),
         )
         self._observer_bridge.setup()
-        self._audio_recorder: ConversationAudioRecorder | None = None
-        if self._recording_path is not None:
-            self._audio_recorder = ConversationAudioRecorder(
-                self._event_bus,
-                ConversationAudioMixer(
-                    self._recording_path,
-                    user_sample_rate=self._buffered_audio_input.sample_rate,
-                    assistant_sample_rate=gateway_session.output_sample_rate,
-                ),
-            )
+        self._audio_recorder = create_recorder(
+            self._event_bus,
+            self._recording_path,
+            user_sample_rate=self._buffered_audio_input.sample_rate,
+            assistant_sample_rate=gateway_session.output_sample_rate,
+        )
         self._stopped = False
 
     async def start(self) -> AgentResult:
