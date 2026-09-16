@@ -6,7 +6,6 @@ import pytest
 
 from agent.agent import Agent
 from agent.events import ToolCompleted, ToolStarted, TurnCompleted
-from agent.models import ModelSwitch
 from agent.tools import AgentTools, FatalToolError
 from llm import ChatModel, Message, ModelResponse, ToolCall
 
@@ -24,6 +23,9 @@ class _Model:
         del options
         self.requests.append(messages)
         yield next(self._responses)
+
+    async def aclose(self) -> None:
+        pass
 
 
 class _Tools:
@@ -44,12 +46,12 @@ class _Tools:
 
 
 def _tool_call(call_id: str, name: str, arguments: str) -> ToolCall:
-    return ToolCall(call_id, name, arguments)
+    return ToolCall(id=call_id, name=name, arguments=arguments)
 
 
 def _agent(model: _Model, tools: _Tools) -> Agent:
     return Agent(
-        models=ModelSwitch.single(cast(ChatModel, model)),
+        model=cast(ChatModel, model),
         tools=cast(AgentTools, tools),
         workspace_root=Path("missing-test-workspace"),
     )

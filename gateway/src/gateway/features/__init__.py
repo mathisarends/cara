@@ -1,12 +1,13 @@
 import pyrpckit as rpc
 from fastapi_canon import Feature
 
-from . import alarm, automation, conversation, health, voice
+from . import alarm, automation, conversation, health, llm, voice
 
 FEATURES: tuple[Feature, ...] = (
     health.feature,
     alarm.feature,
     automation.feature,
+    llm.feature,
     conversation.feature,
     voice.feature,
 )

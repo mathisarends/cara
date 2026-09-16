@@ -1,7 +1,8 @@
 from agenttoolkit import Tools
 
+from gateway.features.llm.presentation import register_model_control_tools
+
 from .filesystem import register_filesystem_tools
-from .model_control import register_model_control_tools
 from .reminders import register_reminder_tools
 from .shell import register_shell_tools
 from .skills import register_skill_tools

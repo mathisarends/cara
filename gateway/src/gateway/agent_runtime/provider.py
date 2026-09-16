@@ -17,6 +17,7 @@ from gateway.agent_runtime.workspace import resolve_workspace_root
 from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import AgentRuntime, SessionService
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
+from gateway.features.llm.infrastructure import LlmSettings, ModelSwitchFactory
 from gateway.features.voice.application import VoiceSessionService
 from gateway.shared import UnitOfWork
 
@@ -31,6 +32,10 @@ class AgentRuntimeProvider(Provider):
     @provide
     def agent_settings(self, settings: GatewaySettings) -> AgentSettings:
         return settings.agent
+
+    @provide
+    def llm_settings(self, settings: GatewaySettings) -> LlmSettings:
+        return settings.llm
 
     @provide
     def tool_settings(self) -> GatewayToolSettings:
@@ -70,11 +75,13 @@ class AgentRuntimeProvider(Provider):
     def agent_factory(
         self,
         settings: AgentSettings,
+        models: ModelSwitchFactory,
         sandbox: WorkspaceSandboxClient,
         mcp_tools: McpTools,
     ) -> AgentFactory:
         return AgentFactory(
             settings,
+            model_factory=models.create,
             workspace=sandbox,
             command_runner=sandbox,
             additional_tools=mcp_tools,

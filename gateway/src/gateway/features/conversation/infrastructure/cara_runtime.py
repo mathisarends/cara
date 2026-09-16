@@ -164,9 +164,9 @@ def _llm_tool_call(call: ToolCall) -> LlmToolCall:
     if call.state is ToolCallState.PENDING:
         raise ValueError(f"Tool call {call.call_id} is still pending")
     return LlmToolCall(
-        call.call_id,
-        call.function_name,
-        json.dumps(call.function_arguments, ensure_ascii=False),
+        id=call.call_id,
+        name=call.function_name,
+        arguments=json.dumps(call.function_arguments, ensure_ascii=False),
     )
 
 

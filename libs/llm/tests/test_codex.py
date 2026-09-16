@@ -43,13 +43,19 @@ def test_create_codex_model_uses_pydantic_ai_codex_provider() -> None:
 def test_messages_are_mapped_without_exposing_pydantic_ai_to_callers() -> None:
     messages = _pydantic_messages(
         [
-            SystemMessage("System"),
-            UserMessage("Question"),
+            SystemMessage(content="System"),
+            UserMessage(content="Question"),
             AssistantMessage(
-                "",
-                tool_calls=(ToolCall("call-1", "lookup", '{"key":"value"}'),),
+                content="",
+                tool_calls=(
+                    ToolCall(id="call-1", name="lookup", arguments='{"key":"value"}'),
+                ),
             ),
-            ToolResultMessage("call-1", "lookup", "Answer"),
+            ToolResultMessage(
+                tool_call_id="call-1",
+                tool_name="lookup",
+                content="Answer",
+            ),
         ]
     )
 
@@ -67,9 +73,9 @@ def test_messages_are_mapped_without_exposing_pydantic_ai_to_callers() -> None:
 def test_provider_response_state_is_preserved_for_tool_followups() -> None:
     state = PydanticResponse(parts=[TextPart("partial")])
 
-    assert _pydantic_messages([AssistantMessage("partial", provider_state=state)]) == [
-        state
-    ]
+    assert _pydantic_messages(
+        [AssistantMessage(content="partial", provider_state=state)]
+    ) == [state]
 
 
 def test_codex_enums_expose_configured_values() -> None:

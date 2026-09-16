@@ -3,9 +3,9 @@ from typing import Literal
 from agenttoolkit import Inject, Tools, requires
 from pydantic import Field
 
-from agent.models import ModelSwitch
 from agent.tools.middleware import ToolError
 from agent.tools.params import ToolParams
+from gateway.features.llm.application import ModelSwitch
 from llm import CodexReasoningEffort
 
 type _ReasoningEffortSelection = CodexReasoningEffort | Literal["default"]

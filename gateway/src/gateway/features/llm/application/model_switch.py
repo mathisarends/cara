@@ -1,11 +1,11 @@
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from typing import Protocol, Self, runtime_checkable
 
-from llm import ChatModel, UserMessage
+from llm import ChatModel, Message, ModelEvent, ModelTool, UserMessage
 
-type _ModelFactory = Callable[[str | None], ChatModel]
-type _ModelSmokeTest = Callable[[ChatModel], Awaitable[None]]
+type ModelFactory = Callable[[str | None], ChatModel]
+type ModelSmokeTest = Callable[[ChatModel], Awaitable[None]]
 
 
 @runtime_checkable
@@ -13,20 +13,20 @@ class _AsyncCloseable(Protocol):
     async def aclose(self) -> None: ...
 
 
-class ModelSwitch:
-    """The model driving the agent, validated before runtime changes."""
+class ModelSwitch(ChatModel):
+    """Conversation-scoped model selection owned by the Gateway."""
 
     def __init__(
         self,
         models: dict[str, ChatModel],
         *,
         default: str,
-        smoke_test: _ModelSmokeTest | None = None,
+        smoke_test: ModelSmokeTest | None = None,
     ) -> None:
         if default not in models:
             raise ValueError(f"Unknown default model '{default}'.")
         self._models = models
-        self._factories: dict[str, _ModelFactory] | None = None
+        self._factories: dict[str, ModelFactory] | None = None
         self._reasoning_efforts: tuple[str, ...] = ()
         self._current_name = default
         self._current_reasoning_effort: str | None = None
@@ -40,17 +40,18 @@ class ModelSwitch:
     @classmethod
     def configurable(
         cls,
-        factories: dict[str, _ModelFactory],
+        factories: dict[str, ModelFactory],
         *,
         default: str,
         reasoning_efforts: tuple[str, ...],
         initial_model: ChatModel | None = None,
-        smoke_test: _ModelSmokeTest | None = None,
+        smoke_test: ModelSmokeTest | None = None,
     ) -> Self:
         if default not in factories:
             raise ValueError(f"Unknown default model '{default}'.")
+        selected_model = initial_model or factories[default](None)
         instance = cls(
-            {default: initial_model or factories[default](None)},
+            {default: selected_model},
             default=default,
             smoke_test=smoke_test,
         )
@@ -87,6 +88,14 @@ class ModelSwitch:
     @property
     def supports_reasoning_effort(self) -> bool:
         return bool(self._reasoning_efforts)
+
+    def stream(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> AsyncIterator[ModelEvent]:
+        return self.current.stream(messages, tools=tools)
 
     async def switch(self, name: str) -> None:
         await self._activate(name, self._current_reasoning_effort)

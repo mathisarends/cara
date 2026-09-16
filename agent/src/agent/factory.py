@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from agenttoolkit import DependencyProvider, Tools
 from agenttoolkit.builtins import CommandRunner, Workspace
@@ -8,7 +8,7 @@ from agent.agent import Agent
 from agent.configuration import AgentSettings
 from agent.dependencies import AgentComponents, ConfiguredDependencies
 from agent.tools import ToolRegistrar, build_tools
-from llm import Message
+from llm import ChatModel, Message
 
 
 class AgentFactory:
@@ -18,6 +18,7 @@ class AgentFactory:
         self,
         settings: AgentSettings,
         *,
+        model_factory: Callable[[], ChatModel],
         workspace: Workspace,
         command_runner: CommandRunner,
         additional_tools: Tools | None = None,
@@ -25,6 +26,7 @@ class AgentFactory:
         tool_dependency_providers: Sequence[DependencyProvider] = (),
     ) -> None:
         self._settings = settings
+        self._model_factory = model_factory
         self._workspace = workspace
         self._command_runner = command_runner
         self._additional_tools = additional_tools
@@ -37,9 +39,11 @@ class AgentFactory:
         *,
         tool_dependencies: Sequence[object] = (),
     ) -> Agent:
+        model = self._model_factory()
         container = DependencyContainer(
             ConfiguredDependencies(
                 self._settings,
+                model,
                 tool_dependencies=tool_dependencies,
                 workspace=self._workspace,
                 command_runner=self._command_runner,
@@ -54,7 +58,7 @@ class AgentFactory:
             registrars=self._tool_registrars,
         )
         return Agent(
-            models=components.models,
+            model=components.model,
             tools=tools,
             skills=components.skills,
             clock=components.clock,

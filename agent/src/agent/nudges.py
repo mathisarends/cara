@@ -1,7 +1,6 @@
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import replace
 
 from llm import ToolResultMessage
 
@@ -30,8 +29,8 @@ class ProgressNudges:
         if notes and annotated:
             last = annotated[-1]
             note = " ".join(notes)
-            annotated[-1] = replace(
-                last, content=f"{last.content}\n\n[Runtime note] {note}"
+            annotated[-1] = last.model_copy(
+                update={"content": f"{last.content}\n\n[Runtime note] {note}"}
             )
         return annotated
 

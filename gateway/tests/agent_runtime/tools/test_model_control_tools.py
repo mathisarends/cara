@@ -1,8 +1,8 @@
 import asyncio
 from typing import cast
 
-from agent.models import ModelSwitch
 from gateway.agent_runtime.tools import build_tools
+from gateway.features.llm.application import ModelSwitch
 from llm import ChatModel
 
 

@@ -17,7 +17,6 @@ from agent.events import (
     TurnCompleted,
 )
 from agent.messages import MessageManager
-from agent.models import ModelSwitch
 from agent.nudges import ProgressNudges
 from agent.prompt import SystemPrompt
 from agent.runtime import TurnFailure
@@ -47,7 +46,7 @@ class Agent:
     def __init__(
         self,
         *,
-        models: ModelSwitch,
+        model: ChatModel,
         tools: AgentTools,
         workspace_root: Path,
         skills: Skills | None = None,
@@ -55,7 +54,7 @@ class Agent:
         system_prompt: str | None = None,
         messages: Sequence[Message] = (),
     ) -> None:
-        self._models = models
+        self._model = model
         self._tools = tools
         selected_clock = clock or LocalClock()
         self._context = MessageManager(
@@ -70,10 +69,6 @@ class Agent:
         self._turn: asyncio.Task[None] | None = None
         self._turn_lock = asyncio.Lock()
         self._steering: deque[str] = deque()
-
-    @property
-    def _llm(self) -> ChatModel:
-        return self._models.current
 
     async def start_turn(self, text: str) -> AsyncIterator[AgentEvent]:
         async with self._turn_lock:
@@ -102,7 +97,7 @@ class Agent:
 
     async def aclose(self) -> None:
         await self.interrupt()
-        await self._models.aclose()
+        await self._model.aclose()
 
     async def _stream_turn(
         self,
@@ -176,13 +171,14 @@ class Agent:
 
     async def _stream_completion(self, events: _EventQueue) -> ModelResponse:
         end: ModelResponse | None = None
-        async for event in self._llm.stream(
+        async for event in self._model.stream(
             self._context.to_llm_messages(), tools=self._llm_tools()
         ):
-            if isinstance(event, ModelTextDelta) and event.delta:
-                await events.put(TextDelta(event.delta))
-            elif isinstance(event, ModelResponse):
-                end = event
+            match event:
+                case ModelTextDelta(delta=delta) if delta:
+                    await events.put(TextDelta(delta))
+                case ModelResponse():
+                    end = event
 
         if end is None:
             raise ModelError("The model stream ended without a terminal event.")

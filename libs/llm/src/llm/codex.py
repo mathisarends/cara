@@ -24,6 +24,7 @@ from pydantic_ai.tools import ToolDefinition
 
 from llm.ports import (
     AssistantMessage,
+    ChatModel,
     Message,
     ModelEvent,
     ModelResponse,
@@ -52,7 +53,7 @@ class CodexReasoningEffort(StrEnum):
     MAX = "max"
 
 
-class PydanticAICodexModel:
+class PydanticAICodexModel(ChatModel):
     """HTTP streaming adapter for Codex subscription authentication."""
 
     def __init__(
@@ -86,7 +87,7 @@ class PydanticAICodexModel:
             async for event in response:
                 delta = _text_delta(event)
                 if delta:
-                    yield TextDelta(delta)
+                    yield TextDelta(delta=delta)
             final = response.get()
 
         yield ModelResponse(
@@ -95,7 +96,11 @@ class PydanticAICodexModel:
             ),
             finish_reason=final.finish_reason or "stop",
             tool_calls=tuple(
-                ToolCall(part.tool_call_id, part.tool_name, part.args_as_json_str())
+                ToolCall(
+                    id=part.tool_call_id,
+                    name=part.tool_name,
+                    arguments=part.args_as_json_str(),
+                )
                 for part in final.parts
                 if isinstance(part, ToolCallPart)
             ),

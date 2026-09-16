@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from agenttoolkit import DependencyProvider, Skills, ToolContext, provide
@@ -6,17 +6,14 @@ from agenttoolkit.builtins import CommandRunner, Workspace
 
 from agent.clock import LocalClock
 from agent.configuration import AgentSettings
-from agent.models import ModelSwitch
-from llm import ChatModel, CodexModel, CodexReasoningEffort, create_codex_model
-
-type _ModelFactories = dict[str, Callable[[str | None], ChatModel]]
+from llm import ChatModel
 
 
 @dataclass(frozen=True, slots=True)
 class AgentComponents:
     workspace: Workspace
     skills: Skills | None
-    models: ModelSwitch
+    model: ChatModel
     clock: LocalClock
     tool_context: ToolContext
 
@@ -25,11 +22,13 @@ class ConfiguredDependencies(DependencyProvider):
     def __init__(
         self,
         settings: AgentSettings,
+        model: ChatModel,
         workspace: Workspace,
         command_runner: CommandRunner,
         tool_dependencies: Sequence[object] = (),
     ) -> None:
         self._settings = settings
+        self._model = model
         self._workspace = workspace
         self._command_runner = command_runner
         self._tool_dependencies = tuple(tool_dependencies)
@@ -56,23 +55,8 @@ class ConfiguredDependencies(DependencyProvider):
         return LocalClock(settings.timezone)
 
     @provide
-    def model_factories(self, settings: AgentSettings) -> _ModelFactories:
-        return {
-            model.value: _codex_model_factory(model)
-            for model in settings.models.available
-        }
-
-    @provide
-    def model_switch(
-        self,
-        settings: AgentSettings,
-        model_factories: _ModelFactories,
-    ) -> ModelSwitch:
-        return ModelSwitch.configurable(
-            model_factories,
-            default=settings.models.default.value,
-            reasoning_efforts=tuple(effort.value for effort in CodexReasoningEffort),
-        )
+    def model(self) -> ChatModel:
+        return self._model
 
     @provide
     def tool_context(
@@ -80,14 +64,14 @@ class ConfiguredDependencies(DependencyProvider):
         workspace: Workspace,
         command_runner: CommandRunner,
         skills: Skills | None,
-        model_switch: ModelSwitch,
+        model: ChatModel,
         clock: LocalClock,
     ) -> ToolContext:
         return ToolContext(
             workspace,
             command_runner,
             skills,
-            model_switch,
+            model,
             clock,
             *self._tool_dependencies,
         )
@@ -97,28 +81,14 @@ class ConfiguredDependencies(DependencyProvider):
         self,
         workspace: Workspace,
         skills: Skills | None,
-        model_switch: ModelSwitch,
+        model: ChatModel,
         clock: LocalClock,
         tool_context: ToolContext,
     ) -> AgentComponents:
         return AgentComponents(
             workspace=workspace,
             skills=skills,
-            models=model_switch,
+            model=model,
             clock=clock,
             tool_context=tool_context,
         )
-
-
-def _codex_model_factory(
-    configured_model: CodexModel,
-) -> Callable[[str | None], ChatModel]:
-    def create(reasoning_effort: str | None) -> ChatModel:
-        if reasoning_effort is None:
-            return create_codex_model(configured_model)
-        return create_codex_model(
-            configured_model,
-            reasoning_effort=CodexReasoningEffort(reasoning_effort),
-        )
-
-    return create

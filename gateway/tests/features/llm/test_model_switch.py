@@ -1,25 +1,29 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import cast
 
 import pytest
 
-from agent.models import ModelSwitch
-from llm import ChatModel, Message, ModelResponse, UserMessage
+from gateway.features.llm.application import ModelSwitch
+from llm import ChatModel, Message, ModelEvent, ModelResponse, ModelTool, UserMessage
 
 
 class _StreamingModel:
     def __init__(self) -> None:
-        self.requests: list[list[Message]] = []
+        self.requests: list[Sequence[Message]] = []
 
     async def stream(
         self,
-        messages: list[Message],
-        **options: object,
-    ) -> AsyncIterator[ModelResponse]:
-        del options
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> AsyncIterator[ModelEvent]:
+        del tools
         self.requests.append(messages)
         yield ModelResponse(completion="OK", finish_reason="stop")
+
+    async def aclose(self) -> None:
+        pass
 
 
 def test_model_switch_smoke_tests_before_switching() -> None:

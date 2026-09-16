@@ -11,6 +11,7 @@ from pydantic_settings import (
 from agent.configuration import AgentSettings
 from gateway.agent_runtime.mcp import McpServerSettings
 from gateway.agent_runtime.sandbox import SandboxClientSettings
+from gateway.features.llm.infrastructure import LlmSettings
 
 
 class WorkspaceSettings(BaseModel):
@@ -31,6 +32,7 @@ class GatewaySettings(BaseSettings):
     )
 
     agent: AgentSettings = Field(default_factory=AgentSettings)
+    llm: LlmSettings = Field(default_factory=LlmSettings)
     workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     sandbox: SandboxClientSettings = Field(default_factory=SandboxClientSettings)
     tools: tuple[McpServerSettings, ...] = ()

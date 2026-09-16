@@ -26,13 +26,19 @@ def test_messages_are_appended_in_order(tmp_path: Path) -> None:
 
 def test_tool_round_pairs_calls_with_their_results(tmp_path: Path) -> None:
     manager = _manager(tmp_path)
-    tool_call = ToolCall("call-1", "lookup")
+    tool_call = ToolCall(id="call-1", name="lookup")
 
     manager.add_user("Wie wird das Wetter?")
     manager.add_tool_round(
         "",
         [tool_call],
-        [ToolResultMessage("call-1", "lookup", "22 Grad.")],
+        [
+            ToolResultMessage(
+                tool_call_id="call-1",
+                tool_name="lookup",
+                content="22 Grad.",
+            )
+        ],
     )
 
     llm_messages = manager.to_llm_messages()
@@ -46,12 +52,18 @@ def test_tool_round_pairs_calls_with_their_results(tmp_path: Path) -> None:
 
 def test_multiple_tool_rounds_are_stored_as_individual_pairs(tmp_path: Path) -> None:
     manager = _manager(tmp_path)
-    first = ToolCall("call-1", "lookup")
-    second = ToolCall("call-2", "read_file")
+    first = ToolCall(id="call-1", name="lookup")
+    second = ToolCall(id="call-2", name="read_file")
 
-    manager.add_tool_round("", [first], [ToolResultMessage("call-1", "lookup", "a")])
     manager.add_tool_round(
-        "", [second], [ToolResultMessage("call-2", "read_file", "b")]
+        "",
+        [first],
+        [ToolResultMessage(tool_call_id="call-1", tool_name="lookup", content="a")],
+    )
+    manager.add_tool_round(
+        "",
+        [second],
+        [ToolResultMessage(tool_call_id="call-2", tool_name="read_file", content="b")],
     )
 
     llm_messages = manager.to_llm_messages()
