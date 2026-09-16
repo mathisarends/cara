@@ -1,6 +1,8 @@
 import asyncio
 import time
+from collections.abc import AsyncIterator
 from contextlib import suppress
+from enum import Enum, auto
 from uuid import UUID
 
 from gateway.features.conversation.application import (
@@ -26,6 +28,8 @@ from gateway.features.voice.domain import (
     VoiceTurnNotFoundError,
 )
 from gateway.shared import UnitOfWork
+
+type _SpeechQueue = asyncio.Queue[str | _Flush | None]
 
 
 class VoiceTurnService:
@@ -498,7 +502,7 @@ class VoiceTurnService:
         ready: asyncio.Event,
     ) -> None:
         voice_session = await self._sessions.get(voice_session_id)
-        text: asyncio.Queue[str | None] = asyncio.Queue(8)
+        text: _SpeechQueue = asyncio.Queue(8)
         synthesis = self._start_task(
             voice_turn_id,
             self._synthesize(voice_session_id, voice_turn_id, text),
@@ -522,6 +526,7 @@ class VoiceTurnService:
                             )
                         await text.put(chunk)
                     elif event.type is ConversationEventType.TOOL_CALL_STARTED:
+                        await text.put(_Flush.MARKER)
                         await self._publish_turn_event(
                             voice_turn_id,
                             VoiceEventType.ASSISTANT_TOOL_STARTED,
@@ -557,23 +562,25 @@ class VoiceTurnService:
         self,
         voice_session_id: UUID,
         voice_turn_id: UUID,
-        text: asyncio.Queue[str | None],
+        text: _SpeechQueue,
     ) -> None:
         sequence = 0
         started = False
-        async for chunk in self._text_to_speech.synthesize(_text(text)):
-            if not started:
-                await self._speech_started(voice_turn_id)
-                started = True
-            voice_session, turn = await self._find_turn(voice_turn_id)
-            sequence += 1
-            await self._media.send_audio(
-                voice_session_id,
-                turn.index,
-                sequence,
-                time.time_ns() // 1_000_000,
-                chunk,
-            )
+        segments = _SpeechSegments(text)
+        while (segment := await segments.next()) is not None:
+            async for chunk in self._text_to_speech.synthesize(segment):
+                if not started:
+                    await self._speech_started(voice_turn_id)
+                    started = True
+                voice_session, turn = await self._find_turn(voice_turn_id)
+                sequence += 1
+                await self._media.send_audio(
+                    voice_session_id,
+                    turn.index,
+                    sequence,
+                    time.time_ns() // 1_000_000,
+                    chunk,
+                )
         voice_session, turn = await self._find_turn(voice_turn_id)
         sequence += 1
         await self._media.send_audio(
@@ -710,9 +717,34 @@ async def _audio(queue: asyncio.Queue[bytes | None]):
         yield chunk
 
 
-async def _text(queue: asyncio.Queue[str | None]):
-    while True:
-        chunk = await queue.get()
-        if chunk is None:
-            return
-        yield chunk
+class _Flush(Enum):
+    MARKER = auto()
+
+
+class _SpeechSegments:
+    """Splits a turn's text stream at flush markers so text spoken before a
+    tool call is synthesized right away instead of at the end of the turn."""
+
+    def __init__(self, queue: _SpeechQueue) -> None:
+        self._queue = queue
+        self._ended = False
+
+    async def next(self) -> AsyncIterator[str] | None:
+        while not self._ended:
+            item = await self._queue.get()
+            if item is None:
+                self._ended = True
+            elif isinstance(item, str) and item.strip():
+                return self._rest(item)
+        return None
+
+    async def _rest(self, first: str) -> AsyncIterator[str]:
+        yield first
+        while True:
+            item = await self._queue.get()
+            if item is None:
+                self._ended = True
+                return
+            if item is _Flush.MARKER:
+                return
+            yield item

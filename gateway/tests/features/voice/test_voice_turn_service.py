@@ -132,9 +132,9 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
     repository = _VoiceSessionRepository(voice_session)
     events = _VoiceEvents()
     conversation_events = _ConversationEvents(voice_session.session_id)
-    turns = _ScheduledTurns(conversation_events)
     media = _MediaSessions()
     text_to_speech = _TextToSpeech()
+    turns = _ScheduledTurns(conversation_events, text_to_speech)
     service = VoiceTurnService(
         cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
         cast(VoiceSessionService, _VoiceSessions(voice_session)),
@@ -158,18 +158,21 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
 
         assert turn.activation is Activation.PROACTIVE
         assert turn.status is VoiceTurnStatus.SPEAKING
-        assert text_to_speech.text == "Your train ticket reminder"
-        assert media.frames[-1][-1] is True
+        assert text_to_speech.segments == [
+            "Let me check.",
+            "Your train ticket reminder",
+        ]
+        assert [frame[-1] for frame in media.frames] == [False, False, True]
         assert [event.type for event in events.items] == [
             VoiceEventType.CONVERSATION_STARTED,
             VoiceEventType.TURN_STARTED,
-            VoiceEventType.ASSISTANT_TOOL_STARTED,
-            VoiceEventType.ASSISTANT_TOOL_COMPLETED,
             VoiceEventType.ASSISTANT_TEXT_STARTED,
+            VoiceEventType.ASSISTANT_TOOL_STARTED,
             VoiceEventType.ASSISTANT_AUDIO_STARTED,
+            VoiceEventType.ASSISTANT_TOOL_COMPLETED,
             VoiceEventType.ASSISTANT_AUDIO_COMPLETED,
         ]
-        assert events.items[2].data == {"name": "list_reminders"}
+        assert events.items[3].data == {"name": "list_reminders"}
     finally:
         await service.close()
 
@@ -267,8 +270,11 @@ class _ConversationEvents:
 
 
 class _ScheduledTurns:
-    def __init__(self, events: _ConversationEvents) -> None:
+    def __init__(
+        self, events: _ConversationEvents, text_to_speech: "_TextToSpeech"
+    ) -> None:
         self._events = events
+        self._text_to_speech = text_to_speech
 
     async def start_scheduled(
         self,
@@ -278,9 +284,14 @@ class _ScheduledTurns:
     ) -> None:
         assert text == "scheduled prompt"
         await self._events.publish(
+            ConversationEventType.CHAT_DELTA,
+            {"text": "Let me check."},
+        )
+        await self._events.publish(
             ConversationEventType.TOOL_CALL_STARTED,
             {"name": "list_reminders", "arguments": {}},
         )
+        await asyncio.wait_for(self._text_to_speech.first_segment_spoken.wait(), 1)
         await self._events.publish(
             ConversationEventType.TOOL_CALL_COMPLETED,
             {"name": "list_reminders", "result": "[]", "is_error": False},
@@ -295,9 +306,10 @@ class _ScheduledTurns:
 
 class _TextToSpeech:
     def __init__(self) -> None:
-        self.text = ""
+        self.segments: list[str] = []
+        self.first_segment_spoken = asyncio.Event()
 
     async def synthesize(self, text):
-        async for chunk in text:
-            self.text += chunk
+        self.segments.append("".join([chunk async for chunk in text]))
         yield b"audio"
+        self.first_segment_spoken.set()
