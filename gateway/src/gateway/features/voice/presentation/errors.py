@@ -1,6 +1,7 @@
 from fastapi_canon import Error, ErrorRegistry
 
 from gateway.features.voice.domain import (
+    InvalidVoiceSessionError,
     VoiceSessionAlreadyOpenError,
     VoiceSessionClosedError,
     VoiceSessionNotFoundError,
@@ -36,7 +37,7 @@ VOICE_SESSION_CLOSED = Error(
     detail=str,
 )
 INVALID_VOICE_SESSION = Error(
-    ValueError,
+    InvalidVoiceSessionError,
     status=422,
     code="invalid_voice_session",
     title="Invalid voice session",

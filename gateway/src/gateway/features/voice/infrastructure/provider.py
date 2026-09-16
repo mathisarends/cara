@@ -52,25 +52,15 @@ class VoiceProvider(Provider):
 
     @provide(scope=Scope.APP)
     def speech_to_text(self, settings: VoiceSettings) -> SpeechToText:
-        api_key = (
-            None
-            if settings.deepgram_api_key is None
-            else settings.deepgram_api_key.get_secret_value()
-        )
         return DeepgramSpeechToText(
-            api_key=api_key,
+            api_key=settings.deepgram_api_key.get_secret_value(),
             model=settings.stt_model,
         )
 
     @provide(scope=Scope.APP)
     def text_to_speech(self, settings: VoiceSettings) -> TextToSpeech:
-        api_key = (
-            None
-            if settings.deepgram_api_key is None
-            else settings.deepgram_api_key.get_secret_value()
-        )
         return DeepgramTextToSpeech(
-            api_key=api_key,
+            api_key=settings.deepgram_api_key.get_secret_value(),
             model=settings.tts_model,
         )
 

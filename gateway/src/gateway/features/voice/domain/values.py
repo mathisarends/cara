@@ -1,5 +1,7 @@
 from enum import StrEnum
 
+from gateway.features.voice.domain.errors import InvalidVoiceSessionError
+
 
 class AudioEncoding(StrEnum):
     PCM_S16LE = "pcm_s16le"
@@ -46,9 +48,9 @@ class AudioFormat:
         channels: int,
     ) -> None:
         if sample_rate <= 0:
-            raise ValueError("Audio sample rate must be positive")
+            raise InvalidVoiceSessionError("Audio sample rate must be positive")
         if channels != 1:
-            raise ValueError("Only mono audio is currently supported")
+            raise InvalidVoiceSessionError("Only mono audio is currently supported")
         self._encoding = encoding
         self._sample_rate = sample_rate
         self._channels = channels

@@ -23,6 +23,10 @@ class VoiceSessionClosedError(Exception):
     pass
 
 
+class InvalidVoiceSessionError(ValueError):
+    pass
+
+
 class VoiceTurnAlreadyActiveError(Exception):
     pass
 

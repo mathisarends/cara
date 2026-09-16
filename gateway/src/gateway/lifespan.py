@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from gateway.features.alarm.infrastructure import AlarmRuntime
 from gateway.features.automation.infrastructure import AutomationRuntime
 from gateway.features.conversation.application import AgentRuntime
+from gateway.features.voice.infrastructure.settings import VoiceSettings
 from gateway.presentation.authentication import GatewayAuthenticator
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("%s starting up", app.title)
     container = app.state.dishka_container
     await container.get(GatewayAuthenticator)
+    await container.get(VoiceSettings)
     await container.get(AgentRuntime)
     automation = await container.get(AutomationRuntime)
     alarms = await container.get(AlarmRuntime)

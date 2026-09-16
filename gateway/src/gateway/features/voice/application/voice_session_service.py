@@ -6,6 +6,7 @@ from gateway.features.voice.application.ports import MediaSessions, VoiceEventPu
 from gateway.features.voice.domain import (
     AudioEncoding,
     AudioFormat,
+    InvalidVoiceSessionError,
     VoiceSession,
     VoiceSessionAlreadyOpenError,
     VoiceSessionNotFoundError,
@@ -114,4 +115,4 @@ def _negotiate(
     for candidate in offered:
         if candidate in supported:
             return candidate
-    raise ValueError(f"No supported {direction} audio format was offered")
+    raise InvalidVoiceSessionError(f"No supported {direction} audio format was offered")

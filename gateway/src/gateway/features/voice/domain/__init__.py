@@ -1,4 +1,5 @@
 from .errors import (
+    InvalidVoiceSessionError,
     InvalidVoiceTurnTransitionError,
     MediaNotConnectedError,
     NotMediaOwnerError,
@@ -23,6 +24,7 @@ __all__ = [
     "Activation",
     "AudioEncoding",
     "AudioFormat",
+    "InvalidVoiceSessionError",
     "InvalidVoiceTurnTransitionError",
     "MediaNotConnectedError",
     "NotMediaOwnerError",

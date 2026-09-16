@@ -88,6 +88,7 @@ def app(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> FastAPI:
     asyncio.run(_migrate(database_url))
     monkeypatch.setenv("DATABASE_URL", database_url)
     monkeypatch.setenv("CARA_GATEWAY_TOKEN", _TOKEN)
+    monkeypatch.setenv("CARA_GATEWAY_VOICE_DEEPGRAM_API_KEY", "test-deepgram-key")
     monkeypatch.setattr(
         "gateway.agent_runtime.provider.CaraAgentRuntime",
         lambda *args: _TestAgentRuntime(),

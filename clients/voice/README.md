@@ -63,4 +63,4 @@ open voice session for that device and create a fresh conversation session.
 | `Observer` | earcons, Hue lighting, Sonos audio focus, tool acknowledgements |
 
 Conversation audio recording remains local. Provider selection and
-`DEEPGRAM_API_KEY` belong to the Gateway configuration.
+`CARA_GATEWAY_VOICE_DEEPGRAM_API_KEY` belong to the Gateway configuration.

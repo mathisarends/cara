@@ -13,7 +13,8 @@ DEFAULT_CONFIG_FILE = Path("voice.yaml")
 
 
 class GatewayConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    # The Gateway shares the CARA_GATEWAY_* namespace in .env for its own settings.
+    model_config = ConfigDict(extra="ignore", frozen=True)
 
     url: str = "http://127.0.0.1:8000"
     token: str = Field(min_length=1)

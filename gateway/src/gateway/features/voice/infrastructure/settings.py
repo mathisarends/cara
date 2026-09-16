@@ -11,7 +11,7 @@ class VoiceSettings(BaseSettings):
         frozen=True,
     )
 
-    deepgram_api_key: SecretStr | None = None
+    deepgram_api_key: SecretStr = Field(min_length=1)
     stt_model: str = "flux-general-en"
     tts_model: str = "aura-2-thalia-en"
     language: str = "en"

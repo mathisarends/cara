@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from gateway.features.voice.domain.errors import (
+    InvalidVoiceSessionError,
     VoiceSessionClosedError,
     VoiceTurnAlreadyActiveError,
     VoiceTurnNotFoundError,
@@ -33,7 +34,7 @@ class VoiceSession(Aggregate):
         close_reason: str | None = None,
     ) -> None:
         if not device_id.strip():
-            raise ValueError("Device ID must not be empty")
+            raise InvalidVoiceSessionError("Device ID must not be empty")
         super().__init__(id=id, created_at=created_at)
         self._session_id = session_id
         self._device_id = device_id

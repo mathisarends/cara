@@ -10,23 +10,16 @@ class DeepgramSpeechToText(SpeechToText):
     def __init__(
         self,
         *,
-        api_key: str | None,
+        api_key: str,
         model: str,
         sample_rate: int = 16_000,
     ) -> None:
-        if api_key is None:
-            self._client = StreamingSpeechToText(
-                model=model,
-                sample_rate=sample_rate,
-                eot_timeout_ms=2_000,
-            )
-        else:
-            self._client = StreamingSpeechToText(
-                api_key,
-                model=model,
-                sample_rate=sample_rate,
-                eot_timeout_ms=2_000,
-            )
+        self._client = StreamingSpeechToText(
+            api_key,
+            model=model,
+            sample_rate=sample_rate,
+            eot_timeout_ms=2_000,
+        )
 
     async def transcribe(
         self,

@@ -24,9 +24,9 @@ from voice.echo_cancellation import (
     EchoCancellationSettings,
     wrap_with_echo_cancellation,
 )
-from voice.events import SessionEnded, SessionStarted
+from voice.events import AssistantTurnStarted, SessionEnded, SessionStarted
 from voice.events.bus import EventBus
-from voice.events.models import VoiceResourcesClosing
+from voice.events.models import VoiceResourcesClosing, VoiceTurnEnded
 from voice.gateway import GatewayVoiceBridge, GatewayVoiceSession
 from voice.handler import FollowUpHandler, FollowUpSettings
 from voice.models import AgentResult
@@ -102,6 +102,9 @@ class VoiceChannel:
             ),
         )
         self._barge_in = barge_in or WakeWordBargeIn()
+        self._assistant_responding = False
+        self._event_bus.on(AssistantTurnStarted, self._on_assistant_turn_started)
+        self._event_bus.on(VoiceTurnEnded, self._on_voice_turn_ended)
         self._barge_in.set_context(
             BargeInContext(
                 event_bus=self._event_bus,
@@ -171,5 +174,15 @@ class VoiceChannel:
 
     async def _watch_barge_in(self) -> None:
         async for signal in self._barge_in.signals():
-            if self._gateway_bridge.active_turn_id is not None:
-                await self._gateway_bridge.interrupt(signal.sequence)
+            # Only the assistant's response can be barged into; while the user
+            # is still speaking their command, speech is the turn itself.
+            if not self._assistant_responding:
+                continue
+            self._assistant_responding = False
+            await self._gateway_bridge.interrupt(signal.sequence)
+
+    async def _on_assistant_turn_started(self, _: AssistantTurnStarted) -> None:
+        self._assistant_responding = True
+
+    async def _on_voice_turn_ended(self, _: VoiceTurnEnded) -> None:
+        self._assistant_responding = False

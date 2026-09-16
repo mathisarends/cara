@@ -147,9 +147,16 @@ class VoiceTurnService:
     async def interrupt(self, voice_turn_id: UUID) -> VoiceTurn:
         voice_session, turn = await self._find_turn(voice_turn_id)
         if turn.user_message_id is not None:
-            await self._turns.cancel(voice_session.session_id)
+            # The conversation turn may already be done while its answer is
+            # still being spoken.
+            with suppress(NoActiveTurnError):
+                await self._turns.cancel(voice_session.session_id)
         turn.cancel()
         sequence = voice_session.next_sequence()
+        self._input_sequences.pop(turn.id, None)
+        self._partial_revisions.pop(turn.id, None)
+        self._input_queues.pop(turn.id, None)
+        self._cancel_tasks(turn.id)
         async with self._repositories() as repository:
             await repository.save(voice_session)
         await self._events.publish_voice(
@@ -197,15 +204,19 @@ class VoiceTurnService:
     ) -> None:
         voice_session = await self._sessions.get(voice_session_id)
         turn = voice_session.active_turn
-        if turn is None or turn.index != voice_turn_index:
+        # The client keeps streaming until it hears that input ended, so frames
+        # for a finished turn or a closed input stream are still in flight.
+        if turn is None or turn.index > voice_turn_index:
+            return
+        if turn.index != voice_turn_index:
             raise ValueError("Media frame does not belong to the active voice turn")
+        queue = self._input_queues.get(turn.id)
+        if queue is None:
+            return
         previous = self._input_sequences.get(turn.id, -1)
         if sequence <= previous:
             raise ValueError("Media frame sequence must increase monotonically")
         self._input_sequences[turn.id] = sequence
-        queue = self._input_queues.get(turn.id)
-        if queue is None:
-            raise ValueError("The active voice turn has no input stream")
         if end:
             turn.end_input()
             async with self._repositories() as repository:
