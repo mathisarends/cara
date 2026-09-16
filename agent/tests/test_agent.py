@@ -104,6 +104,33 @@ async def test_tool_errors_become_results_and_the_turn_continues() -> None:
     assert events[-1] == TurnCompleted("recovered")
 
 
+async def test_repeated_tool_failure_nudges_the_model_to_update_the_user() -> None:
+    model = _Model(
+        [
+            ModelResponse(
+                finish_reason="tool_calls",
+                tool_calls=(_tool_call("one", "crash", "{}"),),
+            ),
+            ModelResponse(
+                finish_reason="tool_calls",
+                tool_calls=(_tool_call("two", "crash", "{}"),),
+            ),
+            ModelResponse(completion="it keeps failing", finish_reason="stop"),
+        ]
+    )
+    agent = _agent(model, _Tools({"crash": RuntimeError("boom")}))
+
+    try:
+        await _run_turn(agent, "go")
+    finally:
+        await agent.aclose()
+
+    assert model.requests[1][-1].content == "RuntimeError: boom"
+    assert model.requests[2][-1].content.startswith(
+        "RuntimeError: boom\n\n[Runtime note] `crash` has failed 2 times"
+    )
+
+
 async def test_fatal_tool_error_aborts_the_turn() -> None:
     model = _Model(
         [

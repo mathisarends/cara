@@ -18,6 +18,7 @@ from agent.events import (
 )
 from agent.messages import MessageManager
 from agent.models import ModelSwitch
+from agent.nudges import ProgressNudges
 from agent.prompt import SystemPrompt
 from agent.runtime import TurnFailure
 from agent.tools import AgentTools, FatalToolError
@@ -138,10 +139,13 @@ class Agent:
 
     async def _run_loop(self, events: _EventQueue) -> None:
         response_parts: list[str] = []
+        nudges = ProgressNudges()
         while True:
             end = await self._stream_completion(events)
             completion = end.completion
             response_parts.append(completion)
+            if completion.strip():
+                nudges.record_update()
 
             if not end.tool_calls:
                 self._context.add_assistant(completion)
@@ -153,7 +157,9 @@ class Agent:
                 )
                 return
 
-            tool_results = await self._execute_tools(end.tool_calls, events)
+            tool_results = nudges.annotate(
+                await self._execute_tools(end.tool_calls, events)
+            )
             self._context.add_tool_round(
                 completion,
                 end.tool_calls,
