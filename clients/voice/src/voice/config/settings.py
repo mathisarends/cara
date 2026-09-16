@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Literal, Self, cast
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -166,8 +166,8 @@ class SonosConfig(_ConfigModel):
     clip_prebuffer_seconds: float = Field(default=0.25, ge=0.0)
 
 
-class VoiceClientConfig(BaseSettings):
-    """Complete configuration for a device-side voice client."""
+class VoiceSessionConfig(BaseSettings):
+    """Complete configuration for a device-side voice session."""
 
     model_config = SettingsConfigDict(
         env_prefix="CARA_",
@@ -237,7 +237,7 @@ class VoiceClientConfig(BaseSettings):
             ) from error
         try:
             configured_model = type(
-                "_ConfiguredVoiceClientConfig",
+                "_ConfiguredVoiceSessionConfig",
                 (cls,),
                 {
                     "__module__": cls.__module__,
@@ -247,7 +247,7 @@ class VoiceClientConfig(BaseSettings):
                 },
             )
             loaded = configured_model()
-            return cls.model_validate(loaded.model_dump())
+            return cast(Self, loaded)
         except ValidationError as error:
             details = "\n".join(
                 _format_validation_error(item) for item in error.errors()
@@ -282,7 +282,7 @@ class VoiceClientConfig(BaseSettings):
 def _validate_document_root(document: object) -> None:
     if not isinstance(document, dict):
         raise VoiceConfigError("The YAML document must contain a mapping at its root.")
-    known_fields = set(VoiceClientConfig.model_fields)
+    known_fields = set(VoiceSessionConfig.model_fields)
     unknown_fields = sorted(set(document) - known_fields)
     if unknown_fields:
         rendered = ", ".join(str(field) for field in unknown_fields)

@@ -1,10 +1,10 @@
-"""Activate the configured voice client from an additional external source."""
+"""Activate the configured voice session from an additional external source."""
 
 import asyncio
 import logging
 import os
 
-from voice import ExternalActivationSource, VoiceClient, VoiceClientConfig
+from voice import ExternalActivationSource, VoiceSessionFactory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,16 +14,16 @@ _LISTEN_SECONDS = 5.0
 
 
 async def main() -> None:
-    config = VoiceClientConfig.from_yaml()
     activation = ExternalActivationSource()
-    client = VoiceClient(config, activation_sources=(activation,))
-    async with client:
+    factory = VoiceSessionFactory.from_yaml(activation_sources=(activation,))
+    session = await factory.create()
+    async with session:
         heartbeat = asyncio.create_task(
             _trigger_periodically(activation),
             name="example-heartbeat",
         )
         try:
-            await client.run()
+            await session.run()
         finally:
             heartbeat.cancel()
             await asyncio.gather(heartbeat, return_exceptions=True)

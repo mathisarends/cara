@@ -15,16 +15,16 @@ from .barge_in import (
     WakeWordBargeIn,
 )
 from .channel import VoiceChannel
-from .client import VoiceClient
 from .config import (
     AudioOutputType,
     BargeInType,
     SonosAudioFocusStrategy,
-    VoiceClientConfig,
     VoiceConfigError,
+    VoiceSessionConfig,
     WakeWordName,
 )
 from .conversation import ConversationAudioMixer, ConversationAudioRecorder
+from .factory import VoiceSessionFactory
 from .gateway import GatewayVoiceSession
 from .handler import FollowUpSettings
 from .integration import (
@@ -39,6 +39,7 @@ from .playback import (
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
+from .session import VoiceSession
 from .sound import Earcon, SoundIntegration
 from .wakeword import WakeWord, WakeWordSettings
 
@@ -73,8 +74,9 @@ __all__ = [
     "SonosPausePolicy",
     "ToolAcknowledgementIntegration",
     "VoiceChannel",
-    "VoiceClient",
-    "VoiceClientConfig",
+    "VoiceSession",
+    "VoiceSessionConfig",
+    "VoiceSessionFactory",
     "VoiceConfigError",
     "WakeWord",
     "WakeWordBargeIn",

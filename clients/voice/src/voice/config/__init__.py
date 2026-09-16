@@ -10,8 +10,8 @@ from .settings import (
     SonosAudioFocusStrategy,
     SonosConfig,
     SpeechBargeInConfig,
-    VoiceClientConfig,
     VoiceConfigError,
+    VoiceSessionConfig,
     WakeWordBargeInConfig,
     WakeWordName,
 )
@@ -28,7 +28,7 @@ __all__ = [
     "SonosConfig",
     "SonosAudioFocusStrategy",
     "SpeechBargeInConfig",
-    "VoiceClientConfig",
+    "VoiceSessionConfig",
     "VoiceConfigError",
     "WakeWordName",
     "WakeWordBargeInConfig",

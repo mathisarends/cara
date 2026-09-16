@@ -1,11 +1,11 @@
 # voice
 
-Cara's device-side voice client. It owns the microphone, speaker, wake word,
+Cara's device-side voice session. It owns the microphone, speaker, wake word,
 audio buffering, acoustic echo cancellation, barge-in detection, and local
 device integrations. The Gateway owns the voice session, STT, conversation
 turn, TTS, and persisted turn state.
 
-The client therefore needs no Deepgram SDK or provider credentials. It uses
+The local session therefore needs no Deepgram SDK or provider credentials. It uses
 three Gateway transports:
 
 - REST opens or resumes a voice session and loads its snapshot.
@@ -33,15 +33,15 @@ Gateway turn, and starts a new turn from the retained microphone pre-roll.
 ## Wiring
 
 ```python
-from voice import VoiceClient, VoiceClientConfig
+from voice import VoiceSessionFactory
 
-config = VoiceClientConfig.from_yaml()
-client = VoiceClient(config)
-async with client:
-    await client.run()
+factory = VoiceSessionFactory.from_yaml()
+session = await factory.create()
+async with session:
+    await session.run()
 ```
 
-`VoiceClientConfig.from_yaml()` loads `voice.yml` by default and also accepts
+`VoiceSessionFactory.from_yaml()` loads `voice.yml` by default and also accepts
 the older `voice.yaml` filename. Unknown keys, invalid values, and malformed
 YAML fail immediately with the configuration path and actionable validation
 details. Connection and session values can be overridden with environment

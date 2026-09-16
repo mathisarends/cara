@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from contextlib import AsyncExitStack
-from types import TracebackType
+from pathlib import Path
 from typing import Self
 
 from sonosify import SonosClient
@@ -15,7 +15,7 @@ from voice.config import (
     AudioOutputType,
     BargeInType,
     SonosAudioFocusStrategy,
-    VoiceClientConfig,
+    VoiceSessionConfig,
 )
 from voice.echo_cancellation import EchoCancellationSettings
 from voice.gateway import GatewayVoiceSession
@@ -27,17 +27,18 @@ from voice.playback import (
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
+from voice.session import VoiceSession
 from voice.sonos import SonosSettings
 from voice.sound import SoundIntegration
 from voice.wakeword import WakeWord, WakeWordSettings
 
 
-class VoiceClient:
-    """Builds and owns a complete voice channel from validated configuration."""
+class VoiceSessionFactory:
+    """Creates configured voice sessions and their external resources."""
 
     def __init__(
         self,
-        config: VoiceClientConfig,
+        config: VoiceSessionConfig,
         *,
         activation_sources: Iterable[ActivationSource] = (),
         integrations: Iterable[VoiceIntegration] = (),
@@ -45,13 +46,27 @@ class VoiceClient:
         self._config = config
         self._activation_sources = tuple(activation_sources)
         self._additional_integrations = tuple(integrations)
-        self._resources: AsyncExitStack | None = None
-        self._channel: VoiceChannel | None = None
 
-    async def __aenter__(self) -> Self:
-        if self._resources is not None:
-            raise RuntimeError("Voice client is already running.")
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str | Path | None = None,
+        *,
+        activation_sources: Iterable[ActivationSource] = (),
+        integrations: Iterable[VoiceIntegration] = (),
+    ) -> Self:
+        config = (
+            VoiceSessionConfig.from_yaml()
+            if path is None
+            else VoiceSessionConfig.from_yaml(path)
+        )
+        return cls(
+            config,
+            activation_sources=activation_sources,
+            integrations=integrations,
+        )
 
+    async def create(self) -> VoiceSession:
         resources = AsyncExitStack()
         await resources.__aenter__()
         try:
@@ -60,7 +75,7 @@ class VoiceClient:
             sonos_client = await self._open_sonos(resources)
             audio_output = self._build_audio_output(sonos_client)
             integrations = self._build_integrations(sonos_client)
-            self._channel = VoiceChannel(
+            channel = VoiceChannel(
                 gateway_session=gateway_session,
                 audio_output=audio_output,
                 wake_word_settings=self._build_wake_word_settings(),
@@ -76,32 +91,10 @@ class VoiceClient:
                 integrations=integrations,
                 recording_path=self._recording_path(),
             )
+            return VoiceSession(channel=channel, resources=resources)
         except BaseException:
             await resources.aclose()
             raise
-
-        self._resources = resources
-        return self
-
-    async def __aexit__(
-        self,
-        _exc_type: type[BaseException] | None,
-        _exc_value: BaseException | None,
-        _traceback: TracebackType | None,
-    ) -> None:
-        channel, self._channel = self._channel, None
-        resources, self._resources = self._resources, None
-        try:
-            if channel is not None:
-                await channel.stop()
-        finally:
-            if resources is not None:
-                await resources.aclose()
-
-    async def run(self) -> None:
-        if self._channel is None:
-            raise RuntimeError("Use 'async with VoiceClient(config)' before run().")
-        await self._channel.start()
 
     async def _connect_gateway(self) -> GatewayVoiceSession:
         gateway = self._config.gateway

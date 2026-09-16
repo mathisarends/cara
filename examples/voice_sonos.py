@@ -3,16 +3,16 @@
 import asyncio
 import logging
 
-from voice import VoiceClient, VoiceClientConfig
+from voice import VoiceSessionFactory
 
 logging.basicConfig(level=logging.INFO)
 
 
 async def main() -> None:
-    config = VoiceClientConfig.from_yaml()
-    client = VoiceClient(config)
-    async with client:
-        await client.run()
+    factory = VoiceSessionFactory.from_yaml()
+    session = await factory.create()
+    async with session:
+        await session.run()
 
 
 if __name__ == "__main__":

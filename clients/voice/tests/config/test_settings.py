@@ -5,8 +5,9 @@ import pytest
 from voice import (
     AudioOutputType,
     BargeInType,
-    VoiceClientConfig,
     VoiceConfigError,
+    VoiceSessionConfig,
+    VoiceSessionFactory,
 )
 
 
@@ -29,7 +30,7 @@ audio:
 """,
     )
 
-    config = VoiceClientConfig.from_yaml(config_path)
+    config = VoiceSessionConfig.from_yaml(config_path)
 
     assert config.session.client_id == "kitchen"
     assert config.activation.wake_word.word == "hey_jarvis"
@@ -49,7 +50,7 @@ barge_in:
     )
 
     with pytest.raises(VoiceConfigError) as raised:
-        VoiceClientConfig.from_yaml(config_path)
+        VoiceSessionConfig.from_yaml(config_path)
 
     message = str(raised.value)
     assert str(config_path.resolve()) in message
@@ -63,7 +64,7 @@ def test_reports_malformed_yaml_with_its_path(tmp_path: Path) -> None:
     config_path = _write(tmp_path, "gateway: [\n")
 
     with pytest.raises(VoiceConfigError) as raised:
-        VoiceClientConfig.from_yaml(config_path)
+        VoiceSessionConfig.from_yaml(config_path)
 
     message = str(raised.value)
     assert "Could not parse voice configuration" in message
@@ -84,7 +85,7 @@ integrations:
     )
 
     with pytest.raises(VoiceConfigError, match="room_nam"):
-        VoiceClientConfig.from_yaml(config_path)
+        VoiceSessionConfig.from_yaml(config_path)
 
 
 def test_accepts_legacy_yaml_filename(tmp_path: Path, monkeypatch) -> None:
@@ -95,9 +96,20 @@ def test_accepts_legacy_yaml_filename(tmp_path: Path, monkeypatch) -> None:
     )
     monkeypatch.chdir(tmp_path)
 
-    config = VoiceClientConfig.from_yaml()
+    config = VoiceSessionConfig.from_yaml()
 
     assert config.session.client_id == "legacy-client"
+
+
+def test_factory_loads_an_explicit_yaml_path(tmp_path: Path) -> None:
+    config_path = _write(
+        tmp_path,
+        "gateway:\n  token: test-token\nsession:\n  client_id: factory\n",
+    )
+
+    factory = VoiceSessionFactory.from_yaml(config_path)
+
+    assert isinstance(factory, VoiceSessionFactory)
 
 
 def _write(directory: Path, content: str) -> Path:

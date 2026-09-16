@@ -1,4 +1,4 @@
-# Complete device-side voice client configuration.
+# Complete device-side voice session configuration.
 # Secrets stay in .env, for example CARA_GATEWAY_TOKEN.
 gateway:
   url: http://127.0.0.1:8000
