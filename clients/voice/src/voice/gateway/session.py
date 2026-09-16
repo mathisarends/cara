@@ -41,6 +41,7 @@ class GatewayVoiceSession:
         self._rpc = rpc
         self._media = media
         self._snapshot = snapshot
+        self._last_sequence = snapshot.last_sequence
         self._http = http
         self._closed = False
 
@@ -143,8 +144,8 @@ class GatewayVoiceSession:
             match event:
                 case VoiceTranscriptPartial():
                     yield event
-                case _ if event.sequence > self._snapshot.last_sequence:
-                    self._snapshot.last_sequence = event.sequence
+                case _ if event.sequence > self._last_sequence:
+                    self._last_sequence = event.sequence
                     yield event
 
     def conversation_events(self) -> AsyncIterator[SessionEvent]:
@@ -168,6 +169,9 @@ class GatewayVoiceSession:
         for turn in self._snapshot.turns:
             if turn.id == voice_turn_id:
                 return turn.index
+        # Only consumed events advance the watermark: a snapshot taken while
+        # later events are already on their way to the subscriber would
+        # otherwise make them look like history and drop them.
         snapshot = await self._rest.get_voice_session(self.id)
         self._snapshot = snapshot
         for turn in snapshot.turns:

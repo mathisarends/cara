@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections.abc import Coroutine
 from contextlib import suppress
 from uuid import UUID
 
@@ -78,6 +79,8 @@ class GatewayVoiceBridge:
         self._pre_roll_seconds = pre_roll_seconds
         self._active_turn_id: UUID | None = None
         self._active_turn_index: int | None = None
+        self._speech_started_turn_id: UUID | None = None
+        self._audio_started_turn_id: UUID | None = None
         self._input_reader: AudioReader | None = None
         self._input_task: asyncio.Task[None] | None = None
         self._input_timeout_task: asyncio.Task[None] | None = None
@@ -100,12 +103,18 @@ class GatewayVoiceBridge:
             return
         await self._restore_active_turn()
         self._tasks = [
-            asyncio.create_task(self._pump_voice_events(), name="voice-events"),
             asyncio.create_task(
-                self._pump_conversation_events(),
+                self._pump(self._pump_voice_events(), "voice event"),
+                name="voice-events",
+            ),
+            asyncio.create_task(
+                self._pump(self._pump_conversation_events(), "conversation event"),
                 name="voice-conversation-events",
             ),
-            asyncio.create_task(self._pump_media(), name="voice-media"),
+            asyncio.create_task(
+                self._pump(self._pump_media(), "media"),
+                name="voice-media",
+            ),
         ]
 
     async def _restore_active_turn(self) -> None:
@@ -134,13 +143,31 @@ class GatewayVoiceBridge:
                     AssistantResponseStarted(turn_id=turn.id)
                 )
                 if turn.status is VoiceTurnStatus.SPEAKING:
-                    await self._event_bus.dispatch(
-                        AssistantAudioStarted(
-                            turn_id=turn.id,
-                            sample_rate=self._session.output_sample_rate,
-                            channels=self._session.output_channels,
-                        )
-                    )
+                    await self._start_assistant_audio(turn.id)
+
+    async def _pump(self, stream: Coroutine[None, None, None], kind: str) -> None:
+        """Run one gateway stream, releasing the active turn if it fails.
+
+        A stream that dies leaves the channel unable to hear the rest of the
+        turn, so the turn is failed rather than left open forever, which would
+        make the channel ignore every later activation.
+        """
+        try:
+            await stream
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            logger.exception("The %s stream failed", kind)
+            await self._abandon_active_turn(str(error))
+
+    async def _abandon_active_turn(self, message: str) -> None:
+        turn_id = self._active_turn_id
+        if turn_id is None:
+            return
+        await self._event_bus.dispatch(
+            LocalVoiceTurnFailed(turn_id=turn_id, message=message)
+        )
+        await self._finish_turn(turn_id)
 
     async def interrupt(self, sequence: int) -> None:
         turn_id = self._active_turn_id
@@ -208,12 +235,8 @@ class GatewayVoiceBridge:
         turn_index = self._active_turn_index
         if turn_index is None:
             return
-        first = True
         try:
             async for frame in reader:
-                if first:
-                    first = False
-                    await self._event_bus.dispatch(UserSpeechStarted())
                 self._last_input_sequence = frame.sequence
                 await self._session.send_input(
                     turn_index,
@@ -258,6 +281,7 @@ class GatewayVoiceBridge:
                 case VoiceTurnStarted():
                     await self._voice_turn_started(event)
                 case VoiceTranscriptPartial():
+                    await self._start_user_speech(event.voice_turn_id)
                     await self._event_bus.dispatch(
                         UserTranscriptionUpdated(
                             turn_id=event.voice_turn_id,
@@ -268,6 +292,7 @@ class GatewayVoiceBridge:
                     )
                 case VoiceTranscriptFinal():
                     await self._stop_input()
+                    await self._start_user_speech(event.voice_turn_id)
                     await self._event_bus.dispatch(UserSpeechEnded())
                     await self._event_bus.dispatch(
                         UserTranscriptionCompleted(
@@ -280,13 +305,7 @@ class GatewayVoiceBridge:
                         AssistantResponseStarted(turn_id=event.voice_turn_id)
                     )
                 case VoiceAssistantAudioStarted():
-                    await self._event_bus.dispatch(
-                        AssistantAudioStarted(
-                            turn_id=event.voice_turn_id,
-                            sample_rate=self._session.output_sample_rate,
-                            channels=self._session.output_channels,
-                        )
-                    )
+                    await self._start_assistant_audio(event.voice_turn_id)
                 case VoiceAssistantAudioCompleted():
                     pass
                 case VoiceTurnDiscarded():
@@ -361,12 +380,38 @@ class GatewayVoiceBridge:
             turn_id = self._active_turn_id
             if turn_id is None or frame.voice_turn_index != self._active_turn_index:
                 continue
+            # Media and lifecycle events travel on separate sockets, so audio
+            # can arrive before voice.assistant_audio.started does.
+            await self._start_assistant_audio(turn_id)
             if frame.kind is MediaFrameKind.OUTPUT_PCM:
                 await self._event_bus.dispatch(
                     AssistantAudioChunk(turn_id=turn_id, chunk=frame.payload)
                 )
             elif frame.kind is MediaFrameKind.OUTPUT_END:
                 await self._event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id))
+
+    async def _start_user_speech(self, turn_id: UUID) -> None:
+        """Announce the first evidence that the user is actually speaking.
+
+        Transcription is what distinguishes speech from an open microphone, so
+        a follow-up window stays open until the gateway hears something.
+        """
+        if self._speech_started_turn_id == turn_id:
+            return
+        self._speech_started_turn_id = turn_id
+        await self._event_bus.dispatch(UserSpeechStarted())
+
+    async def _start_assistant_audio(self, turn_id: UUID) -> None:
+        if self._audio_started_turn_id == turn_id:
+            return
+        self._audio_started_turn_id = turn_id
+        await self._event_bus.dispatch(
+            AssistantAudioStarted(
+                turn_id=turn_id,
+                sample_rate=self._session.output_sample_rate,
+                channels=self._session.output_channels,
+            )
+        )
 
     async def _on_playback_completed(
         self,
