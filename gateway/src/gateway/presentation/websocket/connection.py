@@ -38,6 +38,7 @@ class GatewayConnection:
         )
         forwarder = EventForwarder(self._receiver, self._send_notification)
         events = asyncio.create_task(forwarder.run(), name="gateway-events")
+        events.add_done_callback(self._report_stopped_events)
         close_code = 1000
         try:
             while True:
@@ -82,6 +83,20 @@ class GatewayConnection:
             request_id,
             _response_outcome(response),
             _elapsed(started),
+        )
+
+    def _report_stopped_events(self, events: asyncio.Task[None]) -> None:
+        """Report a client that stays connected but stops receiving events.
+
+        Forwarding only ends with the connection, so anything else leaves the
+        client waiting for events the Gateway believes it delivered.
+        """
+        if events.cancelled():
+            return
+        logger.error(
+            "Gateway client %s stopped receiving events",
+            _short_id(self._client_id),
+            exc_info=events.exception(),
         )
 
     async def _send_notification(self, notification: rpc.RpcNotification) -> None:
