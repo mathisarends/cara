@@ -27,31 +27,29 @@ class _Sessions:
 
 class _Turns:
     def __init__(self) -> None:
-        self.started: list[tuple[UUID, str, dict[str, object]]] = []
+        self.started: list[tuple[UUID, str]] = []
 
     async def start_scheduled(
         self,
         *,
         session_id: UUID,
         text: str,
-        metadata: dict[str, object],
     ) -> None:
-        self.started.append((session_id, text, metadata))
+        self.started.append((session_id, text))
 
 
 class _VoiceTurns:
     def __init__(self, *, available: bool = True) -> None:
         self.available = available
-        self.started: list[tuple[str, str, dict[str, object]]] = []
+        self.started: list[tuple[str, str]] = []
 
     async def start_proactive_in_room(
         self,
         room: str,
         *,
         text: str,
-        metadata: dict[str, object],
     ) -> object | None:
-        self.started.append((room, text, metadata))
+        self.started.append((room, text))
         return object() if self.available else None
 
 
@@ -75,10 +73,9 @@ async def test_channel_target_opens_the_current_session_before_running() -> None
     )
 
     assert sessions.opened == [ChannelRef("voice")]
-    [(session_id, prompt, metadata)] = turns.started
+    [(session_id, prompt)] = turns.started
     assert session_id == sessions.session.id
     assert "Tell the user to call the dentist at 5 PM" in prompt
-    assert metadata["automation_id"] == str(automation_id)
 
 
 async def test_voice_delivery_runs_proactively_in_the_configured_room() -> None:
@@ -99,10 +96,9 @@ async def test_voice_delivery_runs_proactively_in_the_configured_room() -> None:
         scheduled_for,
     )
 
-    [(room, prompt, metadata)] = voice_turns.started
+    [(room, prompt)] = voice_turns.started
     assert room == "bedroom"
     assert "buy a train ticket" in prompt
-    assert metadata["automation_id"] == str(automation_id)
 
 
 async def test_voice_delivery_is_skipped_when_the_room_is_offline() -> None:

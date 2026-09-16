@@ -62,7 +62,6 @@ class TurnService:
         *,
         session_id: UUID,
         text: str,
-        metadata: dict[str, object],
     ) -> UUID:
         session = await self._session_service.get(session_id)
         if not await self._acquire_lease(session_id):
@@ -84,7 +83,6 @@ class TurnService:
             self._execute(
                 session_id,
                 text,
-                metadata,
                 persist_input=False,
                 input_id=input_id,
             )
@@ -101,7 +99,6 @@ class TurnService:
         *,
         session_id: UUID,
         text: str,
-        metadata: dict[str, object],
     ) -> None:
         session = await self._session_service.get(session_id)
         deferred = False
@@ -121,7 +118,7 @@ class TurnService:
             session.channel.name,
             _preview(text),
         )
-        await self._execute(session_id, text, metadata, persist_input=False)
+        await self._execute(session_id, text, persist_input=False)
 
     async def steer(self, *, session_id: UUID, text: str) -> None:
         session = await self._session_service.get(session_id)
@@ -155,7 +152,6 @@ class TurnService:
         self,
         session_id: UUID,
         text: str,
-        metadata: dict[str, object],
         *,
         persist_input: bool,
         input_id: UUID | None = None,
@@ -177,7 +173,6 @@ class TurnService:
                 turn_id=uuid.uuid4(),
                 input_id=input_id,
                 input=text,
-                turn_metadata=dict(metadata),
             )
             async for event in self._agent.run(request):
                 await turn.handle(event)

@@ -52,19 +52,12 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
         delivery: VoiceDelivery | None,
         scheduled_for: datetime,
     ) -> None:
-        metadata: dict[str, object] = {
-            "origin": "automation",
-            "automation_kind": "reminder",
-            "automation_id": str(automation_id),
-            "scheduled_for": scheduled_for.isoformat(),
-        }
         logger.info("Running scheduled automation %s", automation_id)
         prompt = _automation_prompt(action.instruction)
         if delivery is not None:
             turn = await self._voice_turns.start_proactive_in_room(
                 delivery.room,
                 text=prompt,
-                metadata=metadata,
             )
             if turn is None:
                 logger.warning(
@@ -79,14 +72,12 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
                 await self._turns.start_scheduled(
                     session_id=session_id,
                     text=prompt,
-                    metadata=metadata,
                 )
             case ChannelTarget(channel=channel):
                 session = await self._sessions.open(channel=ChannelRef(channel))
                 await self._turns.start_scheduled(
                     session_id=session.id,
                     text=prompt,
-                    metadata=metadata,
                 )
 
 

@@ -24,7 +24,6 @@ class AgentRunRequest:
     turn_id: UUID
     input_id: UUID | None
     input: str
-    turn_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

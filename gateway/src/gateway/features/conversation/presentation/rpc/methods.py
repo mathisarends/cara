@@ -44,7 +44,6 @@ async def start_turn(
     await turns.start(
         session_id=params.session_id,
         text=params.message,
-        metadata=params.metadata,
     )
     return TurnCommandResult(session_id=params.session_id)
 

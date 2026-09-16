@@ -160,7 +160,7 @@ async def test_failed_turn_publishes_turn_failed_event(
     )
     session = await sessions.create(channel=_CHANNEL)
 
-    await turns.start(session_id=session.id, text="hello", metadata={})
+    await turns.start(session_id=session.id, text="hello")
     await _wait_for_event(publisher, ConversationEventType.TURN_FAILED)
     await turns.close()
 
@@ -186,7 +186,7 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
 
-    await turns.start(session_id=session.id, text="hello", metadata={})
+    await turns.start(session_id=session.id, text="hello")
     await _wait_for_event(publisher, ConversationEventType.TURN_COMPLETED)
 
     assert [event.type for event in publisher.events] == [
@@ -227,7 +227,7 @@ async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
     runner = _SteerableAgentRuntime()
     sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
-    await turns.start(session_id=session.id, text="hello", metadata={})
+    await turns.start(session_id=session.id, text="hello")
     await asyncio.wait_for(runner.tool_started.wait(), timeout=1)
 
     await turns.steer(session_id=session.id, text="also check Hamburg")
@@ -285,17 +285,12 @@ async def test_automation_turn_uses_full_context_without_a_synthetic_user_messag
     await turns.start_scheduled(
         session_id=session.id,
         text="[Scheduled agent run] Play bird sounds and wake the user",
-        metadata={"origin": "automation", "automation_kind": "reminder"},
     )
 
     request = runner.requests[0]
     persisted = await sessions.get(session.id)
     assert request.input_id is None
     assert request.input == "[Scheduled agent run] Play bird sounds and wake the user"
-    assert request.turn_metadata == {
-        "origin": "automation",
-        "automation_kind": "reminder",
-    }
     assert [type(entry).__name__ for entry in persisted.entries] == [
         "ToolCallSequence",
         "AssistantMessage",
@@ -311,14 +306,13 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
     runner = _BlockingFirstAgentRuntime()
     sessions, turns = _services(session_units, lease_units, publisher, runner)
     session = await sessions.create(channel=_CHANNEL)
-    await turns.start(session_id=session.id, text="Schedule this", metadata={})
+    await turns.start(session_id=session.id, text="Schedule this")
     await asyncio.wait_for(runner.first_started.wait(), timeout=1)
 
     automation = asyncio.create_task(
         turns.start_scheduled(
             session_id=session.id,
             text="[Scheduled agent run] Execute this",
-            metadata={"origin": "automation"},
         )
     )
     await asyncio.sleep(0.3)
@@ -329,7 +323,6 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
 
     assert len(runner.requests) == 2
     assert runner.requests[1].input_id is None
-    assert runner.requests[1].turn_metadata == {"origin": "automation"}
     await turns.close()
 
 

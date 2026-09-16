@@ -15,30 +15,28 @@ _BERLIN = ZoneInfo("Europe/Berlin")
 
 class _RecordingTurns:
     def __init__(self) -> None:
-        self.started: list[tuple[UUID, str, dict[str, object]]] = []
+        self.started: list[tuple[UUID, str]] = []
 
     async def start_scheduled(
         self,
         *,
         session_id: UUID,
         text: str,
-        metadata: dict[str, object],
     ) -> None:
-        self.started.append((session_id, text, metadata))
+        self.started.append((session_id, text))
 
 
 class _RecordingVoiceTurns:
     def __init__(self) -> None:
-        self.started: list[tuple[str, str, dict[str, object]]] = []
+        self.started: list[tuple[str, str]] = []
 
     async def start_proactive_in_room(
         self,
         room: str,
         *,
         text: str,
-        metadata: dict[str, object],
     ) -> object:
-        self.started.append((room, text, metadata))
+        self.started.append((room, text))
         return object()
 
 
@@ -76,7 +74,7 @@ def test_the_snooze_end_prompt_counts_snoozes_without_remaining_minutes() -> Non
     assert "Routine note" not in prompt
 
 
-async def test_the_executor_starts_a_scheduled_turn_with_alarm_metadata() -> None:
+async def test_the_executor_starts_a_scheduled_turn_for_the_alarm_target() -> None:
     turns = _RecordingTurns()
     voice_turns = _RecordingVoiceTurns()
     alarm = make_alarm(pre_wake_lead=None)
@@ -88,16 +86,9 @@ async def test_the_executor_starts_a_scheduled_turn_with_alarm_metadata() -> Non
         NEXT_WAKE,
     )
 
-    [(session_id, text, metadata)] = turns.started
+    [(session_id, text)] = turns.started
     assert session_id == alarm.target.session_id
     assert text.startswith("[Scheduled alarm run]")
-    assert metadata == {
-        "origin": "alarm",
-        "alarm_id": str(alarm.id),
-        "alarm_phase": "wake",
-        "wake_at": NEXT_WAKE.isoformat(),
-        "scheduled_for": NEXT_WAKE.isoformat(),
-    }
 
 
 async def test_the_executor_delivers_a_room_alarm_as_a_proactive_turn() -> None:
@@ -116,10 +107,9 @@ async def test_the_executor_delivers_a_room_alarm_as_a_proactive_turn() -> None:
     )
 
     assert turns.started == []
-    [(room, text, metadata)] = voice_turns.started
+    [(room, text)] = voice_turns.started
     assert room == "bedroom"
     assert text.startswith("[Scheduled alarm run]")
-    assert metadata["alarm_id"] == str(alarm.id)
 
 
 def _run(alarm: Alarm, now) -> DueRun:

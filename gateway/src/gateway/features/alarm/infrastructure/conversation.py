@@ -40,20 +40,12 @@ class ConversationAlarmRunExecutor(AlarmRunExecutor):
         self._local_timezone = local_timezone
 
     async def execute(self, alarm: Alarm, run: DueRun, now: datetime) -> None:
-        metadata: dict[str, object] = {
-            "origin": "alarm",
-            "alarm_id": str(alarm.id),
-            "alarm_phase": str(run.phase),
-            "wake_at": run.wake_at.isoformat(),
-            "scheduled_for": run.due_at.isoformat(),
-        }
         logger.info("Running %s phase of alarm %s", run.phase, alarm.id)
         prompt = _alarm_prompt(alarm, run, now, self._local_timezone)
         if alarm.delivery is not None:
             turn = await self._voice_turns.start_proactive_in_room(
                 alarm.delivery.room,
                 text=prompt,
-                metadata=metadata,
             )
             if turn is None:
                 logger.warning(
@@ -68,7 +60,6 @@ class ConversationAlarmRunExecutor(AlarmRunExecutor):
                 await self._turns.start_scheduled(
                     session_id=session_id,
                     text=prompt,
-                    metadata=metadata,
                 )
 
 

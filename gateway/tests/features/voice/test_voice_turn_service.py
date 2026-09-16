@@ -154,14 +154,11 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
         turn = await service.start_proactive(
             voice_session.id,
             text="scheduled prompt",
-            metadata={"origin": "automation"},
         )
 
         assert turn.activation is Activation.PROACTIVE
         assert turn.status is VoiceTurnStatus.SPEAKING
         assert text_to_speech.text == "Your train ticket reminder"
-        assert turns.metadata["voice_room"] == "bedroom"
-        assert turns.metadata["voice_turn_id"] == str(turn.id)
         assert media.frames[-1][-1] is True
         assert [event.type for event in events.items] == [
             VoiceEventType.CONVERSATION_STARTED,
@@ -268,17 +265,14 @@ class _ConversationEvents:
 class _ScheduledTurns:
     def __init__(self, events: _ConversationEvents) -> None:
         self._events = events
-        self.metadata: dict[str, object] = {}
 
     async def start_scheduled(
         self,
         *,
         session_id,
         text: str,
-        metadata: dict[str, object],
     ) -> None:
         assert text == "scheduled prompt"
-        self.metadata = metadata
         await self._events.publish(
             ConversationEventType.CHAT_DELTA,
             {"text": "Your train ticket reminder"},

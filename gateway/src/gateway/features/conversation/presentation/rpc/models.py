@@ -34,7 +34,6 @@ class ChannelParams(ApiModel):
 
 class StartTurnParams(SessionParams):
     message: str = Field(min_length=1)
-    metadata: dict[str, object] = Field(default_factory=dict)
 
 
 class SteerTurnParams(SessionParams):

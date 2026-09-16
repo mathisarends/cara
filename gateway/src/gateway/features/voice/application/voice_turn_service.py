@@ -120,7 +120,6 @@ class VoiceTurnService:
         room: str,
         *,
         text: str,
-        metadata: dict[str, object],
     ) -> VoiceTurn | None:
         sessions = await self._sessions.list(
             room=room,
@@ -131,18 +130,13 @@ class VoiceTurnService:
         )
         if not connected:
             return None
-        return await self.start_proactive(
-            connected[0].id,
-            text=text,
-            metadata=metadata,
-        )
+        return await self.start_proactive(connected[0].id, text=text)
 
     async def start_proactive(
         self,
         voice_session_id: UUID,
         *,
         text: str,
-        metadata: dict[str, object],
     ) -> VoiceTurn:
         if not self._media.connected(voice_session_id):
             raise MediaNotConnectedError(
@@ -184,16 +178,9 @@ class VoiceTurnService:
             self._conversation_to_speech(voice_session.id, turn.id, ready),
         )
         await ready.wait()
-        turn_metadata = {
-            **metadata,
-            "modality": "voice",
-            "voice_turn_id": str(turn.id),
-            "voice_room": voice_session.room,
-        }
         await self._turns.start_scheduled(
             session_id=voice_session.session_id,
             text=text,
-            metadata=turn_metadata,
         )
         await speech_task
         return turn
@@ -238,7 +225,6 @@ class VoiceTurnService:
             user_message_id = await self._turns.start(
                 session_id=voice_session.session_id,
                 text=normalized,
-                metadata={"modality": "voice", "voice_turn_id": str(turn.id)},
             )
             turn.transcribe(normalized, user_message_id)
             event_type = VoiceEventType.TRANSCRIPT_FINAL
