@@ -23,7 +23,11 @@ async def test_both_event_streams_reach_the_client() -> None:
     async def send(notification: rpc.RpcNotification) -> None:
         sent.append(notification)
 
-    forwarder = asyncio.create_task(EventForwarder(receiver, send).run())
+    forwarder = EventForwarder(receiver, send)
+    streams = [
+        asyncio.create_task(forwarder.forward_session_events()),
+        asyncio.create_task(forwarder.forward_voice_events()),
+    ]
     await receiver.put_voice(
         VoiceEvent(
             VoiceEventType.TURN_COMPLETED,
@@ -44,8 +48,9 @@ async def test_both_event_streams_reach_the_client() -> None:
         )
     )
     await _settle()
-    forwarder.cancel()
-    await asyncio.gather(forwarder, return_exceptions=True)
+    for stream in streams:
+        stream.cancel()
+    await asyncio.gather(*streams, return_exceptions=True)
 
     assert sorted(notification.method for notification in sent) == [
         "session.event",

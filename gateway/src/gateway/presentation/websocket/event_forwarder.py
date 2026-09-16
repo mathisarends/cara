@@ -1,4 +1,3 @@
-import asyncio
 from collections.abc import Awaitable, Callable
 
 import pyrpckit as rpc
@@ -13,7 +12,7 @@ from gateway.presentation.websocket.subscriptions import EventReceiver
 
 
 class EventForwarder:
-    """Sends a client both of its queued event streams as RPC notifications.
+    """Sends a client's queued events on as RPC notifications.
 
     Every notification the channel declares needs a stream here; one that is
     declared but never drained leaves its queue growing while the client waits
@@ -28,13 +27,7 @@ class EventForwarder:
         self._receiver = receiver
         self._send = send
 
-    async def run(self) -> None:
-        await asyncio.gather(
-            self._forward_session_events(),
-            self._forward_voice_events(),
-        )
-
-    async def _forward_session_events(self) -> None:
+    async def forward_session_events(self) -> None:
         while True:
             event = await self._receiver.receive()
             await self._send(
@@ -44,7 +37,7 @@ class EventForwarder:
                 )
             )
 
-    async def _forward_voice_events(self) -> None:
+    async def forward_voice_events(self) -> None:
         while True:
             event = await self._receiver.receive_voice()
             await self._send(

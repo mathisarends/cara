@@ -37,8 +37,15 @@ class GatewayConnection:
             _remote_address(self._socket),
         )
         forwarder = EventForwarder(self._receiver, self._send_notification)
-        events = asyncio.create_task(forwarder.run(), name="gateway-events")
-        events.add_done_callback(self._report_stopped_events)
+        events = [
+            asyncio.create_task(stream, name=name)
+            for name, stream in (
+                ("gateway-session-events", forwarder.forward_session_events()),
+                ("gateway-voice-events", forwarder.forward_voice_events()),
+            )
+        ]
+        for stream in events:
+            stream.add_done_callback(self._report_stopped_events)
         close_code = 1000
         try:
             while True:
@@ -60,8 +67,9 @@ class GatewayConnection:
             close_code = 1011
             raise
         finally:
-            events.cancel()
-            await asyncio.gather(events, return_exceptions=True)
+            for stream in events:
+                stream.cancel()
+            await asyncio.gather(*events, return_exceptions=True)
             self._stream.disconnect(self._client_id)
             logger.info(
                 "Gateway client %s disconnected (code=%s, duration=%s)",
@@ -85,18 +93,19 @@ class GatewayConnection:
             _elapsed(started),
         )
 
-    def _report_stopped_events(self, events: asyncio.Task[None]) -> None:
+    def _report_stopped_events(self, stream: asyncio.Task[None]) -> None:
         """Report a client that stays connected but stops receiving events.
 
         Forwarding only ends with the connection, so anything else leaves the
         client waiting for events the Gateway believes it delivered.
         """
-        if events.cancelled():
+        if stream.cancelled():
             return
         logger.error(
-            "Gateway client %s stopped receiving events",
+            "Gateway client %s stopped receiving %s",
             _short_id(self._client_id),
-            exc_info=events.exception(),
+            stream.get_name(),
+            exc_info=stream.exception(),
         )
 
     async def _send_notification(self, notification: rpc.RpcNotification) -> None:
