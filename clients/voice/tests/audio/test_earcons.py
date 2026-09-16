@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from voice import Earcon, SoundObserver
+from voice import Earcon, SoundIntegration
 from voice.audio import AudioPlayback
-from voice.observer import ObserverContext
+from voice.integration import VoiceIntegrationContext
 from voice.sound import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
 
 
@@ -46,12 +46,12 @@ def test_player_warms_cache_and_play_uses_cached_wav_bytes(
 
     async def run() -> list[bytes]:
         audio_player = _RecordingAudioPlayer()
-        observer = SoundObserver(sounds_dir=tmp_path)
+        integration = SoundIntegration(sounds_dir=tmp_path)
         assert reads == 0
-        await observer.prepare(ObserverContext(audio_player=audio_player))
+        await integration.prepare(VoiceIntegrationContext(audio_player=audio_player))
         assert reads == len(Earcon)
-        await observer.on_wake_word_detected("hey_mycroft", 0.9, 1)
-        await observer.on_wake_word_detected("hey_mycroft", 0.9, 1)
+        await integration.on_wake_word_detected("hey_mycroft", 0.9, 1)
+        await integration.on_wake_word_detected("hey_mycroft", 0.9, 1)
         return audio_player.audio
 
     requested = asyncio.run(run())

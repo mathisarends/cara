@@ -8,8 +8,8 @@ from voice.events import (
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
-from voice.observer import ObserverBridge
-from voice.sound import _DEFAULT_SOUNDS_DIR, Earcon, SoundObserver
+from voice.integration import VoiceIntegrationBridge
+from voice.sound import _DEFAULT_SOUNDS_DIR, Earcon, SoundIntegration
 
 
 def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> None:
@@ -21,10 +21,10 @@ def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> Non
             requested.append(request.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        observer = SoundObserver()
-        bridge = ObserverBridge(
+        integration = SoundIntegration()
+        bridge = VoiceIntegrationBridge(
             event_bus=event_bus,
-            observers=(observer,),
+            integrations=(integration,),
         )
         bridge.setup()
         await bridge.prepare()
@@ -47,10 +47,10 @@ def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
             requested.append(request.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        observer = SoundObserver()
-        bridge = ObserverBridge(
+        integration = SoundIntegration()
+        bridge = VoiceIntegrationBridge(
             event_bus=event_bus,
-            observers=(observer,),
+            integrations=(integration,),
         )
         bridge.setup()
         await bridge.prepare()
@@ -71,10 +71,10 @@ def test_assistant_response_started_plays_success_earcon() -> None:
             requested.append(request.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        observer = SoundObserver()
-        bridge = ObserverBridge(
+        integration = SoundIntegration()
+        bridge = VoiceIntegrationBridge(
             event_bus=event_bus,
-            observers=(observer,),
+            integrations=(integration,),
         )
         bridge.setup()
         await bridge.prepare()

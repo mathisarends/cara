@@ -2,7 +2,7 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
-from voice.observer import Observer, ObserverContext
+from voice.integration import VoiceIntegration, VoiceIntegrationContext
 
 # parents[2]: sound.py -> voice/src/voice(project) -> voice
 _DEFAULT_SOUNDS_DIR = Path(__file__).parents[2] / "static" / "sounds"
@@ -16,15 +16,15 @@ class Earcon(StrEnum):
     SLEEP = "sleep"
 
 
-class SoundObserver(Observer):
-    """Adds earcons to the agent lifecycle through the observer API."""
+class SoundIntegration(VoiceIntegration):
+    """Adds earcons to the agent lifecycle through the integration API."""
 
     def __init__(self, *, sounds_dir: Path | None = None) -> None:
         self._sounds_dir = sounds_dir or _DEFAULT_SOUNDS_DIR
-        self._context: ObserverContext | None = None
+        self._context: VoiceIntegrationContext | None = None
         self._earcons: dict[Earcon, bytes] = {}
 
-    async def prepare(self, context: ObserverContext) -> None:
+    async def prepare(self, context: VoiceIntegrationContext) -> None:
         self._earcons = {
             earcon: (self._sounds_dir / f"{earcon}.wav").read_bytes()
             for earcon in Earcon
@@ -47,5 +47,5 @@ class SoundObserver(Observer):
 
     async def _play(self, earcon: Earcon) -> None:
         if self._context is None:
-            raise RuntimeError("SoundObserver must be prepared before use.")
+            raise RuntimeError("SoundIntegration must be prepared before use.")
         await self._context.audio_player.play(self._earcons[earcon])

@@ -2,7 +2,7 @@ import random
 from pathlib import Path
 from uuid import UUID
 
-from voice.observer import Observer, ObserverContext
+from voice.integration import VoiceIntegration, VoiceIntegrationContext
 
 TOOL_ACKNOWLEDGEMENTS = (
     ("on_it", "On it."),
@@ -21,7 +21,7 @@ _DEFAULT_ACKNOWLEDGEMENTS_DIR = (
 )
 
 
-class ToolAcknowledgementObserver(Observer):
+class ToolAcknowledgementIntegration(VoiceIntegration):
     """Speaks a brief acknowledgement when a tool call follows silence."""
 
     def __init__(
@@ -32,14 +32,14 @@ class ToolAcknowledgementObserver(Observer):
         self._acknowledgements_dir = (
             acknowledgements_dir or _DEFAULT_ACKNOWLEDGEMENTS_DIR
         )
-        self._context: ObserverContext | None = None
+        self._context: VoiceIntegrationContext | None = None
         self._acknowledgements: dict[str, bytes] = {}
         self._active_turn_id: UUID | None = None
         self._has_spoken_text = False
         self._ack_spoken = False
         self._last_acknowledgement: str | None = None
 
-    async def prepare(self, context: ObserverContext) -> None:
+    async def prepare(self, context: VoiceIntegrationContext) -> None:
         self._acknowledgements = {
             name: (self._acknowledgements_dir / f"{name}.wav").read_bytes()
             for name, _ in TOOL_ACKNOWLEDGEMENTS
@@ -62,7 +62,7 @@ class ToolAcknowledgementObserver(Observer):
         self._ack_spoken = True
         if self._context is None:
             raise RuntimeError(
-                "ToolAcknowledgementObserver must be prepared before use."
+                "ToolAcknowledgementIntegration must be prepared before use."
             )
         await self._context.audio_player.play(self._pick_acknowledgement())
 

@@ -1,0 +1,64 @@
+# Complete device-side voice client configuration.
+# Secrets stay in .env, for example CARA_GATEWAY_TOKEN.
+gateway:
+  url: http://127.0.0.1:8000
+
+session:
+  # Stable, human-readable identity used to resume this client's open session.
+  client_id: bedroom
+  channel: voice
+  new_session: false
+  inactivity_timeout_seconds: 1800
+
+activation:
+  wake_word:
+    enabled: true
+    word: hey_jarvis
+    sensitivity: 0.5
+    cooldown_seconds: 1.5
+    strip_from_command: true
+
+barge_in:
+  # Allowed: disabled, wake_word, speech
+  type: speech
+  min_level_dbfs: -45
+  min_speech_probability: 0.6
+  min_speech_seconds: 0.35
+  max_echo_confidence: 0.5
+
+follow_up:
+  enabled: true
+  window_seconds: 5
+  countdown_seconds: 3
+
+audio:
+  output:
+    # Allowed: local, sonos
+    type: local
+  echo_cancellation:
+    enabled: true
+    reference_history_seconds: 8
+
+recording:
+  enabled: false
+  path: recordings/conversation.wav
+
+integrations:
+  sounds:
+    enabled: true
+  tool_acknowledgements:
+    enabled: true
+  hue:
+    enabled: false
+    room_name: Mein Zimmer
+  sonos_audio_focus:
+    enabled: false
+    # Allowed: duck, pause
+    strategy: duck
+
+# Required when Sonos output or Sonos audio focus is enabled:
+# sonos:
+#   ip_address: 192.168.1.50
+#   local_host: 192.168.1.10
+#   clip_volume_boost: 15
+#   clip_prebuffer_seconds: 0.25

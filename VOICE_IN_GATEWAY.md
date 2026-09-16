@@ -50,7 +50,7 @@ Die hardware- und latenznahe Hälfte muss im Client bleiben.
 | `AudioBridge`/Playback | Client, stark vereinfacht | Empfängt Gateway-Audio und schreibt es mit begrenztem Puffer auf das gewählte Ausgabegerät. |
 | `lights/`, `playback/`, `sound.py`, Sonos-Fokus | Client | Reaktionen auf lokale Geräte und LAN-Ressourcen bleiben Edge-Verantwortung. |
 | `conversation/` Audioaufnahme | Client, vorerst | Serverseitige Aufzeichnung über Object Storage folgt später (siehe [Später: Audioaufzeichnung](#später-audioaufzeichnung-über-object-storage)). |
-| Observer für reine UI-/Gerätezustände | Client | Das Gateway liefert Lifecycle-Events, der Client entscheidet über lokale Effekte. |
+| Integrationen für reine UI-/Gerätezustände | Client | Das Gateway liefert Lifecycle-Events, der Client entscheidet über lokale Effekte. |
 
 Das erwartete Endergebnis ist kein leerer Client. Ein Voice-Client braucht
 weiterhin substanzielle Echtzeit- und Hardwarelogik. Er sollte aber keine
@@ -118,7 +118,7 @@ Der verbleibende Client besitzt:
 - Echo Cancellation und lokale VAD-/Barge-in-Signale;
 - Media-Transport mit Backpressure und Reconnect;
 - Wiedergabe der Assistant-Audio-Chunks;
-- lokale Observer wie Hue, Sonos-Fokus, Earcons und vorerst Recording.
+- lokale Integrationen wie Hue, Sonos-Fokus, Earcons und vorerst Recording.
 
 Seine Kernschleife wird damit ungefähr:
 
@@ -488,7 +488,7 @@ verbleiben nur:
 - Gateway-Adresse und Authentisierung;
 - `device_id`, Gerätewahl und lokale Audioformate;
 - Wake Word, VAD, Echo Cancellation und Barge-in-Einstellungen;
-- lokale Ausgabe-, Observer- und Recording-Einstellungen.
+- lokale Ausgabe-, Integrations- und Recording-Einstellungen.
 
 Das ist ein wesentlicher Gewinn des Umbaus: neue Voice-Clients benötigen keine
 Provider-SDKs und keine Provider-Zugangsdaten.

@@ -1,4 +1,4 @@
-from .observer import HueObserver
+from .integration import HueIntegration
 from .state import LightingState
 
-__all__ = ["HueObserver", "LightingState"]
+__all__ = ["HueIntegration", "LightingState"]

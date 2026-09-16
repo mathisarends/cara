@@ -4,10 +4,14 @@ import inspect
 from voice import VoiceChannel
 from voice.events import FollowUpCountdown, SessionStarted
 from voice.events.bus import EventBus
-from voice.observer import Observer, ObserverBridge, ObserverContext
+from voice.integration import (
+    VoiceIntegration,
+    VoiceIntegrationBridge,
+    VoiceIntegrationContext,
+)
 
 
-class _RecordingObserver(Observer):
+class _RecordingVoiceIntegration(VoiceIntegration):
     def __init__(self) -> None:
         self.events: list[str] = []
 
@@ -17,18 +21,18 @@ class _RecordingObserver(Observer):
     async def on_user_inactivity_countdown(self, remaining_seconds: int) -> None:
         self.events.append(f"countdown:{remaining_seconds}")
 
-    async def prepare(self, context: ObserverContext) -> None:
+    async def prepare(self, context: VoiceIntegrationContext) -> None:
         self.events.append("prepared")
 
 
-def test_bridge_notifies_all_voice_channel_observers() -> None:
-    async def run() -> tuple[_RecordingObserver, _RecordingObserver]:
+def test_bridge_notifies_all_voice_channel_integrations() -> None:
+    async def run() -> tuple[_RecordingVoiceIntegration, _RecordingVoiceIntegration]:
         event_bus = EventBus()
-        first = _RecordingObserver()
-        second = _RecordingObserver()
-        bridge = ObserverBridge(
+        first = _RecordingVoiceIntegration()
+        second = _RecordingVoiceIntegration()
+        bridge = VoiceIntegrationBridge(
             event_bus=event_bus,
-            observers=(first, second),
+            integrations=(first, second),
         )
         bridge.setup()
 
@@ -43,10 +47,10 @@ def test_bridge_notifies_all_voice_channel_observers() -> None:
     assert second.events == ["prepared", "started", "countdown:3"]
 
 
-def test_voice_channel_exposes_observers_without_leaking_event_bus() -> None:
+def test_voice_channel_exposes_integrations_without_leaking_event_bus() -> None:
     parameters = inspect.signature(VoiceChannel).parameters
 
-    assert "observers" in parameters
+    assert "integrations" in parameters
     assert "listener" not in parameters
     assert "listeners" not in parameters
     assert "event_bus" not in parameters

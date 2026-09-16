@@ -82,7 +82,7 @@ class HueRoomLighting:
             self._baseline = None
             raise
         self._stream_started = True
-        logger.info("Hue observer bound to room %r", self._room_name)
+        logger.info("Hue integration bound to room %r", self._room_name)
 
     async def set_state(self, state: LightingState) -> None:
         baseline = self._baseline

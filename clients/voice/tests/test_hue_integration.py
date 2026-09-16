@@ -5,7 +5,7 @@ from uuid import UUID
 from hueify import GroupedLight, Room
 from hueify.models import GroupArchetype, GroupMetadata, HueEvent
 
-from voice import HueObserver
+from voice import HueIntegration
 from voice.events import (
     AssistantSpeechStarted,
     AssistantToolCompleted,
@@ -17,7 +17,7 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import Event
-from voice.observer import ObserverBridge
+from voice.integration import VoiceIntegrationBridge
 
 _ROOM_ID = UUID("00000000-0000-0000-0000-000000000001")
 _GROUPED_LIGHT_ID = UUID("00000000-0000-0000-0000-000000000002")
@@ -93,59 +93,61 @@ class _RecordingHue:
 
 
 async def _dispatch_and_drain(
-    event_bus: EventBus, observer: HueObserver, event: Event
+    event_bus: EventBus, integration: HueIntegration, event: Event
 ) -> None:
     await event_bus.emit(event)
-    await asyncio.wait_for(observer._jobs.join(), timeout=1)
+    await asyncio.wait_for(integration._jobs.join(), timeout=1)
 
 
-def test_hue_observer_reflects_voice_turn_and_tool_lifecycle() -> None:
+def test_hue_integration_reflects_voice_turn_and_tool_lifecycle() -> None:
     async def run() -> _RecordingHue:
         event_bus = EventBus()
         hue = _RecordingHue()
-        observer = HueObserver(room_name="Test room", hue=hue)
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        integration = HueIntegration(room_name="Test room", hue=hue)
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 
         assert hue.rooms.changes == []
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft"),
         )
-        await _dispatch_and_drain(event_bus, observer, UserTurnStarted())
-        await _dispatch_and_drain(event_bus, observer, AssistantTurnStarted())
-        await _dispatch_and_drain(event_bus, observer, AssistantSpeechStarted())
+        await _dispatch_and_drain(event_bus, integration, UserTurnStarted())
+        await _dispatch_and_drain(event_bus, integration, AssistantTurnStarted())
+        await _dispatch_and_drain(event_bus, integration, AssistantSpeechStarted())
         turn_id = UUID("00000000-0000-0000-0000-000000000003")
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             AssistantToolStarted(turn_id=turn_id, name="weather"),
         )
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             AssistantToolCompleted(turn_id=turn_id, name="weather"),
         )
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             AssistantToolStarted(turn_id=turn_id, name="calendar"),
         )
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             AssistantToolStarted(turn_id=turn_id, name="mail"),
         )
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             AssistantToolCompleted(turn_id=turn_id, name="calendar"),
         )
         await _dispatch_and_drain(
             event_bus,
-            observer,
+            integration,
             AssistantToolCompleted(turn_id=turn_id, name="mail"),
         )
         await event_bus.emit(SessionEnded())
@@ -162,16 +164,18 @@ def test_hue_observer_reflects_voice_turn_and_tool_lifecycle() -> None:
     ]
 
 
-def test_hue_observer_preserves_external_changes_in_its_baseline() -> None:
+def test_hue_integration_preserves_external_changes_in_its_baseline() -> None:
     async def run() -> list[tuple[float, int | None, float]]:
         event_bus = EventBus()
         hue = _RecordingHue()
-        observer = HueObserver(room_name="Test room", hue=hue)
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        integration = HueIntegration(room_name="Test room", hue=hue)
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 
-        await _dispatch_and_drain(event_bus, observer, UserTurnStarted())
+        await _dispatch_and_drain(event_bus, integration, UserTurnStarted())
         await hue.emit(
             HueEvent.model_validate(
                 {

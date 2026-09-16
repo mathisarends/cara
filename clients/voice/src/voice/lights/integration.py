@@ -5,14 +5,14 @@ from uuid import UUID
 
 from hueify import Hueify
 
+from voice.integration import VoiceIntegration, VoiceIntegrationContext
 from voice.lights.hue import HueRoomLighting
 from voice.lights.state import LightingState
-from voice.observer import Observer, ObserverContext
 
 logger = logging.getLogger(__name__)
 
 
-class HueObserver(Observer):
+class HueIntegration(VoiceIntegration):
     """Maps voice lifecycle events onto ambient Hue lighting states."""
 
     def __init__(
@@ -28,7 +28,7 @@ class HueObserver(Observer):
         self._jobs: asyncio.Queue[Callable[[], Awaitable[None]]] = asyncio.Queue()
         self._worker: asyncio.Task[None] | None = None
 
-    async def prepare(self, context: ObserverContext) -> None:
+    async def prepare(self, context: VoiceIntegrationContext) -> None:
         await self._lighting.prepare()
 
     async def on_wake_word_detected(
@@ -73,7 +73,9 @@ class HueObserver(Observer):
 
     def _submit_state(self, state: LightingState) -> None:
         if self._worker is None or self._worker.done():
-            self._worker = asyncio.create_task(self._run(), name="voice-hue-observer")
+            self._worker = asyncio.create_task(
+                self._run(), name="voice-hue-integration"
+            )
         self._jobs.put_nowait(lambda: self._lighting.set_state(state))
 
     async def _run(self) -> None:

@@ -11,9 +11,9 @@ from voice import (
     ActivationSource,
     ExternalActivationSource,
     FollowUpSettings,
-    Observer,
-    ObserverContext,
     VoiceChannel,
+    VoiceIntegration,
+    VoiceIntegrationContext,
 )
 from voice.audio import AudioInput, AudioOutput
 from voice.barge_in import BargeInContext, BargeInSignal, BargeInStrategy
@@ -99,11 +99,11 @@ class _GatewayBridge:
         self.interrupts.append(sequence)
 
 
-class _LifecycleObserver(Observer):
+class _LifecycleVoiceIntegration(VoiceIntegration):
     def __init__(self) -> None:
         self.events: list[str] = []
 
-    async def prepare(self, context: ObserverContext) -> None:
+    async def prepare(self, context: VoiceIntegrationContext) -> None:
         self.events.append("prepared")
 
     async def on_channel_starting(self) -> None:
@@ -120,14 +120,14 @@ def test_runs_and_closes_an_injected_voice_stack(
     audio_output: AudioOutput,
 ) -> None:
     recording_path = tmp_path / "conversation.wav"
-    observer = _LifecycleObserver()
+    integration = _LifecycleVoiceIntegration()
     gateway_session = _GatewaySession()
     monkeypatch.setattr(channel_module, "WakeWordListener", _WakeWordListener)
     voice_channel = VoiceChannel(
         gateway_session=cast(GatewayVoiceSession, gateway_session),
         audio_input=audio_input,
         audio_output=audio_output,
-        observers=(observer,),
+        integrations=(integration,),
         recording_path=recording_path,
     )
 
@@ -137,7 +137,7 @@ def test_runs_and_closes_an_injected_voice_stack(
     assert result.recording_path == recording_path
     assert not recording_path.exists()
     assert gateway_session.closed
-    assert observer.events == ["prepared", "started", "stopped"]
+    assert integration.events == ["prepared", "started", "stopped"]
 
     with pytest.raises(RuntimeError, match="Voice channel is stopped"):
         asyncio.run(voice_channel.start())

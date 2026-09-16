@@ -2,7 +2,6 @@ import asyncio
 from collections.abc import Iterable
 from pathlib import Path
 
-from voice.acknowledgement import ToolAcknowledgementObserver
 from voice.activation import (
     ActivationCoordinator,
     ActivationSource,
@@ -22,6 +21,7 @@ from voice.barge_in import BargeInContext, BargeInStrategy, WakeWordBargeIn
 from voice.conversation import create_recorder
 from voice.echo_cancellation import (
     EchoCancellationSettings,
+    EchoPresence,
     wrap_with_echo_cancellation,
 )
 from voice.events import AssistantTurnStarted, SessionEnded, SessionStarted
@@ -29,8 +29,8 @@ from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing, VoiceTurnEnded
 from voice.gateway import GatewayVoiceBridge, GatewayVoiceSession
 from voice.handler import FollowUpHandler, FollowUpSettings
+from voice.integration import VoiceIntegration, VoiceIntegrationBridge
 from voice.models import AgentResult
-from voice.observer import Observer, ObserverBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
 
@@ -44,11 +44,14 @@ class VoiceChannel:
         audio_input: AudioInput | None = None,
         audio_output: AudioOutput | None = None,
         wake_word_settings: WakeWordSettings | None = None,
+        wake_word_enabled: bool = True,
         barge_in: BargeInStrategy | None = None,
         echo_cancellation_settings: EchoCancellationSettings | None = None,
+        echo_cancellation_enabled: bool = True,
         follow_up_settings: FollowUpSettings | None = None,
+        follow_up_enabled: bool = True,
         activation_sources: Iterable[ActivationSource] = (),
-        observers: Iterable[Observer] = (),
+        integrations: Iterable[VoiceIntegration] = (),
         recording_path: str | Path | None = None,
     ) -> None:
         self._gateway_session = gateway_session
@@ -61,14 +64,17 @@ class VoiceChannel:
             session=self._audio_session
         )
         physical_output = audio_output or LocalAudioOutput(session=self._audio_session)
-        echo_cancelled_input, echo_referenced_output, echo_presence = (
-            wrap_with_echo_cancellation(
+        if echo_cancellation_enabled:
+            channel_input, channel_output, echo_presence = wrap_with_echo_cancellation(
                 physical_input,
                 physical_output,
                 settings=echo_cancellation_settings or EchoCancellationSettings(),
             )
-        )
-        self._buffered_audio_input = BufferedAudioInput(echo_cancelled_input)
+        else:
+            channel_input = physical_input
+            channel_output = physical_output
+            echo_presence = _NoEchoPresence()
+        self._buffered_audio_input = BufferedAudioInput(channel_input)
         if self._buffered_audio_input.sample_rate != gateway_session.input_sample_rate:
             raise ValueError(
                 "Audio input sample rate does not match the negotiated gateway format"
@@ -79,13 +85,19 @@ class VoiceChannel:
         )
         self._audio_bridge = AudioBridge(
             event_bus=self._event_bus,
-            output_device=echo_referenced_output,
+            output_device=channel_output,
         )
-        wake_word_settings = wake_word_settings or WakeWordSettings()
-        self._wake_word = WakeWordListener(
-            buffered_audio_input=self._buffered_audio_input,
-            settings=wake_word_settings,
-        )
+        sources = list(activation_sources)
+        if wake_word_enabled:
+            wake_word = WakeWordListener(
+                buffered_audio_input=self._buffered_audio_input,
+                settings=wake_word_settings or WakeWordSettings(),
+            )
+            wake_word_source = WakeWordActivationSource(
+                event_bus=self._event_bus,
+                listener=wake_word,
+            )
+            sources.insert(0, wake_word_source)
         self._gateway_bridge = GatewayVoiceBridge(
             self._event_bus,
             gateway_session,
@@ -93,13 +105,7 @@ class VoiceChannel:
         )
         self._activation_coordinator = ActivationCoordinator(
             event_bus=self._event_bus,
-            sources=(
-                WakeWordActivationSource(
-                    event_bus=self._event_bus,
-                    listener=self._wake_word,
-                ),
-                *activation_sources,
-            ),
+            sources=sources,
         )
         self._barge_in = barge_in or WakeWordBargeIn()
         self._assistant_responding = False
@@ -112,15 +118,19 @@ class VoiceChannel:
                 echo_presence=echo_presence,
             )
         )
-        self._follow_up = FollowUpHandler(
-            event_bus=self._event_bus,
-            settings=follow_up_settings,
+        self._follow_up = (
+            FollowUpHandler(
+                event_bus=self._event_bus,
+                settings=follow_up_settings,
+            )
+            if follow_up_enabled
+            else None
         )
-        self._observer_bridge = ObserverBridge(
+        self._integration_bridge = VoiceIntegrationBridge(
             event_bus=self._event_bus,
-            observers=(*observers, ToolAcknowledgementObserver()),
+            integrations=integrations,
         )
-        self._observer_bridge.setup()
+        self._integration_bridge.setup()
         self._audio_recorder = create_recorder(
             self._event_bus,
             self._recording_path,
@@ -133,7 +143,7 @@ class VoiceChannel:
         if self._stopped:
             raise RuntimeError("Voice channel is stopped")
         try:
-            await self._observer_bridge.prepare()
+            await self._integration_bridge.prepare()
             await self._gateway_bridge.start()
             await self._event_bus.emit(SessionStarted())
             activation = asyncio.create_task(
@@ -181,3 +191,9 @@ class VoiceChannel:
 
     async def _on_voice_turn_ended(self, _: VoiceTurnEnded) -> None:
         self._assistant_responding = False
+
+
+class _NoEchoPresence(EchoPresence):
+    @property
+    def echo_confidence(self) -> float:
+        return 0.0

@@ -1,10 +1,10 @@
 from uuid import UUID
 
-from voice.observer import Observer, ObserverContext
+from voice.integration import VoiceIntegration, VoiceIntegrationContext
 from voice.playback.policy import SonosAudioFocusPolicy
 
 
-class SonosAudioFocusObserver(Observer):
+class SonosAudioFocusIntegration(VoiceIntegration):
     """Keeps Sonos playback from competing with a voice interaction."""
 
     def __init__(
@@ -14,7 +14,7 @@ class SonosAudioFocusObserver(Observer):
     ) -> None:
         self._policy = policy
 
-    async def prepare(self, context: ObserverContext) -> None:
+    async def prepare(self, context: VoiceIntegrationContext) -> None:
         await self._policy.prepare()
 
     async def on_wake_word_detected(

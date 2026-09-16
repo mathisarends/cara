@@ -1,7 +1,35 @@
-from .settings import GatewayConfig, SessionConfig, VoiceChannelConfig
+from .settings import (
+    ActivationConfig,
+    AudioConfig,
+    AudioOutputType,
+    BargeInType,
+    DisabledBargeInConfig,
+    GatewayConfig,
+    IntegrationsConfig,
+    SessionConfig,
+    SonosAudioFocusStrategy,
+    SonosConfig,
+    SpeechBargeInConfig,
+    VoiceClientConfig,
+    VoiceConfigError,
+    WakeWordBargeInConfig,
+    WakeWordName,
+)
 
 __all__ = [
+    "ActivationConfig",
+    "AudioConfig",
+    "AudioOutputType",
+    "BargeInType",
+    "DisabledBargeInConfig",
     "GatewayConfig",
+    "IntegrationsConfig",
     "SessionConfig",
-    "VoiceChannelConfig",
+    "SonosConfig",
+    "SonosAudioFocusStrategy",
+    "SpeechBargeInConfig",
+    "VoiceClientConfig",
+    "VoiceConfigError",
+    "WakeWordName",
+    "WakeWordBargeInConfig",
 ]

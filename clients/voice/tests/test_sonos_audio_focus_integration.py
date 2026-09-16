@@ -12,7 +12,7 @@ from sonosify import (
 
 import voice.playback.ducking as ducking_module
 from voice import (
-    SonosAudioFocusObserver,
+    SonosAudioFocusIntegration,
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
@@ -23,7 +23,7 @@ from voice.events import (
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
-from voice.observer import ObserverBridge
+from voice.integration import VoiceIntegrationBridge
 
 
 class _RecordingSonosClient:
@@ -96,10 +96,12 @@ def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> Non
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosAudioFocusObserver(
+        integration = SonosAudioFocusIntegration(
             policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 
@@ -127,10 +129,12 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PAUSED_PLAYBACK)
-        observer = SonosAudioFocusObserver(
+        integration = SonosAudioFocusIntegration(
             policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 
@@ -147,11 +151,13 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
 def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosAudioFocusObserver(
+        integration = SonosAudioFocusIntegration(
             policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
         event_bus = EventBus()
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 
@@ -172,11 +178,13 @@ def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
 def test_can_use_pause_policy() -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosAudioFocusObserver(
+        integration = SonosAudioFocusIntegration(
             policy=SonosPausePolicy(client=cast(SonosClient, client)),
         )
         event_bus = EventBus()
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 
@@ -197,11 +205,13 @@ def test_can_use_pause_policy() -> None:
 def test_pause_policy_does_not_resume_after_external_pause() -> None:
     async def run() -> _RecordingSonosClient:
         client = _RecordingSonosClient(TransportState.PLAYING)
-        observer = SonosAudioFocusObserver(
+        integration = SonosAudioFocusIntegration(
             policy=SonosPausePolicy(client=cast(SonosClient, client)),
         )
         event_bus = EventBus()
-        bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+        bridge = VoiceIntegrationBridge(
+            event_bus=event_bus, integrations=(integration,)
+        )
         bridge.setup()
         await bridge.prepare()
 

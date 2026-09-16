@@ -7,7 +7,7 @@ import pytest
 
 from voice.acknowledgement import (
     TOOL_ACKNOWLEDGEMENTS,
-    ToolAcknowledgementObserver,
+    ToolAcknowledgementIntegration,
 )
 from voice.events import (
     AssistantResponseStarted,
@@ -17,7 +17,7 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import VoiceTurnEnded
-from voice.observer import ObserverBridge
+from voice.integration import VoiceIntegrationBridge
 
 _ACKNOWLEDGEMENTS_DIR = Path(__file__).parents[1] / "static" / "acknowledgements"
 
@@ -31,9 +31,9 @@ def _write_acknowledgements(directory: Path) -> dict[str, bytes]:
     return acknowledgements
 
 
-async def _prepare_observer(event_bus: EventBus, directory: Path) -> None:
-    observer = ToolAcknowledgementObserver(acknowledgements_dir=directory)
-    bridge = ObserverBridge(event_bus=event_bus, observers=(observer,))
+async def _prepare_integration(event_bus: EventBus, directory: Path) -> None:
+    integration = ToolAcknowledgementIntegration(acknowledgements_dir=directory)
+    bridge = VoiceIntegrationBridge(event_bus=event_bus, integrations=(integration,))
     bridge.setup()
     await bridge.prepare()
 
@@ -66,7 +66,7 @@ def test_plays_cached_ack_when_tool_call_follows_silence(
             requested.append(event.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        await _prepare_observer(event_bus, tmp_path)
+        await _prepare_integration(event_bus, tmp_path)
 
         turn_id = uuid4()
         await event_bus.emit(AssistantResponseStarted(turn_id=turn_id))
@@ -93,7 +93,7 @@ def test_stays_silent_when_assistant_already_spoke(tmp_path: Path) -> None:
             requested.append(event.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        await _prepare_observer(event_bus, tmp_path)
+        await _prepare_integration(event_bus, tmp_path)
 
         turn_id = uuid4()
         await event_bus.emit(AssistantResponseStarted(turn_id=turn_id))
@@ -117,7 +117,7 @@ def test_resets_state_and_avoids_repeating_the_last_ack(
             requested.append(event.audio)
 
         event_bus.on_request(AudioPlaybackRequested, capture)
-        await _prepare_observer(event_bus, tmp_path)
+        await _prepare_integration(event_bus, tmp_path)
 
         for turn_id in (uuid4(), uuid4()):
             await event_bus.emit(AssistantResponseStarted(turn_id=turn_id))

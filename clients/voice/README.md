@@ -33,24 +33,24 @@ Gateway turn, and starts a new turn from the retained microphone pre-roll.
 ## Wiring
 
 ```python
-from voice import GatewayVoiceSession, VoiceChannel, VoiceChannelConfig
+from voice import VoiceClient, VoiceClientConfig
 
-config = VoiceChannelConfig.from_yaml()
-session = await GatewayVoiceSession.connect(
-    config.gateway.url,
-    token=config.gateway.token,
-    device_id=config.voice.device_id,
-    channel=config.voice.channel,
-    new_session=config.voice.new_session,
-    inactivity_timeout_seconds=config.voice.inactivity_timeout_seconds,
-)
-async with session:
-    await VoiceChannel(gateway_session=session).start()
+config = VoiceClientConfig.from_yaml()
+client = VoiceClient(config)
+async with client:
+    await client.run()
 ```
 
-The `device_id` must remain stable for a physical client so it can resume its
-open voice session after reconnecting. Set `new_session: true` to close any
-open voice session for that device and create a fresh conversation session.
+`VoiceClientConfig.from_yaml()` loads `voice.yml` by default and also accepts
+the older `voice.yaml` filename. Unknown keys, invalid values, and malformed
+YAML fail immediately with the configuration path and actionable validation
+details. Connection and session values can be overridden with environment
+variables such as `CARA_GATEWAY_TOKEN` and `CARA_SESSION_CLIENT_ID`.
+
+The `session.client_id` must remain stable for a physical client so it can
+resume its open voice session after reconnecting. Set `new_session: true` to
+close any open voice session for that client and create a fresh conversation
+session.
 
 ## Local extension points
 
@@ -60,7 +60,7 @@ open voice session for that device and create a fresh conversation session.
 | `VoiceActivityDetector` | `SileroVoiceActivityDetector` |
 | `BargeInStrategy` | `WakeWordBargeIn`, `SpeechBargeIn`, `NoBargeIn` |
 | `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource` |
-| `Observer` | earcons, Hue lighting, Sonos audio focus, tool acknowledgements |
+| `VoiceIntegration` | earcons, Hue lighting, Sonos audio focus, tool acknowledgements |
 
 Conversation audio recording remains local. Provider selection and
 `CARA_GATEWAY_VOICE_DEEPGRAM_API_KEY` belong to the Gateway configuration.

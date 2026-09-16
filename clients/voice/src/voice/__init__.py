@@ -1,4 +1,4 @@
-from .acknowledgement import ToolAcknowledgementObserver
+from .acknowledgement import ToolAcknowledgementIntegration
 from .activation import (
     Activation,
     ActivationKind,
@@ -15,20 +15,32 @@ from .barge_in import (
     WakeWordBargeIn,
 )
 from .channel import VoiceChannel
-from .config import VoiceChannelConfig
+from .client import VoiceClient
+from .config import (
+    AudioOutputType,
+    BargeInType,
+    SonosAudioFocusStrategy,
+    VoiceClientConfig,
+    VoiceConfigError,
+    WakeWordName,
+)
 from .conversation import ConversationAudioMixer, ConversationAudioRecorder
 from .gateway import GatewayVoiceSession
 from .handler import FollowUpSettings
-from .lights import HueObserver, LightingState
+from .integration import (
+    VoiceIntegration,
+    VoiceIntegrationBridge,
+    VoiceIntegrationContext,
+)
+from .lights import HueIntegration, LightingState
 from .models import AgentResult
-from .observer import Observer, ObserverBridge, ObserverContext
 from .playback import (
-    SonosAudioFocusObserver,
+    SonosAudioFocusIntegration,
     SonosAudioFocusPolicy,
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
-from .sound import Earcon, SoundObserver
+from .sound import Earcon, SoundIntegration
 from .wakeword import WakeWord, WakeWordSettings
 
 __all__ = [
@@ -39,29 +51,35 @@ __all__ = [
     "BargeInContext",
     "BargeInSignal",
     "BargeInStrategy",
+    "BargeInType",
     "ConversationAudioMixer",
     "ConversationAudioRecorder",
     "Earcon",
     "ExternalActivationSource",
     "FollowUpSettings",
     "GatewayVoiceSession",
-    "HueObserver",
+    "HueIntegration",
     "LightingState",
     "ListenActivation",
     "NoBargeIn",
-    "Observer",
-    "ObserverBridge",
-    "ObserverContext",
+    "AudioOutputType",
+    "VoiceIntegration",
+    "VoiceIntegrationBridge",
+    "VoiceIntegrationContext",
     "SpeechBargeIn",
-    "SoundObserver",
-    "SonosAudioFocusObserver",
+    "SoundIntegration",
+    "SonosAudioFocusIntegration",
     "SonosAudioFocusPolicy",
+    "SonosAudioFocusStrategy",
     "SonosDuckingPolicy",
     "SonosPausePolicy",
-    "ToolAcknowledgementObserver",
+    "ToolAcknowledgementIntegration",
     "VoiceChannel",
-    "VoiceChannelConfig",
+    "VoiceClient",
+    "VoiceClientConfig",
+    "VoiceConfigError",
     "WakeWord",
     "WakeWordBargeIn",
+    "WakeWordName",
     "WakeWordSettings",
 ]

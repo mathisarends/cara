@@ -3,14 +3,14 @@ import io
 import wave
 from pathlib import Path
 
-from voice import Earcon, SoundObserver
+from voice import Earcon, SoundIntegration
 from voice.audio import AudioBridge
 from voice.audio.ports import AudioOutput
 from voice.echo_cancellation import PlaybackReference, ReferenceTapOutput
 from voice.events import WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
-from voice.observer import ObserverBridge
+from voice.integration import VoiceIntegrationBridge
 
 _SAMPLE_RATE = 16_000
 _FRAMES = 160
@@ -61,15 +61,15 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
         event_bus=event_bus,
         output_device=output_device,
     )
-    observer = SoundObserver(sounds_dir=tmp_path)
-    observer_bridge = ObserverBridge(
+    integration = SoundIntegration(sounds_dir=tmp_path)
+    integration_bridge = VoiceIntegrationBridge(
         event_bus=event_bus,
-        observers=(observer,),
+        integrations=(integration,),
     )
-    observer_bridge.setup()
+    integration_bridge.setup()
 
     async def run() -> None:
-        await observer_bridge.prepare()
+        await integration_bridge.prepare()
         await event_bus.emit(
             WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft")
         )
