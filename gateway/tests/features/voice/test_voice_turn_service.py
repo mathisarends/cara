@@ -56,7 +56,12 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
         await service.playback_completed(first_turn.id)
         await asyncio.sleep(0.05)
 
-        assert [event.type for event in events.items] == [
+        lifecycle = [
+            event.type
+            for event in events.items
+            if event.type is not VoiceEventType.TRANSCRIPT_PARTIAL
+        ]
+        assert lifecycle == [
             VoiceEventType.CONVERSATION_STARTED,
             VoiceEventType.TURN_STARTED,
             VoiceEventType.TURN_COMPLETED,
@@ -123,6 +128,7 @@ class _MediaSessions:
 
 class _EmptySpeechToText:
     async def transcribe(self, audio):
+        yield Transcription("", False)
         async for _ in audio:
             pass
         yield Transcription("", True)

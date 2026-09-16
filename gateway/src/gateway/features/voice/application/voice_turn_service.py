@@ -112,7 +112,8 @@ class VoiceTurnService:
 
     async def partial_transcript(self, voice_turn_id: UUID, text: str) -> None:
         voice_session, turn = await self._find_turn(voice_turn_id)
-        self._cancel_conversation_timeout(voice_session.id)
+        if text.strip():
+            self._cancel_conversation_timeout(voice_session.id)
         revision = self._partial_revisions.get(turn.id, 0) + 1
         self._partial_revisions[turn.id] = revision
         await self._events.publish_voice(
