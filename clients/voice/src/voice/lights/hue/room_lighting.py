@@ -6,15 +6,15 @@ from hueify import GroupedLight, Hueify, Room
 from hueify.models import HueEvent
 
 from voice.lights.hue.baseline import (
-    _BRIGHTNESS_RANGE,
-    _TEMPERATURE_RANGE,
-    _Baseline,
-    _capture_baseline,
-    _clamp,
-    _mirek_to_percentage,
-    _percentage_to_mirek,
+    BRIGHTNESS_RANGE,
+    TEMPERATURE_RANGE,
+    Baseline,
+    capture_baseline,
+    clamp,
+    mirek_to_percentage,
+    percentage_to_mirek,
 )
-from voice.lights.hue.effects import _EFFECTS, _TRANSITIONS
+from voice.lights.hue.effects import EFFECTS, TRANSITIONS
 from voice.lights.state import LightingState
 
 logger = logging.getLogger(__name__)
@@ -28,9 +28,9 @@ class HueRoomLighting:
         self._hue = hue
         self._room: Room | None = None
         self._grouped_light_id: UUID | None = None
-        self._baseline: _Baseline | None = None
+        self._baseline: Baseline | None = None
         self._state = LightingState.IDLE
-        self._active_effect = _EFFECTS[LightingState.IDLE]
+        self._active_effect = EFFECTS[LightingState.IDLE]
         self._stream_started = False
 
     @property
@@ -43,9 +43,9 @@ class HueRoomLighting:
             self._room = await self._hue.rooms.find_by_name(self._room_name)
             grouped_light = await self._hue.rooms.grouped_light(self._room.id)
             self._state = LightingState.IDLE
-            self._active_effect = _EFFECTS[LightingState.IDLE]
+            self._active_effect = EFFECTS[LightingState.IDLE]
             self._grouped_light_id = grouped_light.id
-            self._baseline = _capture_baseline(grouped_light)
+            self._baseline = capture_baseline(grouped_light)
             await self._hue.start_stream()
         except Exception:
             self._hue.off("grouped_light", self._on_bridge_event)
@@ -57,7 +57,7 @@ class HueRoomLighting:
 
     async def set_state(self, state: LightingState) -> None:
         baseline = self._baseline
-        effect = _EFFECTS[state]
+        effect = EFFECTS[state]
         if effect == self._active_effect:
             self._state = state
             return
@@ -72,10 +72,10 @@ class HueRoomLighting:
         temperature = (
             None
             if baseline.temperature is None
-            else _percentage_to_mirek(
-                _clamp(
+            else percentage_to_mirek(
+                clamp(
                     baseline.temperature + effect.temperature_delta,
-                    *_TEMPERATURE_RANGE,
+                    *TEMPERATURE_RANGE,
                 )
             )
         )
@@ -83,12 +83,12 @@ class HueRoomLighting:
             await self._hue.rooms.set_state(
                 self._room_id(),
                 on=True,
-                brightness=_clamp(
+                brightness=clamp(
                     baseline.brightness + effect.brightness_delta,
-                    *_BRIGHTNESS_RANGE,
+                    *BRIGHTNESS_RANGE,
                 ),
                 mirek=temperature,
-                transition=_TRANSITIONS[state],
+                transition=TRANSITIONS[state],
             )
         except Exception:
             self._state = previous_state
@@ -116,18 +116,17 @@ class HueRoomLighting:
         if grouped_light.dimming is not None:
             baseline = replace(
                 baseline,
-                brightness=_clamp(
+                brightness=clamp(
                     grouped_light.dimming.brightness - effect.brightness_delta,
-                    *_BRIGHTNESS_RANGE,
+                    *BRIGHTNESS_RANGE,
                 ),
             )
         if grouped_light.mirek is not None:
             baseline = replace(
                 baseline,
-                temperature=_clamp(
-                    _mirek_to_percentage(grouped_light.mirek)
-                    - effect.temperature_delta,
-                    *_TEMPERATURE_RANGE,
+                temperature=clamp(
+                    mirek_to_percentage(grouped_light.mirek) - effect.temperature_delta,
+                    *TEMPERATURE_RANGE,
                 ),
             )
         self._baseline = baseline

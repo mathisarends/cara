@@ -9,7 +9,7 @@ class _LightingEffect:
     temperature_delta: float = 0
 
 
-_EFFECTS = {
+EFFECTS = {
     LightingState.IDLE: _LightingEffect(),
     LightingState.LISTENING: _LightingEffect(
         brightness_delta=8,
@@ -25,7 +25,7 @@ _EFFECTS = {
     ),
 }
 
-_TRANSITIONS = {
+TRANSITIONS = {
     LightingState.IDLE: 0.5,
     LightingState.LISTENING: 0.2,
     LightingState.PROCESSING: 0.4,
