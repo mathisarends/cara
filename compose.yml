@@ -59,7 +59,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - cara-workspace:/workspace
-      - cara-cli-config:/tmp/.config
       - ./gateway.yml:/app/gateway.yml:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/v1/readiness')"]
