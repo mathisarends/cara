@@ -20,7 +20,7 @@ from gateway.features.alarm.domain import (
     Weekday,
     WeeklyRecurrence,
 )
-from gateway.shared import UnitOfWork
+from gateway.shared import UnitOfWork, VoiceDelivery
 
 # Tuesday 2026-09-15, 22:00 in Berlin.
 NOW = datetime(2026, 9, 15, 20, 0, tzinfo=UTC)
@@ -86,6 +86,7 @@ def make_alarm(
     owner_id: str = "owner",
     note: str | None = None,
     name: str | None = None,
+    delivery: VoiceDelivery | None = None,
 ) -> Alarm:
     return Alarm.create(
         owner_id=owner_id,
@@ -95,6 +96,7 @@ def make_alarm(
         now=now,
         pre_wake_lead=pre_wake_lead,
         name=name,
+        delivery=delivery,
     )
 
 

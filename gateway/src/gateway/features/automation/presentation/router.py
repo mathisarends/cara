@@ -13,6 +13,7 @@ from gateway.features.automation.presentation.mapper import (
     to_action,
     to_automation_list_response,
     to_automation_response,
+    to_delivery,
     to_schedule,
     to_target,
 )
@@ -83,6 +84,7 @@ async def create_automation(
         schedule=to_schedule(request.schedule),
         action=to_action(request.payload),
         name=request.name,
+        delivery=to_delivery(request.room),
     )
     return to_automation_response(automation)
 

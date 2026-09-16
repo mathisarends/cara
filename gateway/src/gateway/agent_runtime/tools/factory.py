@@ -12,6 +12,7 @@ from gateway.agent_runtime.tools.actions import register_tools
 from gateway.agent_runtime.tools.handler import GatewayReminders
 from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import AgentSessionRef
+from gateway.features.voice.application import VoiceSessionService
 from gateway.shared import UnitOfWork
 
 
@@ -33,9 +34,11 @@ class TurnToolDependencies:
         self,
         automations: UnitOfWork[AutomationService],
         settings: GatewayToolSettings,
+        voice_sessions: VoiceSessionService,
     ) -> None:
         self._automations = automations
         self._settings = settings
+        self._voice_sessions = voice_sessions
 
     def create(self, session: AgentSessionRef) -> tuple[object, ...]:
         owner_id = session.channel.account_id or self._settings.owner_id
@@ -46,6 +49,7 @@ class TurnToolDependencies:
                 session_id=session.id,
                 channel=session.channel.name,
                 channel_scoped=session.inactivity_timeout is not None,
+                voice_sessions=self._voice_sessions,
             ),
         )
 

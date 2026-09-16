@@ -17,8 +17,7 @@ def test_loads_friendly_yaml_values(tmp_path: Path) -> None:
         """
 gateway:
   token: test-token
-session:
-  client_id: kitchen
+room: kitchen
 activation:
   wake_word:
     word: hey_jarvis
@@ -32,7 +31,7 @@ audio:
 
     config = VoiceSessionConfig.from_yaml(config_path)
 
-    assert config.session.client_id == "kitchen"
+    assert config.room == "kitchen"
     assert config.activation.wake_word.word == "hey_jarvis"
     assert config.barge_in.type is BargeInType.SPEECH
     assert config.audio.output.type is AudioOutputType.LOCAL
@@ -91,20 +90,20 @@ integrations:
 def test_accepts_legacy_yaml_filename(tmp_path: Path, monkeypatch) -> None:
     legacy_path = tmp_path / "voice.yaml"
     legacy_path.write_text(
-        "gateway:\n  token: test-token\nsession:\n  client_id: legacy-client\n",
+        "gateway:\n  token: test-token\nroom: bedroom\n",
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
 
     config = VoiceSessionConfig.from_yaml()
 
-    assert config.session.client_id == "legacy-client"
+    assert config.room == "bedroom"
 
 
 def test_factory_loads_an_explicit_yaml_path(tmp_path: Path) -> None:
     config_path = _write(
         tmp_path,
-        "gateway:\n  token: test-token\nsession:\n  client_id: factory\n",
+        "gateway:\n  token: test-token\nroom: office\n",
     )
 
     factory = VoiceSessionFactory.from_yaml(config_path)

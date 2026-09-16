@@ -16,6 +16,7 @@ class AutomationModel(DatabaseEntity, table=True):
     target_kind: str
     target_session_id: UUID | None = None
     target_channel_name: str | None = None
+    delivery_voice_room: str | None = None
     schedule_kind: str
     schedule_run_at: datetime | None = Field(
         default=None,

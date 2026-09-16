@@ -16,12 +16,14 @@ def test_create_list_update_and_delete_an_automation(client: TestClient) -> None
             "schedule": {"kind": "interval", "every_seconds": 1800},
             "payload": payload,
             "name": "Hydration",
+            "room": "bedroom",
         },
     )
     assert created.status_code == 201
     automation = created.json()
     assert automation["owner_id"] == "owner"
     assert automation["payload"] == {"kind": "reminder", **payload}
+    assert automation["room"] == "bedroom"
     assert client.get(_AUTOMATIONS).json() == {"automations": [automation]}
     assert client.get(f"{_AUTOMATIONS}/{automation['id']}").json() == automation
 

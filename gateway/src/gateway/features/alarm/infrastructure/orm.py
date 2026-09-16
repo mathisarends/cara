@@ -15,6 +15,7 @@ class AlarmModel(DatabaseEntity, table=True):
     name: str | None = None
     target_kind: str
     target_session_id: UUID | None = None
+    delivery_voice_room: str | None = None
     recurrence_kind: str
     once_wake_at: datetime | None = Field(
         default=None,

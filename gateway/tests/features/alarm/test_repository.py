@@ -10,6 +10,7 @@ from gateway.features.alarm.domain import (
     OccurrenceState,
 )
 from gateway.features.alarm.infrastructure.repository import SQLAlarmRepository
+from gateway.shared import VoiceDelivery
 
 
 @pytest.mark.parametrize(
@@ -39,6 +40,7 @@ async def test_save_round_trips_every_field(
             snoozed_until=NEXT_WAKE + timedelta(minutes=18),
             activated_at=NEXT_WAKE + timedelta(minutes=9),
         ),
+        delivery=VoiceDelivery("bedroom"),
     )
 
     await alarm_repository.save(stored_alarm)
@@ -87,4 +89,5 @@ def _state(alarm: Alarm) -> tuple[object, ...]:
         alarm.enabled,
         alarm.skipped_dates,
         alarm.occurrence,
+        alarm.delivery,
     )

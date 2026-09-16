@@ -75,6 +75,7 @@ class CreateAutomationRequest(ApiModel):
     schedule: AutomationSchedule
     payload: ReminderPayload
     name: str | None = None
+    room: str | None = Field(default=None, min_length=1, pattern=r"\S")
 
 
 class UpdateAutomationRequest(ApiModel):
@@ -92,6 +93,7 @@ class AutomationResponse(ApiModel):
     schedule: AutomationSchedule
     target: AutomationTarget
     payload: ReminderPayload
+    room: str | None
 
 
 class AutomationListResponse(ApiModel):

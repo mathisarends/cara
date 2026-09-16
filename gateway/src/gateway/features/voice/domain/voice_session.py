@@ -21,7 +21,7 @@ class VoiceSession(Aggregate):
     def __init__(
         self,
         session_id: UUID,
-        device_id: str,
+        room: str,
         input_format: AudioFormat,
         output_format: AudioFormat,
         turns: Sequence[VoiceTurn] = (),
@@ -33,11 +33,11 @@ class VoiceSession(Aggregate):
         closed_at: datetime | None = None,
         close_reason: str | None = None,
     ) -> None:
-        if not device_id.strip():
-            raise InvalidVoiceSessionError("Device ID must not be empty")
+        if not room.strip():
+            raise InvalidVoiceSessionError("Voice room must not be empty")
         super().__init__(id=id, created_at=created_at)
         self._session_id = session_id
-        self._device_id = device_id
+        self._room = room
         self._input_format = input_format
         self._output_format = output_format
         self._turns = list(turns)
@@ -51,8 +51,8 @@ class VoiceSession(Aggregate):
         return self._session_id
 
     @property
-    def device_id(self) -> str:
-        return self._device_id
+    def room(self) -> str:
+        return self._room
 
     @property
     def input_format(self) -> AudioFormat:

@@ -13,6 +13,7 @@ from gateway.features.alarm.domain import (
     WeeklyRecurrence,
 )
 from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.voice.application import VoiceTurnService
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,14 @@ class ConversationAlarmTargetResolver(AlarmTargetResolver):
 
 
 class ConversationAlarmRunExecutor(AlarmRunExecutor):
-    def __init__(self, turns: TurnService, local_timezone: ZoneInfo) -> None:
+    def __init__(
+        self,
+        turns: TurnService,
+        voice_turns: VoiceTurnService,
+        local_timezone: ZoneInfo,
+    ) -> None:
         self._turns = turns
+        self._voice_turns = voice_turns
         self._local_timezone = local_timezone
 
     async def execute(self, alarm: Alarm, run: DueRun, now: datetime) -> None:
@@ -41,11 +48,26 @@ class ConversationAlarmRunExecutor(AlarmRunExecutor):
             "scheduled_for": run.due_at.isoformat(),
         }
         logger.info("Running %s phase of alarm %s", run.phase, alarm.id)
+        prompt = _alarm_prompt(alarm, run, now, self._local_timezone)
+        if alarm.delivery is not None:
+            turn = await self._voice_turns.start_proactive_in_room(
+                alarm.delivery.room,
+                text=prompt,
+                metadata=metadata,
+            )
+            if turn is None:
+                logger.warning(
+                    "Skipping voice delivery for alarm %s because room %r is "
+                    "not connected",
+                    alarm.id,
+                    alarm.delivery.room,
+                )
+            return
         match alarm.target:
             case SessionTarget(session_id=session_id):
                 await self._turns.start_scheduled(
                     session_id=session_id,
-                    text=_alarm_prompt(alarm, run, now, self._local_timezone),
+                    text=prompt,
                     metadata=metadata,
                 )
 

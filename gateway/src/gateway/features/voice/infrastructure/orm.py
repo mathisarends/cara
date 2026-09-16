@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, Index, UniqueConstraint, text
+from sqlalchemy import Column, DateTime, Index, String, UniqueConstraint, text
 from sqlmodel import Field, Relationship
 
 from gateway.platform.database import DatabaseEntity
@@ -21,7 +21,7 @@ class VoiceSessionModel(DatabaseEntity, table=True):
     )
 
     session_id: UUID = Field(foreign_key="gateway_sessions.id", ondelete="CASCADE")
-    device_id: str
+    room: str = Field(sa_column=Column("device_id", String, nullable=False))
     status: str
     input_encoding: str
     input_sample_rate: int

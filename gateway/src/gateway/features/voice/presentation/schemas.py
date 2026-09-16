@@ -20,7 +20,7 @@ class AudioFormat(ApiModel):
 
 class OpenVoiceSessionRequest(ApiModel):
     session_id: UUID
-    device_id: str = Field(min_length=1)
+    room: str = Field(min_length=1, pattern=r"\S")
     input_formats: tuple[AudioFormat, ...] = Field(min_length=1)
     output_formats: tuple[AudioFormat, ...] = Field(min_length=1)
 
@@ -28,7 +28,7 @@ class OpenVoiceSessionRequest(ApiModel):
 class VoiceSessionResponse(ApiModel):
     id: UUID
     session_id: UUID
-    device_id: str
+    room: str
     status: VoiceSessionStatus
     input_format: AudioFormat
     output_format: AudioFormat

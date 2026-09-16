@@ -1,4 +1,7 @@
-"""Activate the configured voice session from an additional external source."""
+"""Open the microphone from a local source such as a hardware button.
+
+Gateway reminders, automations, and alarms use proactive room delivery instead.
+"""
 
 import asyncio
 import logging

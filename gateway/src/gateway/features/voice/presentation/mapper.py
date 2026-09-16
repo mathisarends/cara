@@ -22,7 +22,7 @@ def to_voice_session_response(
     return VoiceSessionResponse(
         id=voice_session.id,
         session_id=voice_session.session_id,
-        device_id=voice_session.device_id,
+        room=voice_session.room,
         status=voice_session.status,
         input_format=_audio_format(voice_session.input_format),
         output_format=_audio_format(voice_session.output_format),

@@ -133,6 +133,7 @@ class AlarmResponse(BaseModel):
     skipped_dates: list[date]
     occurrence: AlarmOccurrence | None
     next_run: AlarmNextRun | None
+    room: str | None
 
 
 class AlarmListResponse(BaseModel):
@@ -248,6 +249,7 @@ class AutomationResponse(BaseModel):
     schedule: AutomationSchedule
     target: AutomationTarget
     payload: ReminderPayload
+    room: str | None
 
 
 class AutomationListResponse(BaseModel):
@@ -275,6 +277,7 @@ class CreateAlarmRequest(BaseModel):
     routine: AlarmRoutine
     pre_wake_minutes: int | None = None
     name: str | None = None
+    room: str | None = None
 
 
 class CreateAutomationRequest(BaseModel):
@@ -284,6 +287,7 @@ class CreateAutomationRequest(BaseModel):
     schedule: AutomationSchedule
     payload: ReminderPayload
     name: str | None = None
+    room: str | None = None
 
 
 class SessionChannel(BaseModel):
@@ -395,7 +399,7 @@ class OpenVoiceSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     session_id: UUID
-    device_id: str = Field(min_length=1)
+    room: str = Field(min_length=1, pattern="\\S")
     input_formats: list[AudioFormat] = Field(min_length=1)
     output_formats: list[AudioFormat] = Field(min_length=1)
 
@@ -496,6 +500,7 @@ class UpdateAlarmRequest(BaseModel):
     routine: AlarmRoutine
     pre_wake_minutes: int | None = None
     name: str | None = None
+    room: str | None = None
 
 
 class UpdateAutomationRequest(BaseModel):
@@ -538,7 +543,7 @@ class VoiceSessionResponse(BaseModel):
 
     id: UUID
     session_id: UUID
-    device_id: str
+    room: str
     status: VoiceSessionStatus
     input_format: AudioFormat
     output_format: AudioFormat
@@ -621,5 +626,5 @@ class ListSessionsParams(BaseModel):
 
 class ListVoiceSessionsParams(BaseModel):
     session_id: UUID | None = None
-    device_id: str | None = None
+    room: str | None = None
     status: VoiceSessionStatus | None = None

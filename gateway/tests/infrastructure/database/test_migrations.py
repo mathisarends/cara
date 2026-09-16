@@ -36,6 +36,9 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
         alarm_indexes = {
             index["name"] for index in inspector.get_indexes("gateway_alarms")
         }
+        alarm_columns = {
+            column["name"] for column in inspector.get_columns("gateway_alarms")
+        }
     finally:
         engine.dispose()
 
@@ -55,7 +58,9 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
     assert "ix_gateway_sessions_channel" in session_indexes
     assert "created_from_turn_id" not in automation_columns
     assert "target_channel_name" in automation_columns
+    assert "delivery_voice_room" in automation_columns
     assert "ix_gateway_alarms_owner_id" in alarm_indexes
+    assert "delivery_voice_room" in alarm_columns
 
 
 async def test_alembic_downgrades_alarms_and_the_automation_origin(

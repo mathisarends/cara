@@ -7,6 +7,7 @@ from gateway.features.automation.domain.action import PromptAction
 from gateway.features.automation.domain.errors import AutomationNotFoundError
 from gateway.features.automation.domain.schedule import AutomationSchedule
 from gateway.features.automation.domain.target import AutomationTarget
+from gateway.shared import VoiceDelivery
 
 
 class Automation:
@@ -20,6 +21,7 @@ class Automation:
         action: PromptAction,
         next_run_at: datetime,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> None:
         if not owner_id.strip():
             raise ValueError("Automation owner id must not be empty")
@@ -31,6 +33,7 @@ class Automation:
         self._action = action
         self._next_run_at = next_run_at
         self._name = name
+        self._delivery = delivery
 
     @classmethod
     def create(
@@ -42,6 +45,7 @@ class Automation:
         action: PromptAction,
         next_run_at: datetime,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> Self:
         return cls(
             id=uuid.uuid4(),
@@ -52,6 +56,7 @@ class Automation:
             action=action,
             next_run_at=next_run_at,
             name=name,
+            delivery=delivery,
         )
 
     @property
@@ -85,6 +90,10 @@ class Automation:
     @property
     def name(self) -> str | None:
         return self._name
+
+    @property
+    def delivery(self) -> VoiceDelivery | None:
+        return self._delivery
 
     def is_owned_by(self, owner_id: str) -> bool:
         return self._owner_id == owner_id

@@ -1167,7 +1167,7 @@ class GatewayRestClient:
     async def list_voice_sessions(
         self,
         session_id: UUID | None = None,
-        device_id: str | None = None,
+        room: str | None = None,
         status: VoiceSessionStatus | None = None,
         *,
         timeout: float | None = None,
@@ -1177,14 +1177,14 @@ class GatewayRestClient:
 
             params = ListVoiceSessionsParams(
                 session_id=session_id,
-                device_id=device_id,
+                room=room,
                 status=status,
             )
             query: list[tuple[str, str]] = []
             if params.session_id is not None:
                 query.extend(serialize_query("session_id", params.session_id))
-            if params.device_id is not None:
-                query.extend(serialize_query("device_id", params.device_id))
+            if params.room is not None:
+                query.extend(serialize_query("room", params.room))
             if params.status is not None:
                 query.extend(serialize_query("status", params.status))
 

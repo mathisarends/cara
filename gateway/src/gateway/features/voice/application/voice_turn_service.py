@@ -21,6 +21,7 @@ from gateway.features.voice.domain import (
     Activation,
     MediaNotConnectedError,
     VoiceSessionRepository,
+    VoiceSessionStatus,
     VoiceTurn,
     VoiceTurnNotFoundError,
 )
@@ -112,6 +113,89 @@ class VoiceTurnService:
         self._start_task(turn.id, self._transcribe(turn.id, queue))
         if activation is not Activation.PROACTIVE:
             self._start_conversation_timeout(voice_session.id, turn.id)
+        return turn
+
+    async def start_proactive_in_room(
+        self,
+        room: str,
+        *,
+        text: str,
+        metadata: dict[str, object],
+    ) -> VoiceTurn | None:
+        sessions = await self._sessions.list(
+            room=room,
+            status=VoiceSessionStatus.OPEN,
+        )
+        connected = tuple(
+            session for session in sessions if self._media.connected(session.id)
+        )
+        if not connected:
+            return None
+        return await self.start_proactive(
+            connected[0].id,
+            text=text,
+            metadata=metadata,
+        )
+
+    async def start_proactive(
+        self,
+        voice_session_id: UUID,
+        *,
+        text: str,
+        metadata: dict[str, object],
+    ) -> VoiceTurn:
+        if not self._media.connected(voice_session_id):
+            raise MediaNotConnectedError(
+                f"Voice session {voice_session_id} has no media connection"
+            )
+        voice_session = await self._sessions.get(voice_session_id)
+        turn = voice_session.start_proactive_turn()
+        conversation_started = voice_session_id not in self._active_conversations
+        if conversation_started:
+            self._active_conversations.add(voice_session_id)
+            conversation_sequence = voice_session.next_sequence()
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        if conversation_started:
+            await self._events.publish_voice(
+                VoiceEvent(
+                    VoiceEventType.CONVERSATION_STARTED,
+                    voice_session.id,
+                    voice_session.session_id,
+                    {},
+                    sequence=conversation_sequence,
+                )
+            )
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_STARTED,
+                voice_session.id,
+                voice_session.session_id,
+                {"activation": Activation.PROACTIVE},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+
+        ready = asyncio.Event()
+        speech_task = self._start_task(
+            turn.id,
+            self._conversation_to_speech(voice_session.id, turn.id, ready),
+        )
+        await ready.wait()
+        turn_metadata = {
+            **metadata,
+            "modality": "voice",
+            "voice_turn_id": str(turn.id),
+            "voice_room": voice_session.room,
+        }
+        await self._turns.start_scheduled(
+            session_id=voice_session.session_id,
+            text=text,
+            metadata=turn_metadata,
+        )
+        await speech_task
         return turn
 
     async def partial_transcript(self, voice_turn_id: UUID, text: str) -> None:

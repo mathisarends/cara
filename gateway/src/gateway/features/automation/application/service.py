@@ -13,6 +13,7 @@ from gateway.features.automation.domain import (
     AutomationTarget,
     PromptAction,
 )
+from gateway.shared import VoiceDelivery
 from gateway.shared.transaction import Transaction
 
 
@@ -47,6 +48,7 @@ class AutomationService:
         schedule: AutomationSchedule,
         action: PromptAction,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> Automation:
         await self._targets.require(target)
         automation = Automation.create(
@@ -56,6 +58,7 @@ class AutomationService:
             action=action,
             next_run_at=self._scheduler.first_run_at(schedule),
             name=name,
+            delivery=delivery,
         )
         return await self._save_and_arm(automation)
 

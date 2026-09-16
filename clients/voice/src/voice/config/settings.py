@@ -36,7 +36,6 @@ class GatewayConfig(_ConfigModel):
 
 class SessionConfig(_ConfigModel):
     channel: str = Field(default="voice", min_length=1)
-    client_id: str = Field(default="default-voice-client", min_length=1)
     new_session: bool = False
     inactivity_timeout_seconds: float = Field(default=1800, gt=0)
 
@@ -176,6 +175,7 @@ class VoiceSessionConfig(BaseSettings):
     )
 
     gateway: GatewayConfig
+    room: str = Field(default="default", min_length=1, pattern=r"\S")
     session: SessionConfig = Field(default_factory=SessionConfig)
     activation: ActivationConfig = Field(default_factory=ActivationConfig)
     barge_in: BargeInConfig = Field(default_factory=WakeWordBargeInConfig)

@@ -152,9 +152,17 @@ Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you
 stop speaking, answers through the speakers, and briefly listens for a follow-up.
 Press Ctrl+C to stop the client. See [`voice`](clients/voice#readme) for the full pipeline.
 
+Each voice client has a stable logical `room` in `voice.yml`. Reminders created
+during a voice turn are bound to that room automatically. Gateway automation
+and alarm requests can set the same `room` explicitly; when they become due,
+the Gateway starts a proactive voice turn and streams the answer to the
+connected client in that room. If no client is connected, the run is skipped;
+there is no offline queue yet.
+
 `examples/voice_activation_main.py` is a minimal variant that additionally
-starts a turn on a timer, standing in for a button or any other out-of-band
-trigger:
+opens the microphone from a local timer, standing in for a hardware button.
+It is only an input example; scheduled Gateway reminders use proactive delivery
+and do not need an `ExternalActivationSource`:
 
 ```powershell
 uv run python examples/voice_activation_main.py

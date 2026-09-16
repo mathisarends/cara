@@ -189,7 +189,7 @@ Router `voice_router` mit `CanonRouter`, `DishkaRoute` und
 
 ```text
 POST /v1/voice-sessions                                   -> 201 VoiceSessionResponse
-GET  /v1/voice-sessions?session_id=&device_id=&status=    -> VoiceSessionListResponse
+GET  /v1/voice-sessions?session_id=&room=&status=         -> VoiceSessionListResponse
 GET  /v1/voice-sessions/{voice_session_id}                -> VoiceSessionSnapshotResponse
 POST /v1/voice-sessions/{voice_session_id}/close          -> VoiceSessionResponse
 GET  /v1/voice-sessions/{voice_session_id}/turns/{voice_turn_id} -> VoiceTurnResponse
@@ -200,17 +200,17 @@ GET  /v1/voice-sessions/{voice_session_id}/turns/{voice_turn_id} -> VoiceTurnRes
 ```json
 {
   "session_id": "…",
-  "device_id": "kitchen-speaker",
+  "room": "kitchen",
   "input_formats": [{ "encoding": "pcm_s16le", "sample_rate": 16000, "channels": 1 }],
   "output_formats": [{ "encoding": "pcm_s16le", "sample_rate": 24000, "channels": 1 }]
 }
 ```
 
 Die Antwort enthält die ausgehandelten Formate und `media_path`
-(`/v1/voice-sessions/{id}/media`). Pro `device_id` gibt es höchstens eine offene
+(`/v1/voice-sessions/{id}/media`). Pro `room` gibt es höchstens eine offene
 Voice-Session; ein zweites Öffnen liefert `409 VOICE_SESSION_ALREADY_OPEN` mit
 der ID der bestehenden. Nach einem Reconnect sucht der Client seine Session über
-`GET /v1/voice-sessions?device_id=…&status=open`.
+`GET /v1/voice-sessions?room=…&status=open`.
 
 `GET /v1/voice-sessions/{id}` liefert den Snapshot:
 
@@ -219,7 +219,7 @@ der ID der bestehenden. Nach einem Reconnect sucht der Client seine Session übe
   "voice_session": {
     "id": "…",
     "session_id": "…",
-    "device_id": "kitchen-speaker",
+    "room": "kitchen",
     "status": "open",
     "input_format": { "encoding": "pcm_s16le", "sample_rate": 16000, "channels": 1 },
     "output_format": { "encoding": "pcm_s16le", "sample_rate": 24000, "channels": 1 },
@@ -364,7 +364,7 @@ den autoritativen Zustand jederzeit per REST abrufen.
 
 ```text
 voice_sessions
-  id, session_id -> sessions.id, device_id, status (open | closed),
+  id, session_id -> sessions.id, room, status (open | closed),
   input_format, output_format, last_sequence,
   created_at, closed_at, close_reason
 
@@ -486,7 +486,7 @@ Reconnect-Fenster und Provider-Secrets in der Gateway-Konfiguration. Im Client
 verbleiben nur:
 
 - Gateway-Adresse und Authentisierung;
-- `device_id`, Gerätewahl und lokale Audioformate;
+- `room`, Raumwahl und lokale Audioformate;
 - Wake Word, VAD, Echo Cancellation und Barge-in-Einstellungen;
 - lokale Ausgabe-, Integrations- und Recording-Einstellungen.
 

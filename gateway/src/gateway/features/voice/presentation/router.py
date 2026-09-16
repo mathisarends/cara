@@ -52,7 +52,7 @@ async def open_voice_session(
 ) -> VoiceSessionResponse:
     voice_session = await service.open(
         request.session_id,
-        request.device_id,
+        request.room,
         tuple(to_audio_format(item) for item in request.input_formats),
         tuple(to_audio_format(item) for item in request.output_formats),
     )
@@ -67,12 +67,12 @@ async def open_voice_session(
 async def list_voice_sessions(
     service: FromDishka[VoiceSessionService],
     session_id: UUID | None = None,
-    device_id: Annotated[str | None, Query(min_length=1)] = None,
+    room: Annotated[str | None, Query(min_length=1, pattern=r"\S")] = None,
     status_filter: Annotated[VoiceSessionStatus | None, Query(alias="status")] = None,
 ) -> VoiceSessionListResponse:
     voice_sessions = await service.list(
         session_id=session_id,
-        device_id=device_id,
+        room=room,
         status=status_filter,
     )
     connected = {item.id for item in voice_sessions if service.media_connected(item.id)}

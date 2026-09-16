@@ -20,6 +20,7 @@ from gateway.features.automation.domain import (
 )
 from gateway.features.automation.infrastructure.orm import AutomationModel
 from gateway.platform.database import Repository
+from gateway.shared import VoiceDelivery
 
 
 class SQLAutomationRepository(
@@ -53,6 +54,11 @@ class SQLAutomationRepository(
             action=PromptAction(orm.instruction),
             next_run_at=_as_utc(orm.next_run_at),
             name=orm.name,
+            delivery=(
+                VoiceDelivery(orm.delivery_voice_room)
+                if orm.delivery_voice_room is not None
+                else None
+            ),
         )
 
     def _to_orm(self, domain: Automation) -> AutomationModel:
@@ -71,6 +77,9 @@ class SQLAutomationRepository(
             target_kind=domain.target.kind,
             target_session_id=target_session_id,
             target_channel_name=target_channel_name,
+            delivery_voice_room=(
+                domain.delivery.room if domain.delivery is not None else None
+            ),
             schedule_kind=domain.schedule.kind,
             instruction=domain.action.instruction,
             next_run_at=domain.next_run_at,

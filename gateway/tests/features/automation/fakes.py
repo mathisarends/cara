@@ -12,6 +12,7 @@ from gateway.features.automation.domain import (
     AutomationTarget,
     PromptAction,
 )
+from gateway.shared import VoiceDelivery
 from gateway.shared.transaction import Transaction, TransactionAction
 
 
@@ -50,6 +51,7 @@ class RecordingExecutor(AutomationActionExecutor):
         automation_id: UUID,
         target: AutomationTarget,
         action: PromptAction,
+        delivery: VoiceDelivery | None,
         scheduled_for: datetime,
     ) -> None:
         self.executed.append(automation_id)

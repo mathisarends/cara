@@ -8,6 +8,7 @@ from gateway.features.alarm.infrastructure.conversation import (
     ConversationAlarmRunExecutor,
     _alarm_prompt,
 )
+from gateway.shared import VoiceDelivery
 
 _BERLIN = ZoneInfo("Europe/Berlin")
 
@@ -24,6 +25,21 @@ class _RecordingTurns:
         metadata: dict[str, object],
     ) -> None:
         self.started.append((session_id, text, metadata))
+
+
+class _RecordingVoiceTurns:
+    def __init__(self) -> None:
+        self.started: list[tuple[str, str, dict[str, object]]] = []
+
+    async def start_proactive_in_room(
+        self,
+        room: str,
+        *,
+        text: str,
+        metadata: dict[str, object],
+    ) -> object:
+        self.started.append((room, text, metadata))
+        return object()
 
 
 def test_the_pre_wake_prompt_names_the_phase_wake_time_and_remaining_minutes() -> None:
@@ -62,10 +78,15 @@ def test_the_snooze_end_prompt_counts_snoozes_without_remaining_minutes() -> Non
 
 async def test_the_executor_starts_a_scheduled_turn_with_alarm_metadata() -> None:
     turns = _RecordingTurns()
+    voice_turns = _RecordingVoiceTurns()
     alarm = make_alarm(pre_wake_lead=None)
     run = _run(alarm, NEXT_WAKE)
 
-    await ConversationAlarmRunExecutor(turns, _BERLIN).execute(alarm, run, NEXT_WAKE)
+    await ConversationAlarmRunExecutor(turns, voice_turns, _BERLIN).execute(
+        alarm,
+        run,
+        NEXT_WAKE,
+    )
 
     [(session_id, text, metadata)] = turns.started
     assert session_id == alarm.target.session_id
@@ -77,6 +98,28 @@ async def test_the_executor_starts_a_scheduled_turn_with_alarm_metadata() -> Non
         "wake_at": NEXT_WAKE.isoformat(),
         "scheduled_for": NEXT_WAKE.isoformat(),
     }
+
+
+async def test_the_executor_delivers_a_room_alarm_as_a_proactive_turn() -> None:
+    turns = _RecordingTurns()
+    voice_turns = _RecordingVoiceTurns()
+    alarm = make_alarm(
+        pre_wake_lead=None,
+        delivery=VoiceDelivery("bedroom"),
+    )
+    run = _run(alarm, NEXT_WAKE)
+
+    await ConversationAlarmRunExecutor(turns, voice_turns, _BERLIN).execute(
+        alarm,
+        run,
+        NEXT_WAKE,
+    )
+
+    assert turns.started == []
+    [(room, text, metadata)] = voice_turns.started
+    assert room == "bedroom"
+    assert text.startswith("[Scheduled alarm run]")
+    assert metadata["alarm_id"] == str(alarm.id)
 
 
 def _run(alarm: Alarm, now) -> DueRun:

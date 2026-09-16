@@ -26,25 +26,25 @@ class SQLVoiceSessionRepository(
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(session, VoiceSessionModel)
 
-    async def find_by_device(
+    async def find_by_room(
         self,
-        device_id: str,
+        room: str,
         status: VoiceSessionStatus | None = None,
     ) -> tuple[VoiceSession, ...]:
-        return await self.find_many(device_id=device_id, status=status)
+        return await self.find_many(room=room, status=status)
 
     async def find_many(
         self,
         *,
         session_id: UUID | None = None,
-        device_id: str | None = None,
+        room: str | None = None,
         status: VoiceSessionStatus | None = None,
     ) -> tuple[VoiceSession, ...]:
         statement = select(VoiceSessionModel)
         if session_id is not None:
             statement = statement.where(VoiceSessionModel.session_id == session_id)
-        if device_id is not None:
-            statement = statement.where(VoiceSessionModel.device_id == device_id)
+        if room is not None:
+            statement = statement.where(VoiceSessionModel.room == room)
         if status is not None:
             statement = statement.where(VoiceSessionModel.status == status)
         statement = statement.order_by(
@@ -67,7 +67,7 @@ class SQLVoiceSessionRepository(
         )
         return VoiceSession(
             orm.session_id,
-            orm.device_id,
+            orm.room,
             input_format,
             output_format,
             turns=tuple(_turn_to_domain(turn) for turn in orm.turns),
@@ -84,7 +84,7 @@ class SQLVoiceSessionRepository(
             id=domain.id,
             created_at=domain.created_at,
             session_id=domain.session_id,
-            device_id=domain.device_id,
+            room=domain.room,
             status=domain.status,
             input_encoding=domain.input_format.encoding,
             input_sample_rate=domain.input_format.sample_rate,

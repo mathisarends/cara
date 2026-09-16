@@ -54,7 +54,7 @@ class GatewayVoiceSession:
         url: str,
         *,
         token: str,
-        device_id: str,
+        room: str,
         channel: str = "voice",
         new_session: bool = False,
         inactivity_timeout_seconds: float = 1800,
@@ -67,7 +67,7 @@ class GatewayVoiceSession:
         media: MediaTransport | None = None
         try:
             existing = await rest.list_voice_sessions(
-                device_id=device_id,
+                room=room,
                 status=VoiceSessionStatus.OPEN,
             )
             if new_session:
@@ -94,7 +94,7 @@ class GatewayVoiceSession:
                 )
                 request = OpenVoiceSessionRequest(
                     session_id=session_id,
-                    device_id=device_id,
+                    room=room,
                     input_formats=[audio_input],
                     output_formats=[audio_output],
                 )

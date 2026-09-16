@@ -50,12 +50,16 @@ async with session:
 the older `voice.yaml` filename. Unknown keys, invalid values, and malformed
 YAML fail immediately with the configuration path and actionable validation
 details. Connection and session values can be overridden with environment
-variables such as `CARA_GATEWAY_TOKEN` and `CARA_SESSION_CLIENT_ID`.
+variables such as `CARA_GATEWAY_TOKEN` and `CARA_ROOM`.
 
-The `session.client_id` must remain stable for a physical client so it can
-resume its open voice session after reconnecting. Set `new_session: true` to
-close any open voice session for that client and create a fresh conversation
-session.
+The `room` must remain stable for a voice client so it can resume its open voice
+session after reconnecting and receive reminders created there. Set
+`new_session: true` to close any open voice session for that room and create a
+fresh conversation session.
+
+Scheduled Gateway output arrives as a proactive turn: the client does not open
+its microphone or need an `ExternalActivationSource`; it simply plays the
+Gateway's streamed response for its configured room.
 
 ## Reading the log
 

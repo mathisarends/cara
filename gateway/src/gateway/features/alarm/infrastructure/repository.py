@@ -21,6 +21,7 @@ from gateway.features.alarm.domain import (
 from gateway.features.alarm.domain.target import TargetKind
 from gateway.features.alarm.infrastructure.orm import AlarmModel
 from gateway.platform.database import Repository
+from gateway.shared import VoiceDelivery
 
 
 class SQLAlarmRepository(Repository[AlarmModel, Alarm], AlarmRepository):
@@ -59,6 +60,11 @@ class SQLAlarmRepository(Repository[AlarmModel, Alarm], AlarmRepository):
                 date.fromisoformat(day) for day in orm.skipped_dates.split(",") if day
             ),
             occurrence=_occurrence(orm),
+            delivery=(
+                VoiceDelivery(orm.delivery_voice_room)
+                if orm.delivery_voice_room is not None
+                else None
+            ),
         )
 
     def _to_orm(self, domain: Alarm) -> AlarmModel:
@@ -69,6 +75,9 @@ class SQLAlarmRepository(Repository[AlarmModel, Alarm], AlarmRepository):
             name=domain.name,
             target_kind=domain.target.kind,
             target_session_id=domain.target.session_id,
+            delivery_voice_room=(
+                domain.delivery.room if domain.delivery is not None else None
+            ),
             recurrence_kind=domain.recurrence.kind,
             routine_skill=domain.routine.skill,
             routine_note=domain.routine.note,

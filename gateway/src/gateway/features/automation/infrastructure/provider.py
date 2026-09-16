@@ -24,6 +24,7 @@ from gateway.features.automation.infrastructure.scheduling import (
     InProcessAutomationScheduler,
 )
 from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.voice.application import VoiceTurnService
 from gateway.platform.database import ScopedUnitOfWork
 from gateway.shared.transaction import Transaction
 from gateway.shared.unit_of_work import UnitOfWork
@@ -43,8 +44,13 @@ class AutomationProvider(Provider):
         self,
         sessions: SessionService,
         turns: TurnService,
+        voice_turns: VoiceTurnService,
     ) -> AutomationActionExecutor:
-        return ConversationAutomationActionExecutor(sessions, turns)
+        return ConversationAutomationActionExecutor(
+            sessions,
+            turns,
+            voice_turns,
+        )
 
     @provide(scope=Scope.REQUEST)
     def repository(

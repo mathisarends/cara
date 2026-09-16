@@ -29,6 +29,7 @@ class AutomationExecution:
                 automation.id,
                 automation.target,
                 automation.action,
+                automation.delivery,
                 scheduled_for,
             )
         except Exception:

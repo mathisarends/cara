@@ -73,6 +73,7 @@ class CreateAlarmRequest(ApiModel):
     routine: AlarmRoutine
     pre_wake_minutes: int | None = Field(default=None, ge=1, le=120)
     name: str | None = None
+    room: str | None = Field(default=None, min_length=1, pattern=r"\S")
 
 
 class UpdateAlarmRequest(ApiModel):
@@ -80,6 +81,7 @@ class UpdateAlarmRequest(ApiModel):
     routine: AlarmRoutine
     pre_wake_minutes: int | None = Field(default=None, ge=1, le=120)
     name: str | None = None
+    room: str | None = Field(default=None, min_length=1, pattern=r"\S")
 
 
 class SetAlarmEnabledRequest(ApiModel):
@@ -103,6 +105,7 @@ class AlarmResponse(ApiModel):
     skipped_dates: tuple[date, ...]
     occurrence: AlarmOccurrence | None
     next_run: AlarmNextRun | None
+    room: str | None
 
 
 class AlarmListResponse(ApiModel):

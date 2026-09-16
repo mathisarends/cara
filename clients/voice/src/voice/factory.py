@@ -104,7 +104,7 @@ class VoiceSessionFactory:
         return await GatewayVoiceSession.connect(
             gateway.url,
             token=gateway.token,
-            device_id=session.client_id,
+            room=self._config.room,
             channel=session.channel,
             new_session=session.new_session,
             inactivity_timeout_seconds=session.inactivity_timeout_seconds,

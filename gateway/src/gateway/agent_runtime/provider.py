@@ -17,6 +17,7 @@ from gateway.agent_runtime.workspace import resolve_workspace_root
 from gateway.features.automation.application import AutomationService
 from gateway.features.conversation.application import AgentRuntime, SessionService
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
+from gateway.features.voice.application import VoiceSessionService
 from gateway.shared import UnitOfWork
 
 
@@ -40,8 +41,9 @@ class AgentRuntimeProvider(Provider):
         self,
         automations: UnitOfWork[AutomationService],
         settings: GatewayToolSettings,
+        voice_sessions: VoiceSessionService,
     ) -> TurnToolDependencies:
-        return TurnToolDependencies(automations, settings)
+        return TurnToolDependencies(automations, settings, voice_sessions)
 
     @provide
     async def sandbox_client(

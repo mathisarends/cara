@@ -10,9 +10,9 @@ class VoiceSessionRepository(ABC):
     async def find_by_id(self, id: UUID) -> VoiceSession | None: ...
 
     @abstractmethod
-    async def find_by_device(
+    async def find_by_room(
         self,
-        device_id: str,
+        room: str,
         status: VoiceSessionStatus | None = None,
     ) -> tuple[VoiceSession, ...]: ...
 
@@ -21,7 +21,7 @@ class VoiceSessionRepository(ABC):
         self,
         *,
         session_id: UUID | None = None,
-        device_id: str | None = None,
+        room: str | None = None,
         status: VoiceSessionStatus | None = None,
     ) -> tuple[VoiceSession, ...]: ...
 

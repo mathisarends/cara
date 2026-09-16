@@ -14,6 +14,7 @@ from gateway.features.alarm.presentation.schemas import (
     SessionAlarmTarget,
     WeeklyAlarmRecurrence,
 )
+from gateway.shared import VoiceDelivery
 
 
 def to_alarm_list_response(
@@ -55,6 +56,7 @@ def to_alarm_response(alarm: domain.Alarm, now: datetime) -> AlarmResponse:
             if next_run is None
             else AlarmNextRun(phase=next_run.phase, due_at=next_run.due_at)
         ),
+        room=None if alarm.delivery is None else alarm.delivery.room,
     )
 
 
@@ -82,6 +84,10 @@ def to_routine(routine: AlarmRoutine) -> domain.AlarmRoutine:
 
 def to_pre_wake_lead(minutes: int | None) -> timedelta | None:
     return None if minutes is None else timedelta(minutes=minutes)
+
+
+def to_delivery(room: str | None) -> VoiceDelivery | None:
+    return None if room is None else VoiceDelivery(room)
 
 
 def _to_recurrence_schema(recurrence: domain.AlarmRecurrence) -> AlarmRecurrence:

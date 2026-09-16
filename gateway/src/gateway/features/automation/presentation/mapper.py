@@ -14,6 +14,7 @@ from gateway.features.automation.presentation.schemas import (
     ReminderPayload,
     SessionTarget,
 )
+from gateway.shared import VoiceDelivery
 
 
 def to_automation_list_response(
@@ -34,6 +35,7 @@ def to_automation_response(automation: domain.Automation) -> AutomationResponse:
         schedule=_to_schedule_schema(automation.schedule),
         target=_to_target_schema(automation.target),
         payload=ReminderPayload(instruction=automation.action.instruction),
+        room=None if automation.delivery is None else automation.delivery.room,
     )
 
 
@@ -63,6 +65,10 @@ def to_target(target: AutomationTarget) -> domain.AutomationTarget:
 
 def to_action(payload: ReminderPayload) -> domain.PromptAction:
     return domain.PromptAction(payload.instruction)
+
+
+def to_delivery(room: str | None) -> VoiceDelivery | None:
+    return None if room is None else VoiceDelivery(room)
 
 
 def _to_schedule_schema(schedule: domain.AutomationSchedule) -> AutomationSchedule:

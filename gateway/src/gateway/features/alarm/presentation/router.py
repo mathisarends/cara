@@ -15,6 +15,7 @@ from gateway.features.alarm.presentation.errors import (
 from gateway.features.alarm.presentation.mapper import (
     to_alarm_list_response,
     to_alarm_response,
+    to_delivery,
     to_pre_wake_lead,
     to_recurrence,
     to_routine,
@@ -91,6 +92,7 @@ async def create_alarm(
         routine=to_routine(request.routine),
         pre_wake_lead=to_pre_wake_lead(request.pre_wake_minutes),
         name=request.name,
+        delivery=to_delivery(request.room),
     )
     return to_alarm_response(alarm, datetime.now(UTC))
 
@@ -115,6 +117,7 @@ async def update_alarm(
         routine=to_routine(request.routine),
         pre_wake_lead=to_pre_wake_lead(request.pre_wake_minutes),
         name=request.name,
+        delivery=to_delivery(request.room),
     )
     return to_alarm_response(alarm, datetime.now(UTC))
 

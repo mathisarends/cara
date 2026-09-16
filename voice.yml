@@ -3,9 +3,11 @@
 gateway:
   url: http://127.0.0.1:8000
 
+# Stable logical room for this voice client. Reminders created here are
+# delivered back to this room by default.
+room: bedroom
+
 session:
-  # Stable, human-readable identity used to resume this client's open session.
-  client_id: bedroom
   channel: voice
   new_session: false
   inactivity_timeout_seconds: 1800

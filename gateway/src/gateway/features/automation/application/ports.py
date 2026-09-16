@@ -8,6 +8,7 @@ from gateway.features.automation.domain import (
     AutomationTarget,
     PromptAction,
 )
+from gateway.shared import VoiceDelivery
 
 
 class AutomationTargetResolver(ABC):
@@ -22,6 +23,7 @@ class AutomationActionExecutor(ABC):
         automation_id: UUID,
         target: AutomationTarget,
         action: PromptAction,
+        delivery: VoiceDelivery | None,
         scheduled_for: datetime,
     ) -> None: ...
 

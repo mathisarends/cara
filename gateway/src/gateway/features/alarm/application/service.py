@@ -10,6 +10,7 @@ from gateway.features.alarm.domain import (
     AlarmRoutine,
     AlarmTarget,
 )
+from gateway.shared import VoiceDelivery
 
 
 class AlarmService:
@@ -42,6 +43,7 @@ class AlarmService:
         routine: AlarmRoutine,
         pre_wake_lead: timedelta | None = None,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> Alarm:
         await self._targets.require(target)
         async with self._store.mutation():
@@ -54,6 +56,7 @@ class AlarmService:
                 now=now,
                 pre_wake_lead=pre_wake_lead,
                 name=name,
+                delivery=delivery,
             )
             return await self._store.save(alarm, now)
 
@@ -66,6 +69,7 @@ class AlarmService:
         routine: AlarmRoutine,
         pre_wake_lead: timedelta | None = None,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> Alarm:
         async with self._store.mutation():
             alarm = await self.get(alarm_id, owner_id)
@@ -76,6 +80,7 @@ class AlarmService:
                 now=now,
                 pre_wake_lead=pre_wake_lead,
                 name=name,
+                delivery=delivery,
             )
             return await self._store.save(alarm, now)
 

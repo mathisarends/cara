@@ -1283,20 +1283,21 @@
             }
           },
           {
-            "name": "device_id",
+            "name": "room",
             "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
                 {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 1,
+                  "pattern": "\\S"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Device Id"
+              "title": "Room"
             }
           },
           {
@@ -1729,6 +1730,17 @@
                 "type": "null"
               }
             ]
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
           }
         },
         "additionalProperties": false,
@@ -1745,7 +1757,8 @@
           "pre_wake_minutes",
           "skipped_dates",
           "occurrence",
-          "next_run"
+          "next_run",
+          "room"
         ],
         "title": "AlarmResponse"
       },
@@ -1942,6 +1955,17 @@
           },
           "payload": {
             "$ref": "#/components/schemas/ReminderPayload"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
           }
         },
         "additionalProperties": false,
@@ -1954,7 +1978,8 @@
           "next_run_at",
           "schedule",
           "target",
-          "payload"
+          "payload",
+          "room"
         ],
         "title": "AutomationResponse"
       },
@@ -2052,6 +2077,19 @@
               }
             ],
             "title": "Name"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
           }
         },
         "additionalProperties": false,
@@ -2084,6 +2122,19 @@
               }
             ],
             "title": "Name"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
           }
         },
         "additionalProperties": false,
@@ -2307,10 +2358,11 @@
             "format": "uuid",
             "title": "Session Id"
           },
-          "device_id": {
+          "room": {
             "type": "string",
             "minLength": 1,
-            "title": "Device Id"
+            "pattern": "\\S",
+            "title": "Room"
           },
           "input_formats": {
             "items": {
@@ -2333,7 +2385,7 @@
         "type": "object",
         "required": [
           "session_id",
-          "device_id",
+          "room",
           "input_formats",
           "output_formats"
         ],
@@ -2616,6 +2668,19 @@
               }
             ],
             "title": "Name"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
           }
         },
         "additionalProperties": false,
@@ -2755,9 +2820,9 @@
             "format": "uuid",
             "title": "Session Id"
           },
-          "device_id": {
+          "room": {
             "type": "string",
-            "title": "Device Id"
+            "title": "Room"
           },
           "status": {
             "$ref": "#/components/schemas/VoiceSessionStatus"
@@ -2810,7 +2875,7 @@
         "required": [
           "id",
           "session_id",
-          "device_id",
+          "room",
           "status",
           "input_format",
           "output_format",

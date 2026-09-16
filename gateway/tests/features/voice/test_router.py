@@ -10,7 +10,7 @@ def test_open_list_get_and_close_voice_session(client: TestClient) -> None:
     session_id = _conversation_session(client)
     response = client.post(
         "/v1/voice-sessions",
-        json={"session_id": session_id, "device_id": "kitchen", **_FORMATS},
+        json={"session_id": session_id, "room": "kitchen", **_FORMATS},
     )
 
     assert response.status_code == 201
@@ -21,7 +21,7 @@ def test_open_list_get_and_close_voice_session(client: TestClient) -> None:
 
     listed = client.get(
         "/v1/voice-sessions",
-        params={"device_id": "kitchen", "status": "open"},
+        params={"room": "kitchen", "status": "open"},
     ).json()
     assert [item["id"] for item in listed["voice_sessions"]] == [created["id"]]
 
@@ -37,7 +37,7 @@ def test_open_list_get_and_close_voice_session(client: TestClient) -> None:
 
 def test_only_one_open_voice_session_per_device(client: TestClient) -> None:
     session_id = _conversation_session(client)
-    request = {"session_id": session_id, "device_id": "desk", **_FORMATS}
+    request = {"session_id": session_id, "room": "desk", **_FORMATS}
     assert client.post("/v1/voice-sessions", json=request).status_code == 201
 
     conflict = client.post("/v1/voice-sessions", json=request)
@@ -50,7 +50,7 @@ def test_media_socket_owns_the_voice_session(client: TestClient) -> None:
     session_id = _conversation_session(client)
     voice_session = client.post(
         "/v1/voice-sessions",
-        json={"session_id": session_id, "device_id": "media", **_FORMATS},
+        json={"session_id": session_id, "room": "media", **_FORMATS},
     ).json()
 
     with client.websocket_connect(voice_session["media_path"]):

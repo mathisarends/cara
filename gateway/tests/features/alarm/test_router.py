@@ -22,6 +22,7 @@ def test_create_list_update_and_delete_an_alarm(client: TestClient) -> None:
             "routine": {"skill": "wake-up"},
             "pre_wake_minutes": 30,
             "name": "Wecker",
+            "room": "bedroom",
         },
     )
     assert created.status_code == 201
@@ -30,6 +31,7 @@ def test_create_list_update_and_delete_an_alarm(client: TestClient) -> None:
     assert alarm["routine"] == {"skill": "wake-up", "note": None}
     assert alarm["occurrence"]["state"] == "upcoming"
     assert alarm["next_run"]["phase"] == "pre_wake"
+    assert alarm["room"] == "bedroom"
     assert client.get(f"{_ALARMS}/{alarm['id']}").json()["id"] == alarm["id"]
     assert [item["id"] for item in client.get(_ALARMS).json()["alarms"]] == [
         alarm["id"]

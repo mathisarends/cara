@@ -3,7 +3,13 @@ import time
 from contextlib import asynccontextmanager
 from typing import cast
 
-from gateway.features.conversation.application import EventSource, TurnService
+from gateway.features.conversation.application import (
+    ConversationEvent,
+    ConversationEventType,
+    EventSource,
+    TurnService,
+)
+from gateway.features.conversation.domain import ChannelRef
 from gateway.features.voice.application import (
     MediaSessions,
     SpeechToText,
@@ -28,7 +34,7 @@ from gateway.shared import UnitOfWork
 async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
     voice_session = VoiceSession(
         session_id=_uuid(),
-        device_id="kitchen",
+        room="kitchen",
         input_format=AudioFormat(AudioEncoding.PCM_S16LE, 16_000, 1),
         output_format=AudioFormat(AudioEncoding.PCM_S16LE, 24_000, 1),
     )
@@ -84,7 +90,7 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
 async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
     voice_session = VoiceSession(
         session_id=_uuid(),
-        device_id="bedroom",
+        room="bedroom",
         input_format=AudioFormat(AudioEncoding.PCM_S16LE, 16_000, 1),
         output_format=AudioFormat(AudioEncoding.PCM_S16LE, 24_000, 1),
     )
@@ -112,6 +118,57 @@ async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
         assert turn.status is VoiceTurnStatus.DISCARDED
         assert events.items[-1].type is VoiceEventType.CONVERSATION_ENDED
         assert events.items[-1].data == {"reason": "inactivity_timeout"}
+    finally:
+        await service.close()
+
+
+async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
+    voice_session = VoiceSession(
+        session_id=_uuid(),
+        room="bedroom",
+        input_format=AudioFormat(AudioEncoding.PCM_S16LE, 16_000, 1),
+        output_format=AudioFormat(AudioEncoding.PCM_S16LE, 24_000, 1),
+    )
+    repository = _VoiceSessionRepository(voice_session)
+    events = _VoiceEvents()
+    conversation_events = _ConversationEvents(voice_session.session_id)
+    turns = _ScheduledTurns(conversation_events)
+    media = _MediaSessions()
+    text_to_speech = _TextToSpeech()
+    service = VoiceTurnService(
+        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
+        cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        cast(TurnService, turns),
+        cast(VoiceEventPublisher, events),
+        cast(MediaSessions, media),
+        cast(EventSource, conversation_events),
+        cast(SpeechToText, _EmptySpeechToText()),
+        cast(TextToSpeech, text_to_speech),
+        8,
+        0,
+        30,
+        5,
+    )
+
+    try:
+        turn = await service.start_proactive(
+            voice_session.id,
+            text="scheduled prompt",
+            metadata={"origin": "automation"},
+        )
+
+        assert turn.activation is Activation.PROACTIVE
+        assert turn.status is VoiceTurnStatus.SPEAKING
+        assert text_to_speech.text == "Your train ticket reminder"
+        assert turns.metadata["voice_room"] == "bedroom"
+        assert turns.metadata["voice_turn_id"] == str(turn.id)
+        assert media.frames[-1][-1] is True
+        assert [event.type for event in events.items] == [
+            VoiceEventType.CONVERSATION_STARTED,
+            VoiceEventType.TURN_STARTED,
+            VoiceEventType.ASSISTANT_AUDIO_STARTED,
+            VoiceEventType.ASSISTANT_AUDIO_COMPLETED,
+        ]
     finally:
         await service.close()
 
@@ -161,8 +218,14 @@ class _VoiceEvents:
 
 
 class _MediaSessions:
+    def __init__(self) -> None:
+        self.frames: list[tuple[object, ...]] = []
+
     def connected(self, _voice_session_id) -> bool:
         return True
+
+    async def send_audio(self, *values, end: bool = False) -> None:
+        self.frames.append((*values, end))
 
 
 class _EmptySpeechToText:
@@ -171,3 +234,64 @@ class _EmptySpeechToText:
         async for _ in audio:
             pass
         yield Transcription("", True)
+
+
+class _ConversationSubscription:
+    def __init__(self, queue: asyncio.Queue[ConversationEvent]) -> None:
+        self._queue = queue
+
+    async def receive(self) -> ConversationEvent:
+        return await self._queue.get()
+
+
+class _ConversationEvents:
+    def __init__(self, session_id) -> None:
+        self._session_id = session_id
+        self._queue: asyncio.Queue[ConversationEvent] = asyncio.Queue()
+
+    @asynccontextmanager
+    async def listen(self, session_id):
+        assert session_id == self._session_id
+        yield _ConversationSubscription(self._queue)
+
+    async def publish(self, event_type: ConversationEventType, data: dict) -> None:
+        await self._queue.put(
+            ConversationEvent(
+                type=event_type,
+                session_id=self._session_id,
+                channel=ChannelRef("voice"),
+                data=data,
+            )
+        )
+
+
+class _ScheduledTurns:
+    def __init__(self, events: _ConversationEvents) -> None:
+        self._events = events
+        self.metadata: dict[str, object] = {}
+
+    async def start_scheduled(
+        self,
+        *,
+        session_id,
+        text: str,
+        metadata: dict[str, object],
+    ) -> None:
+        assert text == "scheduled prompt"
+        self.metadata = metadata
+        await self._events.publish(
+            ConversationEventType.CHAT_DELTA,
+            {"text": "Your train ticket reminder"},
+        )
+        await self._events.publish(ConversationEventType.CHAT_COMPLETED, {})
+        await self._events.publish(ConversationEventType.TURN_COMPLETED, {})
+
+
+class _TextToSpeech:
+    def __init__(self) -> None:
+        self.text = ""
+
+    async def synthesize(self, text):
+        async for chunk in text:
+            self.text += chunk
+        yield b"audio"

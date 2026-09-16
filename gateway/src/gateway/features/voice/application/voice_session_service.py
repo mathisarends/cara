@@ -35,7 +35,7 @@ class VoiceSessionService:
     async def open(
         self,
         session_id: UUID,
-        device_id: str,
+        room: str,
         input_formats: tuple[AudioFormat, ...],
         output_formats: tuple[AudioFormat, ...],
     ) -> VoiceSession:
@@ -43,15 +43,15 @@ class VoiceSessionService:
         input_format = _negotiate(input_formats, _SUPPORTED_INPUT, "input")
         output_format = _negotiate(output_formats, _SUPPORTED_OUTPUT, "output")
         async with self._repositories() as repository:
-            existing = await repository.find_by_device(
-                device_id,
+            existing = await repository.find_by_room(
+                room,
                 VoiceSessionStatus.OPEN,
             )
             if existing:
-                raise VoiceSessionAlreadyOpenError(device_id, existing[0].id)
+                raise VoiceSessionAlreadyOpenError(room, existing[0].id)
             voice_session = VoiceSession(
                 session_id,
-                device_id,
+                room,
                 input_format,
                 output_format,
             )
@@ -68,13 +68,13 @@ class VoiceSessionService:
         self,
         *,
         session_id: UUID | None = None,
-        device_id: str | None = None,
+        room: str | None = None,
         status: VoiceSessionStatus | None = None,
     ) -> tuple[VoiceSession, ...]:
         async with self._repositories() as repository:
             return await repository.find_many(
                 session_id=session_id,
-                device_id=device_id,
+                room=room,
                 status=status,
             )
 

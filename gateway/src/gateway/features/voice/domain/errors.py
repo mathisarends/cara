@@ -12,10 +12,10 @@ class VoiceTurnNotFoundError(Exception):
 
 
 class VoiceSessionAlreadyOpenError(Exception):
-    def __init__(self, device_id: str, voice_session_id: UUID) -> None:
+    def __init__(self, room: str, voice_session_id: UUID) -> None:
         self.voice_session_id = voice_session_id
         super().__init__(
-            f"Device {device_id!r} already has open voice session {voice_session_id}"
+            f"Room {room!r} already has open voice session {voice_session_id}"
         )
 
 

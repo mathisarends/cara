@@ -22,6 +22,7 @@ from gateway.features.alarm.domain.recurrence import (
 )
 from gateway.features.alarm.domain.routine import AlarmRoutine
 from gateway.features.alarm.domain.target import AlarmTarget
+from gateway.shared import VoiceDelivery
 
 MISSED_GRACE = timedelta(minutes=15)
 ACTIVE_TIMEOUT = timedelta(minutes=60)
@@ -44,6 +45,7 @@ class Alarm:
         enabled: bool = True,
         skipped_dates: frozenset[date] = frozenset(),
         occurrence: Occurrence | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> None:
         if not owner_id.strip():
             raise InvalidAlarmError("Alarm owner id must not be empty")
@@ -59,6 +61,7 @@ class Alarm:
         self._enabled = enabled
         self._skipped_dates = skipped_dates
         self._occurrence = occurrence
+        self._delivery = delivery
 
     @classmethod
     def create(
@@ -71,6 +74,7 @@ class Alarm:
         now: datetime,
         pre_wake_lead: timedelta | None = None,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> Self:
         _require_future(recurrence, now)
         alarm = cls(
@@ -82,6 +86,7 @@ class Alarm:
             routine=routine,
             pre_wake_lead=pre_wake_lead,
             name=name,
+            delivery=delivery,
         )
         alarm._schedule_after(now)
         return alarm
@@ -129,6 +134,10 @@ class Alarm:
     @property
     def occurrence(self) -> Occurrence | None:
         return self._occurrence
+
+    @property
+    def delivery(self) -> VoiceDelivery | None:
+        return self._delivery
 
     @property
     def is_finished(self) -> bool:
@@ -281,6 +290,7 @@ class Alarm:
         now: datetime,
         pre_wake_lead: timedelta | None = None,
         name: str | None = None,
+        delivery: VoiceDelivery | None = None,
     ) -> None:
         _require_valid_lead(pre_wake_lead)
         _require_future(recurrence, now)
@@ -288,6 +298,7 @@ class Alarm:
         self._routine = routine
         self._pre_wake_lead = pre_wake_lead
         self._name = name
+        self._delivery = delivery
         self._skipped_dates = frozenset()
         self._occurrence = None
         if self._enabled:
