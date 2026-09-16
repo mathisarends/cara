@@ -2,10 +2,13 @@
 
 import asyncio
 import logging
+import os
 
 from voice import VoiceSessionFactory
 
 logging.basicConfig(level=logging.INFO)
+# CARA_VOICE_LOG_LEVEL=DEBUG traces every event on the voice bus.
+logging.getLogger("voice").setLevel(os.environ.get("CARA_VOICE_LOG_LEVEL", "INFO"))
 
 
 async def main() -> None:

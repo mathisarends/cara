@@ -195,11 +195,28 @@ class GatewayVoiceBridge:
 
     async def _on_turn_requested(self, event: VoiceTurnRequested) -> None:
         async with self._turn_lock:
-            if self._closed or self._active_turn_id is not None:
+            if self._closed:
+                logger.info(
+                    "Ignoring the %s activation: the voice channel is closing",
+                    event.activation,
+                )
+                return
+            if self._active_turn_id is not None:
+                logger.warning(
+                    "Ignoring the %s activation: voice turn %s never ended",
+                    event.activation,
+                    self._active_turn_id,
+                )
                 return
             activation = Activation(event.activation.value)
             result = await self._session.start_turn(activation, event.sequence)
             turn_index = await self._session.turn_index(result.voice_turn_id)
+            logger.info(
+                "Voice turn %s started at index %d (%s)",
+                result.voice_turn_id,
+                turn_index,
+                activation,
+            )
             self._active_turn_id = result.voice_turn_id
             self._active_turn_index = turn_index
             await self._event_bus.emit(
@@ -330,10 +347,21 @@ class GatewayVoiceBridge:
             if self._active_turn_id == event.voice_turn_id:
                 return
             if self._active_turn_id is not None:
+                logger.warning(
+                    "The gateway started voice turn %s while %s is still active here",
+                    event.voice_turn_id,
+                    self._active_turn_id,
+                )
                 return
             self._active_turn_id = event.voice_turn_id
             self._active_turn_index = await self._session.turn_index(
                 event.voice_turn_id
+            )
+            logger.info(
+                "Voice turn %s started at index %d by the gateway (%s)",
+                event.voice_turn_id,
+                self._active_turn_index,
+                event.activation,
             )
             await self._event_bus.emit(
                 LocalVoiceTurnStarted(turn_id=event.voice_turn_id)
@@ -415,15 +443,27 @@ class GatewayVoiceBridge:
         self,
         event: AssistantPlaybackCompleted,
     ) -> None:
-        if event.turn_id == self._active_turn_id:
-            await self._session.playback_completed(event.turn_id)
+        if event.turn_id != self._active_turn_id:
+            logger.info(
+                "Not reporting playback of voice turn %s: the active turn is %s",
+                event.turn_id,
+                self._active_turn_id,
+            )
+            return
+        await self._session.playback_completed(event.turn_id)
 
     async def _finish_turn(self, turn_id: UUID) -> None:
         if turn_id != self._active_turn_id:
+            logger.info(
+                "Ignoring the end of voice turn %s: the active turn is %s",
+                turn_id,
+                self._active_turn_id,
+            )
             return
         await self._stop_input()
         self._active_turn_id = None
         self._active_turn_index = None
+        logger.info("Voice turn %s ended", turn_id)
         await self._event_bus.emit(VoiceTurnEnded(turn_id=turn_id))
 
     async def _on_session_ended(self, _: SessionEnded) -> None:

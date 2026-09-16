@@ -52,6 +52,23 @@ resume its open voice session after reconnecting. Set `new_session: true` to
 close any open voice session for that client and create a fresh conversation
 session.
 
+## Reading the log
+
+At `INFO` the `voice` logger narrates one turn from both ends of the Gateway
+connection: every voice event the client accepts or drops (`voice.gateway.session`),
+every turn it starts and ends, and every activation it has to ignore because the
+previous turn never ended (`voice.gateway.bridge`). A turn that stalls is the gap
+between the last accepted event and the missing `Voice turn ... ended`.
+
+At `DEBUG` the `EventTrace` listener additionally logs every event on the bus in
+the order it was emitted, with streamed chunks counted rather than logged:
+
+```python
+logging.getLogger("voice").setLevel(logging.DEBUG)
+```
+
+The example scripts read that level from `CARA_VOICE_LOG_LEVEL`.
+
 ## Local extension points
 
 | Port | Implementations |

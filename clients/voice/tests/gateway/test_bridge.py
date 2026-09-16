@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -129,6 +130,35 @@ def test_a_failing_stream_releases_the_active_turn(audio_input: AudioInput) -> N
     assert active_turn_id is None
     assert [failure.message for failure in failures] == ["the gateway stream is gone"]
     assert len(ended) == 1
+
+
+def test_an_activation_swallowed_by_an_open_turn_is_logged(
+    audio_input: AudioInput,
+    caplog,
+) -> None:
+    async def run() -> UUID:
+        bus = EventBus()
+        session = _Session()
+        microphone = BufferedAudioInput(audio_input)
+        bridge = GatewayVoiceBridge(bus, session, microphone)
+
+        await microphone.start()
+        await bridge.start()
+        await bus.request(VoiceTurnRequested(activation=ActivationKind.WAKE_WORD))
+        await _settle()
+        await bus.request(VoiceTurnRequested(activation=ActivationKind.FOLLOW_UP))
+        await _settle()
+
+        await bridge.close()
+        await microphone.stop()
+        return session.turn_id
+
+    with caplog.at_level(logging.WARNING, logger="voice.gateway.bridge"):
+        turn_id = asyncio.run(run())
+
+    assert caplog.messages == [
+        f"Ignoring the follow_up activation: voice turn {turn_id} never ended"
+    ]
 
 
 def _partial(voice_turn_id: UUID, text: str) -> VoiceTranscriptPartial:

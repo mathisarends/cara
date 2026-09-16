@@ -7,6 +7,8 @@ import os
 from voice import ExternalActivationSource, VoiceSessionFactory
 
 logging.basicConfig(level=logging.INFO)
+# CARA_VOICE_LOG_LEVEL=DEBUG traces every event on the voice bus.
+logging.getLogger("voice").setLevel(os.environ.get("CARA_VOICE_LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 _INTERVAL_SECONDS = float(os.environ.get("CARA_VOICE_ACTIVATION_INTERVAL", "30"))

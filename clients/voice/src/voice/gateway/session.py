@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from typing import Self
 from uuid import UUID
@@ -26,6 +27,8 @@ from gateway_rpc_client.models import (
 )
 from voice.gateway.framing import MediaFrame
 from voice.gateway.media import MediaTransport
+
+logger = logging.getLogger(__name__)
 
 
 class GatewayVoiceSession:
@@ -99,6 +102,12 @@ class GatewayVoiceSession:
             rpc = await connect_gateway(url, token=token)
             await rpc.subscription.subscribe(session_id=voice_session.session_id)
             snapshot = await rest.get_voice_session(voice_session.id)
+            logger.info(
+                "Voice session %s is open with %d turn(s) at sequence %d",
+                voice_session.id,
+                len(snapshot.turns),
+                snapshot.last_sequence,
+            )
             media = await MediaTransport.connect(url, voice_session.media_path, token)
             return cls(rest, rpc, media, snapshot, http)
         except BaseException:
@@ -140,13 +149,27 @@ class GatewayVoiceSession:
     async def voice_events(self) -> AsyncIterator[VoiceEventMessage]:
         async for event in self._rpc.voice.event():
             if event.voice_session_id != self.id:
+                logger.debug(
+                    "Dropping %s: it belongs to voice session %s",
+                    event.type,
+                    event.voice_session_id,
+                )
                 continue
             match event:
                 case VoiceTranscriptPartial():
-                    yield event
+                    logger.debug("Received %s revision %d", event.type, event.revision)
                 case _ if event.sequence > self._last_sequence:
                     self._last_sequence = event.sequence
-                    yield event
+                    logger.info("Received %s sequence %d", event.type, event.sequence)
+                case _:
+                    logger.info(
+                        "Dropping %s: sequence %d was already seen (watermark %d)",
+                        event.type,
+                        event.sequence,
+                        self._last_sequence,
+                    )
+                    continue
+            yield event
 
     def conversation_events(self) -> AsyncIterator[SessionEvent]:
         return self._rpc.session.event()

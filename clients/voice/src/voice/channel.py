@@ -26,6 +26,7 @@ from voice.echo_cancellation import (
 )
 from voice.events import AssistantTurnStarted, SessionEnded, SessionStarted
 from voice.events.bus import EventBus
+from voice.events.listener import EventTrace, LoggingListener
 from voice.events.models import VoiceResourcesClosing, VoiceTurnEnded
 from voice.gateway import GatewayVoiceBridge, GatewayVoiceSession
 from voice.handler import FollowUpHandler, FollowUpSettings
@@ -86,17 +87,24 @@ class VoiceChannel:
             event_bus=self._event_bus,
             output_device=channel_output,
         )
+        self._event_trace = EventTrace(self._event_bus)
+        self._logging_listener: LoggingListener | None = None
         sources = list(activation_sources)
         if wake_word_enabled:
+            settings = wake_word_settings or WakeWordSettings()
             wake_word = WakeWordListener(
                 buffered_audio_input=self._buffered_audio_input,
-                settings=wake_word_settings or WakeWordSettings(),
+                settings=settings,
             )
             wake_word_source = WakeWordActivationSource(
                 event_bus=self._event_bus,
                 listener=wake_word,
             )
             sources.insert(0, wake_word_source)
+            self._logging_listener = LoggingListener(
+                self._event_bus,
+                wake_word_phrase=settings.wake_word.label.replace("_", " "),
+            )
         self._gateway_bridge = GatewayVoiceBridge(
             self._event_bus,
             gateway_session,
