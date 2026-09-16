@@ -2,16 +2,36 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID, uuid4
 
-from gateway_rpc_client.models import VoiceTranscriptPartial, VoiceTurnCommandResult
+from gateway_rpc_client.models import (
+    VoiceConversationEnded as GatewayVoiceConversationEnded,
+)
+from gateway_rpc_client.models import (
+    VoiceConversationInactivityCountdown as GatewayVoiceConversationInactivityCountdown,
+)
+from gateway_rpc_client.models import (
+    VoiceConversationStarted as GatewayVoiceConversationStarted,
+)
+from gateway_rpc_client.models import (
+    VoiceTranscriptPartial,
+    VoiceTurnCommandResult,
+)
 from voice.activation import ActivationKind
 from voice.audio import BufferedAudioInput
 from voice.audio.ports import AudioInput
-from voice.events import UserSpeechStarted, VoiceTurnFailed
+from voice.events import (
+    UserSpeechStarted,
+    VoiceConversationEnded,
+    VoiceConversationInactivityCountdown,
+    VoiceConversationStarted,
+    VoiceTurnFailed,
+)
 from voice.events.bus import EventBus
 from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
 from voice.gateway.bridge import GatewayVoiceBridge
+from voice.gateway.session import GatewayVoiceSession
 
 _VOICE_SESSION_ID = uuid4()
 
@@ -71,18 +91,13 @@ def test_user_speech_is_announced_only_once_the_gateway_hears_the_user(
         bus = EventBus()
         session = _Session()
         microphone = BufferedAudioInput(audio_input)
-        bridge = GatewayVoiceBridge(bus, session, microphone)
+        bridge = GatewayVoiceBridge(bus, cast(GatewayVoiceSession, session), microphone)
         speech: list[UserSpeechStarted] = []
         bus.on(UserSpeechStarted, _record(speech))
 
         await microphone.start()
         await bridge.start()
-        await bus.request(
-            VoiceTurnRequested(
-                activation=ActivationKind.FOLLOW_UP,
-                speech_start_timeout=5.0,
-            )
-        )
+        await bus.request(VoiceTurnRequested(activation=ActivationKind.MANUAL))
         await _settle()
         while_silent = len(speech)
 
@@ -106,7 +121,7 @@ def test_a_failing_stream_releases_the_active_turn(audio_input: AudioInput) -> N
         bus = EventBus()
         session = _Session()
         microphone = BufferedAudioInput(audio_input)
-        bridge = GatewayVoiceBridge(bus, session, microphone)
+        bridge = GatewayVoiceBridge(bus, cast(GatewayVoiceSession, session), microphone)
         failures: list[VoiceTurnFailed] = []
         ended: list[VoiceTurnEnded] = []
         bus.on(VoiceTurnFailed, _record(failures))
@@ -140,13 +155,13 @@ def test_an_activation_swallowed_by_an_open_turn_is_logged(
         bus = EventBus()
         session = _Session()
         microphone = BufferedAudioInput(audio_input)
-        bridge = GatewayVoiceBridge(bus, session, microphone)
+        bridge = GatewayVoiceBridge(bus, cast(GatewayVoiceSession, session), microphone)
 
         await microphone.start()
         await bridge.start()
         await bus.request(VoiceTurnRequested(activation=ActivationKind.WAKE_WORD))
         await _settle()
-        await bus.request(VoiceTurnRequested(activation=ActivationKind.FOLLOW_UP))
+        await bus.request(VoiceTurnRequested(activation=ActivationKind.MANUAL))
         await _settle()
 
         await bridge.close()
@@ -157,8 +172,72 @@ def test_an_activation_swallowed_by_an_open_turn_is_logged(
         turn_id = asyncio.run(run())
 
     assert caplog.messages == [
-        f"Ignoring the follow_up activation: voice turn {turn_id} never ended"
+        f"Ignoring the manual activation: voice turn {turn_id} never ended"
     ]
+
+
+def test_gateway_conversation_events_are_forwarded_to_the_local_bus(
+    audio_input: AudioInput,
+) -> None:
+    async def run() -> tuple[list[int], list[str]]:
+        bus = EventBus()
+        session = _Session()
+        microphone = BufferedAudioInput(audio_input)
+        bridge = GatewayVoiceBridge(bus, cast(GatewayVoiceSession, session), microphone)
+        started: list[VoiceConversationStarted] = []
+        countdowns: list[VoiceConversationInactivityCountdown] = []
+        ended: list[VoiceConversationEnded] = []
+        bus.on(VoiceConversationStarted, _record(started))
+        bus.on(VoiceConversationInactivityCountdown, _record(countdowns))
+        bus.on(VoiceConversationEnded, _record(ended))
+
+        await microphone.start()
+        await bridge.start()
+        event_id = uuid4()
+        timestamp = datetime.now(UTC)
+        session_id = uuid4()
+        session.emit(
+            GatewayVoiceConversationStarted(
+                event_id=event_id,
+                timestamp=timestamp,
+                voice_session_id=_VOICE_SESSION_ID,
+                session_id=session_id,
+                sequence=1,
+            )
+        )
+        session.emit(
+            GatewayVoiceConversationInactivityCountdown(
+                event_id=event_id,
+                timestamp=timestamp,
+                voice_session_id=_VOICE_SESSION_ID,
+                session_id=session_id,
+                sequence=2,
+                remaining_seconds=3,
+            )
+        )
+        session.emit(
+            GatewayVoiceConversationEnded(
+                event_id=event_id,
+                timestamp=timestamp,
+                voice_session_id=_VOICE_SESSION_ID,
+                session_id=session_id,
+                sequence=3,
+                reason="inactivity_timeout",
+            )
+        )
+        await _settle()
+
+        await bridge.close()
+        await microphone.stop()
+        assert len(started) == 1
+        return [event.remaining_seconds for event in countdowns], [
+            event.reason for event in ended
+        ]
+
+    countdowns, reasons = asyncio.run(run())
+
+    assert countdowns == [3]
+    assert reasons == ["inactivity_timeout"]
 
 
 def _partial(voice_turn_id: UUID, text: str) -> VoiceTranscriptPartial:

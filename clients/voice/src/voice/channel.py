@@ -26,7 +26,6 @@ from voice.events.bus import EventBus
 from voice.events.listener import EventTrace, LoggingListener
 from voice.events.models import VoiceResourcesClosing, VoiceTurnEnded
 from voice.gateway import GatewayVoiceBridge, GatewayVoiceSession
-from voice.handler import FollowUpHandler, FollowUpSettings
 from voice.integration import VoiceIntegration, VoiceIntegrationBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
@@ -45,8 +44,6 @@ class VoiceChannel:
         barge_in: BargeInStrategy | None = None,
         echo_cancellation_settings: EchoCancellationSettings | None = None,
         echo_cancellation_enabled: bool = True,
-        follow_up_settings: FollowUpSettings | None = None,
-        follow_up_enabled: bool = True,
         activation_sources: Iterable[ActivationSource] = (),
         integrations: Iterable[VoiceIntegration] = (),
         recording_path: str | Path | None = None,
@@ -114,14 +111,6 @@ class VoiceChannel:
                 audio_format=self._buffered_audio_input.format,
                 echo_presence=echo_presence,
             )
-        )
-        self._follow_up = (
-            FollowUpHandler(
-                event_bus=self._event_bus,
-                settings=follow_up_settings,
-            )
-            if follow_up_enabled
-            else None
         )
         self._integration_bridge = VoiceIntegrationBridge(
             event_bus=self._event_bus,

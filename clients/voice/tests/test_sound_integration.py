@@ -4,7 +4,7 @@ from uuid import uuid4
 from voice.events import (
     AssistantResponseStarted,
     AudioPlaybackRequested,
-    SessionEnded,
+    VoiceConversationEnded,
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
@@ -38,7 +38,7 @@ def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> Non
     ]
 
 
-def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
+def test_conversation_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
     async def run() -> list[bytes]:
         event_bus = EventBus()
         requested: list[bytes] = []
@@ -54,7 +54,7 @@ def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
         )
         bridge.setup()
         await bridge.prepare()
-        await event_bus.emit(SessionEnded())
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         return requested
 
     assert asyncio.run(run()) == [

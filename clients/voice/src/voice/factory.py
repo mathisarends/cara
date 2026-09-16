@@ -21,7 +21,6 @@ from voice.config import (
 )
 from voice.echo_cancellation import EchoCancellationSettings
 from voice.gateway import GatewayVoiceSession
-from voice.handler import FollowUpSettings
 from voice.integration import VoiceIntegration
 from voice.lights import HueIntegration
 from voice.playback import (
@@ -90,8 +89,6 @@ class VoiceSessionFactory:
                 echo_cancellation_enabled=(
                     self._config.audio.echo_cancellation.enabled
                 ),
-                follow_up_settings=self._build_follow_up_settings(),
-                follow_up_enabled=self._config.follow_up.enabled,
                 activation_sources=self._activation_sources,
                 integrations=integrations,
                 recording_path=self._recording_path(),
@@ -197,15 +194,6 @@ class VoiceSessionFactory:
         return EchoCancellationSettings(
             sample_rate=settings.sample_rate,
             reference_history_seconds=settings.reference_history_seconds,
-        )
-
-    def _build_follow_up_settings(self) -> FollowUpSettings | None:
-        settings = self._config.follow_up
-        if not settings.enabled:
-            return None
-        return FollowUpSettings(
-            window_seconds=settings.window_seconds,
-            countdown_seconds=settings.countdown_seconds,
         )
 
     def _recording_path(self) -> str | None:

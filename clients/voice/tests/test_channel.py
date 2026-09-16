@@ -10,7 +10,6 @@ import voice.channel as channel_module
 from voice import (
     ActivationSource,
     ExternalActivationSource,
-    FollowUpSettings,
     VoiceChannel,
     VoiceIntegration,
     VoiceIntegrationContext,
@@ -181,39 +180,6 @@ def test_barge_in_interrupts_only_while_the_assistant_responds(
         await asyncio.gather(running, return_exceptions=True)
 
     asyncio.run(scenario())
-
-
-def test_configures_follow_up_timeout(
-    monkeypatch,
-    audio_input: AudioInput,
-    audio_output: AudioOutput,
-) -> None:
-    configured_settings: FollowUpSettings | None = None
-    follow_up_handler = channel_module.FollowUpHandler
-
-    def create_follow_up_handler(*, event_bus, settings):
-        nonlocal configured_settings
-        configured_settings = settings
-        return follow_up_handler(event_bus=event_bus, settings=settings)
-
-    monkeypatch.setattr(channel_module, "WakeWordListener", _WakeWordListener)
-    monkeypatch.setattr(channel_module, "FollowUpHandler", create_follow_up_handler)
-    gateway_session = _GatewaySession()
-    voice_channel = VoiceChannel(
-        gateway_session=cast(GatewayVoiceSession, gateway_session),
-        audio_input=audio_input,
-        audio_output=audio_output,
-        follow_up_settings=FollowUpSettings(
-            window_seconds=7.5,
-            countdown_seconds=2,
-        ),
-    )
-    asyncio.run(voice_channel.stop())
-
-    assert configured_settings == FollowUpSettings(
-        window_seconds=7.5,
-        countdown_seconds=2,
-    )
 
 
 def test_configures_only_explicit_activation_sources(

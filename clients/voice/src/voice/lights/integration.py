@@ -54,7 +54,7 @@ class HueIntegration(VoiceIntegration):
     async def on_assistant_interrupted(self, turn_id: UUID) -> None:
         self._submit_state(LightingState.LISTENING)
 
-    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
+    async def on_voice_conversation_ended(self, reason: str) -> None:
         self._submit_state(LightingState.IDLE)
 
     async def on_agent_error(self, turn_id: UUID, message: str) -> None:

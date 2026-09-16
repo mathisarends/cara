@@ -26,7 +26,6 @@ from .config import (
 from .conversation import ConversationAudioMixer, ConversationAudioRecorder
 from .factory import VoiceSessionFactory
 from .gateway import GatewayVoiceSession
-from .handler import FollowUpSettings
 from .integration import (
     VoiceIntegration,
     VoiceIntegrationBridge,
@@ -55,7 +54,6 @@ __all__ = [
     "ConversationAudioRecorder",
     "Earcon",
     "ExternalActivationSource",
-    "FollowUpSettings",
     "GatewayVoiceSession",
     "HueIntegration",
     "LightingState",

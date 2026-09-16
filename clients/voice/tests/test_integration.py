@@ -2,7 +2,11 @@ import asyncio
 import inspect
 
 from voice import VoiceChannel
-from voice.events import FollowUpCountdown, SessionStarted
+from voice.events import (
+    SessionStarted,
+    VoiceConversationEnded,
+    VoiceConversationInactivityCountdown,
+)
 from voice.events.bus import EventBus
 from voice.integration import (
     VoiceIntegration,
@@ -18,8 +22,13 @@ class _RecordingVoiceIntegration(VoiceIntegration):
     async def on_channel_starting(self) -> None:
         self.events.append("started")
 
-    async def on_user_inactivity_countdown(self, remaining_seconds: int) -> None:
+    async def on_voice_conversation_inactivity_countdown(
+        self, remaining_seconds: int
+    ) -> None:
         self.events.append(f"countdown:{remaining_seconds}")
+
+    async def on_voice_conversation_ended(self, reason: str) -> None:
+        self.events.append(f"ended:{reason}")
 
     async def prepare(self, context: VoiceIntegrationContext) -> None:
         self.events.append("prepared")
@@ -38,13 +47,19 @@ def test_bridge_notifies_all_voice_channel_integrations() -> None:
 
         await bridge.prepare()
         await event_bus.emit(SessionStarted())
-        await event_bus.emit(FollowUpCountdown(remaining_seconds=3))
+        await event_bus.emit(VoiceConversationInactivityCountdown(remaining_seconds=3))
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         return first, second
 
     first, second = asyncio.run(run())
 
-    assert first.events == ["prepared", "started", "countdown:3"]
-    assert second.events == ["prepared", "started", "countdown:3"]
+    assert first.events == [
+        "prepared",
+        "started",
+        "countdown:3",
+        "ended:inactivity_timeout",
+    ]
+    assert second.events == first.events
 
 
 def test_voice_channel_exposes_integrations_without_leaking_event_bus() -> None:

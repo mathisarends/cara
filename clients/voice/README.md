@@ -30,6 +30,11 @@ the snapshot is restored when the channel starts.
 Barge-in stops local playback immediately, interrupts the authoritative
 Gateway turn, and starts a new turn from the retained microphone pre-roll.
 
+After assistant playback, the Gateway starts the follow-up turn and owns its
+inactivity countdown. The client only streams microphone audio and reacts to
+`voice.conversation.*` events; conversation end drives its sleep earcon,
+lighting state, and audio-focus release.
+
 ## Wiring
 
 ```python

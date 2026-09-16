@@ -46,6 +46,22 @@ class SessionEnded(Event):
     """Emitted when a voice session ends."""
 
 
+class VoiceConversationStarted(Event):
+    """Emitted when the gateway starts an active voice conversation."""
+
+
+class VoiceConversationInactivityCountdown(Event):
+    """Emitted while the gateway waits for another user utterance."""
+
+    remaining_seconds: int
+
+
+class VoiceConversationEnded(Event):
+    """Emitted when the gateway ends the active voice conversation."""
+
+    reason: str
+
+
 class WakeWordDetected(Event):
     """Emitted when the configured wake word is detected."""
 
@@ -91,18 +107,6 @@ class VoiceTurnTimedOut(Event):
 class VoiceTurnFailed(Event):
     turn_id: UUID
     message: str
-
-
-class FollowUpCountdown(Event):
-    """Emitted once per remaining second while a follow-up window runs out."""
-
-    remaining_seconds: int
-
-
-class FollowUpTimedOut(Event):
-    """Emitted when a follow-up window closes without the user speaking."""
-
-    timeout_seconds: float
 
 
 class UserTranscriptionUpdated(Event):

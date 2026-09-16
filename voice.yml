@@ -26,11 +26,6 @@ barge_in:
   min_speech_seconds: 0.35
   max_echo_confidence: 0.5
 
-follow_up:
-  enabled: true
-  window_seconds: 5
-  countdown_seconds: 3
-
 audio:
   output:
     # Allowed: local, sonos

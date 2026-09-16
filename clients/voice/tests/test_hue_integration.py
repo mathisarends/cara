@@ -13,6 +13,7 @@ from voice.events import (
     AssistantTurnStarted,
     SessionEnded,
     UserTurnStarted,
+    VoiceConversationEnded,
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
@@ -149,6 +150,11 @@ def test_hue_integration_reflects_voice_turn_and_tool_lifecycle() -> None:
             event_bus,
             integration,
             AssistantToolCompleted(turn_id=turn_id, name="mail"),
+        )
+        await _dispatch_and_drain(
+            event_bus,
+            integration,
+            VoiceConversationEnded(reason="inactivity_timeout"),
         )
         await event_bus.emit(SessionEnded())
         return hue

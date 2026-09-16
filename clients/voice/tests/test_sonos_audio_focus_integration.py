@@ -17,9 +17,9 @@ from voice import (
     SonosPausePolicy,
 )
 from voice.events import (
-    FollowUpTimedOut,
     SessionEnded,
     UserTurnStarted,
+    VoiceConversationEnded,
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
@@ -109,7 +109,7 @@ def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> Non
         await event_bus.emit(
             WakeWordDetected(name="hey_mycroft", score=0.9, sequence=2)
         )
-        await event_bus.emit(FollowUpTimedOut(timeout_seconds=5))
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         await event_bus.emit(SessionEnded())
         return client
 
@@ -122,7 +122,10 @@ def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> Non
         "Sonos playback ducked for up to 60 seconds: user turn started"
         in caplog.messages
     )
-    assert "Sonos playback unducked: user inactivity timeout" in caplog.messages
+    assert (
+        "Sonos playback unducked: voice conversation ended: inactivity_timeout"
+        in caplog.messages
+    )
 
 
 def test_does_not_unduck_playback_it_did_not_duck() -> None:
@@ -139,7 +142,7 @@ def test_does_not_unduck_playback_it_did_not_duck() -> None:
         await bridge.prepare()
 
         await event_bus.emit(UserTurnStarted())
-        await event_bus.emit(FollowUpTimedOut(timeout_seconds=5))
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         return client
 
     client = asyncio.run(run())
@@ -163,7 +166,7 @@ def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
 
         await event_bus.emit(UserTurnStarted())
         await asyncio.wait_for(client.duck_refreshed.wait(), timeout=1)
-        await event_bus.emit(FollowUpTimedOut(timeout_seconds=5))
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         return client
 
     monkeypatch.setattr(ducking_module, "_DUCK_REFRESH_SECONDS", 0.01)
@@ -189,7 +192,7 @@ def test_can_use_pause_policy() -> None:
         await bridge.prepare()
 
         await event_bus.emit(UserTurnStarted())
-        await event_bus.emit(FollowUpTimedOut(timeout_seconds=5))
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         return client
 
     client = asyncio.run(run())
@@ -220,7 +223,7 @@ def test_pause_policy_does_not_resume_after_external_pause() -> None:
         await asyncio.sleep(0)
         await client.subscription.emit(TransportState.PAUSED_PLAYBACK)
         await asyncio.sleep(0)
-        await event_bus.emit(FollowUpTimedOut(timeout_seconds=5))
+        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
         return client
 
     client = asyncio.run(run())

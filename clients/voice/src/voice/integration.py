@@ -12,13 +12,14 @@ from voice.events import (
     AssistantToolCompleted,
     AssistantToolStarted,
     AssistantTurnStarted,
-    FollowUpCountdown,
-    FollowUpTimedOut,
     SessionEnded,
     SessionStarted,
     UserSpeechEnded,
     UserSpeechStarted,
     UserTurnStarted,
+    VoiceConversationEnded,
+    VoiceConversationInactivityCountdown,
+    VoiceConversationStarted,
     VoiceTurnFailed,
     VoiceTurnInterrupted,
     VoiceTurnTimedOut,
@@ -66,9 +67,13 @@ class VoiceIntegration:
 
     async def on_assistant_tool_completed(self, name: str) -> None: ...
 
-    async def on_user_inactivity_countdown(self, remaining_seconds: int) -> None: ...
+    async def on_voice_conversation_started(self) -> None: ...
 
-    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None: ...
+    async def on_voice_conversation_inactivity_countdown(
+        self, remaining_seconds: int
+    ) -> None: ...
+
+    async def on_voice_conversation_ended(self, reason: str) -> None: ...
 
     async def on_agent_error(self, turn_id: UUID, message: str) -> None: ...
 
@@ -159,15 +164,23 @@ class VoiceIntegrationBridge:
                 ),
             )
             bus.on(
-                FollowUpCountdown,
-                lambda event, integration=integration: (
-                    integration.on_user_inactivity_countdown(event.remaining_seconds)
+                VoiceConversationStarted,
+                lambda _, integration=integration: (
+                    integration.on_voice_conversation_started()
                 ),
             )
             bus.on(
-                FollowUpTimedOut,
+                VoiceConversationInactivityCountdown,
                 lambda event, integration=integration: (
-                    integration.on_user_inactivity_timeout(event.timeout_seconds)
+                    integration.on_voice_conversation_inactivity_countdown(
+                        event.remaining_seconds
+                    )
+                ),
+            )
+            bus.on(
+                VoiceConversationEnded,
+                lambda event, integration=integration: (
+                    integration.on_voice_conversation_ended(event.reason)
                 ),
             )
             bus.on(

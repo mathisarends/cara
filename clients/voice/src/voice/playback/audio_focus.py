@@ -25,8 +25,8 @@ class SonosAudioFocusIntegration(VoiceIntegration):
     async def on_user_turn_started(self) -> None:
         await self._policy.activate(reason="user turn started")
 
-    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
-        await self._policy.deactivate(reason="user inactivity timeout")
+    async def on_voice_conversation_ended(self, reason: str) -> None:
+        await self._policy.deactivate(reason=f"voice conversation ended: {reason}")
 
     async def on_agent_error(self, turn_id: UUID, message: str) -> None:
         await self._policy.deactivate(reason=f"voice turn {turn_id} failed")

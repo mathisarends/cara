@@ -88,12 +88,6 @@ BargeInConfig = Annotated[
 ]
 
 
-class FollowUpConfig(_ConfigModel):
-    enabled: bool = True
-    window_seconds: float = Field(default=5.0, gt=0.0)
-    countdown_seconds: int = Field(default=3, ge=0)
-
-
 class AudioOutputType(StrEnum):
     LOCAL = "local"
     SONOS = "sonos"
@@ -184,7 +178,6 @@ class VoiceSessionConfig(BaseSettings):
     session: SessionConfig = Field(default_factory=SessionConfig)
     activation: ActivationConfig = Field(default_factory=ActivationConfig)
     barge_in: BargeInConfig = Field(default_factory=WakeWordBargeInConfig)
-    follow_up: FollowUpConfig = Field(default_factory=FollowUpConfig)
     audio: AudioConfig = Field(default_factory=AudioConfig)
     recording: RecordingConfig = Field(default_factory=RecordingConfig)
     integrations: IntegrationsConfig = Field(default_factory=IntegrationsConfig)

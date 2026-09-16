@@ -22,6 +22,15 @@ from gateway_rpc_client.models import (
     VoiceTurnFailed,
     VoiceTurnStarted,
 )
+from gateway_rpc_client.models import (
+    VoiceConversationEnded as GatewayVoiceConversationEnded,
+)
+from gateway_rpc_client.models import (
+    VoiceConversationInactivityCountdown as GatewayVoiceConversationInactivityCountdown,
+)
+from gateway_rpc_client.models import (
+    VoiceConversationStarted as GatewayVoiceConversationStarted,
+)
 from voice.activation import ActivationKind
 from voice.audio import BufferedAudioInput
 from voice.audio.buffered_input import AudioReader
@@ -42,6 +51,9 @@ from voice.events import (
     UserTranscriptionCompleted,
     UserTranscriptionUpdated,
     UserTurnStarted,
+    VoiceConversationEnded,
+    VoiceConversationInactivityCountdown,
+    VoiceConversationStarted,
     VoiceTurnInterrupted,
     VoiceTurnTimedOut,
 )
@@ -293,6 +305,18 @@ class GatewayVoiceBridge:
     async def _pump_voice_events(self) -> None:
         async for event in self._session.voice_events():
             match event:
+                case GatewayVoiceConversationStarted():
+                    await self._event_bus.emit(VoiceConversationStarted())
+                case GatewayVoiceConversationInactivityCountdown():
+                    await self._event_bus.emit(
+                        VoiceConversationInactivityCountdown(
+                            remaining_seconds=event.remaining_seconds
+                        )
+                    )
+                case GatewayVoiceConversationEnded():
+                    await self._event_bus.emit(
+                        VoiceConversationEnded(reason=event.reason)
+                    )
                 case VoiceTurnStarted():
                     await self._voice_turn_started(event)
                 case VoiceTranscriptPartial():

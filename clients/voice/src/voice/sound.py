@@ -39,7 +39,7 @@ class SoundIntegration(VoiceIntegration):
     async def on_assistant_response_started(self, turn_id: UUID) -> None:
         await self._play(Earcon.SUCCESS)
 
-    async def on_user_inactivity_timeout(self, timeout_seconds: float) -> None:
+    async def on_voice_conversation_ended(self, reason: str) -> None:
         await self._play(Earcon.SLEEP)
 
     async def on_channel_stopped(self) -> None:
