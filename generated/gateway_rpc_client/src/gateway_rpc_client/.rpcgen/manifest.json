@@ -3,7 +3,7 @@
   "generatorVersion": "0.4.0",
   "layoutVersion": 7,
   "language": "python",
-  "contractSha256": "3557bfcfcac10261b56828d10ae3c2b8e2438801ff8c0fa6fc8024e31d3bb9ad",
+  "contractSha256": "5f6b3d1b6c77c02dae9794b960e20cd9c7ae58cec0f0e53ed5ac3306ad7a1282",
   "files": [
     ".rpcgen/manifest.json",
     "__init__.py",

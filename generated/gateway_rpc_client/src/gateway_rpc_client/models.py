@@ -30,6 +30,9 @@ class SessionEventType(StrEnum):
 class VoiceEventMessageType(StrEnum):
     VOICE_ASSISTANT_AUDIO_COMPLETED = "voice.assistant_audio.completed"
     VOICE_ASSISTANT_AUDIO_STARTED = "voice.assistant_audio.started"
+    VOICE_CONVERSATION_ENDED = "voice.conversation.ended"
+    VOICE_CONVERSATION_INACTIVITY_COUNTDOWN = "voice.conversation.inactivity_countdown"
+    VOICE_CONVERSATION_STARTED = "voice.conversation.started"
     VOICE_SESSION_CLOSED = "voice.session.closed"
     VOICE_TRANSCRIPT_FINAL = "voice.transcript.final"
     VOICE_TRANSCRIPT_PARTIAL = "voice.transcript.partial"
@@ -242,6 +245,44 @@ class VoiceAssistantAudioStarted(RpcModel):
     sequence: int
 
 
+class VoiceConversationEnded(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_CONVERSATION_ENDED] = (
+        VoiceEventMessageType.VOICE_CONVERSATION_ENDED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+    reason: str
+
+
+class VoiceConversationInactivityCountdown(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_CONVERSATION_INACTIVITY_COUNTDOWN] = (
+        VoiceEventMessageType.VOICE_CONVERSATION_INACTIVITY_COUNTDOWN
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+    remaining_seconds: int
+
+
+class VoiceConversationStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_CONVERSATION_STARTED] = (
+        VoiceEventMessageType.VOICE_CONVERSATION_STARTED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+
+
 class VoiceSessionClosed(RpcModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal[VoiceEventMessageType.VOICE_SESSION_CLOSED] = (
@@ -393,7 +434,10 @@ type SessionEvent = Annotated[
 
 
 type VoiceEventMessage = Annotated[
-    VoiceTurnStarted
+    VoiceConversationStarted
+    | VoiceConversationInactivityCountdown
+    | VoiceConversationEnded
+    | VoiceTurnStarted
     | VoiceTranscriptPartial
     | VoiceTranscriptFinal
     | VoiceAssistantAudioStarted
@@ -429,6 +473,9 @@ TurnSteered.model_rebuild()
 UnsubscriptionResult.model_rebuild()
 VoiceAssistantAudioCompleted.model_rebuild()
 VoiceAssistantAudioStarted.model_rebuild()
+VoiceConversationEnded.model_rebuild()
+VoiceConversationInactivityCountdown.model_rebuild()
+VoiceConversationStarted.model_rebuild()
 VoiceSessionClosed.model_rebuild()
 VoiceTranscriptFinal.model_rebuild()
 VoiceTranscriptPartial.model_rebuild()

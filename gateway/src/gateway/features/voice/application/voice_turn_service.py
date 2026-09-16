@@ -39,6 +39,8 @@ class VoiceTurnService:
         speech_to_text: SpeechToText,
         text_to_speech: TextToSpeech,
         input_queue_size: int,
+        conversation_inactivity_timeout_seconds: float,
+        conversation_inactivity_countdown_seconds: int,
     ) -> None:
         self._repositories = repositories
         self._sessions = sessions
@@ -49,10 +51,19 @@ class VoiceTurnService:
         self._speech_to_text = speech_to_text
         self._text_to_speech = text_to_speech
         self._input_queue_size = input_queue_size
+        self._conversation_inactivity_timeout_seconds = (
+            conversation_inactivity_timeout_seconds
+        )
+        self._conversation_inactivity_countdown_seconds = (
+            conversation_inactivity_countdown_seconds
+        )
         self._partial_revisions: dict[UUID, int] = {}
         self._input_sequences: dict[UUID, int] = {}
         self._input_queues: dict[UUID, asyncio.Queue[bytes | None]] = {}
         self._tasks: dict[UUID, set[asyncio.Task[None]]] = {}
+        self._active_conversations: set[UUID] = set()
+        self._conversation_timeout_tasks: dict[UUID, asyncio.Task[None]] = {}
+        self._timed_out_turns: set[UUID] = set()
 
     async def start(
         self,
@@ -65,9 +76,23 @@ class VoiceTurnService:
             )
         voice_session = await self._sessions.get(voice_session_id)
         turn = voice_session.start_turn(activation)
+        conversation_started = voice_session_id not in self._active_conversations
+        if conversation_started:
+            self._active_conversations.add(voice_session_id)
+            conversation_sequence = voice_session.next_sequence()
         sequence = voice_session.next_sequence()
         async with self._repositories() as repository:
             await repository.save(voice_session)
+        if conversation_started:
+            await self._events.publish_voice(
+                VoiceEvent(
+                    VoiceEventType.CONVERSATION_STARTED,
+                    voice_session.id,
+                    voice_session.session_id,
+                    {},
+                    sequence=conversation_sequence,
+                )
+            )
         await self._events.publish_voice(
             VoiceEvent(
                 VoiceEventType.TURN_STARTED,
@@ -81,10 +106,13 @@ class VoiceTurnService:
         queue: asyncio.Queue[bytes | None] = asyncio.Queue(self._input_queue_size)
         self._input_queues[turn.id] = queue
         self._start_task(turn.id, self._transcribe(turn.id, queue))
+        if activation is Activation.FOLLOW_UP:
+            self._start_conversation_timeout(voice_session.id, turn.id)
         return turn
 
     async def partial_transcript(self, voice_turn_id: UUID, text: str) -> None:
         voice_session, turn = await self._find_turn(voice_turn_id)
+        self._cancel_conversation_timeout(voice_session.id)
         revision = self._partial_revisions.get(turn.id, 0) + 1
         self._partial_revisions[turn.id] = revision
         await self._events.publish_voice(
@@ -101,6 +129,8 @@ class VoiceTurnService:
     async def final_transcript(self, voice_turn_id: UUID, text: str) -> VoiceTurn:
         voice_session, turn = await self._find_turn(voice_turn_id)
         normalized = " ".join(text.split())
+        if normalized:
+            self._cancel_conversation_timeout(voice_session.id)
         if not normalized:
             turn.discard()
             event_type = VoiceEventType.TURN_DISCARDED
@@ -140,6 +170,9 @@ class VoiceTurnService:
         self._partial_revisions.pop(turn.id, None)
         if not normalized:
             self._cancel_tasks(turn.id)
+            if turn.id in self._timed_out_turns:
+                self._timed_out_turns.discard(turn.id)
+                await self._end_conversation(voice_session.id, "inactivity_timeout")
         elif speech_task.done() and (error := speech_task.exception()) is not None:
             await self._fail(turn.id, type(error).__name__, str(error))
         return turn
@@ -187,6 +220,7 @@ class VoiceTurnService:
                 sequence=sequence,
             )
         )
+        await self.start(voice_session.id, Activation.FOLLOW_UP)
         return turn
 
     async def voice_session_id_for(self, voice_turn_id: UUID) -> UUID:
@@ -260,11 +294,101 @@ class VoiceTurnService:
         )
 
     async def close(self) -> None:
+        timeout_tasks = tuple(self._conversation_timeout_tasks.values())
+        self._conversation_timeout_tasks.clear()
+        for task in timeout_tasks:
+            task.cancel()
         tasks = tuple(task for group in self._tasks.values() for task in group)
         for task in tasks:
             task.cancel()
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+        if timeout_tasks or tasks:
+            await asyncio.gather(*timeout_tasks, *tasks, return_exceptions=True)
+
+    def _start_conversation_timeout(
+        self,
+        voice_session_id: UUID,
+        voice_turn_id: UUID,
+    ) -> None:
+        self._cancel_conversation_timeout(voice_session_id)
+        task = asyncio.create_task(
+            self._run_conversation_timeout(voice_session_id, voice_turn_id),
+            name=f"voice-conversation-timeout-{voice_session_id}",
+        )
+        self._conversation_timeout_tasks[voice_session_id] = task
+
+    def _cancel_conversation_timeout(self, voice_session_id: UUID) -> None:
+        task = self._conversation_timeout_tasks.pop(voice_session_id, None)
+        if task is not None and task is not asyncio.current_task():
+            task.cancel()
+
+    async def _run_conversation_timeout(
+        self,
+        voice_session_id: UUID,
+        voice_turn_id: UUID,
+    ) -> None:
+        timeout = self._conversation_inactivity_timeout_seconds
+        deadline = asyncio.get_running_loop().time() + timeout
+        first_tick = min(
+            self._conversation_inactivity_countdown_seconds,
+            int(timeout),
+        )
+        try:
+            for remaining in range(first_tick, 0, -1):
+                await asyncio.sleep(
+                    max(deadline - remaining - asyncio.get_running_loop().time(), 0.0)
+                )
+                await self._publish_conversation_event(
+                    voice_session_id,
+                    VoiceEventType.CONVERSATION_INACTIVITY_COUNTDOWN,
+                    {"remaining_seconds": remaining},
+                )
+            await asyncio.sleep(max(deadline - asyncio.get_running_loop().time(), 0.0))
+            voice_session, turn = await self._find_turn(voice_turn_id)
+            if voice_session.id != voice_session_id or turn.status.terminal:
+                return
+            queue = self._input_queues.get(voice_turn_id)
+            if queue is None:
+                return
+            turn.end_input()
+            async with self._repositories() as repository:
+                await repository.save(voice_session)
+            self._timed_out_turns.add(voice_turn_id)
+            await queue.put(None)
+        finally:
+            current = asyncio.current_task()
+            if self._conversation_timeout_tasks.get(voice_session_id) is current:
+                self._conversation_timeout_tasks.pop(voice_session_id, None)
+
+    async def _end_conversation(self, voice_session_id: UUID, reason: str) -> None:
+        if voice_session_id not in self._active_conversations:
+            return
+        self._active_conversations.discard(voice_session_id)
+        self._cancel_conversation_timeout(voice_session_id)
+        await self._publish_conversation_event(
+            voice_session_id,
+            VoiceEventType.CONVERSATION_ENDED,
+            {"reason": reason},
+        )
+
+    async def _publish_conversation_event(
+        self,
+        voice_session_id: UUID,
+        event_type: VoiceEventType,
+        data: dict[str, object],
+    ) -> None:
+        voice_session = await self._sessions.get(voice_session_id)
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                event_type,
+                voice_session.id,
+                voice_session.session_id,
+                data,
+                sequence=sequence,
+            )
+        )
 
     async def _transcribe(
         self,

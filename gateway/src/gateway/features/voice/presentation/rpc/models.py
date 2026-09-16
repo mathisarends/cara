@@ -48,6 +48,35 @@ class VoiceEventBase(ApiModel):
     sequence: int
 
 
+class VoiceConversationStarted(ApiModel):
+    type: Literal[VoiceEventType.CONVERSATION_STARTED]
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceConversationInactivityCountdown(ApiModel):
+    type: Literal[VoiceEventType.CONVERSATION_INACTIVITY_COUNTDOWN]
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+    remaining_seconds: int
+
+
+class VoiceConversationEnded(ApiModel):
+    type: Literal[VoiceEventType.CONVERSATION_ENDED]
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    session_id: UUID
+    sequence: int
+    reason: str
+
+
 class VoiceTurnStarted(VoiceEventBase):
     type: Literal[VoiceEventType.TURN_STARTED]
     activation: Activation
@@ -108,7 +137,10 @@ class VoiceSessionClosed(ApiModel):
 
 
 type VoiceEventMessage = Annotated[
-    VoiceTurnStarted
+    VoiceConversationStarted
+    | VoiceConversationInactivityCountdown
+    | VoiceConversationEnded
+    | VoiceTurnStarted
     | VoiceTranscriptPartial
     | VoiceTranscriptFinal
     | VoiceAssistantAudioStarted

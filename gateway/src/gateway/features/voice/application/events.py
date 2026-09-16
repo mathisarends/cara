@@ -7,6 +7,9 @@ from uuid import UUID
 
 
 class VoiceEventType(StrEnum):
+    CONVERSATION_STARTED = "voice.conversation.started"
+    CONVERSATION_INACTIVITY_COUNTDOWN = "voice.conversation.inactivity_countdown"
+    CONVERSATION_ENDED = "voice.conversation.ended"
     TURN_STARTED = "voice.turn.started"
     TRANSCRIPT_PARTIAL = "voice.transcript.partial"
     TRANSCRIPT_FINAL = "voice.transcript.final"

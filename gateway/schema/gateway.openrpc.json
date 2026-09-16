@@ -1541,11 +1541,156 @@
         "title": "VoiceAssistantAudioStarted",
         "type": "object"
       },
+      "VoiceConversationEnded": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "voice.conversation.ended",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "session_id",
+          "sequence",
+          "reason"
+        ],
+        "title": "VoiceConversationEnded",
+        "type": "object"
+      },
+      "VoiceConversationInactivityCountdown": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "voice.conversation.inactivity_countdown",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "remaining_seconds": {
+            "title": "Remaining Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "session_id",
+          "sequence",
+          "remaining_seconds"
+        ],
+        "title": "VoiceConversationInactivityCountdown",
+        "type": "object"
+      },
+      "VoiceConversationStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "voice.conversation.started",
+            "title": "Type",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "session_id",
+          "sequence"
+        ],
+        "title": "VoiceConversationStarted",
+        "type": "object"
+      },
       "VoiceEventMessage": {
         "discriminator": {
           "mapping": {
             "voice.assistant_audio.completed": "#/components/schemas/VoiceAssistantAudioCompleted",
             "voice.assistant_audio.started": "#/components/schemas/VoiceAssistantAudioStarted",
+            "voice.conversation.ended": "#/components/schemas/VoiceConversationEnded",
+            "voice.conversation.inactivity_countdown": "#/components/schemas/VoiceConversationInactivityCountdown",
+            "voice.conversation.started": "#/components/schemas/VoiceConversationStarted",
             "voice.session.closed": "#/components/schemas/VoiceSessionClosed",
             "voice.transcript.final": "#/components/schemas/VoiceTranscriptFinal",
             "voice.transcript.partial": "#/components/schemas/VoiceTranscriptPartial",
@@ -1558,6 +1703,15 @@
           "propertyName": "type"
         },
         "oneOf": [
+          {
+            "$ref": "#/components/schemas/VoiceConversationStarted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceConversationInactivityCountdown"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceConversationEnded"
+          },
           {
             "$ref": "#/components/schemas/VoiceTurnStarted"
           },
@@ -2648,6 +2802,24 @@
       "name": "turn.failed",
       "payload": {
         "$ref": "#/components/schemas/TurnFailed"
+      }
+    },
+    {
+      "name": "voice.conversation.started",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceConversationStarted"
+      }
+    },
+    {
+      "name": "voice.conversation.inactivity_countdown",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceConversationInactivityCountdown"
+      }
+    },
+    {
+      "name": "voice.conversation.ended",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceConversationEnded"
       }
     },
     {

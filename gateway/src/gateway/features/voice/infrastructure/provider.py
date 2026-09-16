@@ -97,6 +97,8 @@ class VoiceProvider(Provider):
             speech_to_text,
             text_to_speech,
             settings.input_queue_size,
+            settings.conversation_inactivity_timeout_seconds,
+            settings.conversation_inactivity_countdown_seconds,
         )
         try:
             yield service
