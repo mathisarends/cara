@@ -1,4 +1,5 @@
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from typing import cast
 
@@ -43,6 +44,7 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
         cast(SpeechToText, _EmptySpeechToText()),
         cast(TextToSpeech, object()),
         8,
+        0.01,
         0.02,
         0,
     )
@@ -53,7 +55,9 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
         first_turn.transcribe("hello", _uuid())
         first_turn.start_speaking()
 
+        started_at = time.monotonic()
         await service.playback_completed(first_turn.id)
+        assert time.monotonic() - started_at >= 0.01
         await asyncio.sleep(0.05)
 
         lifecycle = [

@@ -39,6 +39,7 @@ class VoiceTurnService:
         speech_to_text: SpeechToText,
         text_to_speech: TextToSpeech,
         input_queue_size: int,
+        conversation_follow_up_delay_seconds: float,
         conversation_inactivity_timeout_seconds: float,
         conversation_inactivity_countdown_seconds: int,
     ) -> None:
@@ -51,6 +52,9 @@ class VoiceTurnService:
         self._speech_to_text = speech_to_text
         self._text_to_speech = text_to_speech
         self._input_queue_size = input_queue_size
+        self._conversation_follow_up_delay_seconds = (
+            conversation_follow_up_delay_seconds
+        )
         self._conversation_inactivity_timeout_seconds = (
             conversation_inactivity_timeout_seconds
         )
@@ -221,7 +225,14 @@ class VoiceTurnService:
                 sequence=sequence,
             )
         )
-        await self.start(voice_session.id, Activation.FOLLOW_UP)
+        await asyncio.sleep(self._conversation_follow_up_delay_seconds)
+        current = await self._sessions.get(voice_session.id)
+        if (
+            self._media.connected(voice_session.id)
+            and current.turns[-1].id == turn.id
+            and current.active_turn is None
+        ):
+            await self.start(voice_session.id, Activation.FOLLOW_UP)
         return turn
 
     async def voice_session_id_for(self, voice_turn_id: UUID) -> UUID:

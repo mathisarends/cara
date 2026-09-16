@@ -18,5 +18,6 @@ class VoiceSettings(BaseSettings):
     input_queue_size: int = Field(default=64, ge=1)
     text_queue_size: int = Field(default=8, ge=1)
     reconnect_window_seconds: float = Field(default=30, ge=0)
+    conversation_follow_up_delay_seconds: float = Field(default=0.5, ge=0)
     conversation_inactivity_timeout_seconds: float = Field(default=5.0, gt=0)
     conversation_inactivity_countdown_seconds: int = Field(default=3, ge=0)
