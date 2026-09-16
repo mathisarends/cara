@@ -26,7 +26,7 @@ services:
       # The model client runs here and reads /root/.codex/auth.json.
       # Override CARA_CODEX_HOME for a non-standard host location.
       - ${CARA_CODEX_HOME:-${HOME}/.codex}:/root/.codex:ro
-      - ./gateway.yaml:/app/gateway.yaml:ro
+      - ./gateway.yml:/app/gateway.yml:ro
       - ./gateway.sqlite3:/app/gateway.sqlite3
     depends_on:
       cara-tools:
@@ -54,13 +54,13 @@ services:
       context: .
       dockerfile: sandbox_manager/Dockerfile
     environment:
-      # Allows ${APPDATA} in host credential paths configured in gateway.yaml.
+      # Allows ${APPDATA} in host credential paths configured in gateway.yml.
       APPDATA: ${APPDATA:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - cara-workspace:/workspace
       - cara-cli-config:/tmp/.config
-      - ./gateway.yaml:/app/gateway.yaml:ro
+      - ./gateway.yml:/app/gateway.yml:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/v1/readiness')"]
       interval: 5s

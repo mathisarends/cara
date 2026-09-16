@@ -27,7 +27,7 @@ class GatewaySettings(BaseSettings):
         env_nested_delimiter="_",
         env_nested_max_split=1,
         extra="ignore",
-        yaml_file=("gateway.yaml", "gateway.yml"),
+        yaml_file=("gateway.yml", "gateway.yaml"),
     )
 
     agent: AgentSettings = Field(default_factory=AgentSettings)

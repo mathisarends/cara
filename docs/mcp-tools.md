@@ -6,7 +6,7 @@ executes calls for its own integration.
 
 ## Gateway configuration
 
-Configure Streamable HTTP endpoints in `gateway.yaml`:
+Configure Streamable HTTP endpoints in `gateway.yml`:
 
 ```yaml
 tools:
@@ -28,7 +28,7 @@ never receives a partially configured catalog.
 
 When `token` is present, Cara sends it as an HTTP Bearer token. Production
 tokens should be supplied through deployment secrets rather than committed to
-`gateway.yaml`.
+`gateway.yml`.
 
 ## First-party information tools
 
@@ -115,7 +115,7 @@ services:
       - "8080"
 ```
 
-Then use `http://company-tools:8080/mcp` in `gateway.yaml`. Do not publish the
+Then use `http://company-tools:8080/mcp` in `gateway.yml`. Do not publish the
 port to the host unless humans or systems outside the stack must reach it.
 
 An MCP tool server must not receive:

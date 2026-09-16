@@ -12,7 +12,7 @@ class SandboxManagerYamlSettings(BaseSettings):
         env_file_encoding="utf-8",
         env_prefix="CARA_SANDBOX_",
         extra="ignore",
-        yaml_file=("gateway.yaml", "gateway.yml"),
+        yaml_file=("gateway.yml", "gateway.yaml"),
     )
 
     @classmethod

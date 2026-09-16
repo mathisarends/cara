@@ -5,11 +5,11 @@ from sandbox_manager.features.sandbox.settings import SandboxSettings
 from sandbox_manager.presentation.authentication import AuthSettings
 
 
-def test_settings_are_loaded_from_gateway_yaml(
+def test_settings_are_loaded_from_gateway_yml(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    config = tmp_path / "gateway.yaml"
+    config = tmp_path / "gateway.yml"
     config.write_text(
         """
 sandbox:
