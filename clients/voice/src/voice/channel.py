@@ -14,9 +14,6 @@ from voice.audio import (
     BufferedAudioInput,
     UserAudioProducer,
 )
-from voice.audio.input import MicrophoneAudioInput
-from voice.audio.output import LocalAudioOutput
-from voice.audio.session import PortAudioSession
 from voice.barge_in import BargeInContext, BargeInStrategy, WakeWordBargeIn
 from voice.conversation import create_recorder
 from voice.echo_cancellation import (
@@ -41,8 +38,8 @@ class VoiceChannel:
         self,
         *,
         gateway_session: GatewayVoiceSession,
-        audio_input: AudioInput | None = None,
-        audio_output: AudioOutput | None = None,
+        audio_input: AudioInput,
+        audio_output: AudioOutput,
         wake_word_settings: WakeWordSettings | None = None,
         wake_word_enabled: bool = True,
         barge_in: BargeInStrategy | None = None,
@@ -57,22 +54,15 @@ class VoiceChannel:
         self._gateway_session = gateway_session
         self._event_bus = EventBus()
         self._recording_path = Path(recording_path) if recording_path else None
-        self._audio_session = (
-            PortAudioSession() if audio_input is None or audio_output is None else None
-        )
-        physical_input = audio_input or MicrophoneAudioInput(
-            session=self._audio_session
-        )
-        physical_output = audio_output or LocalAudioOutput(session=self._audio_session)
         if echo_cancellation_enabled:
             channel_input, channel_output, echo_presence = wrap_with_echo_cancellation(
-                physical_input,
-                physical_output,
+                audio_input,
+                audio_output,
                 settings=echo_cancellation_settings or EchoCancellationSettings(),
             )
         else:
-            channel_input = physical_input
-            channel_output = physical_output
+            channel_input = audio_input
+            channel_output = audio_output
             echo_presence = _NoEchoPresence()
         self._buffered_audio_input = BufferedAudioInput(channel_input)
         if self._buffered_audio_input.sample_rate != gateway_session.input_sample_rate:
@@ -180,8 +170,6 @@ class VoiceChannel:
         await self._event_bus.emit(SessionEnded())
         await self._event_bus.emit(VoiceResourcesClosing())
         await self._gateway_session.close()
-        if self._audio_session is not None:
-            self._audio_session.close()
 
     async def _watch_barge_in(self) -> None:
         async for signal in self._barge_in.signals():

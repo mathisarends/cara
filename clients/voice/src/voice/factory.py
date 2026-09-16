@@ -7,7 +7,9 @@ from sonosify import SonosClient
 
 from voice.acknowledgement import ToolAcknowledgementIntegration
 from voice.activation import ActivationSource
-from voice.audio import AudioOutput
+from voice.audio import AudioInput, AudioOutput, PortAudioSession
+from voice.audio.input import MicrophoneAudioInput
+from voice.audio.output import LocalAudioOutput
 from voice.audio.output.sonos import SonosOutput
 from voice.barge_in import BargeInStrategy, NoBargeIn, SpeechBargeIn, WakeWordBargeIn
 from voice.channel import VoiceChannel
@@ -73,10 +75,13 @@ class VoiceSessionFactory:
             gateway_session = await self._connect_gateway()
             await resources.enter_async_context(gateway_session)
             sonos_client = await self._open_sonos(resources)
-            audio_output = self._build_audio_output(sonos_client)
+            audio_input, audio_output = self._build_audio_devices(
+                sonos_client, resources
+            )
             integrations = self._build_integrations(sonos_client)
             channel = VoiceChannel(
                 gateway_session=gateway_session,
+                audio_input=audio_input,
                 audio_output=audio_output,
                 wake_word_settings=self._build_wake_word_settings(),
                 wake_word_enabled=self._config.activation.wake_word.enabled,
@@ -119,22 +124,23 @@ class VoiceSessionFactory:
         client = SonosClient(settings.ip_address)
         return await resources.enter_async_context(client)
 
-    def _build_audio_output(
-        self, sonos_client: SonosClient | None
-    ) -> AudioOutput | None:
-        if self._config.audio.output.type is AudioOutputType.LOCAL:
-            return None
-        client = _require_sonos_client(sonos_client)
-        sonos = self._config.sonos
-        if sonos is None:
-            raise RuntimeError("Sonos settings were not validated.")
-        settings = SonosSettings(
-            ip_address=sonos.ip_address,
-            local_host=sonos.local_host,
-            clip_volume_boost=sonos.clip_volume_boost,
-            clip_prebuffer_seconds=sonos.clip_prebuffer_seconds,
-        )
-        return SonosOutput(client=client, settings=settings)
+    def _build_audio_devices(
+        self, sonos_client: SonosClient | None, resources: AsyncExitStack
+    ) -> tuple[AudioInput, AudioOutput]:
+        if self._config.audio.output.type is not AudioOutputType.LOCAL:
+            client = _require_sonos_client(sonos_client)
+            sonos = self._config.sonos
+            if sonos is None:
+                raise RuntimeError("Sonos settings were not validated.")
+            settings = SonosSettings(
+                ip_address=sonos.ip_address,
+                local_host=sonos.local_host,
+                clip_volume_boost=sonos.clip_volume_boost,
+                clip_prebuffer_seconds=sonos.clip_prebuffer_seconds,
+            )
+            return MicrophoneAudioInput(), SonosOutput(client=client, settings=settings)
+        session = resources.enter_context(PortAudioSession())
+        return MicrophoneAudioInput(session=session), LocalAudioOutput(session=session)
 
     def _build_integrations(
         self, sonos_client: SonosClient | None
