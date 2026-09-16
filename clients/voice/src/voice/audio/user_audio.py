@@ -37,7 +37,7 @@ class UserAudioProducer:
     async def _publish(self, reader: AudioReader) -> None:
         try:
             async for frame in reader:
-                await self._event_bus.dispatch(
+                await self._event_bus.emit(
                     UserAudioChunk(sequence=frame.sequence, chunk=frame.pcm)
                 )
         except asyncio.CancelledError:

@@ -36,7 +36,7 @@ class WakeWordActivationSource(ActivationSource):
                 sequence=detection.sequence,
                 kind=ActivationKind.WAKE_WORD,
             )
-            await self._event_bus.dispatch(
+            await self._event_bus.emit(
                 WakeWordDetected(
                     score=detection.score,
                     sequence=detection.sequence,

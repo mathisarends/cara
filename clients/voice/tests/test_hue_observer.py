@@ -95,7 +95,7 @@ class _RecordingHue:
 async def _dispatch_and_drain(
     event_bus: EventBus, observer: HueObserver, event: Event
 ) -> None:
-    await event_bus.dispatch(event)
+    await event_bus.emit(event)
     await asyncio.wait_for(observer._jobs.join(), timeout=1)
 
 
@@ -148,7 +148,7 @@ def test_hue_observer_reflects_voice_turn_and_tool_lifecycle() -> None:
             observer,
             AssistantToolCompleted(turn_id=turn_id, name="mail"),
         )
-        await event_bus.dispatch(SessionEnded())
+        await event_bus.emit(SessionEnded())
         return hue
 
     hue = asyncio.run(run())
@@ -182,7 +182,7 @@ def test_hue_observer_preserves_external_changes_in_its_baseline() -> None:
                 }
             )
         )
-        await event_bus.dispatch(SessionEnded())
+        await event_bus.emit(SessionEnded())
         return hue.rooms.changes
 
     assert asyncio.run(run()) == [(58.0, 275, 0.2), (67.0, 267, 0.5)]

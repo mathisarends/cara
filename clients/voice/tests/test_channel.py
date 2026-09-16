@@ -166,14 +166,14 @@ def test_barge_in_interrupts_only_while_the_assistant_responds(
         await _settle()
         assert bridge.interrupts == []
 
-        await bridge.event_bus.dispatch(AssistantTurnStarted())
+        await bridge.event_bus.emit(AssistantTurnStarted())
         barge_in.signal(2)
         barge_in.signal(3)
         await _settle()
         assert bridge.interrupts == [2]
 
-        await bridge.event_bus.dispatch(AssistantTurnStarted())
-        await bridge.event_bus.dispatch(VoiceTurnEnded(turn_id=uuid4()))
+        await bridge.event_bus.emit(AssistantTurnStarted())
+        await bridge.event_bus.emit(VoiceTurnEnded(turn_id=uuid4()))
         barge_in.signal(4)
         await _settle()
         assert bridge.interrupts == [2]

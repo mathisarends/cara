@@ -59,11 +59,11 @@ def test_user_audio_is_published_without_an_active_turn() -> None:
                 all_received.set()
 
         event_bus.on(UserAudioChunk, capture)
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         for chunk in (b"first", b"second", b"third"):
             await input_device.send(chunk)
         await asyncio.wait_for(all_received.wait(), timeout=1.0)
-        await event_bus.dispatch(VoiceResourcesClosing())
+        await event_bus.emit(VoiceResourcesClosing())
         return received
 
     assert asyncio.run(run()) == [

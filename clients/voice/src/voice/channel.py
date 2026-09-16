@@ -135,8 +135,7 @@ class VoiceChannel:
         try:
             await self._observer_bridge.prepare()
             await self._gateway_bridge.start()
-            started = await self._event_bus.dispatch(SessionStarted())
-            started.raise_if_failed()
+            await self._event_bus.emit(SessionStarted())
             activation = asyncio.create_task(
                 self._activation_coordinator.run(),
                 name="voice-activation-coordinator",
@@ -162,8 +161,8 @@ class VoiceChannel:
         if self._stopped:
             return
         self._stopped = True
-        await self._event_bus.dispatch(SessionEnded())
-        await self._event_bus.dispatch(VoiceResourcesClosing())
+        await self._event_bus.emit(SessionEnded())
+        await self._event_bus.emit(VoiceResourcesClosing())
         await self._gateway_session.close()
         if self._audio_session is not None:
             self._audio_session.close()

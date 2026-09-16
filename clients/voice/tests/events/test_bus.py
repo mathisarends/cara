@@ -1,13 +1,13 @@
 import asyncio
-import logging
 
 import pytest
 
 from voice.events.bus import EventBus
+from voice.events.errors import NoSubscriberError
 from voice.events.models import Event, Request
 
 
-def test_dispatch_runs_handlers_concurrently() -> None:
+def test_emit_runs_handlers_concurrently() -> None:
     async def scenario() -> None:
         bus = EventBus()
         release = asyncio.Event()
@@ -24,15 +24,15 @@ def test_dispatch_runs_handlers_concurrently() -> None:
         bus.on(Event, handler)
         bus.on(Event, handler)
 
-        dispatch = asyncio.create_task(bus.dispatch(Event()))
+        emit = asyncio.create_task(bus.emit(Event()))
         await asyncio.wait_for(both_started.wait(), timeout=1.0)
         release.set()
-        await dispatch
+        await emit
 
     asyncio.run(scenario())
 
 
-def test_off_removes_handler() -> None:
+def test_closing_a_subscription_stops_delivery() -> None:
     async def scenario() -> int:
         bus = EventBus()
         calls = 0
@@ -41,15 +41,24 @@ def test_off_removes_handler() -> None:
             nonlocal calls
             calls += 1
 
-        bus.on(Event, handler)
-        bus.off(Event, handler)
-        await bus.dispatch(Event())
+        subscription = bus.on(Event, handler)
+        subscription.close()
+        await bus.emit(Event())
         return calls
 
     assert asyncio.run(scenario()) == 0
 
 
-def test_handler_failure_does_not_cancel_other_handlers(caplog) -> None:
+def test_emit_without_subscribers_is_silent_by_default() -> None:
+    asyncio.run(EventBus().emit(Event()))
+
+
+def test_emit_without_subscribers_raises_when_required() -> None:
+    with pytest.raises(NoSubscriberError, match="Event"):
+        asyncio.run(EventBus().emit(Event(), require_subscribers=True))
+
+
+def test_emit_runs_every_handler_despite_a_failure() -> None:
     async def scenario() -> bool:
         bus = EventBus()
         successful_handler_ran = False
@@ -63,30 +72,28 @@ def test_handler_failure_does_not_cancel_other_handlers(caplog) -> None:
 
         bus.on(Event, failing_handler)
         bus.on(Event, successful_handler)
-        await bus.dispatch(Event())
+        with pytest.raises(RuntimeError, match="broken handler"):
+            await bus.emit(Event())
         return successful_handler_ran
 
-    with caplog.at_level(logging.ERROR, logger="voice.events.bus"):
-        assert asyncio.run(scenario()) is True
-
-    assert "Event handler failed for Event" in caplog.text
+    assert asyncio.run(scenario()) is True
 
 
-def test_raise_if_failed_is_silent_when_every_handler_succeeds() -> None:
+def test_emit_propagates_a_single_handler_failure_directly() -> None:
     async def scenario() -> None:
         bus = EventBus()
 
         async def handler(event: Event) -> None:
-            return None
+            raise RuntimeError("broke")
 
         bus.on(Event, handler)
-        dispatch = await bus.dispatch(Event())
-        dispatch.raise_if_failed()
+        await bus.emit(Event())
 
-    asyncio.run(scenario())
+    with pytest.raises(RuntimeError, match="broke"):
+        asyncio.run(scenario())
 
 
-def test_raise_if_failed_reports_every_failing_handler() -> None:
+def test_emit_reports_every_failing_handler_as_a_group() -> None:
     async def scenario() -> None:
         bus = EventBus()
 
@@ -98,13 +105,12 @@ def test_raise_if_failed_reports_every_failing_handler() -> None:
 
         bus.on(Event, first)
         bus.on(Event, second)
-        dispatch = await bus.dispatch(Event())
-        dispatch.raise_if_failed()
+        await bus.emit(Event())
 
     with pytest.raises(ExceptionGroup) as failure:
         asyncio.run(scenario())
 
-    assert "Listeners failed for Event" in str(failure.value)
+    assert "Handlers failed for Event" in str(failure.value)
     assert [type(error) for error in failure.value.exceptions] == [
         RuntimeError,
         ValueError,

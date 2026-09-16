@@ -33,8 +33,8 @@ def test_bridge_notifies_all_voice_channel_observers() -> None:
         bridge.setup()
 
         await bridge.prepare()
-        await event_bus.dispatch(SessionStarted())
-        await event_bus.dispatch(FollowUpCountdown(remaining_seconds=3))
+        await event_bus.emit(SessionStarted())
+        await event_bus.emit(FollowUpCountdown(remaining_seconds=3))
         return first, second
 
     first, second = asyncio.run(run())

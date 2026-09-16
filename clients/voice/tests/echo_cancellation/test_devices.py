@@ -70,10 +70,10 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
 
     async def run() -> None:
         await observer_bridge.prepare()
-        await event_bus.dispatch(
+        await event_bus.emit(
             WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft")
         )
-        await event_bus.dispatch(VoiceResourcesClosing())
+        await event_bus.emit(VoiceResourcesClosing())
 
     asyncio.run(run())
 

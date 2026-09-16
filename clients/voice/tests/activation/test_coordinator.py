@@ -47,7 +47,7 @@ def _collect_requests(event_bus: EventBus) -> list[Request]:
 
     async def start_turn(event: Request) -> None:
         requests.append(event)
-        await event_bus.dispatch(VoiceTurnStarted(turn_id=uuid4()))
+        await event_bus.emit(VoiceTurnStarted(turn_id=uuid4()))
 
     event_bus.on_request(VoiceTurnRequested, start_turn)
     return requests
@@ -72,7 +72,7 @@ def test_starts_no_second_turn_while_one_is_active() -> None:
             ),
         )
 
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         await coordinator.run()
         return requests
 
@@ -88,12 +88,12 @@ def test_starts_a_turn_again_once_the_previous_one_ended() -> None:
             event_bus=event_bus,
             sources=(source, _NeverEndingSource()),
         )
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         running = asyncio.create_task(coordinator.run())
 
         await source.activate()
         await _wait_for_requests(requests, count=1)
-        await event_bus.dispatch(VoiceTurnEnded(turn_id=uuid4()))
+        await event_bus.emit(VoiceTurnEnded(turn_id=uuid4()))
         await source.activate(speech_start_timeout=4.0)
         await _wait_for_requests(requests, count=2)
 
@@ -131,7 +131,7 @@ def test_stops_every_source_once_the_first_one_ends() -> None:
             sources=(_FixedSource(), _NeverEndingSource()),
         )
 
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         await asyncio.wait_for(coordinator.run(), timeout=1.0)
 
     asyncio.run(run())
@@ -145,7 +145,7 @@ def test_reports_a_failing_source() -> None:
             sources=(_FailingSource(), _NeverEndingSource()),
         )
 
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         await asyncio.wait_for(coordinator.run(), timeout=1.0)
 
     with pytest.raises(RuntimeError, match="microphone is gone"):

@@ -82,7 +82,7 @@ class AudioBridge:
             first_chunk = not self._speech_started
             self._speech_started = True
         if first_chunk:
-            await self._event_bus.dispatch(AssistantSpeechStarted())
+            await self._event_bus.emit(AssistantSpeechStarted())
         await self._enqueue_audio(event.turn_id, event.chunk)
 
     async def _on_audio_completed(self, event: AssistantAudioCompleted) -> None:
@@ -137,12 +137,12 @@ class AudioBridge:
         if isinstance(error, asyncio.CancelledError):
             return
         if isinstance(error, BaseException):
-            await self._event_bus.dispatch(
+            await self._event_bus.emit(
                 VoiceTurnFailed(turn_id=turn_id, message=str(error))
             )
             return
         if publish_completion:
-            await self._event_bus.dispatch(AssistantPlaybackCompleted(turn_id=turn_id))
+            await self._event_bus.emit(AssistantPlaybackCompleted(turn_id=turn_id))
 
     async def _on_turn_ended(self, event: VoiceTurnEnded) -> None:
         await self._stop_active_playback(turn_id=event.turn_id)

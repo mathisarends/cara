@@ -30,7 +30,7 @@ def test_wake_word_strategy_signals_detected_wake_words() -> None:
         strategy = WakeWordBargeIn()
         strategy.set_context(_context(event_bus))
 
-        await event_bus.dispatch(
+        await event_bus.emit(
             WakeWordDetected(score=0.9, sequence=7, name="hey_mycroft")
         )
         return await _drain(strategy)
@@ -190,7 +190,7 @@ def _speech_strategy(
 
 
 async def _publish(event_bus: EventBus, sequence: int, chunk: bytes) -> None:
-    await event_bus.dispatch(UserAudioChunk(sequence=sequence, chunk=chunk))
+    await event_bus.emit(UserAudioChunk(sequence=sequence, chunk=chunk))
 
 
 async def _drain(strategy: BargeInStrategy) -> list[BargeInSignal]:

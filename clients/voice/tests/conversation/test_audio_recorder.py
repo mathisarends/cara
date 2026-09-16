@@ -45,14 +45,12 @@ def test_records_session_audio_and_suppresses_user_echo(
 
     async def run() -> None:
         turn_id = uuid4()
-        await event_bus.dispatch(UserAudioChunk(sequence=1, chunk=b"user"))
-        await event_bus.dispatch(AssistantSpeechStarted())
-        await event_bus.dispatch(UserAudioChunk(sequence=2, chunk=b"echo"))
-        await event_bus.dispatch(
-            AssistantAudioChunk(turn_id=turn_id, chunk=b"assistant")
-        )
-        await event_bus.dispatch(AssistantPlaybackCompleted(turn_id=turn_id))
-        await event_bus.dispatch(VoiceResourcesClosing())
+        await event_bus.emit(UserAudioChunk(sequence=1, chunk=b"user"))
+        await event_bus.emit(AssistantSpeechStarted())
+        await event_bus.emit(UserAudioChunk(sequence=2, chunk=b"echo"))
+        await event_bus.emit(AssistantAudioChunk(turn_id=turn_id, chunk=b"assistant"))
+        await event_bus.emit(AssistantPlaybackCompleted(turn_id=turn_id))
+        await event_bus.emit(VoiceResourcesClosing())
 
     asyncio.run(run())
 

@@ -18,7 +18,7 @@ def test_session_start_logs_configured_wake_word(caplog) -> None:
     async def run() -> None:
         event_bus = EventBus()
         LoggingListener(event_bus, wake_word_phrase="hey jarvis")
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
 
     with caplog.at_level(logging.INFO, logger=_LOGGER):
         asyncio.run(run())
@@ -31,7 +31,7 @@ def test_follow_up_countdown_is_logged(caplog) -> None:
         event_bus = EventBus()
         LoggingListener(event_bus, wake_word_phrase="hey mycroft")
         for remaining in range(5, 0, -1):
-            await event_bus.dispatch(FollowUpCountdown(remaining_seconds=remaining))
+            await event_bus.emit(FollowUpCountdown(remaining_seconds=remaining))
 
     with caplog.at_level(logging.INFO, logger=_LOGGER):
         asyncio.run(run())
@@ -49,8 +49,8 @@ def test_wake_word_readiness_is_logged_after_timed_out_turn_ends(caplog) -> None
     async def run() -> None:
         event_bus = EventBus()
         LoggingListener(event_bus, wake_word_phrase="hey mycroft")
-        await event_bus.dispatch(FollowUpTimedOut(timeout_seconds=10.0))
-        await event_bus.dispatch(VoiceTurnEnded(turn_id=uuid4()))
+        await event_bus.emit(FollowUpTimedOut(timeout_seconds=10.0))
+        await event_bus.emit(VoiceTurnEnded(turn_id=uuid4()))
 
     with caplog.at_level(logging.INFO, logger=_LOGGER):
         asyncio.run(run())

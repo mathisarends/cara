@@ -28,7 +28,7 @@ def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> Non
         )
         bridge.setup()
         await bridge.prepare()
-        await event_bus.dispatch(
+        await event_bus.emit(
             WakeWordDetected(score=0.8, sequence=4, name="hey_mycroft")
         )
         return requested
@@ -54,7 +54,7 @@ def test_session_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
         )
         bridge.setup()
         await bridge.prepare()
-        await event_bus.dispatch(SessionEnded())
+        await event_bus.emit(SessionEnded())
         return requested
 
     assert asyncio.run(run()) == [
@@ -78,7 +78,7 @@ def test_assistant_response_started_plays_success_earcon() -> None:
         )
         bridge.setup()
         await bridge.prepare()
-        await event_bus.dispatch(AssistantResponseStarted(turn_id=uuid4()))
+        await event_bus.emit(AssistantResponseStarted(turn_id=uuid4()))
         return requested
 
     assert asyncio.run(run()) == [

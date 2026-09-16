@@ -1,48 +1,78 @@
-import asyncio
-import logging
-from collections.abc import Awaitable, Callable, Sequence
+from asyncio import CancelledError, gather
+from collections.abc import Awaitable, Callable
+from typing import Any, cast
 
+from voice.events.errors import NoSubscriberError
 from voice.events.models import Event, Request
+from voice.events.subscription import EventHandler, Subscription
 
-logger = logging.getLogger(__name__)
-
-type EventHandler[E: Event] = Callable[[E], Awaitable[object]]
 type RequestHandler[R: Request] = Callable[[R], Awaitable[object]]
 
 
-class Dispatch:
-    """The outcome of one fan-out, carrying every listener that failed."""
-
-    def __init__(self, event: Event, failures: Sequence[Exception]) -> None:
-        self._event = event
-        self._failures = tuple(failures)
-
-    def raise_if_failed(self) -> None:
-        if not self._failures:
-            return
-        raise ExceptionGroup(
-            f"Listeners failed for {type(self._event).__name__}",
-            list(self._failures),
-        )
-
-
 class EventBus:
-    """Broadcasts events to any number of listeners and routes requests to one."""
+    """Broadcasts events to any number of listeners and routes requests to one.
+
+    ``emit`` awaits all matching handlers and propagates their failures. Set
+    ``require_subscribers`` when delivery without a handler is invalid.
+    """
 
     def __init__(self) -> None:
-        self._event_handlers: dict[type[Event], list[EventHandler]] = {}
+        self._subscriptions: list[Subscription] = []
         self._request_handlers: dict[type[Request], RequestHandler] = {}
 
     def on[E: Event](
-        self, event_type: type[E], handler: EventHandler[E]
-    ) -> EventHandler[E]:
-        self._event_handlers.setdefault(event_type, []).append(handler)
-        return handler
+        self,
+        event_type: type[E],
+        handler: EventHandler[E],
+        *,
+        name: str | None = None,
+    ) -> Subscription:
+        """Register a handler and return its closable subscription."""
+        subscription = Subscription(
+            self, event_type, cast(EventHandler[Any], handler), name
+        )
+        self._subscriptions.append(subscription)
+        return subscription
 
-    def off[E: Event](self, event_type: type[E], handler: EventHandler[E]) -> None:
-        handlers = self._event_handlers.get(event_type)
-        if handlers and handler in handlers:
-            handlers.remove(handler)
+    async def emit[E: Event](
+        self,
+        event: E,
+        *,
+        require_subscribers: bool = False,
+    ) -> None:
+        """Deliver to all captured handlers and await their completion."""
+        handlers = [
+            subscription.handler
+            for subscription in tuple(self._subscriptions)
+            if not subscription.closed and isinstance(event, subscription.event_type)
+        ]
+        if not handlers:
+            if require_subscribers:
+                raise NoSubscriberError(
+                    f"No subscriber registered for {type(event).__name__}"
+                )
+            return
+
+        results = await gather(
+            *(handler(event) for handler in handlers), return_exceptions=True
+        )
+        cancellations = [
+            result for result in results if isinstance(result, CancelledError)
+        ]
+        if cancellations:
+            raise cancellations[0]
+        fatal_errors = [
+            result
+            for result in results
+            if isinstance(result, BaseException) and not isinstance(result, Exception)
+        ]
+        if fatal_errors:
+            raise fatal_errors[0]
+        errors = [result for result in results if isinstance(result, Exception)]
+        if len(errors) == 1:
+            raise errors[0]
+        if errors:
+            raise ExceptionGroup(f"Handlers failed for {type(event).__name__}", errors)
 
     def on_request[R: Request](
         self, request_type: type[R], handler: RequestHandler[R]
@@ -52,18 +82,6 @@ class EventBus:
         self._request_handlers[request_type] = handler
         return handler
 
-    async def dispatch(self, event: Event) -> Dispatch:
-        """Notify every listener; failures are logged and returned, never raised.
-
-        Callers that cannot continue without their listeners succeeding call
-        `raise_if_failed` on the result.
-        """
-        handlers = tuple(self._event_handlers.get(type(event), ()))
-        failures = await asyncio.gather(
-            *(_notify(handler, event) for handler in handlers)
-        )
-        return Dispatch(event, [failure for failure in failures if failure is not None])
-
     async def request(self, request: Request) -> None:
         """Run the registered handler; its failures propagate to the caller."""
         handler = self._request_handlers.get(type(request))
@@ -71,11 +89,20 @@ class EventBus:
             raise LookupError(f"No handler registered for {type(request).__name__}.")
         await handler(request)
 
+    def subscriptions(
+        self, event_type: type[Event] | None = None
+    ) -> tuple[Subscription, ...]:
+        """Return active subscriptions for wiring diagnostics."""
+        return tuple(
+            subscription
+            for subscription in self._subscriptions
+            if not subscription.closed
+            and (event_type is None or subscription.event_type is event_type)
+        )
 
-async def _notify(handler: EventHandler, event: Event) -> Exception | None:
-    try:
-        await handler(event)
-    except Exception as error:
-        logger.exception("Event handler failed for %s", type(event).__name__)
-        return error
-    return None
+    def has_subscribers(self, event_type: type[Event]) -> bool:
+        return bool(self.subscriptions(event_type))
+
+    def _remove(self, subscription: Subscription) -> None:
+        if subscription in self._subscriptions:
+            self._subscriptions.remove(subscription)

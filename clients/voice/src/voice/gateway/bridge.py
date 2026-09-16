@@ -123,25 +123,23 @@ class GatewayVoiceBridge:
             return
         self._active_turn_id = turn.id
         self._active_turn_index = turn.index
-        await self._event_bus.dispatch(LocalVoiceTurnStarted(turn_id=turn.id))
+        await self._event_bus.emit(LocalVoiceTurnStarted(turn_id=turn.id))
         match turn.status:
             case VoiceTurnStatus.LISTENING:
-                await self._event_bus.dispatch(UserTurnStarted())
+                await self._event_bus.emit(UserTurnStarted())
                 await self._start_input(None)
             case VoiceTurnStatus.TRANSCRIBING:
-                await self._event_bus.dispatch(UserSpeechEnded())
+                await self._event_bus.emit(UserSpeechEnded())
             case VoiceTurnStatus.WAITING_FOR_ASSISTANT | VoiceTurnStatus.SPEAKING:
                 if turn.transcript is not None:
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         UserTranscriptionCompleted(
                             turn_id=turn.id,
                             text=turn.transcript,
                         )
                     )
-                await self._event_bus.dispatch(AssistantTurnStarted())
-                await self._event_bus.dispatch(
-                    AssistantResponseStarted(turn_id=turn.id)
-                )
+                await self._event_bus.emit(AssistantTurnStarted())
+                await self._event_bus.emit(AssistantResponseStarted(turn_id=turn.id))
                 if turn.status is VoiceTurnStatus.SPEAKING:
                     await self._start_assistant_audio(turn.id)
 
@@ -164,7 +162,7 @@ class GatewayVoiceBridge:
         turn_id = self._active_turn_id
         if turn_id is None:
             return
-        await self._event_bus.dispatch(
+        await self._event_bus.emit(
             LocalVoiceTurnFailed(turn_id=turn_id, message=message)
         )
         await self._finish_turn(turn_id)
@@ -174,7 +172,7 @@ class GatewayVoiceBridge:
         if turn_id is None:
             return
         await self._stop_input()
-        await self._event_bus.dispatch(VoiceTurnInterrupted(turn_id=turn_id))
+        await self._event_bus.emit(VoiceTurnInterrupted(turn_id=turn_id))
         await self._session.interrupt(turn_id, sequence)
         await self._finish_turn(turn_id)
         await self._event_bus.request(
@@ -204,10 +202,10 @@ class GatewayVoiceBridge:
             turn_index = await self._session.turn_index(result.voice_turn_id)
             self._active_turn_id = result.voice_turn_id
             self._active_turn_index = turn_index
-            await self._event_bus.dispatch(
+            await self._event_bus.emit(
                 LocalVoiceTurnStarted(turn_id=result.voice_turn_id)
             )
-            await self._event_bus.dispatch(UserTurnStarted())
+            await self._event_bus.emit(UserTurnStarted())
             await self._start_input(event.sequence, event.speech_start_timeout)
 
     async def _start_input(
@@ -249,7 +247,7 @@ class GatewayVoiceBridge:
         except Exception as error:
             turn_id = self._active_turn_id
             if turn_id is not None:
-                await self._event_bus.dispatch(
+                await self._event_bus.emit(
                     LocalVoiceTurnFailed(turn_id=turn_id, message=str(error))
                 )
 
@@ -282,7 +280,7 @@ class GatewayVoiceBridge:
                     await self._voice_turn_started(event)
                 case VoiceTranscriptPartial():
                     await self._start_user_speech(event.voice_turn_id)
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         UserTranscriptionUpdated(
                             turn_id=event.voice_turn_id,
                             text=event.text,
@@ -293,15 +291,15 @@ class GatewayVoiceBridge:
                 case VoiceTranscriptFinal():
                     await self._stop_input()
                     await self._start_user_speech(event.voice_turn_id)
-                    await self._event_bus.dispatch(UserSpeechEnded())
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(UserSpeechEnded())
+                    await self._event_bus.emit(
                         UserTranscriptionCompleted(
                             turn_id=event.voice_turn_id,
                             text=event.text,
                         )
                     )
-                    await self._event_bus.dispatch(AssistantTurnStarted())
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(AssistantTurnStarted())
+                    await self._event_bus.emit(
                         AssistantResponseStarted(turn_id=event.voice_turn_id)
                     )
                 case VoiceAssistantAudioStarted():
@@ -310,14 +308,14 @@ class GatewayVoiceBridge:
                     pass
                 case VoiceTurnDiscarded():
                     await self._stop_input()
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         VoiceTurnTimedOut(turn_id=event.voice_turn_id)
                     )
                     await self._finish_turn(event.voice_turn_id)
                 case VoiceTurnCancelled() | VoiceTurnCompleted():
                     await self._finish_turn(event.voice_turn_id)
                 case VoiceTurnFailed():
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         LocalVoiceTurnFailed(
                             turn_id=event.voice_turn_id,
                             message=event.message,
@@ -337,16 +335,16 @@ class GatewayVoiceBridge:
             self._active_turn_index = await self._session.turn_index(
                 event.voice_turn_id
             )
-            await self._event_bus.dispatch(
+            await self._event_bus.emit(
                 LocalVoiceTurnStarted(turn_id=event.voice_turn_id)
             )
             if event.activation is Activation.PROACTIVE:
-                await self._event_bus.dispatch(AssistantTurnStarted())
-                await self._event_bus.dispatch(
+                await self._event_bus.emit(AssistantTurnStarted())
+                await self._event_bus.emit(
                     AssistantResponseStarted(turn_id=event.voice_turn_id)
                 )
             else:
-                await self._event_bus.dispatch(UserTurnStarted())
+                await self._event_bus.emit(UserTurnStarted())
                 await self._start_input(None)
 
     async def _pump_conversation_events(self) -> None:
@@ -359,19 +357,19 @@ class GatewayVoiceBridge:
                 continue
             match event:
                 case ChatDelta():
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         AssistantTextChunk(turn_id=turn_id, chunk=event.text)
                     )
                 case ChatCompleted():
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         AssistantTextCompleted(turn_id=turn_id, text=event.text)
                     )
                 case ToolCallStarted():
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         AssistantToolStarted(turn_id=turn_id, name=event.name)
                     )
                 case ToolCallCompleted():
-                    await self._event_bus.dispatch(
+                    await self._event_bus.emit(
                         AssistantToolCompleted(turn_id=turn_id, name=event.name)
                     )
 
@@ -384,11 +382,11 @@ class GatewayVoiceBridge:
             # can arrive before voice.assistant_audio.started does.
             await self._start_assistant_audio(turn_id)
             if frame.kind is MediaFrameKind.OUTPUT_PCM:
-                await self._event_bus.dispatch(
+                await self._event_bus.emit(
                     AssistantAudioChunk(turn_id=turn_id, chunk=frame.payload)
                 )
             elif frame.kind is MediaFrameKind.OUTPUT_END:
-                await self._event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id))
+                await self._event_bus.emit(AssistantAudioCompleted(turn_id=turn_id))
 
     async def _start_user_speech(self, turn_id: UUID) -> None:
         """Announce the first evidence that the user is actually speaking.
@@ -399,13 +397,13 @@ class GatewayVoiceBridge:
         if self._speech_started_turn_id == turn_id:
             return
         self._speech_started_turn_id = turn_id
-        await self._event_bus.dispatch(UserSpeechStarted())
+        await self._event_bus.emit(UserSpeechStarted())
 
     async def _start_assistant_audio(self, turn_id: UUID) -> None:
         if self._audio_started_turn_id == turn_id:
             return
         self._audio_started_turn_id = turn_id
-        await self._event_bus.dispatch(
+        await self._event_bus.emit(
             AssistantAudioStarted(
                 turn_id=turn_id,
                 sample_rate=self._session.output_sample_rate,
@@ -426,7 +424,7 @@ class GatewayVoiceBridge:
         await self._stop_input()
         self._active_turn_id = None
         self._active_turn_index = None
-        await self._event_bus.dispatch(VoiceTurnEnded(turn_id=turn_id))
+        await self._event_bus.emit(VoiceTurnEnded(turn_id=turn_id))
 
     async def _on_session_ended(self, _: SessionEnded) -> None:
         turn_id = self._active_turn_id

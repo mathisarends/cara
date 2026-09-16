@@ -74,7 +74,7 @@ class FollowUpHandler:
         logger.debug(
             "Follow-up window expired after %.1fs without speech", self._window_seconds
         )
-        await self._event_bus.dispatch(
+        await self._event_bus.emit(
             FollowUpTimedOut(timeout_seconds=self._window_seconds)
         )
 
@@ -105,6 +105,4 @@ class FollowUpHandler:
         first_tick = min(self._countdown_seconds, int(self._window_seconds))
         for remaining in range(first_tick, 0, -1):
             await asyncio.sleep(max(deadline - remaining - time.monotonic(), 0.0))
-            await self._event_bus.dispatch(
-                FollowUpCountdown(remaining_seconds=remaining)
-            )
+            await self._event_bus.emit(FollowUpCountdown(remaining_seconds=remaining))

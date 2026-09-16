@@ -69,20 +69,18 @@ def test_bridge_publishes_playback_completion_after_the_output_finishes() -> Non
         event_bus.on(AssistantSpeechStarted, speech_started)
         event_bus.on(AssistantPlaybackCompleted, playback_completed)
 
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         turn_id = uuid4()
-        await event_bus.dispatch(
-            AssistantAudioStarted(turn_id=turn_id, sample_rate=24_000)
-        )
-        await event_bus.dispatch(AssistantAudioChunk(turn_id=turn_id, chunk=b"pcm"))
+        await event_bus.emit(AssistantAudioStarted(turn_id=turn_id, sample_rate=24_000))
+        await event_bus.emit(AssistantAudioChunk(turn_id=turn_id, chunk=b"pcm"))
         completion = asyncio.create_task(
-            event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id))
+            event_bus.emit(AssistantAudioCompleted(turn_id=turn_id))
         )
         await asyncio.wait_for(output.finish_started.wait(), timeout=1.0)
         completed_too_early = "playback-completed" in lifecycle
         output.release_finish.set()
         await completion
-        await event_bus.dispatch(VoiceResourcesClosing())
+        await event_bus.emit(VoiceResourcesClosing())
         return output, lifecycle, completed_too_early
 
     output, lifecycle, completed_too_early = asyncio.run(run())
@@ -108,17 +106,15 @@ def test_bridge_reports_output_failure_without_blocking_the_pipeline() -> None:
             failure.set_result(event)
 
         event_bus.on(VoiceTurnFailed, capture_failure)
-        await event_bus.dispatch(SessionStarted())
+        await event_bus.emit(SessionStarted())
         turn_id = uuid4()
-        await event_bus.dispatch(
-            AssistantAudioStarted(turn_id=turn_id, sample_rate=24_000)
-        )
-        await event_bus.dispatch(AssistantAudioChunk(turn_id=turn_id, chunk=b"pcm"))
+        await event_bus.emit(AssistantAudioStarted(turn_id=turn_id, sample_rate=24_000))
+        await event_bus.emit(AssistantAudioChunk(turn_id=turn_id, chunk=b"pcm"))
         await asyncio.wait_for(
-            event_bus.dispatch(AssistantAudioCompleted(turn_id=turn_id)), timeout=1.0
+            event_bus.emit(AssistantAudioCompleted(turn_id=turn_id)), timeout=1.0
         )
         event = await asyncio.wait_for(failure, timeout=1.0)
-        await event_bus.dispatch(VoiceResourcesClosing())
+        await event_bus.emit(VoiceResourcesClosing())
         return event
 
     event = asyncio.run(run())
