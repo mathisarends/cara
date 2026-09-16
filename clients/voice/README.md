@@ -60,14 +60,16 @@ every turn it starts and ends, and every activation it has to ignore because the
 previous turn never ended (`voice.gateway.bridge`). A turn that stalls is the gap
 between the last accepted event and the missing `Voice turn ... ended`.
 
-At `DEBUG` the `EventTrace` listener additionally logs every event on the bus in
-the order it was emitted, with streamed chunks counted rather than logged:
+That is enough to locate a stalled turn. `DEBUG` only adds the `EventTrace`
+listener, which logs every event on the bus in the order it was emitted, with
+streamed chunks counted rather than logged. Raise the level on the `voice`
+logger alone, as the example scripts do via `CARA_VOICE_LOG_LEVEL`; a `DEBUG`
+root level makes `websockets` log every media frame:
 
 ```python
+logging.basicConfig(level=logging.INFO)
 logging.getLogger("voice").setLevel(logging.DEBUG)
 ```
-
-The example scripts read that level from `CARA_VOICE_LOG_LEVEL`.
 
 ## Local extension points
 
