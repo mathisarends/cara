@@ -88,7 +88,9 @@ gateway/src/gateway/features/voice/
 ├── application/
 │   ├── ports.py              # SpeechToText, TextToSpeech (ABCs)
 │   ├── voice_session_service.py
-│   └── voice_turn_service.py # Orchestrierung STT -> conversation -> TTS
+│   └── voice_turn_service/
+│       ├── service.py        # Orchestrierung STT -> conversation -> TTS
+│       └── models.py         # Sprach-Segmente, an Tool-Calls geflusht
 ├── infrastructure/
 │   ├── orm.py                # voice_sessions, voice_turns
 │   ├── repository.py

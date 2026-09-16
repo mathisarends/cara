@@ -158,7 +158,7 @@ class GatewayReconnected(Event):
 
 ### 8. Gateway: verwaiste Turns beim Start aufräumen (empfohlen, separat)
 
-Die clientseitige Bereinigung in `_connection_restored()` behebt das Symptom für diesen Client. Sauberer ist es, wenn das Gateway beim Start alle `active_turn`s offener Voice-Sessions mit `reason="gateway_restart"` abbricht. Nach einem Neustart können dafür nachweislich keine Tasks mehr laufen. Das gehört als eigener kleiner Schritt in `gateway/src/gateway/features/voice/application/voice_turn_service.py` (Startup-Hook im `VoiceProvider`). Der Client-Code aus Schritt 3 bleibt trotzdem als Absicherung drin.
+Die clientseitige Bereinigung in `_connection_restored()` behebt das Symptom für diesen Client. Sauberer ist es, wenn das Gateway beim Start alle `active_turn`s offener Voice-Sessions mit `reason="gateway_restart"` abbricht. Nach einem Neustart können dafür nachweislich keine Tasks mehr laufen. Das gehört als eigener kleiner Schritt in `gateway/src/gateway/features/voice/application/voice_turn_service/service.py` (Startup-Hook im `VoiceProvider`). Der Client-Code aus Schritt 3 bleibt trotzdem als Absicherung drin.
 
 ## Tests
 
