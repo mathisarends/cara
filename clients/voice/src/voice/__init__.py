@@ -33,7 +33,6 @@ from .integration import (
     VoiceIntegrationContext,
 )
 from .lights import HueIntegration, LightingState
-from .models import AgentResult
 from .playback import (
     SonosAudioFocusIntegration,
     SonosAudioFocusPolicy,
@@ -47,7 +46,6 @@ __all__ = [
     "Activation",
     "ActivationKind",
     "ActivationSource",
-    "AgentResult",
     "BargeInContext",
     "BargeInSignal",
     "BargeInStrategy",

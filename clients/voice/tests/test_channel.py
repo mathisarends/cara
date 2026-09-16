@@ -131,10 +131,9 @@ def test_runs_and_closes_an_injected_voice_stack(
         recording_path=recording_path,
     )
 
-    result = asyncio.run(voice_channel.start())
+    asyncio.run(voice_channel.start())
     asyncio.run(voice_channel.stop())
 
-    assert result.recording_path == recording_path
     assert not recording_path.exists()
     assert gateway_session.closed
     assert integration.events == ["prepared", "started", "stopped"]

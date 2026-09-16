@@ -22,7 +22,6 @@ from voice.gateway import GatewayVoiceSession
 from voice.handler import FollowUpSettings
 from voice.integration import VoiceIntegration
 from voice.lights import HueIntegration
-from voice.models import AgentResult
 from voice.playback import (
     SonosAudioFocusIntegration,
     SonosDuckingPolicy,
@@ -99,10 +98,10 @@ class VoiceClient:
             if resources is not None:
                 await resources.aclose()
 
-    async def run(self) -> AgentResult:
+    async def run(self) -> None:
         if self._channel is None:
             raise RuntimeError("Use 'async with VoiceClient(config)' before run().")
-        return await self._channel.start()
+        await self._channel.start()
 
     async def _connect_gateway(self) -> GatewayVoiceSession:
         gateway = self._config.gateway

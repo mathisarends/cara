@@ -30,7 +30,6 @@ from voice.events.models import VoiceResourcesClosing, VoiceTurnEnded
 from voice.gateway import GatewayVoiceBridge, GatewayVoiceSession
 from voice.handler import FollowUpHandler, FollowUpSettings
 from voice.integration import VoiceIntegration, VoiceIntegrationBridge
-from voice.models import AgentResult
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
 
@@ -139,7 +138,7 @@ class VoiceChannel:
         )
         self._stopped = False
 
-    async def start(self) -> AgentResult:
+    async def start(self) -> None:
         if self._stopped:
             raise RuntimeError("Voice channel is stopped")
         try:
@@ -165,7 +164,6 @@ class VoiceChannel:
                 task.result()
         finally:
             await self.stop()
-        return AgentResult(recording_path=self._recording_path)
 
     async def stop(self) -> None:
         if self._stopped:
