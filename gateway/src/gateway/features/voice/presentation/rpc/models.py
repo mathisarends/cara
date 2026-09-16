@@ -88,6 +88,20 @@ class VoiceTranscriptFinal(VoiceEventBase):
     user_message_id: UUID
 
 
+class VoiceAssistantTextStarted(VoiceEventBase):
+    type: Literal[VoiceEventType.ASSISTANT_TEXT_STARTED]
+
+
+class VoiceAssistantToolStarted(VoiceEventBase):
+    type: Literal[VoiceEventType.ASSISTANT_TOOL_STARTED]
+    name: str
+
+
+class VoiceAssistantToolCompleted(VoiceEventBase):
+    type: Literal[VoiceEventType.ASSISTANT_TOOL_COMPLETED]
+    name: str
+
+
 class VoiceAssistantAudioStarted(VoiceEventBase):
     type: Literal[VoiceEventType.ASSISTANT_AUDIO_STARTED]
 
@@ -143,6 +157,9 @@ type VoiceEventMessage = Annotated[
     | VoiceTurnStarted
     | VoiceTranscriptPartial
     | VoiceTranscriptFinal
+    | VoiceAssistantTextStarted
+    | VoiceAssistantToolStarted
+    | VoiceAssistantToolCompleted
     | VoiceAssistantAudioStarted
     | VoiceAssistantAudioCompleted
     | VoiceTurnCompleted

@@ -298,6 +298,9 @@ Status und sind per REST sichtbar, werden aber nicht einzeln publiziert.
 voice.turn.started
 voice.transcript.partial          # flüchtig
 voice.transcript.final            # enthält user_message_id
+voice.assistant_text.started      # erstes nicht-leeres chat.delta des Turns
+voice.assistant_tool.started      # enthält name
+voice.assistant_tool.completed    # enthält name
 voice.assistant_audio.started
 voice.assistant_audio.completed   # Gateway hat den letzten Frame gesendet
 voice.turn.completed              # nach playback_completed
@@ -319,7 +322,12 @@ verwerfen. Damit hat Voice die Lücke nicht, die `docs/gateway-transport.md` fü
 den Conversation-Snapshot noch beschreibt.
 
 Assistant-Text wird nicht als Voice-Event dupliziert; `chat.delta` und
-`chat.completed` bleiben die Quelle für Text und Tool-Calls.
+`chat.completed` bleiben die Quelle für den Text. Conversation-Events wissen
+aber nichts von Voice-Turns. Deshalb ordnet der Gateway den Start des Texts und
+die Tool-Calls dem Voice-Turn zu und publiziert sie als Voice-Events. Weil sie
+auf demselben Stream in Emissionsreihenfolge ankommen, sieht ein Client
+deterministisch, ob ein Tool-Call auf Stille oder auf bereits gesprochenen Text
+folgt (z. B. für kurze Bestätigungen wie „One sec.“).
 
 ### Media-Socket
 

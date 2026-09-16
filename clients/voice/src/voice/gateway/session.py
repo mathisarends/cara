@@ -20,7 +20,6 @@ from gateway_rest_client import (
 from gateway_rpc_client import GatewayRpcClient, connect_gateway
 from gateway_rpc_client.models import (
     Activation,
-    SessionEvent,
     VoiceEventMessage,
     VoiceTranscriptPartial,
     VoiceTurnCommandResult,
@@ -170,9 +169,6 @@ class GatewayVoiceSession:
                     )
                     continue
             yield event
-
-    def conversation_events(self) -> AsyncIterator[SessionEvent]:
-        return self._rpc.session.event()
 
     def media_frames(self) -> AsyncIterator[MediaFrame]:
         return self._media.frames()

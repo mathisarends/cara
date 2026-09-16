@@ -5,7 +5,6 @@ from uuid import UUID
 from voice.events.bus import EventBus
 from voice.events.models import (
     AssistantAudioChunk,
-    AssistantTextChunk,
     Event,
     UserAudioChunk,
     UserTranscriptionUpdated,
@@ -16,7 +15,6 @@ logger = logging.getLogger(__name__)
 _MAX_VALUE_LENGTH = 60
 _REPEATING = (
     AssistantAudioChunk,
-    AssistantTextChunk,
     UserAudioChunk,
     UserTranscriptionUpdated,
 )

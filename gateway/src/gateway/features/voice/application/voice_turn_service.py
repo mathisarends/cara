@@ -503,6 +503,7 @@ class VoiceTurnService:
             voice_turn_id,
             self._synthesize(voice_session_id, voice_turn_id, text),
         )
+        text_started = False
         async with self._conversation_events.listen(
             voice_session.session_id
         ) as subscription:
@@ -511,7 +512,27 @@ class VoiceTurnService:
                 while True:
                     event = await subscription.receive()
                     if event.type is ConversationEventType.CHAT_DELTA:
-                        await text.put(str(event.data["text"]))
+                        chunk = str(event.data["text"])
+                        if not text_started and chunk.strip():
+                            text_started = True
+                            await self._publish_turn_event(
+                                voice_turn_id,
+                                VoiceEventType.ASSISTANT_TEXT_STARTED,
+                                {},
+                            )
+                        await text.put(chunk)
+                    elif event.type is ConversationEventType.TOOL_CALL_STARTED:
+                        await self._publish_turn_event(
+                            voice_turn_id,
+                            VoiceEventType.ASSISTANT_TOOL_STARTED,
+                            {"name": event.data["name"]},
+                        )
+                    elif event.type is ConversationEventType.TOOL_CALL_COMPLETED:
+                        await self._publish_turn_event(
+                            voice_turn_id,
+                            VoiceEventType.ASSISTANT_TOOL_COMPLETED,
+                            {"name": event.data["name"]},
+                        )
                     elif event.type is ConversationEventType.CHAT_COMPLETED:
                         await text.put(None)
                     elif event.type is ConversationEventType.TURN_COMPLETED:
@@ -589,6 +610,27 @@ class VoiceTurnService:
                 voice_session.id,
                 voice_session.session_id,
                 {},
+                voice_turn_id=turn.id,
+                sequence=sequence,
+            )
+        )
+
+    async def _publish_turn_event(
+        self,
+        voice_turn_id: UUID,
+        event_type: VoiceEventType,
+        data: dict[str, object],
+    ) -> None:
+        voice_session, turn = await self._find_turn(voice_turn_id)
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                event_type,
+                voice_session.id,
+                voice_session.session_id,
+                data,
                 voice_turn_id=turn.id,
                 sequence=sequence,
             )

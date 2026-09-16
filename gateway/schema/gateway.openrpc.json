@@ -88,15 +88,6 @@
             "title": "Message",
             "type": "string"
           }
-        },
-        {
-          "name": "metadata",
-          "required": false,
-          "schema": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
-          }
         }
       ],
       "result": {
@@ -978,11 +969,6 @@
             "minLength": 1,
             "title": "Message",
             "type": "string"
-          },
-          "metadata": {
-            "additionalProperties": true,
-            "title": "Metadata",
-            "type": "object"
           }
         },
         "required": [
@@ -1541,6 +1527,166 @@
         "title": "VoiceAssistantAudioStarted",
         "type": "object"
       },
+      "VoiceAssistantTextStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.assistant_text.started",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type"
+        ],
+        "title": "VoiceAssistantTextStarted",
+        "type": "object"
+      },
+      "VoiceAssistantToolCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.assistant_tool.completed",
+            "title": "Type",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type",
+          "name"
+        ],
+        "title": "VoiceAssistantToolCompleted",
+        "type": "object"
+      },
+      "VoiceAssistantToolStarted": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "voice_session_id": {
+            "format": "uuid",
+            "title": "Voice Session Id",
+            "type": "string"
+          },
+          "voice_turn_id": {
+            "format": "uuid",
+            "title": "Voice Turn Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice.assistant_tool.started",
+            "title": "Type",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "timestamp",
+          "voice_session_id",
+          "voice_turn_id",
+          "session_id",
+          "sequence",
+          "type",
+          "name"
+        ],
+        "title": "VoiceAssistantToolStarted",
+        "type": "object"
+      },
       "VoiceConversationEnded": {
         "additionalProperties": false,
         "properties": {
@@ -1688,6 +1834,9 @@
           "mapping": {
             "voice.assistant_audio.completed": "#/components/schemas/VoiceAssistantAudioCompleted",
             "voice.assistant_audio.started": "#/components/schemas/VoiceAssistantAudioStarted",
+            "voice.assistant_text.started": "#/components/schemas/VoiceAssistantTextStarted",
+            "voice.assistant_tool.completed": "#/components/schemas/VoiceAssistantToolCompleted",
+            "voice.assistant_tool.started": "#/components/schemas/VoiceAssistantToolStarted",
             "voice.conversation.ended": "#/components/schemas/VoiceConversationEnded",
             "voice.conversation.inactivity_countdown": "#/components/schemas/VoiceConversationInactivityCountdown",
             "voice.conversation.started": "#/components/schemas/VoiceConversationStarted",
@@ -1720,6 +1869,15 @@
           },
           {
             "$ref": "#/components/schemas/VoiceTranscriptFinal"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceAssistantTextStarted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceAssistantToolStarted"
+          },
+          {
+            "$ref": "#/components/schemas/VoiceAssistantToolCompleted"
           },
           {
             "$ref": "#/components/schemas/VoiceAssistantAudioStarted"
@@ -2838,6 +2996,24 @@
       "name": "voice.transcript.final",
       "payload": {
         "$ref": "#/components/schemas/VoiceTranscriptFinal"
+      }
+    },
+    {
+      "name": "voice.assistant_text.started",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceAssistantTextStarted"
+      }
+    },
+    {
+      "name": "voice.assistant_tool.started",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceAssistantToolStarted"
+      }
+    },
+    {
+      "name": "voice.assistant_tool.completed",
+      "payload": {
+        "$ref": "#/components/schemas/VoiceAssistantToolCompleted"
       }
     },
     {

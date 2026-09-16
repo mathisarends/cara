@@ -30,6 +30,9 @@ class SessionEventType(StrEnum):
 class VoiceEventMessageType(StrEnum):
     VOICE_ASSISTANT_AUDIO_COMPLETED = "voice.assistant_audio.completed"
     VOICE_ASSISTANT_AUDIO_STARTED = "voice.assistant_audio.started"
+    VOICE_ASSISTANT_TEXT_STARTED = "voice.assistant_text.started"
+    VOICE_ASSISTANT_TOOL_COMPLETED = "voice.assistant_tool.completed"
+    VOICE_ASSISTANT_TOOL_STARTED = "voice.assistant_tool.started"
     VOICE_CONVERSATION_ENDED = "voice.conversation.ended"
     VOICE_CONVERSATION_INACTIVITY_COUNTDOWN = "voice.conversation.inactivity_countdown"
     VOICE_CONVERSATION_STARTED = "voice.conversation.started"
@@ -104,7 +107,6 @@ class StartTurnParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     session_id: UUID = Field(alias="sessionId")
     message: str
-    metadata: dict[str, Any] | None = None
 
 
 class StartVoiceTurnParams(RpcModel):
@@ -243,6 +245,47 @@ class VoiceAssistantAudioStarted(RpcModel):
     voice_turn_id: UUID
     session_id: UUID
     sequence: int
+
+
+class VoiceAssistantTextStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_ASSISTANT_TEXT_STARTED] = (
+        VoiceEventMessageType.VOICE_ASSISTANT_TEXT_STARTED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+
+
+class VoiceAssistantToolCompleted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_ASSISTANT_TOOL_COMPLETED] = (
+        VoiceEventMessageType.VOICE_ASSISTANT_TOOL_COMPLETED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+    name: str
+
+
+class VoiceAssistantToolStarted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[VoiceEventMessageType.VOICE_ASSISTANT_TOOL_STARTED] = (
+        VoiceEventMessageType.VOICE_ASSISTANT_TOOL_STARTED
+    )
+    event_id: UUID
+    timestamp: datetime
+    voice_session_id: UUID
+    voice_turn_id: UUID
+    session_id: UUID
+    sequence: int
+    name: str
 
 
 class VoiceConversationEnded(RpcModel):
@@ -440,6 +483,9 @@ type VoiceEventMessage = Annotated[
     | VoiceTurnStarted
     | VoiceTranscriptPartial
     | VoiceTranscriptFinal
+    | VoiceAssistantTextStarted
+    | VoiceAssistantToolStarted
+    | VoiceAssistantToolCompleted
     | VoiceAssistantAudioStarted
     | VoiceAssistantAudioCompleted
     | VoiceTurnCompleted
@@ -473,6 +519,9 @@ TurnSteered.model_rebuild()
 UnsubscriptionResult.model_rebuild()
 VoiceAssistantAudioCompleted.model_rebuild()
 VoiceAssistantAudioStarted.model_rebuild()
+VoiceAssistantTextStarted.model_rebuild()
+VoiceAssistantToolCompleted.model_rebuild()
+VoiceAssistantToolStarted.model_rebuild()
 VoiceConversationEnded.model_rebuild()
 VoiceConversationInactivityCountdown.model_rebuild()
 VoiceConversationStarted.model_rebuild()

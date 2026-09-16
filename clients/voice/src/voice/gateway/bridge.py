@@ -7,12 +7,11 @@ from uuid import UUID
 from gateway_rest_client import VoiceTurnStatus
 from gateway_rpc_client.models import (
     Activation,
-    ChatCompleted,
-    ChatDelta,
-    ToolCallCompleted,
-    ToolCallStarted,
     VoiceAssistantAudioCompleted,
     VoiceAssistantAudioStarted,
+    VoiceAssistantTextStarted,
+    VoiceAssistantToolCompleted,
+    VoiceAssistantToolStarted,
     VoiceSessionClosed,
     VoiceTranscriptFinal,
     VoiceTranscriptPartial,
@@ -40,8 +39,7 @@ from voice.events import (
     AssistantAudioStarted,
     AssistantPlaybackCompleted,
     AssistantResponseStarted,
-    AssistantTextChunk,
-    AssistantTextCompleted,
+    AssistantTextStarted,
     AssistantToolCompleted,
     AssistantToolStarted,
     AssistantTurnStarted,
@@ -122,10 +120,6 @@ class GatewayVoiceBridge:
             asyncio.create_task(
                 self._pump(self._pump_voice_events(), "voice event"),
                 name="voice-events",
-            ),
-            asyncio.create_task(
-                self._pump(self._pump_conversation_events(), "conversation event"),
-                name="voice-conversation-events",
             ),
             asyncio.create_task(
                 self._pump(self._pump_media(), "media"),
@@ -355,6 +349,24 @@ class GatewayVoiceBridge:
                     await self._event_bus.emit(
                         AssistantResponseStarted(turn_id=event.voice_turn_id)
                     )
+                case VoiceAssistantTextStarted():
+                    await self._event_bus.emit(
+                        AssistantTextStarted(turn_id=event.voice_turn_id)
+                    )
+                case VoiceAssistantToolStarted():
+                    await self._event_bus.emit(
+                        AssistantToolStarted(
+                            turn_id=event.voice_turn_id,
+                            name=event.name,
+                        )
+                    )
+                case VoiceAssistantToolCompleted():
+                    await self._event_bus.emit(
+                        AssistantToolCompleted(
+                            turn_id=event.voice_turn_id,
+                            name=event.name,
+                        )
+                    )
                 case VoiceAssistantAudioStarted():
                     await self._start_assistant_audio(event.voice_turn_id)
                 case VoiceAssistantAudioCompleted():
@@ -410,32 +422,6 @@ class GatewayVoiceBridge:
             else:
                 await self._event_bus.emit(UserTurnStarted())
                 await self._start_input(None)
-
-    async def _pump_conversation_events(self) -> None:
-        async for event in self._session.conversation_events():
-            turn_id = self._active_turn_id
-            if turn_id is None:
-                continue
-            metadata = event.metadata or {}
-            if metadata.get("voice_turn_id") != str(turn_id):
-                continue
-            match event:
-                case ChatDelta():
-                    await self._event_bus.emit(
-                        AssistantTextChunk(turn_id=turn_id, chunk=event.text)
-                    )
-                case ChatCompleted():
-                    await self._event_bus.emit(
-                        AssistantTextCompleted(turn_id=turn_id, text=event.text)
-                    )
-                case ToolCallStarted():
-                    await self._event_bus.emit(
-                        AssistantToolStarted(turn_id=turn_id, name=event.name)
-                    )
-                case ToolCallCompleted():
-                    await self._event_bus.emit(
-                        AssistantToolCompleted(turn_id=turn_id, name=event.name)
-                    )
 
     async def _pump_media(self) -> None:
         async for frame in self._session.media_frames():

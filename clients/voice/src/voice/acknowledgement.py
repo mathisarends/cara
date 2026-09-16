@@ -51,8 +51,8 @@ class ToolAcknowledgementIntegration(VoiceIntegration):
         self._has_spoken_text = False
         self._ack_spoken = False
 
-    async def on_assistant_text_chunk(self, turn_id: UUID, chunk: str) -> None:
-        if turn_id == self._active_turn_id and chunk.strip():
+    async def on_assistant_text_started(self, turn_id: UUID) -> None:
+        if turn_id == self._active_turn_id:
             self._has_spoken_text = True
 
     async def on_assistant_tool_started(self, name: str) -> None:

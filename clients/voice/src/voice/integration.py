@@ -8,7 +8,7 @@ from voice.events import (
     AssistantPlaybackCompleted,
     AssistantResponseStarted,
     AssistantSpeechStarted,
-    AssistantTextChunk,
+    AssistantTextStarted,
     AssistantToolCompleted,
     AssistantToolStarted,
     AssistantTurnStarted,
@@ -61,7 +61,7 @@ class VoiceIntegration:
 
     async def on_assistant_response_started(self, turn_id: UUID) -> None: ...
 
-    async def on_assistant_text_chunk(self, turn_id: UUID, chunk: str) -> None: ...
+    async def on_assistant_text_started(self, turn_id: UUID) -> None: ...
 
     async def on_assistant_tool_started(self, name: str) -> None: ...
 
@@ -146,9 +146,9 @@ class VoiceIntegrationBridge:
                 ),
             )
             bus.on(
-                AssistantTextChunk,
+                AssistantTextStarted,
                 lambda event, integration=integration: (
-                    integration.on_assistant_text_chunk(event.turn_id, event.chunk)
+                    integration.on_assistant_text_started(event.turn_id)
                 ),
             )
             bus.on(

@@ -50,10 +50,6 @@ class _GatewaySession:
         await asyncio.Event().wait()
         yield
 
-    async def conversation_events(self) -> AsyncIterator[object]:
-        await asyncio.Event().wait()
-        yield
-
     async def media_frames(self) -> AsyncIterator[object]:
         await asyncio.Event().wait()
         yield

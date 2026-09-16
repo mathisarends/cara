@@ -132,14 +132,10 @@ class AssistantResponseStarted(Event):
     turn_id: UUID
 
 
-class AssistantTextChunk(Event):
-    turn_id: UUID
-    chunk: str
+class AssistantTextStarted(Event):
+    """Emitted when the assistant produces its first words for a turn."""
 
-
-class AssistantTextCompleted(Event):
     turn_id: UUID
-    text: str
 
 
 class AssistantToolStarted(Event):

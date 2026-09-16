@@ -11,7 +11,7 @@ from voice.acknowledgement import (
 )
 from voice.events import (
     AssistantResponseStarted,
-    AssistantTextChunk,
+    AssistantTextStarted,
     AssistantToolStarted,
     AudioPlaybackRequested,
 )
@@ -97,7 +97,7 @@ def test_stays_silent_when_assistant_already_spoke(tmp_path: Path) -> None:
 
         turn_id = uuid4()
         await event_bus.emit(AssistantResponseStarted(turn_id=turn_id))
-        await event_bus.emit(AssistantTextChunk(turn_id=turn_id, chunk="I'll check."))
+        await event_bus.emit(AssistantTextStarted(turn_id=turn_id))
         await event_bus.emit(AssistantToolStarted(turn_id=turn_id, name="weather"))
         return requested
 

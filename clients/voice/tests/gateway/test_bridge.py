@@ -6,6 +6,13 @@ from typing import cast
 from uuid import UUID, uuid4
 
 from gateway_rpc_client.models import (
+    VoiceAssistantTextStarted,
+    VoiceAssistantToolCompleted,
+    VoiceAssistantToolStarted,
+    VoiceTranscriptPartial,
+    VoiceTurnCommandResult,
+)
+from gateway_rpc_client.models import (
     VoiceConversationEnded as GatewayVoiceConversationEnded,
 )
 from gateway_rpc_client.models import (
@@ -14,15 +21,14 @@ from gateway_rpc_client.models import (
 from gateway_rpc_client.models import (
     VoiceConversationStarted as GatewayVoiceConversationStarted,
 )
-from gateway_rpc_client.models import (
-    VoiceTranscriptPartial,
-    VoiceTurnCommandResult,
-)
 from voice.activation import ActivationKind
 from voice.audio import BufferedAudioInput
 from voice.audio.ports import AudioInput
 from voice.echo_cancellation import EchoPresence
 from voice.events import (
+    AssistantTextStarted,
+    AssistantToolCompleted,
+    AssistantToolStarted,
     UserSpeechStarted,
     VoiceConversationEnded,
     VoiceConversationInactivityCountdown,
@@ -30,7 +36,7 @@ from voice.events import (
     VoiceTurnFailed,
 )
 from voice.events.bus import EventBus
-from voice.events.models import VoiceTurnEnded, VoiceTurnRequested
+from voice.events.models import Event, VoiceTurnEnded, VoiceTurnRequested
 from voice.gateway.bridge import GatewayVoiceBridge
 from voice.gateway.session import GatewayVoiceSession
 
@@ -56,10 +62,6 @@ class _Session:
             if isinstance(event, Exception):
                 raise event
             yield event
-
-    async def conversation_events(self) -> AsyncIterator[object]:
-        await asyncio.Event().wait()
-        yield
 
     async def media_frames(self) -> AsyncIterator[object]:
         await asyncio.Event().wait()
@@ -240,6 +242,46 @@ def test_gateway_conversation_events_are_forwarded_to_the_local_bus(
 
     assert countdowns == [3]
     assert reasons == ["inactivity_timeout"]
+
+
+def test_gateway_assistant_activity_is_forwarded_to_the_local_bus(
+    audio_input: AudioInput,
+) -> None:
+    async def run() -> tuple[UUID, list[Event]]:
+        bus = EventBus()
+        session = _Session()
+        microphone = BufferedAudioInput(audio_input)
+        bridge = GatewayVoiceBridge(bus, cast(GatewayVoiceSession, session), microphone)
+        forwarded: list[Event] = []
+        bus.on(AssistantTextStarted, _record(forwarded))
+        bus.on(AssistantToolStarted, _record(forwarded))
+        bus.on(AssistantToolCompleted, _record(forwarded))
+
+        await microphone.start()
+        await bridge.start()
+        base = {
+            "event_id": uuid4(),
+            "timestamp": datetime.now(UTC),
+            "voice_session_id": _VOICE_SESSION_ID,
+            "voice_turn_id": session.turn_id,
+            "session_id": uuid4(),
+        }
+        session.emit(VoiceAssistantToolStarted(**base, sequence=1, name="weather"))
+        session.emit(VoiceAssistantToolCompleted(**base, sequence=2, name="weather"))
+        session.emit(VoiceAssistantTextStarted(**base, sequence=3))
+        await _settle()
+
+        await bridge.close()
+        await microphone.stop()
+        return session.turn_id, forwarded
+
+    turn_id, forwarded = asyncio.run(run())
+
+    assert forwarded == [
+        AssistantToolStarted(turn_id=turn_id, name="weather"),
+        AssistantToolCompleted(turn_id=turn_id, name="weather"),
+        AssistantTextStarted(turn_id=turn_id),
+    ]
 
 
 def test_playback_echo_is_not_uploaded_as_user_audio() -> None:

@@ -163,9 +163,13 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
         assert [event.type for event in events.items] == [
             VoiceEventType.CONVERSATION_STARTED,
             VoiceEventType.TURN_STARTED,
+            VoiceEventType.ASSISTANT_TOOL_STARTED,
+            VoiceEventType.ASSISTANT_TOOL_COMPLETED,
+            VoiceEventType.ASSISTANT_TEXT_STARTED,
             VoiceEventType.ASSISTANT_AUDIO_STARTED,
             VoiceEventType.ASSISTANT_AUDIO_COMPLETED,
         ]
+        assert events.items[2].data == {"name": "list_reminders"}
     finally:
         await service.close()
 
@@ -273,6 +277,14 @@ class _ScheduledTurns:
         text: str,
     ) -> None:
         assert text == "scheduled prompt"
+        await self._events.publish(
+            ConversationEventType.TOOL_CALL_STARTED,
+            {"name": "list_reminders", "arguments": {}},
+        )
+        await self._events.publish(
+            ConversationEventType.TOOL_CALL_COMPLETED,
+            {"name": "list_reminders", "result": "[]", "is_error": False},
+        )
         await self._events.publish(
             ConversationEventType.CHAT_DELTA,
             {"text": "Your train ticket reminder"},
