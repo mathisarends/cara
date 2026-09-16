@@ -1,55 +1,23 @@
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from uuid import UUID
 
 from hueify import GroupedLight, Hueify, Room
 from hueify.models import HueEvent
 
+from voice.lights.hue.baseline import (
+    _BRIGHTNESS_RANGE,
+    _TEMPERATURE_RANGE,
+    _Baseline,
+    _capture_baseline,
+    _clamp,
+    _mirek_to_percentage,
+    _percentage_to_mirek,
+)
+from voice.lights.hue.effects import _EFFECTS, _TRANSITIONS
 from voice.lights.state import LightingState
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True)
-class _LightingEffect:
-    brightness_delta: float = 0
-    temperature_delta: float = 0
-
-
-@dataclass(frozen=True, slots=True)
-class _Baseline:
-    on: bool
-    brightness: float
-    temperature: float | None
-
-
-_EFFECTS = {
-    LightingState.IDLE: _LightingEffect(),
-    LightingState.LISTENING: _LightingEffect(
-        brightness_delta=8,
-        temperature_delta=-5,
-    ),
-    LightingState.PROCESSING: _LightingEffect(
-        brightness_delta=-3,
-        temperature_delta=5,
-    ),
-    LightingState.SPEAKING: _LightingEffect(
-        brightness_delta=-3,
-        temperature_delta=5,
-    ),
-}
-
-_TRANSITIONS = {
-    LightingState.IDLE: 0.5,
-    LightingState.LISTENING: 0.2,
-    LightingState.PROCESSING: 0.4,
-    LightingState.SPEAKING: 0.4,
-}
-
-_BRIGHTNESS_RANGE = (0, 100)
-_TEMPERATURE_RANGE = (0, 100)
-_MIREK_MIN = 153
-_MIREK_MAX = 500
 
 
 class HueRoomLighting:
@@ -74,7 +42,10 @@ class HueRoomLighting:
         try:
             self._room = await self._hue.rooms.find_by_name(self._room_name)
             grouped_light = await self._hue.rooms.grouped_light(self._room.id)
-            self._capture_baseline(grouped_light)
+            self._state = LightingState.IDLE
+            self._active_effect = _EFFECTS[LightingState.IDLE]
+            self._grouped_light_id = grouped_light.id
+            self._baseline = _capture_baseline(grouped_light)
             await self._hue.start_stream()
         except Exception:
             self._hue.off("grouped_light", self._on_bridge_event)
@@ -133,16 +104,6 @@ class HueRoomLighting:
         self._grouped_light_id = None
         self._baseline = None
 
-    def _capture_baseline(self, grouped_light: GroupedLight) -> None:
-        self._grouped_light_id = grouped_light.id
-        self._state = LightingState.IDLE
-        self._active_effect = _EFFECTS[LightingState.IDLE]
-        self._baseline = _Baseline(
-            on=grouped_light.is_on is True,
-            brightness=grouped_light.brightness or 0,
-            temperature=_read_temperature(grouped_light),
-        )
-
     async def _on_bridge_event(self, event: HueEvent) -> None:
         baseline = self._baseline
         if baseline is None or event.id != self._grouped_light_id:
@@ -175,21 +136,3 @@ class HueRoomLighting:
         if self._room is None:
             raise RuntimeError("Hue lighting must be prepared before use.")
         return self._room.id
-
-
-def _clamp(value: float, lower: int, upper: int) -> float:
-    return max(lower, min(upper, value))
-
-
-def _mirek_to_percentage(mirek: int) -> float:
-    return ((mirek - _MIREK_MIN) / (_MIREK_MAX - _MIREK_MIN)) * 100
-
-
-def _percentage_to_mirek(percentage: float) -> int:
-    return round(_MIREK_MIN + (percentage / 100) * (_MIREK_MAX - _MIREK_MIN))
-
-
-def _read_temperature(grouped_light: GroupedLight) -> float | None:
-    if grouped_light.mirek is None:
-        return None
-    return _mirek_to_percentage(grouped_light.mirek)
