@@ -84,11 +84,15 @@ class GatewayVoiceBridge:
         audio_input: BufferedAudioInput,
         *,
         pre_roll_seconds: float = 0.16,
+        max_echo_confidence: float = 0.5,
     ) -> None:
+        if not 0.0 < max_echo_confidence <= 1.0:
+            raise ValueError("max_echo_confidence must be within (0, 1]")
         self._event_bus = event_bus
         self._session = session
         self._audio_input = audio_input
         self._pre_roll_seconds = pre_roll_seconds
+        self._max_echo_confidence = max_echo_confidence
         self._active_turn_id: UUID | None = None
         self._active_turn_index: int | None = None
         self._speech_started_turn_id: UUID | None = None
@@ -265,6 +269,14 @@ class GatewayVoiceBridge:
         try:
             async for frame in reader:
                 self._last_input_sequence = frame.sequence
+                if frame.echo_confidence >= self._max_echo_confidence:
+                    logger.debug(
+                        "Suppressing input frame %d classified as playback echo "
+                        "(confidence=%.2f)",
+                        frame.sequence,
+                        frame.echo_confidence,
+                    )
+                    continue
                 await self._session.send_input(
                     turn_index,
                     frame.sequence,

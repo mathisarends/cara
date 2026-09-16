@@ -86,8 +86,14 @@ class _ManualBargeIn(BargeInStrategy):
 class _GatewayBridge:
     created: "_GatewayBridge"
 
-    def __init__(self, event_bus: EventBus, *args: object) -> None:
+    def __init__(
+        self,
+        event_bus: EventBus,
+        *args: object,
+        max_echo_confidence: float = 0.5,
+    ) -> None:
         self.event_bus = event_bus
+        self.max_echo_confidence = max_echo_confidence
         self.interrupts: list[int] = []
         _GatewayBridge.created = self
 

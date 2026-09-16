@@ -110,7 +110,7 @@ class VoiceTurnService:
         queue: asyncio.Queue[bytes | None] = asyncio.Queue(self._input_queue_size)
         self._input_queues[turn.id] = queue
         self._start_task(turn.id, self._transcribe(turn.id, queue))
-        if activation is Activation.FOLLOW_UP:
+        if activation is not Activation.PROACTIVE:
             self._start_conversation_timeout(voice_session.id, turn.id)
         return turn
 

@@ -21,6 +21,7 @@ from gateway_rpc_client.models import (
 from voice.activation import ActivationKind
 from voice.audio import BufferedAudioInput
 from voice.audio.ports import AudioInput
+from voice.echo_cancellation import EchoPresence
 from voice.events import (
     UserSpeechStarted,
     VoiceConversationEnded,
@@ -44,6 +45,7 @@ class _Session:
     def __init__(self) -> None:
         self._voice: asyncio.Queue[object] = asyncio.Queue()
         self.turn_id = uuid4()
+        self.input_payloads: list[bytes] = []
 
     def emit(self, event: object) -> None:
         self._voice.put_nowait(event)
@@ -72,7 +74,7 @@ class _Session:
         return 1
 
     async def send_input(self, turn_index: int, sequence: int, payload: bytes) -> None:
-        pass
+        self.input_payloads.append(payload)
 
     async def end_input(self, turn_index: int, sequence: int) -> None:
         pass
@@ -240,6 +242,41 @@ def test_gateway_conversation_events_are_forwarded_to_the_local_bus(
     assert reasons == ["inactivity_timeout"]
 
 
+def test_playback_echo_is_not_uploaded_as_user_audio() -> None:
+    async def run() -> list[bytes]:
+        bus = EventBus()
+        session = _Session()
+        source = _StreamingAudioInput()
+        echo = _EchoPresence()
+        microphone = BufferedAudioInput(
+            source,
+            echo_presence=cast(EchoPresence, echo),
+        )
+        bridge = GatewayVoiceBridge(
+            bus,
+            cast(GatewayVoiceSession, session),
+            microphone,
+            max_echo_confidence=0.5,
+        )
+
+        await microphone.start()
+        await bridge.start()
+        await bus.request(VoiceTurnRequested(activation=ActivationKind.MANUAL))
+
+        echo.confidence = 0.8
+        source.emit(b"assistant echo")
+        await _settle()
+        echo.confidence = 0.1
+        source.emit(b"user speech")
+        await _settle()
+
+        await bridge.close()
+        await microphone.stop()
+        return session.input_payloads
+
+    assert asyncio.run(run()) == [b"user speech"]
+
+
 def _partial(voice_turn_id: UUID, text: str) -> VoiceTranscriptPartial:
     return VoiceTranscriptPartial(
         event_id=uuid4(),
@@ -262,3 +299,47 @@ def _record[E](collected: list[E]):
 async def _settle() -> None:
     for _ in range(20):
         await asyncio.sleep(0)
+
+
+class _StreamingAudioInput(AudioInput):
+    def __init__(self) -> None:
+        self._active = False
+        self._chunks: asyncio.Queue[bytes] = asyncio.Queue()
+
+    @property
+    def sample_rate(self) -> int:
+        return 16_000
+
+    @property
+    def channels(self) -> int:
+        return 1
+
+    @property
+    def frames_per_chunk(self) -> int:
+        return 1_280
+
+    @property
+    def is_active(self) -> bool:
+        return self._active
+
+    async def start(self) -> None:
+        self._active = True
+
+    async def stop(self) -> None:
+        self._active = False
+
+    async def stream_chunks(self) -> AsyncIterator[bytes]:
+        while self._active:
+            yield await self._chunks.get()
+
+    def emit(self, chunk: bytes) -> None:
+        self._chunks.put_nowait(chunk)
+
+
+class _EchoPresence:
+    def __init__(self) -> None:
+        self.confidence = 0.0
+
+    @property
+    def echo_confidence(self) -> float:
+        return self.confidence

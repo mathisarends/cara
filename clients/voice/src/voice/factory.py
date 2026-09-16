@@ -194,6 +194,7 @@ class VoiceSessionFactory:
         return EchoCancellationSettings(
             sample_rate=settings.sample_rate,
             reference_history_seconds=settings.reference_history_seconds,
+            max_upload_echo_confidence=settings.max_upload_echo_confidence,
         )
 
     def _recording_path(self) -> str | None:

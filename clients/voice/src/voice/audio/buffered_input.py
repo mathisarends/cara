@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 
 from voice.audio.models import AudioFormat, AudioFrame
 from voice.audio.ports import AudioInput
+from voice.echo_cancellation.ports import EchoPresence
 
 
 class AudioOverrunError(RuntimeError):
@@ -54,6 +55,7 @@ class BufferedAudioInput:
         input_device: AudioInput,
         *,
         history_seconds: float = 2.0,
+        echo_presence: EchoPresence | None = None,
     ) -> None:
         if history_seconds <= 0:
             raise ValueError("history_seconds must be positive")
@@ -63,6 +65,7 @@ class BufferedAudioInput:
             channels=input_device.channels,
         )
         self._capacity = max(1, self._chunks_for(history_seconds))
+        self._echo_presence = echo_presence
         self._frames: deque[AudioFrame] = deque(maxlen=self._capacity)
         self._condition = asyncio.Condition()
         self._next_sequence = 0
@@ -137,7 +140,16 @@ class BufferedAudioInput:
     async def _capture(self) -> None:
         try:
             async for pcm in self._input.stream_chunks():
-                frame = AudioFrame(self._next_sequence, pcm)
+                echo_confidence = (
+                    self._echo_presence.echo_confidence
+                    if self._echo_presence is not None
+                    else 0.0
+                )
+                frame = AudioFrame(
+                    self._next_sequence,
+                    pcm,
+                    echo_confidence=echo_confidence,
+                )
                 async with self._condition:
                     self._frames.append(frame)
                     self._next_sequence += 1

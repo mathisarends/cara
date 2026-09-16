@@ -33,6 +33,8 @@ audio:
   echo_cancellation:
     enabled: true
     reference_history_seconds: 8
+    # Do not send microphone frames dominated by the assistant's own playback.
+    max_upload_echo_confidence: 0.5
 
 recording:
   enabled: false

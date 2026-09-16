@@ -12,3 +12,4 @@ class AudioFormat:
 class AudioFrame:
     sequence: int
     pcm: bytes
+    echo_confidence: float = 0.0

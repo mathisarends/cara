@@ -81,6 +81,41 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
         await service.close()
 
 
+async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
+    voice_session = VoiceSession(
+        session_id=_uuid(),
+        device_id="bedroom",
+        input_format=AudioFormat(AudioEncoding.PCM_S16LE, 16_000, 1),
+        output_format=AudioFormat(AudioEncoding.PCM_S16LE, 24_000, 1),
+    )
+    repository = _VoiceSessionRepository(voice_session)
+    events = _VoiceEvents()
+    service = VoiceTurnService(
+        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
+        cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        cast(TurnService, object()),
+        cast(VoiceEventPublisher, events),
+        cast(MediaSessions, _MediaSessions()),
+        cast(EventSource, object()),
+        cast(SpeechToText, _EmptySpeechToText()),
+        cast(TextToSpeech, object()),
+        8,
+        0,
+        0.02,
+        0,
+    )
+
+    try:
+        turn = await service.start(voice_session.id, Activation.WAKE_WORD)
+        await asyncio.sleep(0.05)
+
+        assert turn.status is VoiceTurnStatus.DISCARDED
+        assert events.items[-1].type is VoiceEventType.CONVERSATION_ENDED
+        assert events.items[-1].data == {"reason": "inactivity_timeout"}
+    finally:
+        await service.close()
+
+
 def _uuid():
     from uuid import uuid4
 

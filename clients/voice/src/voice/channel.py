@@ -51,17 +51,21 @@ class VoiceChannel:
         self._gateway_session = gateway_session
         self._event_bus = EventBus()
         self._recording_path = Path(recording_path) if recording_path else None
+        echo_settings = echo_cancellation_settings or EchoCancellationSettings()
         if echo_cancellation_enabled:
             channel_input, channel_output, echo_presence = wrap_with_echo_cancellation(
                 audio_input,
                 audio_output,
-                settings=echo_cancellation_settings or EchoCancellationSettings(),
+                settings=echo_settings,
             )
         else:
             channel_input = audio_input
             channel_output = audio_output
             echo_presence = _NoEchoPresence()
-        self._buffered_audio_input = BufferedAudioInput(channel_input)
+        self._buffered_audio_input = BufferedAudioInput(
+            channel_input,
+            echo_presence=echo_presence,
+        )
         if self._buffered_audio_input.sample_rate != gateway_session.input_sample_rate:
             raise ValueError(
                 "Audio input sample rate does not match the negotiated gateway format"
@@ -96,6 +100,7 @@ class VoiceChannel:
             self._event_bus,
             gateway_session,
             self._buffered_audio_input,
+            max_echo_confidence=echo_settings.max_upload_echo_confidence,
         )
         self._activation_coordinator = ActivationCoordinator(
             event_bus=self._event_bus,

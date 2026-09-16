@@ -18,6 +18,7 @@ class EchoCancellationSettings(BaseModel):
 
     sample_rate: int | None = Field(default=None, gt=0)
     reference_history_seconds: float = Field(default=8.0, gt=0.0)
+    max_upload_echo_confidence: float = Field(default=0.5, gt=0.0, le=1.0)
     alignment: ReferenceAlignmentSettings = Field(
         default_factory=ReferenceAlignmentSettings
     )
