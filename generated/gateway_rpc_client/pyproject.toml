@@ -5,7 +5,7 @@ description = "Generated, fully typed JSON-RPC WebSocket client for live Cara Ga
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "pydantic>=2.7.0",
-    "pyrpckit==0.5.0",
+    "pyrpckit==0.6.0",
     "websockets>=13.0",
 ]
 

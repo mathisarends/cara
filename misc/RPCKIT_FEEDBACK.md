@@ -131,7 +131,7 @@ gateway_service = RpcService(
 )
 gateway_endpoint = gateway_service.socket(
     "/v1/gateway",
-    *channels,
+    channels=GATEWAY_CHANNELS,
     connect=authenticate_rpc_connection,
     # error_mapper=..., limits=...   # optional: überschreibt den Service-Default
 )
@@ -176,7 +176,9 @@ Damit schrumpft Cara auf:
 # presentation/rpc/service.py
 gateway_service = RpcService(error_mapper=gateway_error_mapper)
 gateway_endpoint = gateway_service.socket(
-    "/v1/gateway", *channels, connect=authenticate_rpc_connection
+    "/v1/gateway",
+    channels=GATEWAY_CHANNELS,
+    connect=authenticate_rpc_connection,
 )
 
 # platform_feature.py
@@ -211,6 +213,66 @@ wenn man ihm einen Container im falschen Scope gibt:
 DishkaResolver needs the APP container (app.state.dishka_container), got a
 SESSION container. pyrpckit opens the SESSION scope per connection itself.
 ```
+
+**(5) Channels als Keyword-Argument statt `*args`:**
+
+Heute nimmt `socket(path, /, *channels, ...)` die Channels als Varargs. In Cara
+sieht das so aus:
+
+```python
+gateway_endpoint = gateway_service.socket(
+    "/v1/gateway",
+    *RPC_CHANNELS,
+    subscription_channel,
+    session_channel,
+    voice_channel,
+    connect=authenticate_rpc_connection,
+)
+```
+
+- Channel-Liste und Endpoint-Optionen stehen ununterscheidbar in einer Reihe.
+  Welches Argument ein Channel und welches eine Option ist, sieht man nur an der
+  Position.
+- Channels kommen typischerweise gesammelt aus Features (`RPC_CHANNELS`). Die
+  müssen erst ausgepackt und mit einzelnen Channels zu einer flachen Reihe
+  gemischt werden.
+- Die Signatur erzwingt „mindestens ein Channel“ erst zur Laufzeit.
+
+Vorschlag: ein explizites, benanntes Argument, das eine Sequenz nimmt:
+
+```python
+def socket(
+    self,
+    path: str,
+    /,
+    *,
+    channels: Sequence[RpcChannel],
+    name: str | None = None,
+    connect: ConnectHook | None = None,
+    ...
+) -> RpcEndpoint: ...
+```
+
+```python
+GATEWAY_CHANNELS = (
+    *RPC_CHANNELS,
+    subscription_channel,
+    session_channel,
+    voice_channel,
+)
+
+gateway_endpoint = gateway_service.socket(
+    "/v1/gateway",
+    channels=GATEWAY_CHANNELS,
+    connect=authenticate_rpc_connection,
+)
+```
+
+- Die Channel-Liste ist ein benannter Wert, den man woanders definieren,
+  importieren und in Tests wiederverwenden kann.
+- Der Aufruf liest sich als Konfiguration: Pfad, Channels, Hook.
+- Mit Kind-Channels aus Abschnitt 3 schrumpft die Liste weiter, weil pro Feature
+  nur noch ein Wurzel-Channel gemountet wird.
 
 ## 3. Channels und Namen
 

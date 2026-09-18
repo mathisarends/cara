@@ -240,7 +240,7 @@ requires-dist = [
     { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
     { name = "httpx2", specifier = ">=2.9.1" },
-    { name = "pyrpckit", specifier = "==0.5.0" },
+    { name = "pyrpckit", specifier = "==0.6.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 
@@ -467,7 +467,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "pyrpckit", specifier = "==0.5.0" },
+    { name = "pyrpckit", specifier = "==0.6.0" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 
@@ -527,7 +527,7 @@ requires-dist = [
     { name = "obstore", specifier = ">=0.11.1" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
-    { name = "pyrpckit", specifier = "==0.5.0" },
+    { name = "pyrpckit", specifier = "==0.6.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "sandbox-manager-client", editable = "generated/sandbox_manager_client" },
     { name = "scheduler", editable = "libs/scheduler" },
@@ -540,7 +540,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pyrpckit", extras = ["codegen"], specifier = "==0.5.0" },
+    { name = "pyrpckit", extras = ["codegen"], specifier = "==0.6.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.14.0" },
@@ -1258,14 +1258,14 @@ crypto = [
 
 [[package]]
 name = "pyrpckit"
-version = "0.5.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f6/ae/7b6a3c6768b321ad197dcf31a3ad4b908d528dda8d09f04321d79d938240/pyrpckit-0.5.0.tar.gz", hash = "sha256:abd30bdbd39a96dcb7a070a97da03efb915ca1a8e53bf9bbd8e9aac55dea839e", size = 173060, upload-time = "2026-09-18T05:58:33.108Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/c2/63eec9f6a030236b8dc301b9490fdcb64e83f25577a9f9b659085a9b1e1f/pyrpckit-0.6.0.tar.gz", hash = "sha256:4820c2b455a67a570db4568b4515fe9f90f817c5e43f251c7f0709c81db0f587", size = 197130, upload-time = "2026-09-18T22:38:13.316Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/97/1b24fd869203abc6de984661a26ee70e6081c0780b0f530b11419b8939f6/pyrpckit-0.5.0-py3-none-any.whl", hash = "sha256:2ebabd1eb68e0e03b059f8cd0ae3e375ca38c2a9d5d1846176f307a165a26650", size = 100885, upload-time = "2026-09-18T05:58:31.652Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/29/9b7cece3b7b9c0001ae0a170d591da6f9dc0cd201c0fed17bd6bad7c3b12/pyrpckit-0.6.0-py3-none-any.whl", hash = "sha256:3e48ae00f168d62ed0d4a88a118972e01782b11b4f3cfc1e9595ab4c540464b9", size = 109559, upload-time = "2026-09-18T22:38:12.122Z" },
 ]
 
 [package.optional-dependencies]
