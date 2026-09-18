@@ -29,11 +29,6 @@ logger = logging.getLogger(__name__)
 _EVENT_PREVIEW_LENGTH = 200
 
 
-@dataclass(frozen=True, slots=True)
-class GatewayClient:
-    id: str
-
-
 class EventReceiver:
     def __init__(self) -> None:
         self._queue: asyncio.Queue[ConversationEvent] = asyncio.Queue()
@@ -50,6 +45,12 @@ class EventReceiver:
 
     async def put_voice(self, event: VoiceEvent) -> None:
         await self._voice_queue.put(event)
+
+
+@dataclass(frozen=True, slots=True)
+class GatewayClient:
+    id: str
+    receiver: EventReceiver
 
 
 class _InternalEventSubscription(EventSubscription):

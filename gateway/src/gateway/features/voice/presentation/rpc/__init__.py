@@ -1,4 +1,4 @@
-from .events import voice_events_module
-from .methods import voice_module
+from .events import voice_channel
+from .methods import voice_turn_channel
 
-__all__ = ["voice_events_module", "voice_module"]
+__all__ = ["voice_channel", "voice_turn_channel"]

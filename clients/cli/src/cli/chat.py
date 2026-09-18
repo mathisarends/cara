@@ -15,7 +15,7 @@ from gateway_rest_client import (
     ToolCallStatus,
     UserMessageItem,
 )
-from gateway_rpc_client import GatewayRpcClient, RpcRemoteError
+from gateway_rpc_client import GatewayRpcClient, NoActiveTurnError, RpcRemoteError
 from gateway_rpc_client.models import (
     ChatCompleted,
     ChatDelta,
@@ -28,9 +28,6 @@ from gateway_rpc_client.models import (
     TurnStarted,
     TurnSteered,
 )
-
-# gateway.presentation.rpc.GatewayErrorCode.NO_ACTIVE_TURN
-_NO_ACTIVE_TURN = -32010
 
 _IDLE_HINT = "type a message · / for commands · tab completes"
 _BUSY_HINT = "type to steer · esc to interrupt"
@@ -145,9 +142,7 @@ class ChatSession:
             return
         try:
             await self._client.turn.cancel(session_id=self._session_id)
-        except RpcRemoteError as error:
-            if error.code != _NO_ACTIVE_TURN:
-                raise
+        except NoActiveTurnError:
             self._turn_finished()
 
     async def _run_command(self, line: str) -> bool:
@@ -185,9 +180,7 @@ class ChatSession:
                 session_id=self._session_id,
                 message=text,
             )
-        except RpcRemoteError as error:
-            if error.code != _NO_ACTIVE_TURN:
-                raise
+        except NoActiveTurnError:
             self._turn_finished()
             return False
         self._queued.append(text)

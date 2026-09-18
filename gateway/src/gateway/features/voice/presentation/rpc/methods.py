@@ -1,10 +1,9 @@
-from pyrpckit import Inject, RpcInternalError, RpcInvalidParamsError, RpcModule
+from pyrpckit import Inject, RpcChannel
 
 from gateway.features.voice.application import VoiceTurnService
 from gateway.features.voice.presentation.rpc.models import (
     InterruptVoiceTurnParams,
     StartVoiceTurnParams,
-    VoiceRpcMethod,
     VoiceTurnCommandResult,
     VoiceTurnParams,
 )
@@ -14,18 +13,13 @@ from gateway.presentation.rpc import (
     VoiceTurnAlreadyActiveRpcError,
 )
 
-voice_module = RpcModule()
+voice_turn_channel = RpcChannel(
+    "voice_turn", namespace="voice.turn", raises=(ResourceNotFoundError,)
+)
 
 
-@voice_module.method(
-    VoiceRpcMethod.TURN_START,
-    errors=(
-        RpcInvalidParamsError,
-        ResourceNotFoundError,
-        MediaNotConnectedRpcError,
-        VoiceTurnAlreadyActiveRpcError,
-        RpcInternalError,
-    ),
+@voice_turn_channel.method(
+    "start", raises=(MediaNotConnectedRpcError, VoiceTurnAlreadyActiveRpcError)
 )
 async def start_voice_turn(
     params: StartVoiceTurnParams,
@@ -38,10 +32,7 @@ async def start_voice_turn(
     )
 
 
-@voice_module.method(
-    VoiceRpcMethod.TURN_INTERRUPT,
-    errors=(ResourceNotFoundError, RpcInvalidParamsError, RpcInternalError),
-)
+@voice_turn_channel.method("interrupt")
 async def interrupt_voice_turn(
     params: InterruptVoiceTurnParams,
     turns: Inject[VoiceTurnService],
@@ -54,10 +45,7 @@ async def interrupt_voice_turn(
     )
 
 
-@voice_module.method(
-    VoiceRpcMethod.TURN_PLAYBACK_COMPLETED,
-    errors=(ResourceNotFoundError, RpcInvalidParamsError, RpcInternalError),
-)
+@voice_turn_channel.method("playback_completed")
 async def complete_voice_playback(
     params: VoiceTurnParams,
     turns: Inject[VoiceTurnService],

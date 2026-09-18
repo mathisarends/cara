@@ -1,9 +1,10 @@
+import logging
+import time
 import uuid
+from collections.abc import AsyncIterator
 
-import pyrpckit as rpc
-from dishka import AsyncContainer, Provider, Scope, provide
-from fastapi import WebSocket
-from pyrpckit.dishka import DishkaResolver
+from dishka import Provider, Scope, from_context, provide
+from pyrpckit import RpcConnection
 
 from gateway.features.conversation.application import (
     EventPublisher,
@@ -15,19 +16,18 @@ from gateway.presentation.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
 )
-from gateway.presentation.websocket.connection import GatewayConnection
-from gateway.presentation.websocket.error_mapping import gateway_error_mapper
 from gateway.presentation.websocket.subscriptions import (
+    EventReceiver,
     EventStreamRpcMethods,
     GatewayClient,
     InMemoryEventStream,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class GatewayProvider(Provider):
-    def __init__(self, channel: rpc.RpcChannel) -> None:
-        super().__init__()
-        self._channel = channel
+    connection = from_context(provides=RpcConnection, scope=Scope.SESSION)
 
     @provide(scope=Scope.APP)
     def auth_settings(self) -> GatewayAuthSettings:
@@ -60,9 +60,32 @@ class GatewayProvider(Provider):
         return stream
 
     @provide(scope=Scope.SESSION)
-    def client(self) -> GatewayClient:
+    async def client(
+        self,
+        stream: InMemoryEventStream,
+        connection: RpcConnection,
+    ) -> AsyncIterator[GatewayClient]:
         client_id = str(uuid.uuid4())
-        return GatewayClient(client_id)
+        receiver = stream.connect(client_id)
+        started = time.perf_counter()
+        logger.info(
+            "Gateway client %s connected from %s",
+            _short_id(client_id),
+            _remote_address(connection),
+        )
+        try:
+            yield GatewayClient(client_id, receiver)
+        finally:
+            stream.disconnect(client_id)
+            logger.info(
+                "Gateway client %s disconnected (duration=%.1fms)",
+                _short_id(client_id),
+                (time.perf_counter() - started) * 1000,
+            )
+
+    @provide(scope=Scope.SESSION)
+    def receiver(self, client: GatewayClient) -> EventReceiver:
+        return client.receiver
 
     @provide(scope=Scope.SESSION)
     def rpc_methods(
@@ -73,18 +96,13 @@ class GatewayProvider(Provider):
     ) -> EventStreamRpcMethods:
         return EventStreamRpcMethods(sessions, stream, client)
 
-    @provide(scope=Scope.SESSION)
-    def connection(
-        self,
-        container: AsyncContainer,
-        websocket: WebSocket,
-        authenticator: GatewayAuthenticator,
-        stream: InMemoryEventStream,
-        client: GatewayClient,
-    ) -> GatewayConnection:
-        authenticator.authenticate(websocket)
-        server = self._channel.server(
-            resolver=DishkaResolver(container),
-            error_mapper=gateway_error_mapper,
-        )
-        return GatewayConnection(websocket, stream, client.id, server)
+
+def _remote_address(connection: RpcConnection) -> str:
+    if connection.client is None:
+        return "unknown"
+    host, port = connection.client
+    return f"{host}:{port}"
+
+
+def _short_id(client_id: str) -> str:
+    return client_id[:8]

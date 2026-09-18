@@ -4,27 +4,26 @@
 from websockets.asyncio.client import ClientConnection, connect
 
 from gateway_rpc_client.client import GatewayRpcClient
-from gateway_rpc_client.transport import WebSocketTransport
 
 _SOCKET_PATH = "/v1/gateway"
 
 
 async def connect_gateway(base_url: str, *, token: str) -> GatewayRpcClient:
     async def open_socket(
-        endpoint: str,
+        url: str,
         *,
         subprotocols: list[str] | None,
     ) -> ClientConnection:
         return await connect(
-            endpoint,
+            url,
             subprotocols=subprotocols,
             additional_headers={"Authorization": f"Bearer {token}"},
         )
 
-    transport = await WebSocketTransport.open(
-        _socket_url(base_url), socket_factory=open_socket
+    connection = GatewayRpcClient.connect(
+        url=_socket_url(base_url), socket_factory=open_socket, eager=True
     )
-    return GatewayRpcClient.from_transport(transport)
+    return await connection.open()
 
 
 def _socket_url(base_url: str) -> str:

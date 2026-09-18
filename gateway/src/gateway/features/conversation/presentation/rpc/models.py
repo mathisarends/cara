@@ -8,22 +8,6 @@ from pydantic import Field, TypeAdapter
 from gateway.presentation.models import ApiModel
 
 
-class ConversationRpcMethod(StrEnum):
-    SUBSCRIPTION_SUBSCRIBE = "subscription.subscribe"
-    SUBSCRIPTION_UNSUBSCRIBE = "subscription.unsubscribe"
-    SUBSCRIPTION_SUBSCRIBE_CHANNEL = "subscription.subscribe_channel"
-    SUBSCRIPTION_UNSUBSCRIBE_CHANNEL = "subscription.unsubscribe_channel"
-    TURN_PREPARE = "turn.prepare"
-    TURN_START = "turn.start"
-    TURN_STEER = "turn.steer"
-    TURN_FINISH = "turn.finish"
-    TURN_CANCEL = "turn.cancel"
-
-
-class RpcNotificationMethod(StrEnum):
-    SESSION_EVENT = "session.event"
-
-
 class SessionParams(ApiModel):
     session_id: UUID
 

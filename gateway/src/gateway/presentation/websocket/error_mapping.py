@@ -36,23 +36,23 @@ def gateway_error_mapper(error: Exception) -> rpc.RpcError | None:
         | VoiceSessionNotFoundError
         | VoiceTurnNotFoundError,
     ):
-        return ResourceNotFoundError(f"Not found: {error}")
+        return ResourceNotFoundError(message=f"Not found: {error}")
     if isinstance(error, SessionBusyError):
-        return TurnAlreadyRunningError(f"Turn already running: {error}")
+        return TurnAlreadyRunningError(message=f"Turn already running: {error}")
     if isinstance(error, NoActiveTurnError):
-        return NoActiveTurnRpcError(str(error))
+        return NoActiveTurnRpcError(message=str(error))
     if isinstance(error, VoiceTurnAlreadyActiveError):
-        return VoiceTurnAlreadyActiveRpcError(str(error))
+        return VoiceTurnAlreadyActiveRpcError(message=str(error))
     if isinstance(error, MediaNotConnectedError):
-        return MediaNotConnectedRpcError(str(error))
+        return MediaNotConnectedRpcError(message=str(error))
     if isinstance(error, NotMediaOwnerError):
-        return NotMediaOwnerRpcError(str(error))
+        return NotMediaOwnerRpcError(message=str(error))
     if isinstance(error, ValidationError):
         return None
     # Invalid alarms are ValueErrors and take the branch below.
     if isinstance(error, AlarmStateError | ValueError):
-        return rpc.RpcError(
-            f"Invalid params: {error}",
-            code=rpc.RpcErrorCode.INVALID_PARAMS,
+        return rpc.RpcInvalidParamsError(
+            issues=[],
+            message=f"Invalid params: {error}",
         )
     return None

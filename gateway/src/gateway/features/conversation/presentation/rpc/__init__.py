@@ -1,3 +1,3 @@
-from .methods import conversation_module
+from .methods import turn_channel
 
-__all__ = ["conversation_module"]
+__all__ = ["turn_channel"]

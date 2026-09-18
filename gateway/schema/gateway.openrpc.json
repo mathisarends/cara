@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "name": "local",
+      "name": "gateway",
       "url": "ws://127.0.0.1:8000/v1/gateway",
       "x-rpckit-transport": {
         "type": "websocket",
@@ -47,17 +47,12 @@
         {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "resource_not_found"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -104,29 +99,19 @@
       },
       "errors": [
         {
-          "code": -32602,
-          "message": "Invalid params",
-          "x-rpckit-name": "RpcInvalidParams"
-        },
-        {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
+          "x-rpckit-code": "resource_not_found"
         },
         {
           "code": -32009,
           "message": "Turn already running",
-          "x-rpckit-name": "TurnAlreadyRunning"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "turn_already_running"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -173,29 +158,19 @@
       },
       "errors": [
         {
-          "code": -32602,
-          "message": "Invalid params",
-          "x-rpckit-name": "RpcInvalidParams"
-        },
-        {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
+          "x-rpckit-code": "resource_not_found"
         },
         {
           "code": -32010,
           "message": "No active turn",
-          "x-rpckit-name": "NoActiveTurn"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "no_active_turn"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -235,17 +210,12 @@
         {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "resource_not_found"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -285,22 +255,17 @@
         {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
+          "x-rpckit-code": "resource_not_found"
         },
         {
           "code": -32010,
           "message": "No active turn",
-          "x-rpckit-name": "NoActiveTurn"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "no_active_turn"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -362,34 +327,24 @@
       },
       "errors": [
         {
-          "code": -32602,
-          "message": "Invalid params",
-          "x-rpckit-name": "RpcInvalidParams"
-        },
-        {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
+          "x-rpckit-code": "resource_not_found"
         },
         {
           "code": -32012,
           "message": "Media not connected",
-          "x-rpckit-name": "MediaNotConnectedRpc"
+          "x-rpckit-code": "media_not_connected"
         },
         {
           "code": -32011,
           "message": "Voice turn already active",
-          "x-rpckit-name": "VoiceTurnAlreadyActiveRpc"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "voice_turn_already_active"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -446,22 +401,12 @@
         {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
-        },
-        {
-          "code": -32602,
-          "message": "Invalid params",
-          "x-rpckit-name": "RpcInvalidParams"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "resource_not_found"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -501,22 +446,12 @@
         {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
-        },
-        {
-          "code": -32602,
-          "message": "Invalid params",
-          "x-rpckit-name": "RpcInvalidParams"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "resource_not_found"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -556,17 +491,12 @@
         {
           "code": -32004,
           "message": "Resource not found",
-          "x-rpckit-name": "ResourceNotFound"
-        },
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
+          "x-rpckit-code": "resource_not_found"
         }
       ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -602,16 +532,9 @@
       "x-rpc-params-schema": {
         "$ref": "#/components/schemas/SessionParams"
       },
-      "errors": [
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
-        }
-      ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -647,16 +570,9 @@
       "x-rpc-params-schema": {
         "$ref": "#/components/schemas/ChannelParams"
       },
-      "errors": [
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
-        }
-      ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -692,16 +608,9 @@
       "x-rpc-params-schema": {
         "$ref": "#/components/schemas/ChannelParams"
       },
-      "errors": [
-        {
-          "code": -32603,
-          "message": "Internal error",
-          "x-rpckit-name": "RpcInternal"
-        }
-      ],
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -2876,7 +2785,7 @@
       },
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
@@ -2896,7 +2805,7 @@
       },
       "servers": [
         {
-          "name": "local",
+          "name": "gateway",
           "url": "ws://127.0.0.1:8000/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",

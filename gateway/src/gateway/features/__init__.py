@@ -11,5 +11,8 @@ FEATURES: tuple[Feature, ...] = (
     conversation.feature,
     voice.feature,
 )
-RPC_MODULES: tuple[rpc.RpcModule, ...] = (conversation.rpc_module, voice.rpc_module)
-__all__ = ["FEATURES", "RPC_MODULES"]
+RPC_CHANNELS: tuple[rpc.RpcChannel, ...] = (
+    *conversation.rpc_channels,
+    *voice.rpc_channels,
+)
+__all__ = ["FEATURES", "RPC_CHANNELS"]

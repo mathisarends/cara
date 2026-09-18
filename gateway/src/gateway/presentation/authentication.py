@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, WebSocket, WebSocketException, statu
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pyrpckit import ConnectionRejected, Inject, RpcConnection, RpcRejection
 
 _UNAUTHORIZED = "Unauthorized"
 _BEARER = HTTPBearer(scheme_name="GatewayToken", auto_error=False)
@@ -27,17 +28,17 @@ class GatewayAuthenticator:
         self._token = settings.token.get_secret_value().encode()
 
     def authenticate(self, socket: WebSocket) -> None:
-        authorization = socket.headers.get("authorization", "")
-        scheme, separator, credential = authorization.partition(" ")
-        if (
-            separator != " "
-            or scheme.lower() != "bearer"
-            or not self.accepts(credential)
-        ):
+        if not self.accepts_authorization(socket.headers.get("authorization", "")):
             raise WebSocketException(
                 code=status.WS_1008_POLICY_VIOLATION,
                 reason=_UNAUTHORIZED,
             )
+
+    def accepts_authorization(self, authorization: str) -> bool:
+        scheme, separator, credential = authorization.partition(" ")
+        return (
+            separator == " " and scheme.lower() == "bearer" and self.accepts(credential)
+        )
 
     def accepts(self, credential: str) -> bool:
         return secrets.compare_digest(credential.encode(), self._token)
@@ -55,3 +56,13 @@ async def require_token(
             _UNAUTHORIZED,
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def authenticate_rpc_connection(
+    connection: RpcConnection,
+    authenticator: Inject[GatewayAuthenticator],
+) -> None:
+    if not authenticator.accepts_authorization(
+        connection.headers.get("authorization", "")
+    ):
+        raise ConnectionRejected(RpcRejection.UNAUTHORIZED, _UNAUTHORIZED)

@@ -1,9 +1,9 @@
 {
   "generator": "pyrpckit",
-  "generatorVersion": "0.4.0",
-  "layoutVersion": 7,
+  "generatorVersion": "0.5.0",
+  "layoutVersion": 9,
   "language": "python",
-  "contractSha256": "8230924b427d4fc6e35e2347856e29d5587395ce13fd0a77a5c90d420d4d5d52",
+  "contractSha256": "2f78cb3adeb8b868561a078e5f22861657cc8346d15bec68bcf4f81a9c9b7150",
   "files": [
     ".rpcgen/manifest.json",
     "__init__.py",
@@ -19,6 +19,7 @@
     "internal/transport.py",
     "internal/unset.py",
     "models.py",
+    "namespaces/__init__.py",
     "namespaces/session.py",
     "namespaces/subscription.py",
     "namespaces/turn.py",

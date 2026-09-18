@@ -1,5 +1,4 @@
 from datetime import datetime
-from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -8,16 +7,6 @@ from pydantic import Field, TypeAdapter
 from gateway.features.voice.application import VoiceEventType
 from gateway.features.voice.domain import Activation
 from gateway.presentation.models import ApiModel
-
-
-class VoiceRpcMethod(StrEnum):
-    TURN_START = "voice.turn.start"
-    TURN_INTERRUPT = "voice.turn.interrupt"
-    TURN_PLAYBACK_COMPLETED = "voice.turn.playback_completed"
-
-
-class VoiceNotificationMethod(StrEnum):
-    VOICE_EVENT = "voice.event"
 
 
 class StartVoiceTurnParams(ApiModel):

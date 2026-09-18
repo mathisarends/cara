@@ -7,7 +7,7 @@ import pyrpckit as rpc
 from pyrpckit.schema import render_openrpc
 
 from gateway.app import create_app
-from gateway.presentation.rpc.contract import gateway_contract
+from gateway.presentation.rpc.service import gateway_contract
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "schema"
@@ -25,14 +25,14 @@ def main() -> None:
 
 def write_gateway_schemas(
     output_dir: Path,
-    contract: rpc.RpcContract | None = None,
+    contract: rpc.RpcContract = gateway_contract,
 ) -> tuple[Path, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     return (
         _write_json(output_dir / "openapi.json", create_app().openapi()),
         _write_json(
             output_dir / "gateway.openrpc.json",
-            render_openrpc_schema(contract or gateway_contract()),
+            render_openrpc_schema(contract),
         ),
     )
 
@@ -43,6 +43,7 @@ def render_openrpc_schema(contract: rpc.RpcContract) -> dict[str, Any]:
         title=contract.title,
         description=contract.description,
         servers=contract.servers,
+        binary_streams=contract.binary_streams,
     )
 
 

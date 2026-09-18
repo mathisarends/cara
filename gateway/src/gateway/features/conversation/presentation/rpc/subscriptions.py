@@ -1,10 +1,9 @@
-from pyrpckit import Inject, RpcInternalError, RpcModule
+from pyrpckit import Inject, RpcChannel
 
 from gateway.features.conversation.presentation.rpc.models import (
     ChannelParams,
     ChannelSubscriptionResult,
     ChannelUnsubscriptionResult,
-    ConversationRpcMethod,
     SessionParams,
     SubscriptionResult,
     UnsubscriptionResult,
@@ -12,13 +11,10 @@ from gateway.features.conversation.presentation.rpc.models import (
 from gateway.presentation.rpc.errors import ResourceNotFoundError
 from gateway.presentation.websocket.subscriptions import EventStreamRpcMethods
 
-subscription_module = RpcModule()
+subscription_channel = RpcChannel("subscription")
 
 
-@subscription_module.method(
-    ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE,
-    errors=(ResourceNotFoundError, RpcInternalError),
-)
+@subscription_channel.method("subscribe", raises=(ResourceNotFoundError,))
 async def subscribe_session(
     params: SessionParams,
     handler: Inject[EventStreamRpcMethods],
@@ -26,9 +22,7 @@ async def subscribe_session(
     return await handler.subscribe_session(params)
 
 
-@subscription_module.method(
-    ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE, errors=(RpcInternalError,)
-)
+@subscription_channel.method("unsubscribe")
 async def unsubscribe_session(
     params: SessionParams,
     handler: Inject[EventStreamRpcMethods],
@@ -36,10 +30,7 @@ async def unsubscribe_session(
     return await handler.unsubscribe_session(params)
 
 
-@subscription_module.method(
-    ConversationRpcMethod.SUBSCRIPTION_SUBSCRIBE_CHANNEL,
-    errors=(RpcInternalError,),
-)
+@subscription_channel.method
 async def subscribe_channel(
     params: ChannelParams,
     handler: Inject[EventStreamRpcMethods],
@@ -47,10 +38,7 @@ async def subscribe_channel(
     return handler.subscribe_channel(params)
 
 
-@subscription_module.method(
-    ConversationRpcMethod.SUBSCRIPTION_UNSUBSCRIBE_CHANNEL,
-    errors=(RpcInternalError,),
-)
+@subscription_channel.method
 async def unsubscribe_channel(
     params: ChannelParams,
     handler: Inject[EventStreamRpcMethods],

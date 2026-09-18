@@ -1,18 +1,15 @@
 from collections.abc import AsyncIterator
 
-from pyrpckit import Inject, RpcModule
+from pyrpckit import Inject, RpcChannel
 
 from gateway.features.conversation.presentation.rpc.mapping import session_event
-from gateway.features.conversation.presentation.rpc.models import (
-    RpcNotificationMethod,
-    SessionEvent,
-)
+from gateway.features.conversation.presentation.rpc.models import SessionEvent
 from gateway.presentation.websocket.subscriptions import EventReceiver
 
-session_events_module = RpcModule()
+session_channel = RpcChannel("session")
 
 
-@session_events_module.event(RpcNotificationMethod.SESSION_EVENT, payload=SessionEvent)
+@session_channel.event("event")
 async def session_events(
     receiver: Inject[EventReceiver],
 ) -> AsyncIterator[SessionEvent]:

@@ -4,7 +4,7 @@
 from collections.abc import AsyncIterator
 from uuid import UUID
 
-from gateway_rpc_client.internal import RpcClientCore
+from gateway_rpc_client.internal import UNSET, RpcClientCore, UnsetType
 from gateway_rpc_client.models import (
     Activation,
     InterruptVoiceTurnParams,
@@ -30,13 +30,14 @@ class VoiceTurn:
         *,
         voice_session_id: UUID,
         activation: Activation,
-        pre_roll_sequence: int | None = None,
+        pre_roll_sequence: int | None | UnsetType = UNSET,
     ) -> VoiceTurnCommandResult:
-        params = StartVoiceTurnParams(
-            voice_session_id=voice_session_id,
-            activation=activation,
-            pre_roll_sequence=pre_roll_sequence,
-        )
+        values: dict[str, object] = {}
+        values["voiceSessionId"] = voice_session_id
+        values["activation"] = activation
+        if pre_roll_sequence is not UNSET:
+            values["preRollSequence"] = pre_roll_sequence
+        params = StartVoiceTurnParams.model_validate(values)
         return await self._rpc.request(
             VOICE_TURN_START,
             params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
@@ -46,12 +47,13 @@ class VoiceTurn:
         self,
         *,
         voice_turn_id: UUID,
-        input_sequence: int | None = None,
+        input_sequence: int | None | UnsetType = UNSET,
     ) -> VoiceTurnCommandResult:
-        params = InterruptVoiceTurnParams(
-            voice_turn_id=voice_turn_id,
-            input_sequence=input_sequence,
-        )
+        values: dict[str, object] = {}
+        values["voiceTurnId"] = voice_turn_id
+        if input_sequence is not UNSET:
+            values["inputSequence"] = input_sequence
+        params = InterruptVoiceTurnParams.model_validate(values)
         return await self._rpc.request(
             VOICE_TURN_INTERRUPT,
             params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),

@@ -1,8 +1,7 @@
-from pyrpckit import Inject, RpcInternalError, RpcInvalidParamsError, RpcModule
+from pyrpckit import Inject, RpcChannel
 
 from gateway.features.conversation.application import TurnService
 from gateway.features.conversation.presentation.rpc.models import (
-    ConversationRpcMethod,
     SessionParams,
     StartTurnParams,
     SteerTurnParams,
@@ -14,12 +13,10 @@ from gateway.presentation.rpc.errors import (
     TurnAlreadyRunningError,
 )
 
-conversation_module = RpcModule()
+turn_channel = RpcChannel("turn", raises=(ResourceNotFoundError,))
 
 
-@conversation_module.method(
-    ConversationRpcMethod.TURN_PREPARE, errors=(ResourceNotFoundError, RpcInternalError)
-)
+@turn_channel.method("prepare")
 async def prepare_turn(
     params: SessionParams,
     turns: Inject[TurnService],
@@ -28,15 +25,7 @@ async def prepare_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@conversation_module.method(
-    ConversationRpcMethod.TURN_START,
-    errors=(
-        RpcInvalidParamsError,
-        ResourceNotFoundError,
-        TurnAlreadyRunningError,
-        RpcInternalError,
-    ),
-)
+@turn_channel.method("start", raises=(TurnAlreadyRunningError,))
 async def start_turn(
     params: StartTurnParams,
     turns: Inject[TurnService],
@@ -48,15 +37,7 @@ async def start_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@conversation_module.method(
-    ConversationRpcMethod.TURN_STEER,
-    errors=(
-        RpcInvalidParamsError,
-        ResourceNotFoundError,
-        NoActiveTurnError,
-        RpcInternalError,
-    ),
-)
+@turn_channel.method("steer", raises=(NoActiveTurnError,))
 async def steer_turn(
     params: SteerTurnParams,
     turns: Inject[TurnService],
@@ -65,9 +46,7 @@ async def steer_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@conversation_module.method(
-    ConversationRpcMethod.TURN_FINISH, errors=(ResourceNotFoundError, RpcInternalError)
-)
+@turn_channel.method("finish")
 async def finish_turn(
     params: SessionParams,
     turns: Inject[TurnService],
@@ -76,10 +55,7 @@ async def finish_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@conversation_module.method(
-    ConversationRpcMethod.TURN_CANCEL,
-    errors=(ResourceNotFoundError, NoActiveTurnError, RpcInternalError),
-)
+@turn_channel.method("cancel", raises=(NoActiveTurnError,))
 async def cancel_turn(
     params: SessionParams,
     turns: Inject[TurnService],

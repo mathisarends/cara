@@ -20,83 +20,83 @@ from gateway_rpc_client.models import (
 TURN_PREPARE = RpcRouteInfo(
     method="turn.prepare",
     result_adapter=TypeAdapter(TurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 TURN_START = RpcRouteInfo(
     method="turn.start",
     result_adapter=TypeAdapter(TurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 TURN_STEER = RpcRouteInfo(
     method="turn.steer",
     result_adapter=TypeAdapter(TurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 TURN_FINISH = RpcRouteInfo(
     method="turn.finish",
     result_adapter=TypeAdapter(TurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 TURN_CANCEL = RpcRouteInfo(
     method="turn.cancel",
     result_adapter=TypeAdapter(TurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 VOICE_TURN_START = RpcRouteInfo(
     method="voice.turn.start",
     result_adapter=TypeAdapter(VoiceTurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 VOICE_TURN_INTERRUPT = RpcRouteInfo(
     method="voice.turn.interrupt",
     result_adapter=TypeAdapter(VoiceTurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 VOICE_TURN_PLAYBACK_COMPLETED = RpcRouteInfo(
     method="voice.turn.playback_completed",
     result_adapter=TypeAdapter(VoiceTurnCommandResult),
-    server="local",
+    server="gateway",
 )
 
 SUBSCRIPTION_SUBSCRIBE = RpcRouteInfo(
     method="subscription.subscribe",
     result_adapter=TypeAdapter(SubscriptionResult),
-    server="local",
+    server="gateway",
 )
 
 SUBSCRIPTION_UNSUBSCRIBE = RpcRouteInfo(
     method="subscription.unsubscribe",
     result_adapter=TypeAdapter(UnsubscriptionResult),
-    server="local",
+    server="gateway",
 )
 
 SUBSCRIPTION_SUBSCRIBE_CHANNEL = RpcRouteInfo(
     method="subscription.subscribe_channel",
     result_adapter=TypeAdapter(ChannelSubscriptionResult),
-    server="local",
+    server="gateway",
 )
 
 SUBSCRIPTION_UNSUBSCRIBE_CHANNEL = RpcRouteInfo(
     method="subscription.unsubscribe_channel",
     result_adapter=TypeAdapter(ChannelUnsubscriptionResult),
-    server="local",
+    server="gateway",
 )
 
 SESSION_EVENT: RpcNotificationInfo[SessionEvent] = RpcNotificationInfo(
     method="session.event",
     message_adapter=TypeAdapter(SessionEventNotification),
-    server="local",
+    server="gateway",
 )
 
 VOICE_EVENT: RpcNotificationInfo[VoiceEventMessage] = RpcNotificationInfo(
     method="voice.event",
     message_adapter=TypeAdapter(VoiceEventNotification),
-    server="local",
+    server="gateway",
 )

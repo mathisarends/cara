@@ -1,5 +1,4 @@
 from .errors import (
-    GatewayErrorCode,
     MediaNotConnectedRpcError,
     NoActiveTurnError,
     NotMediaOwnerRpcError,
@@ -9,7 +8,6 @@ from .errors import (
 )
 
 __all__ = [
-    "GatewayErrorCode",
     "MediaNotConnectedRpcError",
     "NoActiveTurnError",
     "NotMediaOwnerRpcError",

@@ -1,8 +1,23 @@
-from uuid import uuid4
+import json
+from typing import Any
+from uuid import UUID, uuid4
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
+from pyrpckit.dishka import DishkaResolver
+from pyrpckit.testing import RpcTestClient, RpcTestError
+from starlette.testclient import WebSocketDenialResponse
+
+from gateway.features.conversation.application import (
+    ConversationEvent,
+    ConversationEventType,
+)
+from gateway.features.conversation.domain.values import ChannelRef
+from gateway.features.voice.application import VoiceEvent, VoiceEventType
+from gateway.presentation.rpc.service import gateway_service
+from gateway.presentation.websocket.error_mapping import gateway_error_mapper
+from gateway.presentation.websocket.subscriptions import InMemoryEventStream
 
 _AUTH_HEADERS = {
     "Authorization": "Bearer test-gateway-token-with-32-characters",
@@ -13,20 +28,20 @@ def test_gateway_socket_rejects_missing_credentials(
     anonymous_client: TestClient,
 ) -> None:
     with (
-        pytest.raises(WebSocketDisconnect) as error,
+        pytest.raises(WebSocketDenialResponse) as denial,
         anonymous_client.websocket_connect("/v1/gateway"),
     ):
         pass
 
-    assert error.value.code == 1008
-    assert error.value.reason == "Unauthorized"
+    assert denial.value.status_code == 401
+    assert denial.value.text == "Unauthorized"
 
 
 def test_gateway_socket_rejects_invalid_credentials(
     anonymous_client: TestClient,
 ) -> None:
     with (
-        pytest.raises(WebSocketDisconnect) as error,
+        pytest.raises(WebSocketDenialResponse) as denial,
         anonymous_client.websocket_connect(
             "/v1/gateway",
             headers={"Authorization": "Bearer invalid-gateway-token"},
@@ -34,26 +49,18 @@ def test_gateway_socket_rejects_invalid_credentials(
     ):
         pass
 
-    assert error.value.code == 1008
-    assert error.value.reason == "Unauthorized"
+    assert denial.value.status_code == 401
+    assert denial.value.text == "Unauthorized"
 
 
 def test_turn_command_for_an_unknown_session_yields_resource_not_found(
     client: TestClient,
 ) -> None:
-    with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
-        socket.send_json(
-            {
-                "jsonrpc": "2.0",
-                "id": "prepare",
-                "method": "turn.prepare",
-                "params": {"sessionId": str(uuid4())},
-            }
-        )
-        response = socket.receive_json()
+    with pytest.raises(RpcTestError) as error:
+        _request(client, "turn.prepare", {"sessionId": str(uuid4())})
 
-    assert response["id"] == "prepare"
-    assert response["error"]["code"] == -32004
+    assert error.value.rpc_code == -32004
+    assert error.value.code == "resource_not_found"
 
 
 @pytest.mark.parametrize("method", ["session.open", "automation.list", "alarm.list"])
@@ -61,61 +68,108 @@ def test_resource_methods_are_served_over_rest_only(
     client: TestClient,
     method: str,
 ) -> None:
-    with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
-        socket.send_json({"jsonrpc": "2.0", "id": "resource", "method": method})
-        response = socket.receive_json()
+    with pytest.raises(RpcTestError) as error:
+        _request(client, method)
 
-    assert response["error"]["code"] == -32601
+    assert error.value.rpc_code == -32601
 
 
 def test_malformed_gateway_message_yields_json_rpc_parse_error(
     client: TestClient,
 ) -> None:
-    with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
-        socket.send_text("not json")
-        response = socket.receive_json()
+    response = client.portal.call(_send_raw, client.app, "not json")
 
     assert response == {
         "jsonrpc": "2.0",
         "id": None,
-        "error": {"code": -32700, "message": "Parse error"},
+        "error": {
+            "code": -32700,
+            "message": "Parse error",
+            "data": {"code": "parse_error", "details": None},
+        },
     }
 
 
 def test_conversation_request_runs_over_gateway_socket(client: TestClient) -> None:
     session_id = "090b4d71-8e4d-4b90-8981-8f38df122011"
-    with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
-        socket.send_json(
-            {
-                "jsonrpc": "2.0",
-                "id": "unsubscribe",
-                "method": "subscription.unsubscribe",
-                "params": {"sessionId": session_id},
-            }
-        )
-        response = socket.receive_json()
 
-    assert response == {
-        "jsonrpc": "2.0",
-        "id": "unsubscribe",
-        "result": {"unsubscribed": session_id},
-    }
+    result = _request(client, "subscription.unsubscribe", {"sessionId": session_id})
+
+    assert result == {"unsubscribed": session_id}
 
 
 def test_channel_subscription_runs_over_gateway_socket(client: TestClient) -> None:
-    with client.websocket_connect("/v1/gateway", headers=_AUTH_HEADERS) as socket:
-        socket.send_json(
-            {
-                "jsonrpc": "2.0",
-                "id": "subscribe-channel",
-                "method": "subscription.subscribe_channel",
-                "params": {"channel": "voice"},
-            }
-        )
-        response = socket.receive_json()
+    result = _request(client, "subscription.subscribe_channel", {"channel": "voice"})
 
-    assert response == {
-        "jsonrpc": "2.0",
-        "id": "subscribe-channel",
-        "result": {"subscribedChannel": "voice"},
-    }
+    assert result == {"subscribedChannel": "voice"}
+
+
+def test_both_event_streams_reach_a_subscribed_client(client: TestClient) -> None:
+    session_id = client.post("/v1/sessions", json={"channel": {"name": "cli"}}).json()[
+        "id"
+    ]
+
+    methods = client.portal.call(_receive_published_events, client.app, session_id)
+
+    assert sorted(methods) == ["session.event", "voice.event"]
+
+
+# Starlette's TestClient cancels the app right after a client disconnect, which
+# races pyrpckit's connection shutdown; RpcTestClient waits for it instead.
+def _request(
+    client: TestClient,
+    method: str,
+    params: dict[str, Any] | None = None,
+) -> Any:
+    return client.portal.call(_serve_request, client.app, method, params)
+
+
+async def _serve_request(
+    app: FastAPI,
+    method: str,
+    params: dict[str, Any] | None,
+) -> Any:
+    async with _gateway(app) as gateway:
+        return await gateway.request(method, params)
+
+
+async def _receive_published_events(app: FastAPI, session_id: str) -> list[str]:
+    stream = await app.state.dishka_container.get(InMemoryEventStream)
+    async with _gateway(app) as gateway:
+        await gateway.request("subscription.subscribe", {"sessionId": session_id})
+        await stream.publish_voice(
+            VoiceEvent(
+                VoiceEventType.TURN_COMPLETED,
+                uuid4(),
+                UUID(session_id),
+                {},
+                voice_turn_id=uuid4(),
+                sequence=4,
+            )
+        )
+        await stream.publish(
+            ConversationEvent(
+                type=ConversationEventType.CHAT_COMPLETED,
+                session_id=UUID(session_id),
+                channel=ChannelRef(name="cli"),
+                data={"text": "done", "finish_reason": "stop"},
+                sequence=1,
+            )
+        )
+        return [(await gateway.next_notification())[0] for _ in range(2)]
+
+
+async def _send_raw(app: FastAPI, frame: str) -> Any:
+    async with _gateway(app) as gateway:
+        await gateway.socket.client_send(frame)
+        return json.loads(await gateway.socket.client_receive())
+
+
+def _gateway(app: FastAPI) -> RpcTestClient:
+    return RpcTestClient(
+        gateway_service,
+        "/v1/gateway",
+        headers=_AUTH_HEADERS,
+        resolver=DishkaResolver(app.state.dishka_container),
+        error_mapper=gateway_error_mapper,
+    )
