@@ -1,5 +1,6 @@
 import logging
 from collections.abc import AsyncIterator
+from contextlib import AsyncExitStack
 from typing import Self
 from uuid import UUID
 
@@ -38,6 +39,7 @@ class GatewayVoiceSession:
         media: MediaTransport,
         snapshot: VoiceSessionSnapshotResponse,
         http: httpx2.AsyncClient,
+        resources: AsyncExitStack,
     ) -> None:
         self._rest = rest
         self._rpc = rpc
@@ -45,6 +47,7 @@ class GatewayVoiceSession:
         self._snapshot = snapshot
         self._last_sequence = snapshot.last_sequence
         self._http = http
+        self._resources = resources
         self._closed = False
 
     @classmethod
@@ -62,8 +65,7 @@ class GatewayVoiceSession:
     ) -> Self:
         http = httpx2.AsyncClient()
         rest = GatewayRestClient(http, url, credentials={"GatewayToken": token})
-        rpc: GatewayRpcClient | None = None
-        media: MediaTransport | None = None
+        resources = AsyncExitStack()
         try:
             existing = await rest.list_voice_sessions(
                 room=room,
@@ -99,6 +101,7 @@ class GatewayVoiceSession:
                 )
                 voice_session = await rest.open_voice_session(request)
             rpc = await connect_gateway(url, token=token)
+            await resources.enter_async_context(rpc)
             await rpc.subscription.subscribe(session_id=voice_session.session_id)
             snapshot = await rest.get_voice_session(voice_session.id)
             logger.info(
@@ -107,13 +110,13 @@ class GatewayVoiceSession:
                 len(snapshot.turns),
                 snapshot.last_sequence,
             )
-            media = await MediaTransport.connect(url, voice_session.media_path, token)
-            return cls(rest, rpc, media, snapshot, http)
+            media_channel = await resources.enter_async_context(
+                rpc.voice.media(voice_session_id=str(voice_session.id))
+            )
+            media = MediaTransport(media_channel)
+            return cls(rest, rpc, media, snapshot, http, resources)
         except BaseException:
-            if media is not None:
-                await media.close()
-            if rpc is not None:
-                await rpc.close()
+            await resources.aclose()
             await http.aclose()
             raise
 
@@ -226,15 +229,12 @@ class GatewayVoiceSession:
             await self._rest.close_voice_session(self.id)
         finally:
             try:
-                await self._media.close()
+                await self._rpc.subscription.unsubscribe(session_id=self.session_id)
             finally:
                 try:
-                    await self._rpc.subscription.unsubscribe(session_id=self.session_id)
+                    await self._resources.aclose()
                 finally:
-                    try:
-                        await self._rpc.close()
-                    finally:
-                        await self._http.aclose()
+                    await self._http.aclose()
 
     async def __aenter__(self) -> Self:
         return self

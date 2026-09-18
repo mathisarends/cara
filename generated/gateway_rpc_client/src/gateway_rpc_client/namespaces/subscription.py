@@ -34,7 +34,7 @@ class Subscription:
         )
         return await self._rpc.request(
             SUBSCRIPTION_SUBSCRIBE,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def unsubscribe(
@@ -47,7 +47,7 @@ class Subscription:
         )
         return await self._rpc.request(
             SUBSCRIPTION_UNSUBSCRIBE,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def subscribe_channel(
@@ -60,7 +60,7 @@ class Subscription:
         )
         return await self._rpc.request(
             SUBSCRIPTION_SUBSCRIBE_CHANNEL,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def unsubscribe_channel(
@@ -73,5 +73,5 @@ class Subscription:
         )
         return await self._rpc.request(
             SUBSCRIPTION_UNSUBSCRIBE_CHANNEL,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )

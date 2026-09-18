@@ -33,7 +33,7 @@ class Turn:
         )
         return await self._rpc.request(
             TURN_PREPARE,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def start(
@@ -48,7 +48,7 @@ class Turn:
         )
         return await self._rpc.request(
             TURN_START,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def steer(
@@ -63,7 +63,7 @@ class Turn:
         )
         return await self._rpc.request(
             TURN_STEER,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def finish(
@@ -76,7 +76,7 @@ class Turn:
         )
         return await self._rpc.request(
             TURN_FINISH,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )
 
     async def cancel(
@@ -89,5 +89,5 @@ class Turn:
         )
         return await self._rpc.request(
             TURN_CANCEL,
-            params=params.model_dump(mode="json", by_alias=True, exclude_unset=True),
+            params=params,
         )

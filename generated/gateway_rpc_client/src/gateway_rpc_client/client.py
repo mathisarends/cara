@@ -14,21 +14,34 @@ from gateway_rpc_client.internal import (
     RpcTransportSource,
 )
 from gateway_rpc_client.namespaces import Session, Subscription, Turn, Voice
+from gateway_rpc_client.streams import (
+    BinaryStreamEndpoint,
+    BinaryStreamOpener,
+    BinaryStreamTransport,
+    BinaryWebSocketFactory,
+    BinaryWebSocketStream,
+)
 from gateway_rpc_client.transport import WebSocketFactory, WebSocketTransport
 
 
 class GatewayRpcClient:
     def __init__(
         self,
-        transport: RpcTransport | Mapping[str, RpcTransport] | RpcTransportSource,
+        transport: (
+            RpcTransport | Mapping[ServerName, RpcTransport] | RpcTransportSource
+        ),
         *,
         close_transport: bool = True,
         hooks: Iterable[RpcClientHook] = (),
+        stream_opener: BinaryStreamOpener | None = None,
+        variables: Mapping[str, str] | None = None,
     ) -> None:
         self._rpc = RpcClientCore(
             transport,
             close_transport=close_transport,
             hooks=hooks,
+            stream_opener=stream_opener,
+            variables=variables,
         )
         self.turn = Turn(self._rpc)
         self.voice = Voice(self._rpc)
@@ -42,28 +55,35 @@ class GatewayRpcClient:
         *,
         close_transport: bool = True,
         hooks: Iterable[RpcClientHook] = (),
+        stream_opener: BinaryStreamOpener | None = None,
     ) -> Self:
         """Build a client on transports the caller owns, for tests and adapters."""
         return cls(
             transports,
             close_transport=close_transport,
             hooks=hooks,
+            stream_opener=stream_opener,
         )
 
     @classmethod
     def connect(
         cls,
         *,
+        gateway_url: str | None = None,
         url: str | None = None,
         servers: Mapping[ServerName, str | Endpoint] | None = None,
         request_timeout: float | None = None,
         notification_queue_size: int = 100,
+        headers: Mapping[str, str] | None = None,
         socket_factory: WebSocketFactory | None = None,
+        stream_socket_factory: BinaryWebSocketFactory | None = None,
         hooks: Iterable[RpcClientHook] = (),
-        eager: bool = False,
+        eager: bool = True,
     ) -> ClientConnection[Self, ServerName]:
-        """Connect to every declared server, opening each socket on first use."""
-        variables: dict[str, str | None] = {}
+        """Configure the declared servers and optionally open them eagerly."""
+        variables: dict[str, str | None] = {
+            "gateway_url": gateway_url,
+        }
         overrides = dict(servers or {})
         if url is not None:
             overrides.setdefault(ServerName.GATEWAY, url)
@@ -80,7 +100,15 @@ class GatewayRpcClient:
                 subprotocols=subprotocols,
                 request_timeout=request_timeout,
                 notification_queue_size=notification_queue_size,
+                headers=headers,
                 socket_factory=socket_factory,
+            )
+
+        async def open_stream(endpoint: BinaryStreamEndpoint) -> BinaryStreamTransport:
+            return await BinaryWebSocketStream.open(
+                endpoint,
+                headers=headers,
+                socket_factory=stream_socket_factory,
             )
 
         pool = RpcTransportPool(
@@ -93,6 +121,12 @@ class GatewayRpcClient:
             client_factory=lambda transports: cls(
                 transports,
                 hooks=hooks,
+                stream_opener=open_stream,
+                variables={
+                    name: value
+                    for name, value in variables.items()
+                    if value is not None
+                },
             ),
             pool=pool,
             eager=eager,

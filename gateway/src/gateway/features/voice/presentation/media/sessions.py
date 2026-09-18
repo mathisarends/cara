@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
-from fastapi import WebSocket
+from pyrpckit import RpcBinaryOutput, RpcConnection, RpcConnectionClose
 
 from gateway.features.voice.application import MediaSessions
 from gateway.features.voice.presentation.media.framing import MediaFrame, MediaFrameKind
@@ -10,7 +10,8 @@ from gateway.features.voice.presentation.media.framing import MediaFrame, MediaF
 
 @dataclass(slots=True)
 class _Connection:
-    socket: WebSocket
+    connection: RpcConnection
+    output: RpcBinaryOutput
     send_lock: asyncio.Lock
 
 
@@ -22,31 +23,44 @@ class InMemoryMediaSessions(MediaSessions):
     def connected(self, voice_session_id: UUID) -> bool:
         return voice_session_id in self._connections
 
-    async def connect(self, voice_session_id: UUID, socket: WebSocket) -> bool:
+    async def connect(
+        self,
+        voice_session_id: UUID,
+        connection: RpcConnection,
+        output: RpcBinaryOutput,
+    ) -> bool:
         async with self._lock:
             if voice_session_id in self._connections:
                 return False
-            self._connections[voice_session_id] = _Connection(socket, asyncio.Lock())
+            self._connections[voice_session_id] = _Connection(
+                connection,
+                output,
+                asyncio.Lock(),
+            )
             return True
 
-    async def release(self, voice_session_id: UUID, socket: WebSocket) -> None:
+    async def release(
+        self,
+        voice_session_id: UUID,
+        connection: RpcConnection,
+    ) -> None:
         async with self._lock:
-            connection = self._connections.get(voice_session_id)
-            if connection is not None and connection.socket is socket:
+            current = self._connections.get(voice_session_id)
+            if current is not None and current.connection is connection:
                 self._connections.pop(voice_session_id, None)
 
     async def disconnect(self, voice_session_id: UUID) -> None:
         async with self._lock:
             connection = self._connections.pop(voice_session_id, None)
         if connection is not None:
-            await connection.socket.close(code=1000)
+            await connection.connection.close(RpcConnectionClose.NORMAL)
 
     async def send(self, voice_session_id: UUID, frame: MediaFrame) -> None:
         connection = self._connections.get(voice_session_id)
         if connection is None:
             raise RuntimeError(f"Voice session {voice_session_id} is not connected")
         async with connection.send_lock:
-            await connection.socket.send_bytes(frame.encode())
+            await connection.output.send(frame.encode())
 
     async def send_audio(
         self,

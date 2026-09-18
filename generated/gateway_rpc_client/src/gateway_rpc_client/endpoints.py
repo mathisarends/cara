@@ -5,7 +5,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from enum import StrEnum
 
-from gateway_rpc_client.internal import RpcServerInfo, RpcTransportDescriptor
+from gateway_rpc_client.internal import (
+    RpcServerInfo,
+    RpcServerVariable,
+    RpcTransportDescriptor,
+)
 
 
 class ServerName(StrEnum):
@@ -22,7 +26,13 @@ class Endpoint:
 _SERVERS = {
     ServerName.GATEWAY: RpcServerInfo(
         name="gateway",
-        url="ws://127.0.0.1:8000/v1/gateway",
+        url="{gateway_url}/v1/gateway",
+        variables={
+            "gateway_url": RpcServerVariable(
+                default="ws://127.0.0.1:8000",
+                description="Gateway WebSocket base URL.",
+            ),
+        },
         transport=RpcTransportDescriptor(
             type="websocket",
             message_encoding="json",
@@ -49,9 +59,15 @@ def endpoint(
     )
 
 
-def gateway() -> Endpoint:
+def gateway(
+    *,
+    gateway_url: str = "ws://127.0.0.1:8000",
+) -> Endpoint:
     return endpoint(
         ServerName.GATEWAY,
+        {
+            "gateway_url": gateway_url,
+        },
     )
 
 

@@ -15,9 +15,9 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 ## Media WebSocket (`/v1/voice-sessions/{id}/media`, binary)
 
-- Full-duplex PCM audio uses a dedicated binary socket with a compact versioned frame header.
+- Full-duplex PCM audio uses pyrpckit's generated bidirectional `voice.media` stream with a compact versioned frame header.
 - The authenticated connection is the sole input/output owner of that voice session.
-- Audio never passes through JSON-RPC; input completion is an ordered media frame.
+- Audio never passes through JSON-RPC. A turn's input completion is an ordered media frame; the pyrpckit end message closes input for the whole media stream.
 
 ## REST
 
@@ -33,11 +33,11 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 | Contract | Schema | Generated client |
 | --- | --- | --- |
 | REST | `gateway/schema/openapi.json` | `generated/gateway_rest_client` (`GatewayRestClient`, httpxgen) |
-| RPC | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, pyrpckit) |
+| RPC and binary stream | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, pyrpckit) |
 
 - Regenerate both: `scripts/codegen/generate_gateway_clients.sh`
 - CI (`gateway-schema-drift.yml`) reruns it and fails on any diff or untracked file
-- Clients configure one base URL (`http://host:port`); `connect_gateway` derives `ws(s)://host:port/v1/gateway`
+- Clients configure one base URL (`http://host:port`); `connect_gateway` derives the JSON-RPC and media `ws(s)` URLs
 - REST discriminated-union members declare their tag (`kind`/`type`) without a default: httpxgen rejects a discriminator that is both required and defaulted
 
 ## Client flow

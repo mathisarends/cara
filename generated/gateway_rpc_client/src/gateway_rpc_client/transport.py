@@ -3,7 +3,7 @@
 
 import asyncio
 import json
-from collections.abc import AsyncIterator, Awaitable
+from collections.abc import AsyncIterator, Awaitable, Mapping
 from typing import Any, Protocol, Self
 
 from gateway_rpc_client.internal import RpcTransportError
@@ -28,6 +28,7 @@ class WebSocketFactory(Protocol):
         url: str,
         *,
         subprotocols: list[str] | None,
+        additional_headers: Mapping[str, str] | None,
     ) -> Awaitable[WebSocket]: ...
 
 
@@ -59,6 +60,7 @@ class WebSocketTransport:
         subprotocols: tuple[str, ...] = (),
         request_timeout: float | None = None,
         notification_queue_size: int = 100,
+        headers: Mapping[str, str] | None = None,
         socket_factory: WebSocketFactory | None = None,
     ) -> Self:
         if socket_factory is None:
@@ -72,6 +74,7 @@ class WebSocketTransport:
         socket = await socket_factory(
             url,
             subprotocols=list(subprotocols) or None,
+            additional_headers=headers,
         )
         return cls(
             socket,

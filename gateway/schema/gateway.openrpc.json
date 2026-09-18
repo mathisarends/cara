@@ -8,11 +8,17 @@
   "servers": [
     {
       "name": "gateway",
-      "url": "ws://127.0.0.1:8000/v1/gateway",
+      "url": "{gateway_url}/v1/gateway",
       "x-rpckit-transport": {
         "type": "websocket",
         "messageEncoding": "json",
         "frameType": "text"
+      },
+      "variables": {
+        "gateway_url": {
+          "default": "ws://127.0.0.1:8000",
+          "description": "Gateway WebSocket base URL."
+        }
       }
     }
   ],
@@ -53,11 +59,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -112,11 +124,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -171,11 +189,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -216,11 +240,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -266,11 +296,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -345,11 +381,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -407,11 +449,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -452,11 +500,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -497,11 +551,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -535,11 +595,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -573,11 +639,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -611,11 +683,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -2786,11 +2864,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -2806,11 +2890,17 @@
       "servers": [
         {
           "name": "gateway",
-          "url": "ws://127.0.0.1:8000/v1/gateway",
+          "url": "{gateway_url}/v1/gateway",
           "x-rpckit-transport": {
             "type": "websocket",
             "messageEncoding": "json",
             "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            }
           }
         }
       ]
@@ -2965,6 +3055,25 @@
       "name": "voice.session.closed",
       "payload": {
         "$ref": "#/components/schemas/VoiceSessionClosed"
+      }
+    }
+  ],
+  "x-rpckit-binary-streams": [
+    {
+      "name": "voice.media",
+      "url": "{gateway_url}/v1/voice-sessions/{voice_session_id}/media",
+      "direction": "bidirectional",
+      "contentType": "application/octet-stream",
+      "inputContentType": "application/octet-stream",
+      "frameType": "binary",
+      "variables": {
+        "gateway_url": {
+          "default": "ws://127.0.0.1:8000",
+          "description": "Gateway WebSocket base URL."
+        },
+        "voice_session_id": {
+          "default": "{voice_session_id}"
+        }
       }
     }
   ]

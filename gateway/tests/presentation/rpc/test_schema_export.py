@@ -32,6 +32,28 @@ def test_openrpc_only_carries_connection_bound_methods() -> None:
     }
 
 
+def test_openrpc_declares_bidirectional_voice_media_stream() -> None:
+    document = render_openrpc_schema(gateway_contract)
+
+    assert document["x-rpckit-binary-streams"] == [
+        {
+            "name": "voice.media",
+            "url": "{gateway_url}/v1/voice-sessions/{voice_session_id}/media",
+            "direction": "bidirectional",
+            "contentType": "application/octet-stream",
+            "inputContentType": "application/octet-stream",
+            "frameType": "binary",
+            "variables": {
+                "gateway_url": {
+                    "default": "ws://127.0.0.1:8000",
+                    "description": "Gateway WebSocket base URL.",
+                },
+                "voice_session_id": {"default": "{voice_session_id}"},
+            },
+        }
+    ]
+
+
 def test_openapi_protects_resources_with_the_gateway_token() -> None:
     document = create_app().openapi()
 

@@ -1,5 +1,11 @@
 from .framing import MediaFrame, MediaFrameKind
-from .router import media_router
 from .sessions import InMemoryMediaSessions
+from .stream import media_channel, voice_media_stream
 
-__all__ = ["InMemoryMediaSessions", "MediaFrame", "MediaFrameKind", "media_router"]
+__all__ = [
+    "InMemoryMediaSessions",
+    "MediaFrame",
+    "MediaFrameKind",
+    "media_channel",
+    "voice_media_stream",
+]

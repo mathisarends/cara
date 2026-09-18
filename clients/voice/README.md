@@ -10,7 +10,8 @@ three Gateway transports:
 
 - REST opens or resumes a voice session and loads its snapshot.
 - JSON-RPC starts and interrupts turns and streams typed lifecycle events.
-- A binary WebSocket uploads microphone PCM and receives assistant PCM.
+- The generated bidirectional `voice.media` stream uploads microphone PCM and
+  receives assistant PCM.
 
 ## Pipeline
 

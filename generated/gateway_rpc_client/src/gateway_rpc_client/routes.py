@@ -5,85 +5,104 @@ from pydantic import TypeAdapter
 
 from gateway_rpc_client.internal import RpcNotificationInfo, RpcRouteInfo
 from gateway_rpc_client.models import (
+    ChannelParams,
     ChannelSubscriptionResult,
     ChannelUnsubscriptionResult,
+    InterruptVoiceTurnParams,
     SessionEvent,
     SessionEventNotification,
+    SessionParams,
+    StartTurnParams,
+    StartVoiceTurnParams,
+    SteerTurnParams,
     SubscriptionResult,
     TurnCommandResult,
     UnsubscriptionResult,
     VoiceEventMessage,
     VoiceEventNotification,
     VoiceTurnCommandResult,
+    VoiceTurnParams,
 )
 
-TURN_PREPARE = RpcRouteInfo(
+TURN_PREPARE: RpcRouteInfo[SessionParams, TurnCommandResult] = RpcRouteInfo(
     method="turn.prepare",
     result_adapter=TypeAdapter(TurnCommandResult),
     server="gateway",
 )
 
-TURN_START = RpcRouteInfo(
+TURN_START: RpcRouteInfo[StartTurnParams, TurnCommandResult] = RpcRouteInfo(
     method="turn.start",
     result_adapter=TypeAdapter(TurnCommandResult),
     server="gateway",
 )
 
-TURN_STEER = RpcRouteInfo(
+TURN_STEER: RpcRouteInfo[SteerTurnParams, TurnCommandResult] = RpcRouteInfo(
     method="turn.steer",
     result_adapter=TypeAdapter(TurnCommandResult),
     server="gateway",
 )
 
-TURN_FINISH = RpcRouteInfo(
+TURN_FINISH: RpcRouteInfo[SessionParams, TurnCommandResult] = RpcRouteInfo(
     method="turn.finish",
     result_adapter=TypeAdapter(TurnCommandResult),
     server="gateway",
 )
 
-TURN_CANCEL = RpcRouteInfo(
+TURN_CANCEL: RpcRouteInfo[SessionParams, TurnCommandResult] = RpcRouteInfo(
     method="turn.cancel",
     result_adapter=TypeAdapter(TurnCommandResult),
     server="gateway",
 )
 
-VOICE_TURN_START = RpcRouteInfo(
-    method="voice.turn.start",
-    result_adapter=TypeAdapter(VoiceTurnCommandResult),
-    server="gateway",
+VOICE_TURN_START: RpcRouteInfo[StartVoiceTurnParams, VoiceTurnCommandResult] = (
+    RpcRouteInfo(
+        method="voice.turn.start",
+        result_adapter=TypeAdapter(VoiceTurnCommandResult),
+        server="gateway",
+    )
 )
 
-VOICE_TURN_INTERRUPT = RpcRouteInfo(
-    method="voice.turn.interrupt",
-    result_adapter=TypeAdapter(VoiceTurnCommandResult),
-    server="gateway",
+VOICE_TURN_INTERRUPT: RpcRouteInfo[InterruptVoiceTurnParams, VoiceTurnCommandResult] = (
+    RpcRouteInfo(
+        method="voice.turn.interrupt",
+        result_adapter=TypeAdapter(VoiceTurnCommandResult),
+        server="gateway",
+    )
 )
 
-VOICE_TURN_PLAYBACK_COMPLETED = RpcRouteInfo(
-    method="voice.turn.playback_completed",
-    result_adapter=TypeAdapter(VoiceTurnCommandResult),
-    server="gateway",
+VOICE_TURN_PLAYBACK_COMPLETED: RpcRouteInfo[VoiceTurnParams, VoiceTurnCommandResult] = (
+    RpcRouteInfo(
+        method="voice.turn.playback_completed",
+        result_adapter=TypeAdapter(VoiceTurnCommandResult),
+        server="gateway",
+    )
 )
 
-SUBSCRIPTION_SUBSCRIBE = RpcRouteInfo(
+SUBSCRIPTION_SUBSCRIBE: RpcRouteInfo[SessionParams, SubscriptionResult] = RpcRouteInfo(
     method="subscription.subscribe",
     result_adapter=TypeAdapter(SubscriptionResult),
     server="gateway",
 )
 
-SUBSCRIPTION_UNSUBSCRIBE = RpcRouteInfo(
-    method="subscription.unsubscribe",
-    result_adapter=TypeAdapter(UnsubscriptionResult),
-    server="gateway",
+SUBSCRIPTION_UNSUBSCRIBE: RpcRouteInfo[SessionParams, UnsubscriptionResult] = (
+    RpcRouteInfo(
+        method="subscription.unsubscribe",
+        result_adapter=TypeAdapter(UnsubscriptionResult),
+        server="gateway",
+    )
 )
 
-SUBSCRIPTION_SUBSCRIBE_CHANNEL = RpcRouteInfo(
+SUBSCRIPTION_SUBSCRIBE_CHANNEL: RpcRouteInfo[
+    ChannelParams, ChannelSubscriptionResult
+] = RpcRouteInfo(
     method="subscription.subscribe_channel",
     result_adapter=TypeAdapter(ChannelSubscriptionResult),
     server="gateway",
 )
 
-SUBSCRIPTION_UNSUBSCRIBE_CHANNEL = RpcRouteInfo(
+SUBSCRIPTION_UNSUBSCRIBE_CHANNEL: RpcRouteInfo[
+    ChannelParams, ChannelUnsubscriptionResult
+] = RpcRouteInfo(
     method="subscription.unsubscribe_channel",
     result_adapter=TypeAdapter(ChannelUnsubscriptionResult),
     server="gateway",
