@@ -67,60 +67,239 @@ Socket.
 
 ## 2. Einbettung in FastAPI + Dishka
 
-### 2a. `create_router()` braucht den Resolver zur Definitionszeit
-`create_router(service, resolver=...)` erwartet den Resolver schon beim Bau des
-Routers. Mit Dishka (und Frameworks wie fastapi-canon) existiert der Container
-aber erst, wenn die App zusammengesetzt ist. Deshalb nutzt Cara `create_router`
-nicht, sondern eine eigene Route:
+### Ist-Zustand in Cara
+
+Drei Stellen müssen dieselbe Serve-Konfiguration kennen, und keine davon kann
+`create_router()` nutzen:
 
 ```python
-@gateway_router.websocket(gateway_endpoint.path)
+# presentation/rpc/service.py
+gateway_service = RpcService()
+gateway_endpoint = gateway_service.socket(
+    "/v1/gateway", *channels, connect=authenticate_rpc_connection
+)
+
+# presentation/websocket/router.py – eigene Route, weil create_router() den
+# Resolver schon beim Import braucht, der Dishka-Container aber erst mit der App
+# entsteht (fastapi-canon baut ihn in Composition.apply()).
+@gateway_router.websocket(gateway_endpoint.path, name="gateway_socket")
 async def gateway_socket(websocket: WebSocket) -> None:
+    # The app container, not the socket's: the resolver opens the session scope.
     await gateway_endpoint.serve(
         FastApiSocket(websocket),
         resolver=DishkaResolver(websocket.app.state.dishka_container),
         error_mapper=gateway_error_mapper,
     )
+
+# tests/presentation/websocket/test_router.py – dieselbe Konfiguration noch einmal
+def _gateway(app: FastAPI) -> RpcTestClient:
+    return RpcTestClient(
+        gateway_service,
+        "/v1/gateway",
+        headers=_AUTH_HEADERS,
+        resolver=DishkaResolver(app.state.dishka_container),
+        error_mapper=gateway_error_mapper,
+    )
 ```
 
-Wunsch: `resolver` auch als Factory `Callable[[WebSocket], RpcResolver]`
-akzeptieren, oder eine Dishka-FastAPI-Integration, die den Container aus
-`app.state` holt.
+Die drei Probleme dahinter:
 
-### 2b. `DishkaResolver` öffnet immer selbst einen SESSION-Scope
-Dishkas FastAPI-Middleware öffnet für jeden WebSocket schon einen SESSION-Container
-(`websocket.state.dishka_container`). `DishkaResolver.enter_connection` will
-zwingend den APP-Container und öffnet einen *zweiten* SESSION-Scope. Man muss
-wissen, dass man bewusst am Socket-Container vorbei auf `app.state` greift
-(bei Cara steht dafür ein Kommentar im Code). Wunsch: Ein Modus, der einen
-bereits geöffneten SESSION-Container übernimmt, und klare Doku dazu.
+- **2a. Resolver zur Definitionszeit:** `create_router(service, resolver=...)`
+  braucht einen fertigen Resolver. Frameworks, die den Container erst beim
+  App-Aufbau erzeugen (Dishka, fastapi-canon), passen nicht dazu.
+- **2b. Scope-Falle bei Dishka:** Dishkas FastAPI-Middleware öffnet pro WebSocket
+  schon einen SESSION-Container (`websocket.state.dishka_container`).
+  `DishkaResolver.enter_connection` öffnet selbst noch einmal SESSION und braucht
+  deshalb den APP-Container aus `app.state`. Wer intuitiv den Socket-Container
+  nimmt, bekommt einen Scope-Fehler.
+  - Einschränkung: Einen bestehenden SESSION-Container einfach zu übernehmen geht
+    nicht, weil der Dishka-Kontext beim Öffnen feststeht und `RpcConnection`
+    dann nicht mehr hineinkommt. Die richtige Lösung ist also nicht „bestehenden
+    Scope übernehmen“, sondern „die Integration kümmert sich darum“.
+- **2c. Serve-Konfiguration pro Aufruf:** `error_mapper` und `limits` gehören
+  fachlich zum Endpoint (genau wie `connect`), müssen aber bei jedem `serve()`,
+  in `create_router()` und im `RpcTestClient` erneut übergeben werden.
 
-### 2c. `error_mapper` hängt am Serve-Aufruf statt am Service
-Resolver, `error_mapper` und `limits` müssen bei *jedem* `serve()` übergeben
-werden: in der Route, im `RpcTestClient` und in `create_router`. In Cara musste
-der Testcode die Router-Konfiguration dadurch 1:1 duplizieren (Drift-Risiko).
-Wunsch: `RpcService(error_mapper=...)` bzw. am `socket(...)`-Endpoint, analog
-zum `connect`-Hook.
+### Vorschlag
+
+**(1) Serve-Konfiguration am Service/Endpoint, pro Endpoint überschreibbar:**
+
+```python
+gateway_service = RpcService(
+    error_mapper=gateway_error_mapper,
+    limits=RpcLimits(max_concurrency=16),
+)
+gateway_endpoint = gateway_service.socket(
+    "/v1/gateway",
+    *channels,
+    connect=authenticate_rpc_connection,
+    # error_mapper=..., limits=...   # optional: überschreibt den Service-Default
+)
+```
+
+`serve()`, `create_router()` und `RpcTestClient` behalten die Parameter nur als
+optionale Überschreibung. Für Tests heißt das: Sie nutzen automatisch dieselbe
+Fehlerabbildung wie Produktion.
+
+**(2) Resolver als Factory, die pro Verbindung aufgelöst wird:**
+
+```python
+type RpcResolverFactory = Callable[[RpcHandshake], RpcResolverLike]
+
+def create_router(
+    service: RpcService,
+    *,
+    resolver: RpcResolverLike | RpcResolverFactory | None = None,
+    ...
+) -> APIRouter: ...
+```
+
+Die Factory bekommt den Handshake. Für FastAPI braucht sie allerdings Zugriff auf
+die App. Deshalb eher:
+
+**(3) Eine Dishka-FastAPI-Integration in pyrpckit, die genau das kapselt:**
+
+```python
+# pyrpckit/dishka.py
+def dishka_router(service: RpcService) -> APIRouter:
+    """Serve every endpoint with the app's Dishka container.
+
+    Opens one SESSION scope per connection with ``RpcConnection`` in its
+    context and one REQUEST scope per call; the app container is read from
+    ``app.state.dishka_container`` at connect time.
+    """
+```
+
+Damit schrumpft Cara auf:
+
+```python
+# presentation/rpc/service.py
+gateway_service = RpcService(error_mapper=gateway_error_mapper)
+gateway_endpoint = gateway_service.socket(
+    "/v1/gateway", *channels, connect=authenticate_rpc_connection
+)
+
+# platform_feature.py
+platform_feature = Feature(
+    name="platform",
+    routers=[dishka_router(gateway_service)],
+    providers=[..., GatewayProvider, FastapiProvider],
+)
+
+# tests
+def _gateway(app: FastAPI) -> RpcTestClient:
+    return RpcTestClient(
+        gateway_service,
+        "/v1/gateway",
+        headers=_AUTH_HEADERS,
+        resolver=DishkaResolver(app.state.dishka_container),
+    )
+```
+
+- Die eigene Route verschwindet, ebenso der erklärende Kommentar zum
+  APP-Container.
+- Der Test dupliziert nur noch den Resolver, und das ist genau der Teil, der sich
+  zwischen Test und Produktion legitim unterscheiden darf.
+- Nebeneffekt: Weil die Integration die Route selbst registriert, kann sie für
+  RPC-Pfade den doppelten SESSION-Scope der Dishka-Middleware vermeiden (2b).
+  Das sollte zumindest dokumentiert sein.
+
+**(4) Zusätzlich: `DishkaResolver` sollte früh und verständlich scheitern**,
+wenn man ihm einen Container im falschen Scope gibt:
+
+```text
+DishkaResolver needs the APP container (app.state.dishka_container), got a
+SESSION container. pyrpckit opens the SESSION scope per connection itself.
+```
 
 ## 3. Channels und Namen
 
-- **Namespace pro Channel ist gut**, bricht aber Punkte in Methodennamen.
-  `@channel.method("turn.prepare")` ist jetzt ein `ProtocolDefinitionError`.
-  Für `voice.turn.start` und `voice.event` braucht man zwei Channels
-  (`RpcChannel("voice_turn", namespace="voice.turn")` und `RpcChannel("voice")`).
-  Das funktioniert, ist aber nicht offensichtlich. Die Fehlermeldung
-  `Invalid RPC method name: 'turn.prepare'` könnte auf `namespace=` hinweisen.
-- **Channel-Name vs. Namespace:** Der Channel-Name muss service-weit eindeutig
-  und segment-gültig sein, auch wenn er nie auf dem Wire auftaucht
-  (`"voice_turn"`). Ein optionaler Name, der aus dem Namespace abgeleitet wird,
-  würde reichen.
-- **Positiv:** `raises=` auf Channel-Ebene. `ResourceNotFoundError` einmal pro
-  Channel statt an jeder Methode.
-- **Positiv:** Die Built-in-Fehler (`RpcInvalidParamsError`, `RpcInternalError`)
-  sind implizit. Es entfallen ~15 redundante Deklarationen.
-- **Kante:** `payload=` bei `@channel.event` ist redundant zur
-  `AsyncIterator[T]`-Annotation. Gut, dass es optional ist. Die Doku sollte das
-  als Default zeigen.
+### Ist-Zustand in Cara
+
+Für die Wire-Namen `voice.turn.start`, `voice.turn.interrupt`,
+`voice.turn.playback_completed` und `voice.event` braucht es zwei Channels, weil
+Methodennamen keine Punkte enthalten dürfen:
+
+```python
+voice_turn_channel = RpcChannel(
+    "voice_turn", namespace="voice.turn", raises=(ResourceNotFoundError,)
+)
+voice_channel = RpcChannel("voice")
+
+@voice_turn_channel.method(
+    "start", raises=(MediaNotConnectedRpcError, VoiceTurnAlreadyActiveRpcError)
+)
+async def start_voice_turn(...) -> VoiceTurnCommandResult: ...
+
+@voice_channel.event("event")
+async def voice_events(...) -> AsyncIterator[VoiceEventMessage]: ...
+```
+
+Was dabei hakt:
+
+- **Kein Weg von der Fehlermeldung zur Lösung:** `@channel.method("turn.prepare")`
+  ergibt `Invalid RPC method name: 'turn.prepare'`. Dass die Lösung ein zweiter
+  Channel mit `namespace=` ist, sagt die Meldung nicht.
+- **Channel-Name ohne Funktion:** Der Name muss service-weit eindeutig und
+  segment-gültig sein (`"voice_turn"`), taucht aber nie auf dem Wire auf. Er ist
+  eine zweite Bezeichnung für etwas, das der Namespace schon eindeutig benennt.
+- **Zusammengehöriges liegt getrennt:** `voice.turn.*` und `voice.event` gehören
+  fachlich zusammen, landen aber in zwei unabhängigen Channels. Gemeinsame
+  `raises=` lassen sich nicht teilen.
+
+### Vorschlag
+
+**(1) Kind-Channels, die Namespace und `raises=` erben:**
+
+```python
+voice = RpcChannel("voice")
+voice_turn = voice.child("turn", raises=(ResourceNotFoundError,))  # -> "voice.turn"
+
+@voice_turn.method(
+    "start", raises=(MediaNotConnectedRpcError, VoiceTurnAlreadyActiveRpcError)
+)
+async def start_voice_turn(...) -> VoiceTurnCommandResult: ...   # voice.turn.start
+
+@voice.event("event")
+async def voice_events(...) -> AsyncIterator[VoiceEventMessage]: ...  # voice.event
+
+gateway_service.socket("/v1/gateway", voice, ...)  # mountet voice inkl. Kinder
+```
+
+- `child()` erzeugt Namespace `"<parent>.<segment>"` und einen internen,
+  eindeutigen Namen. Es ist kein zweiter Bezeichner nötig.
+- `raises=` wird vererbt: Parent → Child → Methode.
+- Gemountet wird nur der Wurzel-Channel. Die Prüfung „Name ist gleichzeitig
+  Operation und Namespace“ bleibt wie heute.
+
+**(2) Channel-Name optional, Namespace als Default-Identität:**
+
+```python
+RpcChannel(namespace="voice.turn")   # name defaults to "voice.turn"
+RpcChannel("voice")                  # wie heute: name == namespace
+```
+
+Der Name muss dann nur noch eindeutig sein, nicht mehr segment-gültig. Ein Punkt
+darin ist unproblematisch, weil er nicht auf dem Wire landet.
+
+**(3) Fehlermeldung, die die Lösung nennt:**
+
+```text
+ProtocolDefinitionError: RPC method name 'turn.prepare' contains '.'; method
+names are single segments inside the channel namespace. Use
+RpcChannel("turn") and @channel.method("prepare"), or channel.child("turn").
+```
+
+**(4) `payload=` bei Events in der Doku weglassen.** Der Payload-Typ steht schon
+in `AsyncIterator[T]`, und Cara nutzt `payload=` nicht mehr. `payload=` sollte
+nur noch für den Sonderfall dokumentiert sein, dass der Wire-Typ vom
+Generator-Typ abweicht.
+
+**Unverändert positiv:**
+- `raises=` auf Channel-Ebene: `ResourceNotFoundError` steht einmal pro Channel
+  statt an jeder Methode.
+- Die Built-in-Fehler (`RpcInvalidParamsError`, `RpcInternalError`) sind
+  implizit. Das spart ~15 redundante Deklarationen.
 
 ## 4. Fehler
 

@@ -5,7 +5,6 @@ from typing import Self
 
 from sonosify import SonosClient
 
-from voice.acknowledgement import ToolAcknowledgementIntegration
 from voice.activation import ActivationSource
 from voice.audio import AudioInput, AudioOutput, PortAudioSession
 from voice.audio.input import MicrophoneAudioInput
@@ -147,9 +146,6 @@ class VoiceSessionFactory:
         if settings.sounds.enabled:
             sound = SoundIntegration()
             integrations.append(sound)
-        if settings.tool_acknowledgements.enabled:
-            acknowledgements = ToolAcknowledgementIntegration()
-            integrations.append(acknowledgements)
         if settings.hue.enabled:
             hue = HueIntegration(room_name=settings.hue.room_name)
             integrations.append(hue)

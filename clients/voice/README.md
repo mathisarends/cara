@@ -88,7 +88,7 @@ logging.getLogger("voice").setLevel(logging.DEBUG)
 | `VoiceActivityDetector` | `SileroVoiceActivityDetector` |
 | `BargeInStrategy` | `WakeWordBargeIn`, `SpeechBargeIn`, `NoBargeIn` |
 | `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource` |
-| `VoiceIntegration` | earcons, Hue lighting, Sonos audio focus, tool acknowledgements |
+| `VoiceIntegration` | earcons, Hue lighting and Sonos audio focus |
 
 Conversation audio recording remains local. Provider selection and
 `CARA_GATEWAY_VOICE_DEEPGRAM_API_KEY` belong to the Gateway configuration.

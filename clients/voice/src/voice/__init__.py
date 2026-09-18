@@ -1,4 +1,3 @@
-from .acknowledgement import ToolAcknowledgementIntegration
 from .activation import (
     Activation,
     ActivationKind,
@@ -70,7 +69,6 @@ __all__ = [
     "SonosAudioFocusStrategy",
     "SonosDuckingPolicy",
     "SonosPausePolicy",
-    "ToolAcknowledgementIntegration",
     "VoiceChannel",
     "VoiceSession",
     "VoiceSessionConfig",

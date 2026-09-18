@@ -45,8 +45,6 @@ recording:
 integrations:
   sounds:
     enabled: true
-  tool_acknowledgements:
-    enabled: false
   hue:
     enabled: false
     room_name: Mein Zimmer

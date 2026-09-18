@@ -146,7 +146,6 @@ class SonosAudioFocusConfig(_ConfigModel):
 
 class IntegrationsConfig(_ConfigModel):
     sounds: ToggleConfig = Field(default_factory=ToggleConfig)
-    tool_acknowledgements: ToggleConfig = Field(default_factory=ToggleConfig)
     hue: HueConfig = Field(default_factory=HueConfig)
     sonos_audio_focus: SonosAudioFocusConfig = Field(
         default_factory=SonosAudioFocusConfig
