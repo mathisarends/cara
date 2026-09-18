@@ -91,5 +91,5 @@ logging.getLogger("voice").setLevel(logging.DEBUG)
 | `ActivationSource` | `WakeWordActivationSource`, `ExternalActivationSource` |
 | `VoiceIntegration` | earcons, Hue lighting and Sonos audio focus |
 
-Conversation audio recording remains local. Provider selection and
-`CARA_GATEWAY_VOICE_DEEPGRAM_API_KEY` belong to the Gateway configuration.
+Provider selection and `CARA_GATEWAY_VOICE_DEEPGRAM_API_KEY` belong to the
+Gateway configuration.

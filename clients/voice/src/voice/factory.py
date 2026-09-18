@@ -90,7 +90,6 @@ class VoiceSessionFactory:
                 ),
                 activation_sources=self._activation_sources,
                 integrations=integrations,
-                recording_path=self._recording_path(),
             )
             return VoiceSession(channel=channel, resources=resources)
         except BaseException:
@@ -192,10 +191,6 @@ class VoiceSessionFactory:
             reference_history_seconds=settings.reference_history_seconds,
             max_upload_echo_confidence=settings.max_upload_echo_confidence,
         )
-
-    def _recording_path(self) -> str | None:
-        settings = self._config.recording
-        return str(settings.path) if settings.enabled else None
 
 
 def _require_sonos_client(client: SonosClient | None) -> SonosClient:

@@ -120,11 +120,6 @@ class AudioConfig(_ConfigModel):
     )
 
 
-class RecordingConfig(_ConfigModel):
-    enabled: bool = False
-    path: Path = Path("recordings/conversation.wav")
-
-
 class ToggleConfig(_ConfigModel):
     enabled: bool = True
 
@@ -179,7 +174,6 @@ class VoiceSessionConfig(BaseSettings):
     activation: ActivationConfig = Field(default_factory=ActivationConfig)
     barge_in: BargeInConfig = Field(default_factory=WakeWordBargeInConfig)
     audio: AudioConfig = Field(default_factory=AudioConfig)
-    recording: RecordingConfig = Field(default_factory=RecordingConfig)
     integrations: IntegrationsConfig = Field(default_factory=IntegrationsConfig)
     sonos: SonosConfig | None = None
 

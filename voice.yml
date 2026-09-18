@@ -38,10 +38,6 @@ audio:
     # Do not send microphone frames dominated by the assistant's own playback.
     max_upload_echo_confidence: 0.5
 
-recording:
-  enabled: false
-  path: recordings/conversation.wav
-
 integrations:
   sounds:
     enabled: true

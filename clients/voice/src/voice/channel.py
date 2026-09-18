@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import Iterable
-from pathlib import Path
 
 from voice.activation import (
     ActivationCoordinator,
@@ -15,7 +14,6 @@ from voice.audio import (
     UserAudioProducer,
 )
 from voice.barge_in import BargeInContext, BargeInStrategy, WakeWordBargeIn
-from voice.conversation import create_recorder
 from voice.echo_cancellation import (
     EchoCancellationSettings,
     EchoPresence,
@@ -46,11 +44,9 @@ class VoiceChannel:
         echo_cancellation_enabled: bool = True,
         activation_sources: Iterable[ActivationSource] = (),
         integrations: Iterable[VoiceIntegration] = (),
-        recording_path: str | Path | None = None,
     ) -> None:
         self._gateway_session = gateway_session
         self._event_bus = EventBus()
-        self._recording_path = Path(recording_path) if recording_path else None
         echo_settings = echo_cancellation_settings or EchoCancellationSettings()
         if echo_cancellation_enabled:
             channel_input, channel_output, echo_presence = wrap_with_echo_cancellation(
@@ -122,12 +118,6 @@ class VoiceChannel:
             integrations=integrations,
         )
         self._integration_bridge.setup()
-        self._audio_recorder = create_recorder(
-            self._event_bus,
-            self._recording_path,
-            user_sample_rate=self._buffered_audio_input.sample_rate,
-            assistant_sample_rate=gateway_session.output_sample_rate,
-        )
         self._stopped = False
 
     async def start(self) -> None:

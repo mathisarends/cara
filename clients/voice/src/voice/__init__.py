@@ -22,7 +22,6 @@ from .config import (
     VoiceSessionConfig,
     WakeWordName,
 )
-from .conversation import ConversationAudioMixer, ConversationAudioRecorder
 from .factory import VoiceSessionFactory
 from .gateway import GatewayVoiceSession
 from .integration import (
@@ -49,8 +48,6 @@ __all__ = [
     "BargeInSignal",
     "BargeInStrategy",
     "BargeInType",
-    "ConversationAudioMixer",
-    "ConversationAudioRecorder",
     "Earcon",
     "ExternalActivationSource",
     "GatewayVoiceSession",

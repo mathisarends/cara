@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import AsyncIterator
-from pathlib import Path
 from typing import cast
 from uuid import uuid4
 
@@ -115,12 +114,10 @@ class _LifecycleVoiceIntegration(VoiceIntegration):
 
 
 def test_runs_and_closes_an_injected_voice_stack(
-    tmp_path: Path,
     monkeypatch,
     audio_input: AudioInput,
     audio_output: AudioOutput,
 ) -> None:
-    recording_path = tmp_path / "conversation.wav"
     integration = _LifecycleVoiceIntegration()
     gateway_session = _GatewaySession()
     monkeypatch.setattr(channel_module, "WakeWordListener", _WakeWordListener)
@@ -129,13 +126,11 @@ def test_runs_and_closes_an_injected_voice_stack(
         audio_input=audio_input,
         audio_output=audio_output,
         integrations=(integration,),
-        recording_path=recording_path,
     )
 
     asyncio.run(voice_channel.start())
     asyncio.run(voice_channel.stop())
 
-    assert not recording_path.exists()
     assert gateway_session.closed
     assert integration.events == ["prepared", "started", "stopped"]
 
