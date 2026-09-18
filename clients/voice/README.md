@@ -53,10 +53,11 @@ YAML fail immediately with the configuration path and actionable validation
 details. Connection and session values can be overridden with environment
 variables such as `CARA_GATEWAY_TOKEN` and `CARA_ROOM`.
 
-The `room` must remain stable for a voice client so it can resume its open voice
-session after reconnecting and receive reminders created there. Set
-`new_session: true` to close any open voice session for that room and create a
-fresh conversation session.
+The `room` must remain stable for a voice client so it receives reminders created
+there. Every conversation — from the wake word until it ends through inactivity —
+runs in its own conversation session: the client starts with a fresh one and
+closes any voice session still open for its room, and the Gateway moves the voice
+session to a new conversation session whenever a conversation ends.
 
 Scheduled Gateway output arrives as a proactive turn: the client does not open
 its microphone or need an `ExternalActivationSource`; it simply plays the

@@ -9,7 +9,6 @@ room: bedroom
 
 session:
   channel: voice
-  new_session: false
   inactivity_timeout_seconds: 1800
 
 activation:

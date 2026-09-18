@@ -103,6 +103,15 @@ class VoiceSessionService:
             )
         return voice_session
 
+    async def switch_to_new_conversation(self, voice_session: VoiceSession) -> None:
+        """Point the voice session at a fresh conversation session; the caller saves."""
+        current = await self._sessions.get(voice_session.session_id)
+        conversation = await self._sessions.create(
+            channel=current.channel,
+            inactivity_timeout=current.inactivity_timeout,
+        )
+        voice_session.switch_conversation(conversation.id)
+
     def media_connected(self, voice_session_id: UUID) -> bool:
         return self._media.connected(voice_session_id)
 

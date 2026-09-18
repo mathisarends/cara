@@ -36,7 +36,6 @@ class GatewayConfig(_ConfigModel):
 
 class SessionConfig(_ConfigModel):
     channel: str = Field(default="voice", min_length=1)
-    new_session: bool = False
     inactivity_timeout_seconds: float = Field(default=1800, gt=0)
 
 

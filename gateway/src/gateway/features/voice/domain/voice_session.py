@@ -108,6 +108,10 @@ class VoiceSession(Aggregate):
         self._turns.append(turn)
         return turn
 
+    def switch_conversation(self, session_id: UUID) -> None:
+        self._require_open()
+        self._session_id = session_id
+
     def get_turn(self, turn_id: UUID) -> VoiceTurn:
         for turn in self._turns:
             if turn.id == turn_id:

@@ -122,6 +122,50 @@ async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
         await service.close()
 
 
+async def test_ended_conversation_moves_the_next_wake_word_to_a_new_session() -> None:
+    voice_session = VoiceSession(
+        session_id=_uuid(),
+        room="bedroom",
+        input_format=AudioFormat(AudioEncoding.PCM_S16LE, 16_000, 1),
+        output_format=AudioFormat(AudioEncoding.PCM_S16LE, 24_000, 1),
+    )
+    ended_session_id = voice_session.session_id
+    repository = _VoiceSessionRepository(voice_session)
+    events = _VoiceEvents()
+    service = VoiceTurnService(
+        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
+        cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        cast(TurnService, object()),
+        cast(VoiceEventPublisher, events),
+        cast(MediaSessions, _MediaSessions()),
+        cast(EventSource, object()),
+        cast(SpeechToText, _EmptySpeechToText()),
+        cast(TextToSpeech, object()),
+        8,
+        0,
+        0.02,
+        0,
+    )
+
+    try:
+        await service.start(voice_session.id, Activation.WAKE_WORD)
+        await asyncio.sleep(0.05)
+        await service.start(voice_session.id, Activation.WAKE_WORD)
+
+        lifecycle = [
+            event
+            for event in events.items
+            if event.type is not VoiceEventType.TRANSCRIPT_PARTIAL
+        ]
+        ended, started = lifecycle[-3], lifecycle[-2]
+        assert ended.type is VoiceEventType.CONVERSATION_ENDED
+        assert ended.session_id == ended_session_id
+        assert started.type is VoiceEventType.CONVERSATION_STARTED
+        assert started.session_id == voice_session.session_id != ended_session_id
+    finally:
+        await service.close()
+
+
 async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
     voice_session = VoiceSession(
         session_id=_uuid(),
@@ -211,6 +255,9 @@ class _VoiceSessions:
     async def get(self, voice_session_id):
         assert voice_session_id == self._voice_session.id
         return self._voice_session
+
+    async def switch_to_new_conversation(self, voice_session: VoiceSession) -> None:
+        voice_session.switch_conversation(_uuid())
 
 
 class _VoiceEvents:

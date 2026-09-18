@@ -451,10 +451,22 @@ class VoiceTurnService:
             return
         self._active_conversations.discard(voice_session_id)
         self._cancel_conversation_timeout(voice_session_id)
-        await self._publish_conversation_event(
-            voice_session_id,
-            VoiceEventType.CONVERSATION_ENDED,
-            {"reason": reason},
+        voice_session = await self._sessions.get(voice_session_id)
+        ended_session_id = voice_session.session_id
+        # Every wake word starts from a clean context. The end event still goes
+        # to the ended session, whose subscribers follow the switch from there.
+        await self._sessions.switch_to_new_conversation(voice_session)
+        sequence = voice_session.next_sequence()
+        async with self._repositories() as repository:
+            await repository.save(voice_session)
+        await self._events.publish_voice(
+            VoiceEvent(
+                VoiceEventType.CONVERSATION_ENDED,
+                voice_session.id,
+                ended_session_id,
+                {"reason": reason},
+                sequence=sequence,
+            )
         )
 
     async def _publish_conversation_event(

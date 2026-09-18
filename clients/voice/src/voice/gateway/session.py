@@ -11,7 +11,6 @@ from gateway_rest_client import (
     AudioFormat,
     CreateSessionRequest,
     GatewayRestClient,
-    OpenSessionRequest,
     OpenVoiceSessionRequest,
     SessionChannel,
     VoiceSessionSnapshotResponse,
@@ -21,6 +20,7 @@ from gateway_rest_client import (
 from gateway_rpc_client import GatewayRpcClient, connect_gateway
 from gateway_rpc_client.models import (
     Activation,
+    VoiceConversationEnded,
     VoiceEventMessage,
     VoiceTranscriptPartial,
     VoiceTurnCommandResult,
@@ -58,7 +58,6 @@ class GatewayVoiceSession:
         token: str,
         room: str,
         channel: str = "voice",
-        new_session: bool = False,
         inactivity_timeout_seconds: float = 1800,
         input_sample_rate: int = 16_000,
         output_sample_rate: int = 24_000,
@@ -67,39 +66,37 @@ class GatewayVoiceSession:
         rest = GatewayRestClient(http, url, credentials={"GatewayToken": token})
         resources = AsyncExitStack()
         try:
+            # Every conversation starts from a clean context, so a leftover
+            # voice session never carries an earlier one into this run.
             existing = await rest.list_voice_sessions(
                 room=room,
                 status=VoiceSessionStatus.OPEN,
             )
-            if new_session:
-                for open_voice_session in existing.voice_sessions:
-                    await rest.close_voice_session(open_voice_session.id)
-            if existing.voice_sessions and not new_session:
-                voice_session = existing.voice_sessions[0]
-            else:
-                session_id = await _resolve_conversation_session(
-                    rest,
-                    channel,
-                    new_session=new_session,
+            for open_voice_session in existing.voice_sessions:
+                await rest.close_voice_session(open_voice_session.id)
+            session = await rest.create_session(
+                CreateSessionRequest(
+                    channel=SessionChannel(name=channel),
                     inactivity_timeout_seconds=inactivity_timeout_seconds,
                 )
-                audio_input = AudioFormat(
-                    encoding=AudioEncoding.PCM_S16LE,
-                    sample_rate=input_sample_rate,
-                    channels=1,
-                )
-                audio_output = AudioFormat(
-                    encoding=AudioEncoding.PCM_S16LE,
-                    sample_rate=output_sample_rate,
-                    channels=1,
-                )
-                request = OpenVoiceSessionRequest(
-                    session_id=session_id,
-                    room=room,
-                    input_formats=[audio_input],
-                    output_formats=[audio_output],
-                )
-                voice_session = await rest.open_voice_session(request)
+            )
+            audio_input = AudioFormat(
+                encoding=AudioEncoding.PCM_S16LE,
+                sample_rate=input_sample_rate,
+                channels=1,
+            )
+            audio_output = AudioFormat(
+                encoding=AudioEncoding.PCM_S16LE,
+                sample_rate=output_sample_rate,
+                channels=1,
+            )
+            request = OpenVoiceSessionRequest(
+                session_id=session.id,
+                room=room,
+                input_formats=[audio_input],
+                output_formats=[audio_output],
+            )
+            voice_session = await rest.open_voice_session(request)
             rpc = await connect_gateway(url, token=token)
             await resources.enter_async_context(rpc)
             await rpc.subscription.subscribe(session_id=voice_session.session_id)
@@ -171,6 +168,8 @@ class GatewayVoiceSession:
                         self._last_sequence,
                     )
                     continue
+            if isinstance(event, VoiceConversationEnded):
+                await self._follow_conversation()
             yield event
 
     def media_frames(self) -> AsyncIterator[MediaFrame]:
@@ -236,31 +235,24 @@ class GatewayVoiceSession:
                 finally:
                     await self._http.aclose()
 
+    async def _follow_conversation(self) -> None:
+        # The Gateway moves the voice session to a fresh conversation session
+        # when a conversation ends; its events are routed by that session.
+        ended_session_id = self.session_id
+        self._snapshot = await self._rest.get_voice_session(self.id)
+        if self.session_id == ended_session_id:
+            return
+        await self._rpc.subscription.subscribe(session_id=self.session_id)
+        await self._rpc.subscription.unsubscribe(session_id=ended_session_id)
+        logger.info(
+            "Voice session %s moved from conversation session %s to %s",
+            self.id,
+            ended_session_id,
+            self.session_id,
+        )
+
     async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *args: object) -> None:
         await self.close()
-
-
-async def _resolve_conversation_session(
-    rest: GatewayRestClient,
-    channel: str,
-    *,
-    new_session: bool,
-    inactivity_timeout_seconds: float,
-) -> UUID:
-    channel_ref = SessionChannel(name=channel)
-    if new_session:
-        request = CreateSessionRequest(
-            channel=channel_ref,
-            inactivity_timeout_seconds=inactivity_timeout_seconds,
-        )
-        session = await rest.create_session(request)
-    else:
-        request = OpenSessionRequest(
-            channel=channel_ref,
-            inactivity_timeout_seconds=inactivity_timeout_seconds,
-        )
-        session = await rest.open_session(request)
-    return session.id
