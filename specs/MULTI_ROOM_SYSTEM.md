@@ -19,7 +19,7 @@ Die Architektur wird vollständig nach diesem Zielbild gebaut. Nur die Treiber s
 4. **Das Gateway besitzt die Home-Semantik**: Räume, Gruppen, Routing, Musik-Auflösung (Spotify).
 5. **Der Raum ist proaktiv ansprechbar**: Das Gateway kann ohne Wake Word sprechen lassen, Musik und Licht steuern.
 6. **Das Gateway adressiert Räume, keine Hardware.**
-7. **Ein Binary, viele Räume**: Räume unterscheiden sich nur durch Config.
+7. **Ein Raum pro Prozess**: Alle Räume nutzen dasselbe Binary bzw. Docker-Image und unterscheiden sich nur durch ihre Config; jeder Room-Client-Prozess besitzt genau einen Raum.
 
 ## Architektur
 
@@ -38,7 +38,7 @@ Die Architektur wird vollständig nach diesem Zielbild gebaut. Nur die Treiber s
    │ living-room │       │ kitchen     │       │ bedroom     │
    └──────┬──────┘       └─────────────┘       └─────────────┘
           ├─ Mic (PortAudio)
-          ├─ Speaker (Sonos | lokal)
+          ├─ Speaker und Musik (Sonos)
           └─ Licht (Hue)
 ```
 
@@ -70,7 +70,6 @@ Der Agent sieht nur Räume und ihre Funktionen. Eine Funktion ist verfügbar, we
 |---|---|---|
 | Mikrofon | PortAudio | `audio_input` |
 | Speaker | Sonos | `audio_output`, `media_playback` |
-| Speaker | lokal (PortAudio) | `audio_output`, `media_playback` (über lokalen Spotify-Player, siehe [Musik](#musik)) |
 | Licht | Hue | `light` |
 
 Capability-Werte werden erst angelegt, wenn es einen Treiber dafür gibt; `display`, `camera`, `presence` kommen mit ihren Treibern.
@@ -81,7 +80,7 @@ Capability-Werte werden erst angelegt, wenn es einen Treiber dafür gibt; `displ
 - **RoomGroup**: benannte Menge von Räumen (z. B. `downstairs`, `everywhere`).
 - **Device**: Hardware, einem Raum zugeordnet, mit Capabilities.
 
-Die **Topologie** (Räume, Gruppen, Anzeigenamen und Aliase für den Agenten) steht in `gateway.yml`. Devices und Capabilities meldet der Room Client bei der Registrierung; das Gateway lehnt Räume ab, die nicht in der Topologie stehen. **Laufzeitzustand** (online, Device-Status, Raumzustand, Now Playing, Lautstärke) lebt nur im Speicher des Gateways und verfällt mit der Verbindung.
+Die **Topologie** (Räume, Gruppen, Anzeigenamen und Aliase für den Agenten) steht in `gateway.yml`. Devices und Capabilities meldet der Room Client bei der Registrierung; das Gateway lehnt Räume ab, die nicht in der Topologie stehen. **Laufzeitzustand** (online, Device-Status, Raumzustand, Lautstärke) lebt nur im Speicher des Gateways und verfällt mit der Verbindung.
 
 `VoiceSession` referenziert den Raum per `room_id` und wird gegen die Registry validiert.
 
@@ -99,7 +98,7 @@ room/
   bootstrap.py             # Composition Root: Config → Treiber → Services → Room.run()
 
   domain/                  # reine Raum-Semantik, kein I/O
-    room.py                # Room (Aggregat): room_id, Devices, RoomState, Media-Status
+    room.py                # Room (Aggregat): room_id, Devices, RoomState
     device.py              # Device, DeviceKind, Capability, DeviceStatus
     state.py               # RoomState und Übergänge aus Gesprächs- und Wiedergabe-Fakten
     speaker.py             # SpeakerClaim (voice | earcon | music), Vorrangregel, Arbitrierungs-Entscheid
@@ -115,19 +114,17 @@ room/
     arbitration.py         # SpeakerArbiter: setzt den Domain-Entscheid an Speaker/MediaPlayer um
     embodiment.py          # EmbodimentService: reagiert auf RoomState mit Licht und Earcons
     registration.py        # RegistrationService: anmelden, nach Reconnect erneut
-    reporting.py           # meldet RoomState, Device- und Media-Status ans Gateway
+    reporting.py           # meldet RoomState, Device-Status und Lautstärke ans Gateway
     readiness.py           # Readiness-Bedingungen für /ready
 
   infrastructure/          # Adapter nach außen (driven)
     config.py              # RoomConfig (pydantic-settings, YAML)
     devices/
-      portaudio.py         # Microphone + lokaler Speaker
+      portaudio.py         # Microphone
       sonos.py             # Speaker + MediaPlayer über Sonos
-      librespot.py         # MediaPlayer lokal (Spotify Connect → Mixer)
       hue.py               # Light
     audio/
-      echo_cancellation.py # AEC-Stack um Mic und lokalen Speaker
-      mixer.py             # lokaler Mixer für Stimme, Earcons, Musik
+      echo_cancellation.py # AEC-Stack für Mic und Assistenten-Audio
       earcons.py           # EarconPlayer
     voice.py               # ConversationEngine über voice.VoiceSessionFactory;
                            # Voice-Lifecycle → Gesprächs-Fakten für RoomState
@@ -137,7 +134,7 @@ room/
       reporter.py          # RoomReporter über die Room-WebSocket
 
   presentation/            # Eingänge (driving)
-    gateway_commands.py    # Event room.command → CommandService, Quittung completed/failed
+    gateway_commands.py    # Handler für room_channel.client.method-Kommandos → CommandService
     http.py                # /health /ready /room /devices
 ```
 
@@ -155,9 +152,9 @@ Zuordnungsregeln:
 Im Gateway ein Feature `gateway/features/room/` mit denselben Schichten:
 
 - `domain/`: `Room`, `RoomGroup`, `Device`, `Capability`, `RoomFunction` und die Ableitung Funktion ← Capabilities.
-- `application/`: `RoomRegistryService` (Registrierung, Online-Status, Auflösen von Gruppen), `RoomCommandService` (Kommando schicken, auf Quittung warten), Ports für Topologie und Verbindungen.
+- `application/`: `RoomRegistryService` (Registrierung, Online-Status, Auflösen von Gruppen), `RoomCommandService` (Kommando als Client-Methode aufrufen und Ergebnis abwarten), Ports für Topologie und Verbindungen.
 - `infrastructure/`: Topologie aus `gateway.yml`, In-Memory-Laufzeitzustand, Provider.
-- `presentation/`: REST-Router (`/v1/rooms`, Registrierung), RPC-Kanal `room` (Verbindung, Quittungen, Zustandsmeldungen, Event `room.command`).
+- `presentation/`: REST-Router (`/v1/rooms`, Registrierung), RPC-Kanal `room` (Verbindung, Client-Methoden für Kommandos und Server-Methoden für Zustandsmeldungen).
 
 Der Media Service ist ein eigenes Feature `media` und nutzt `RoomCommandService`; Voice nutzt die Registry zur Validierung von `room_id`.
 
@@ -177,11 +174,12 @@ Regel aus `docs/gateway-transport.md`: REST für CRUD und Topologie, WebSocket n
 
 ### Schnittstelle zwischen Gateway und Raum
 
-pyrpckit kennt nur Requests vom Client zum Server; der Server schickt Events. Deshalb:
+pyrpckit bildet beide Request-Richtungen auf derselben WebSocket-Verbindung ab. Die Richtung wird aus Sicht des Servers deklariert:
 
-- **Kommandos** schickt das Gateway als Event `room.command` mit `command_id` an den Raum.
-- Der Raum **quittiert** per Request `room.command.completed` bzw. `room.command.failed`. Das Gateway wartet mit Timeout auf die Quittung und meldet dem Agenten das Ergebnis.
-- Der Raum **meldet Zustand** per Request: Raumzustand, Device-Status, Media-Status (Now Playing, Lautstärke).
+- **Kommandos** werden mit `room_channel.client.method(...)` deklariert: Das Gateway ruft die vom Room Client implementierte Methode über dessen `RpcPeer` auf. Der Methodenaufruf liefert direkt ein typisiertes Ergebnis oder einen typisierten Fehler. Timeout und Verbindungsabbruch behandelt pyrpckit; eine eigene `command_id` sowie `completed`-/`failed`-Quittungen entfallen.
+- **Zustandsmeldungen** werden mit `room_channel.server.method(...)` deklariert: Der Room Client ruft Methoden des Gateways für Raumzustand, Device-Status und Lautstärke auf und erhält eine Bestätigung, dass das Gateway die Meldung übernommen hat.
+
+Das Gateway hält pro verbundener `room_id` den zugehörigen `RpcPeer` in der Connection-Registry. `RoomCommandService` löst Raum oder Gruppe auf und ruft die deklarierte Client-Methode mit einem endlichen Timeout auf. Antworten werden bis zum Agenten durchgereicht; typisierte Remote-Fehler, Timeout und Disconnect werden in ein einheitliches Ergebnis pro Raum übersetzt.
 
 Kommandos:
 
@@ -190,7 +188,7 @@ Kommandos:
 | `media.play(uri)`, `media.pause`, `media.resume`, `media.stop`, `media.set_volume` | `media_playback` |
 | `light.set(on, brightness, color)` | `light` |
 
-**Durchsagen** laufen nicht über die Room-WebSocket, sondern als proaktiver Voice-Turn über die Voice-Session des Raums (`start_proactive_in_room`), weil dort Audio-Streaming, Echo-Cancellation und die anschließende Antwort des Nutzers schon gelöst sind.
+**Durchsagen** laufen nicht als Raumkommando, sondern als proaktiver Voice-Turn über die Voice-Session des Raums (`start_proactive_in_room`), weil dort Audio-Streaming, Echo-Cancellation und die anschließende Antwort des Nutzers schon gelöst sind.
 
 ### HTTP am Room Client
 
@@ -215,7 +213,7 @@ devices:
   microphone:
     driver: portaudio
   speaker:
-    driver: sonos            # oder: local
+    driver: sonos
     ip_address: 192.168.1.20
   light:
     driver: hue
@@ -235,22 +233,15 @@ arbitration:
 
 Der Speaker wird von Assistentenstimme, Earcons und Musik benutzt. Der Raum entscheidet den Vorrang: **Stimme vor Earcon vor Musik**; Musik wird geduckt oder pausiert. Das ersetzt die heutige `SonosAudioFocusIntegration`.
 
-Der Raum besitzt den **AEC-Stack**: Mic und Speaker werden im Raum mit Echo-Cancellation gewickelt, und Voice bekommt die gewickelten Geräte. Alles, was über den lokalen Speaker läuft (Stimme, Earcons, lokale Musik), läuft durch den Output mit Echo-Referenz.
-
-| Speaker | Stimme / Earcons | Musik | Echo-Referenz für Musik |
-|---|---|---|---|
-| lokal | Mixer im Raum | Mixer im Raum | ja |
-| Sonos | Clips über Sonos | Sonos spielt selbst | nein; Musik wird während des Zuhörens geduckt oder pausiert |
+Der Raum besitzt den **AEC-Stack** für Mikrofon und Assistenten-Audio. Sonos spielt Musik selbst und liefert dafür keine Echo-Referenz. Für den ersten Ausbau reicht Ducking: Während der Raum zuhört oder spricht, senkt er die Sonos-Lautstärke und stellt sie danach wieder her. Eine besondere Barge-in-Konfiguration für Sonos-Musik ist zunächst nicht vorgesehen.
 
 ## Musik
 
 Musik ist Spotify-Wiedergabe im Raum, keine Sound-Bibliothek.
 
 - **Gateway** (Media Service): löst Anfragen über die Spotify-API auf (Spotify-Auth nur hier), bestimmt Ziel-Räume mit `music` und schickt `media.play`.
-- **Room Client**: spielt über den Speaker-Treiber, arbitriert gegen Stimme und Earcons und meldet Now Playing zurück.
-  - **Sonos**: Sonos spielt die Spotify-URI selbst. Voraussetzung: Spotify ist im Sonos-Haushalt verknüpft.
-  - **lokal**: ein lokaler Spotify-Connect-Player (librespot) gibt PCM an den Mixer des Raums, damit die Musik durch Arbitrierung und Echo-Referenz läuft. Der Raum meldet die Connect-Device-ID bei der Registrierung; das Gateway startet die Wiedergabe per Spotify-API auf diesem Device.
-- Now Playing ist Laufzeitzustand des Raums und für den Agenten abfragbar.
+- **Room Client**: führt die Medienkommandos über die Sonos-Capabilities aus und arbitriert Musik gegen Stimme und Earcons. Sonos spielt die vom Gateway aufgelöste Spotify-URI selbst; dafür muss Spotify im Sonos-Haushalt verknüpft sein.
+- Ein lokaler Spotify-Connect-Player und ein abstrahierter lokaler Musikpfad sind nicht Teil des ersten Ausbaus.
 
 `voice.audio.AudioOutput` (PCM-Senke für die Assistentenstimme) bleibt von der Musikwiedergabe getrennt.
 
@@ -263,7 +254,9 @@ Hue ist ein Device mit `light`. Der Raum nutzt es auf zwei Arten:
 
 ## Proaktivität
 
-Ohne Wake Word kann das Gateway einen Raum sprechen lassen (Erinnerung, Alarm, Durchsage), Musik oder Licht steuern. Bei Gruppen löst das Gateway die Räume auf und verteilt; jeder Raum führt mit seiner lokalen Semantik aus. Offline-Räume und Räume ohne die nötige Funktion werden übersprungen und im Ergebnis genannt.
+Ohne Wake Word kann das Gateway einen Raum sprechen lassen (Erinnerung, Alarm, Durchsage), Musik oder Licht steuern. Dafür nutzt es je nach Anwendungsfall einen proaktiven Voice-Turn oder die passende mit `room_channel.client.method(...)` deklarierte Methode. Bei Gruppen löst das Gateway die Räume auf und verteilt; jeder Raum führt mit seiner lokalen Semantik aus. Offline-Räume und Räume ohne die nötige Funktion werden übersprungen und im Ergebnis genannt.
+
+Musikkommandos an eine Gruppe sind zunächst unabhängige Aufrufe pro Raum. Sonos-Gruppierung und garantierte synchrone Wiedergabe über mehrere Räume gehören nicht zum ersten Ausbau.
 
 ## Voice als Bibliothek
 
@@ -279,14 +272,10 @@ Ohne Wake Word kann das Gateway einen Raum sprechen lassen (Erinnerung, Alarm, D
 2. Room Client: Config, Treiber für Mikrofon und Speaker, Registrierung, Room-WebSocket mit Reconnect, `/health`, `/ready`.
 3. Voice als Bibliothek: Config aufteilen, AEC in den Raum, Gesprächsmodus im Room Client.
 4. `RoomState` und Embodiment (Earcons, Hue) im Room-Paket; Speaker-Arbitrierung.
-5. Kommandos über die Room-WebSocket mit Quittung; `light.set`.
-6. Musik: Media Service im Gateway, Sonos-Wiedergabe, danach lokaler Player.
+5. Bidirektionale RPC-Schnittstelle über die Room-WebSocket: `room_channel.client.method(...)` für Kommandos, `room_channel.server.method(...)` für Zustandsmeldungen; `light.set`.
+6. Musik: Media Service im Gateway und Spotify-Wiedergabe über Sonos.
 7. Agent-Tools auf Raum-Funktionen, `RoomGroup`-Fan-out.
 
 ## Offene Fragen
 
 - Zwei Verbindungen pro Raum (Room-WebSocket + Voice-Session) oder später zusammenlegen?
-- Strikt ein Raum pro Prozess oder mehrere Räume in einem Prozess?
-- Lokaler Spotify-Player: librespot als Subprozess mit Pipe-Backend oder eingebettet?
-- Sonos-Gruppierung für synchrone Musik über mehrere Räume.
-- Sonos-Musik hat keine Echo-Referenz: reicht Ducken während des Zuhörens, oder muss Barge-in bei Sonos-Musik anders konfiguriert werden?
