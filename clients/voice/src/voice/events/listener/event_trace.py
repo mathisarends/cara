@@ -7,7 +7,6 @@ from voice.events.models import (
     AssistantAudioChunk,
     Event,
     UserAudioChunk,
-    UserTranscriptionUpdated,
 )
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,6 @@ _MAX_VALUE_LENGTH = 60
 _REPEATING = (
     AssistantAudioChunk,
     UserAudioChunk,
-    UserTranscriptionUpdated,
 )
 
 

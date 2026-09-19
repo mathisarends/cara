@@ -3,7 +3,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from voice.activation_kind import ActivationKind
-from voice.transcription import TranscriptionKind
 
 
 class Event(BaseModel):
@@ -107,18 +106,6 @@ class VoiceTurnTimedOut(Event):
 class VoiceTurnFailed(Event):
     turn_id: UUID
     message: str
-
-
-class UserTranscriptionUpdated(Event):
-    turn_id: UUID
-    text: str
-    is_final: bool
-    kind: TranscriptionKind
-
-
-class UserTranscriptionCompleted(Event):
-    turn_id: UUID
-    text: str
 
 
 class UserAudioChunk(Event):

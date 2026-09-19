@@ -46,8 +46,6 @@ from voice.events import (
     SessionEnded,
     UserSpeechEnded,
     UserSpeechStarted,
-    UserTranscriptionCompleted,
-    UserTranscriptionUpdated,
     UserTurnStarted,
     VoiceConversationEnded,
     VoiceConversationInactivityCountdown,
@@ -69,7 +67,6 @@ from voice.events.models import (
 )
 from voice.gateway.framing import MediaFrameKind
 from voice.gateway.session import GatewayVoiceSession
-from voice.transcription import TranscriptionKind
 
 logger = logging.getLogger(__name__)
 
@@ -141,13 +138,6 @@ class GatewayVoiceBridge:
             case VoiceTurnStatus.TRANSCRIBING:
                 await self._event_bus.emit(UserSpeechEnded())
             case VoiceTurnStatus.WAITING_FOR_ASSISTANT | VoiceTurnStatus.SPEAKING:
-                if turn.transcript is not None:
-                    await self._event_bus.emit(
-                        UserTranscriptionCompleted(
-                            turn_id=turn.id,
-                            text=turn.transcript,
-                        )
-                    )
                 await self._event_bus.emit(AssistantTurnStarted())
                 await self._event_bus.emit(AssistantResponseStarted(turn_id=turn.id))
                 if turn.status is VoiceTurnStatus.SPEAKING:
@@ -327,24 +317,10 @@ class GatewayVoiceBridge:
                     await self._voice_turn_started(event)
                 case VoiceTranscriptPartial():
                     await self._start_user_speech(event.voice_turn_id)
-                    await self._event_bus.emit(
-                        UserTranscriptionUpdated(
-                            turn_id=event.voice_turn_id,
-                            text=event.text,
-                            is_final=False,
-                            kind=TranscriptionKind.UPDATE,
-                        )
-                    )
                 case VoiceTranscriptFinal():
                     await self._stop_input()
                     await self._start_user_speech(event.voice_turn_id)
                     await self._event_bus.emit(UserSpeechEnded())
-                    await self._event_bus.emit(
-                        UserTranscriptionCompleted(
-                            turn_id=event.voice_turn_id,
-                            text=event.text,
-                        )
-                    )
                     await self._event_bus.emit(AssistantTurnStarted())
                     await self._event_bus.emit(
                         AssistantResponseStarted(turn_id=event.voice_turn_id)
