@@ -91,7 +91,7 @@ class AgentRuntimeProvider(Provider):
     @provide
     async def agent_runtime(
         self,
-        sessions: SessionService,
+        sessions: UnitOfWork[SessionService],
         factory: AgentFactory,
         sandbox: WorkspaceSandboxClient,
         tool_dependencies: TurnToolDependencies,

@@ -24,12 +24,14 @@ class Session(Aggregate):
         id: UUID | None = None,
         created_at: datetime | None = None,
         inactivity_timeout: timedelta | None = None,
+        is_current: bool = True,
     ) -> None:
         super().__init__(id=id, created_at=created_at)
         self._channel = channel
         self._entries = list(entries)
         self._turn_active = turn_active
         self._inactivity_timeout = inactivity_timeout
+        self._is_current = is_current
 
     @classmethod
     def create(cls, channel: ChannelRef) -> Self:
@@ -52,6 +54,10 @@ class Session(Aggregate):
         return self._inactivity_timeout
 
     @property
+    def is_current(self) -> bool:
+        return self._is_current
+
+    @property
     def last_activity_at(self) -> datetime:
         timestamps = (entry.created_at for entry in self._entries)
         return max(timestamps, default=self.created_at)
@@ -60,6 +66,9 @@ class Session(Aggregate):
         if timeout is not None and timeout <= timedelta(0):
             raise ValueError("Session inactivity timeout must be positive")
         self._inactivity_timeout = timeout
+
+    def supersede(self) -> None:
+        self._is_current = False
 
     def is_inactive_at(self, now: datetime) -> bool:
         timeout = self._inactivity_timeout

@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 from typing import cast
 from uuid import uuid4
 
@@ -15,6 +16,7 @@ from gateway.features.conversation.application import (
 )
 from gateway.features.conversation.domain import ChannelRef, Session
 from gateway.features.conversation.infrastructure.cara_runtime import CaraAgentRuntime
+from gateway.shared import UnitOfWork
 from llm import Message
 
 
@@ -25,6 +27,15 @@ class _Sessions:
     async def get(self, session_id):
         assert session_id == self._session.id
         return self._session
+
+
+class _SessionUnits(UnitOfWork[SessionService]):
+    def __init__(self, sessions: SessionService) -> None:
+        self._sessions = sessions
+
+    @asynccontextmanager
+    async def __call__(self):
+        yield self._sessions
 
 
 class _Agent:
@@ -84,7 +95,7 @@ async def test_runtime_reuses_one_agent_until_the_session_is_finished() -> None:
     factory = _Factory()
     sandbox = _Sandbox()
     runtime = CaraAgentRuntime(
-        cast(SessionService, _Sessions(session)),
+        _SessionUnits(cast(SessionService, _Sessions(session))),
         cast(AgentFactory, factory),
         sandbox,
         cast(TurnToolDependencies, _TurnDependencies()),

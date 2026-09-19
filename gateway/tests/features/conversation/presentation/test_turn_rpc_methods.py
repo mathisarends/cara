@@ -16,12 +16,14 @@ from gateway.features.conversation.application import (
     SessionService,
     TurnLease,
     TurnService,
+    TurnWorker,
 )
 from gateway.features.conversation.domain import (
     AssistantMessage,
     ChannelRef,
     SessionNotFoundError,
     SessionRepository,
+    SortOrder,
 )
 from gateway.features.conversation.presentation.rpc.methods import (
     cancel_turn,
@@ -33,7 +35,7 @@ from gateway.features.conversation.presentation.rpc.models import (
     SessionParams,
     StartTurnParams,
 )
-from gateway.shared import UnitOfWork
+from gateway.shared import Transaction, UnitOfWork
 
 _CHANNEL = ChannelRef("voice")
 
@@ -84,15 +86,60 @@ def _services(
     runner: AgentRuntime,
     publisher: EventPublisher | None = None,
 ) -> tuple[SessionService, TurnService]:
-    sessions = SessionService(session_units)
-    turns = TurnService(
+    repository = _Repository(session_units)
+    sessions = SessionService(repository)
+    worker = TurnWorker(
         session_units,
-        sessions,
         lease_units,
         publisher or _RecordingPublisher(),
         runner,
     )
+    turns = TurnService(
+        repository,
+        _Lease(lease_units),
+        _ImmediateTransaction(),
+        worker,
+    )
     return sessions, turns
+
+
+class _Repository(SessionRepository):
+    def __init__(self, units: UnitOfWork[SessionRepository]) -> None:
+        self._units = units
+
+    async def find_by_id(self, id):
+        async with self._units() as repository:
+            return await repository.find_by_id(id)
+
+    async def find_latest_by_channel(self, channel):
+        async with self._units() as repository:
+            return await repository.find_latest_by_channel(channel)
+
+    async def find_many(self, *, limit: int, order: SortOrder):
+        async with self._units() as repository:
+            return await repository.find_many(limit=limit, order=order)
+
+    async def save(self, domain):
+        async with self._units() as repository:
+            return await repository.save(domain)
+
+
+class _Lease(TurnLease):
+    def __init__(self, units: UnitOfWork[TurnLease]) -> None:
+        self._units = units
+
+    async def acquire(self, session_id):
+        async with self._units() as lease:
+            return await lease.acquire(session_id)
+
+    async def release(self, session_id):
+        async with self._units() as lease:
+            await lease.release(session_id)
+
+
+class _ImmediateTransaction(Transaction):
+    def after_commit(self, action) -> None:
+        action()
 
 
 async def test_prepare_and_finish_turn_forward_the_session(
@@ -149,7 +196,7 @@ async def test_cancel_turn_releases_the_session_for_a_new_turn(
     )
 
     assert result.session_id == created.id
-    await turns.close()
+    await turns.cancel(created.id)
 
 
 async def test_turn_methods_raise_for_an_unknown_session(

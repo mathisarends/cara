@@ -24,7 +24,7 @@ from gateway.features.alarm.infrastructure.scheduling import (
     InProcessAlarmScheduler,
     SystemClock,
 )
-from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.application import SessionService, TurnWorker
 from gateway.features.voice.application import VoiceTurnService
 from gateway.platform.database import ScopedUnitOfWork
 from gateway.shared import UnitOfWork
@@ -38,13 +38,16 @@ class AlarmProvider(Provider):
         return SystemClock()
 
     @provide
-    def target_resolver(self, sessions: SessionService) -> AlarmTargetResolver:
+    def target_resolver(
+        self,
+        sessions: UnitOfWork[SessionService],
+    ) -> AlarmTargetResolver:
         return ConversationAlarmTargetResolver(sessions)
 
     @provide
     def run_executor(
         self,
-        turns: TurnService,
+        turns: TurnWorker,
         voice_turns: VoiceTurnService,
         settings: AgentSettings,
     ) -> AlarmRunExecutor:

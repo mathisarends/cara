@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID, uuid4
@@ -9,10 +10,10 @@ from gateway.features.automation.domain import (
 from gateway.features.automation.infrastructure.conversation import (
     ConversationAutomationActionExecutor,
 )
-from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.application import SessionService, TurnWorker
 from gateway.features.conversation.domain import ChannelRef, Session
 from gateway.features.voice.application import VoiceTurnService
-from gateway.shared import VoiceDelivery
+from gateway.shared import UnitOfWork, VoiceDelivery
 
 
 class _Sessions:
@@ -23,6 +24,15 @@ class _Sessions:
     async def open(self, *, channel: ChannelRef) -> Session:
         self.opened.append(channel)
         return self.session
+
+
+class _SessionUnits(UnitOfWork[SessionService]):
+    def __init__(self, sessions: SessionService) -> None:
+        self._sessions = sessions
+
+    @asynccontextmanager
+    async def __call__(self):
+        yield self._sessions
 
 
 class _Turns:
@@ -57,8 +67,8 @@ async def test_channel_target_opens_the_current_session_before_running() -> None
     sessions = _Sessions()
     turns = _Turns()
     executor = ConversationAutomationActionExecutor(
-        cast(SessionService, sessions),
-        cast(TurnService, turns),
+        _SessionUnits(cast(SessionService, sessions)),
+        cast(TurnWorker, turns),
         cast(VoiceTurnService, _VoiceTurns()),
     )
     automation_id = uuid4()
@@ -81,8 +91,8 @@ async def test_channel_target_opens_the_current_session_before_running() -> None
 async def test_voice_delivery_runs_proactively_in_the_configured_room() -> None:
     voice_turns = _VoiceTurns()
     executor = ConversationAutomationActionExecutor(
-        cast(SessionService, _Sessions()),
-        cast(TurnService, _Turns()),
+        _SessionUnits(cast(SessionService, _Sessions())),
+        cast(TurnWorker, _Turns()),
         cast(VoiceTurnService, voice_turns),
     )
     automation_id = uuid4()
@@ -104,8 +114,8 @@ async def test_voice_delivery_runs_proactively_in_the_configured_room() -> None:
 async def test_voice_delivery_is_skipped_when_the_room_is_offline() -> None:
     voice_turns = _VoiceTurns(available=False)
     executor = ConversationAutomationActionExecutor(
-        cast(SessionService, _Sessions()),
-        cast(TurnService, _Turns()),
+        _SessionUnits(cast(SessionService, _Sessions())),
+        cast(TurnWorker, _Turns()),
         cast(VoiceTurnService, voice_turns),
     )
 

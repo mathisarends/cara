@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from gateway.features.conversation.application import (
     EventSource,
     SessionService,
-    TurnService,
+    TurnWorker,
 )
 from gateway.features.voice.application import (
     AudioEncoder,
@@ -100,7 +100,7 @@ class VoiceProvider(Provider):
     def session_service(
         self,
         repositories: UnitOfWork[VoiceSessionRepository],
-        sessions: SessionService,
+        sessions: UnitOfWork[SessionService],
         events: VoiceEventPublisher,
         media: MediaSessions,
     ) -> VoiceSessionService:
@@ -111,7 +111,7 @@ class VoiceProvider(Provider):
         self,
         repositories: UnitOfWork[VoiceSessionRepository],
         sessions: VoiceSessionService,
-        turns: TurnService,
+        turns: TurnWorker,
         events: VoiceEventPublisher,
         media: MediaSessions,
         conversation_events: EventSource,

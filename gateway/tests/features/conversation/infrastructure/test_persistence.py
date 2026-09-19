@@ -1,3 +1,6 @@
+import pytest
+from sqlalchemy.exc import IntegrityError
+
 from gateway.features.conversation.domain import (
     AssistantMessage,
     ChannelRef,
@@ -12,6 +15,15 @@ from gateway.features.conversation.infrastructure.repository import (
 )
 
 _CHANNEL = ChannelRef("web")
+
+
+async def test_only_one_current_session_per_channel_is_allowed(
+    session_repository: SQLSessionRepository,
+) -> None:
+    await session_repository.save(Session.create(_CHANNEL))
+
+    with pytest.raises(IntegrityError):
+        await session_repository.save(Session.create(_CHANNEL))
 
 
 async def test_session_aggregate_round_trips_with_complete_history(
@@ -62,6 +74,8 @@ async def test_latest_session_can_be_found_by_its_channel(
     session_repository: SQLSessionRepository,
 ) -> None:
     first = await session_repository.save(Session.create(_CHANNEL))
+    first.supersede()
+    await session_repository.save(first)
     latest = await session_repository.save(Session.create(_CHANNEL))
     await session_repository.save(Session.create(ChannelRef("voice")))
 
@@ -75,7 +89,12 @@ async def test_latest_session_can_be_found_by_its_channel(
 async def test_sessions_can_be_listed_in_either_order_with_a_limit(
     session_repository: SQLSessionRepository,
 ) -> None:
-    saved = [await session_repository.save(Session.create(_CHANNEL)) for _ in range(3)]
+    saved = []
+    for _ in range(3):
+        if saved:
+            saved[-1].supersede()
+            await session_repository.save(saved[-1])
+        saved.append(await session_repository.save(Session.create(_CHANNEL)))
 
     newest = await session_repository.find_many(limit=2, order=SortOrder.DESCENDING)
     oldest = await session_repository.find_many(limit=2, order=SortOrder.ASCENDING)

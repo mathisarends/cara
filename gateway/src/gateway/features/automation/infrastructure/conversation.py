@@ -12,10 +12,10 @@ from gateway.features.automation.domain import (
     PromptAction,
     SessionTarget,
 )
-from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.application import SessionService, TurnWorker
 from gateway.features.conversation.domain import ChannelRef
 from gateway.features.voice.application import VoiceTurnService
-from gateway.shared import VoiceDelivery
+from gateway.shared import UnitOfWork, VoiceDelivery
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,8 @@ class ConversationAutomationTargetResolver(AutomationTargetResolver):
 class ConversationAutomationActionExecutor(AutomationActionExecutor):
     def __init__(
         self,
-        sessions: SessionService,
-        turns: TurnService,
+        sessions: UnitOfWork[SessionService],
+        turns: TurnWorker,
         voice_turns: VoiceTurnService,
     ) -> None:
         self._sessions = sessions
@@ -74,7 +74,8 @@ class ConversationAutomationActionExecutor(AutomationActionExecutor):
                     text=prompt,
                 )
             case ChannelTarget(channel=channel):
-                session = await self._sessions.open(channel=ChannelRef(channel))
+                async with self._sessions() as sessions:
+                    session = await sessions.open(channel=ChannelRef(channel))
                 await self._turns.start_scheduled(
                     session_id=session.id,
                     text=prompt,

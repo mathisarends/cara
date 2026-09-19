@@ -87,7 +87,7 @@ class GatewayProvider(Provider):
     def receiver(self, client: GatewayClient) -> EventReceiver:
         return client.receiver
 
-    @provide(scope=Scope.SESSION)
+    @provide(scope=Scope.REQUEST)
     def rpc_methods(
         self,
         sessions: SessionService,

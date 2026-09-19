@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, Column, Index, UniqueConstraint
+from sqlalchemy import JSON, Column, Index, UniqueConstraint, text
 from sqlmodel import Field, Relationship
 
 from gateway.platform.database import DatabaseEntity
@@ -15,11 +15,19 @@ class SessionModel(DatabaseEntity, table=True):
             "channel_name",
             "created_at",
         ),
+        Index(
+            "uq_gateway_sessions_current_channel",
+            "channel_name",
+            unique=True,
+            sqlite_where=text("is_current"),
+            postgresql_where=text("is_current"),
+        ),
     )
 
     channel_name: str
     inactivity_timeout_seconds: float | None = None
     turn_active: bool = Field(default=False, nullable=False)
+    is_current: bool = Field(default=True, nullable=False)
     user_messages: list["SessionUserMessageModel"] = Relationship(
         back_populates="session",
         cascade_delete=True,

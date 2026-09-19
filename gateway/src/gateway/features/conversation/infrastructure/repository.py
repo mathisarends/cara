@@ -37,7 +37,10 @@ class SQLSessionRepository(
     async def find_latest_by_channel(self, channel: ChannelRef) -> Session | None:
         statement = (
             select(SessionModel)
-            .where(SessionModel.channel_name == channel.name)
+            .where(
+                SessionModel.channel_name == channel.name,
+                SessionModel.is_current.is_(True),
+            )
             .order_by(SessionModel.created_at.desc(), SessionModel.id.desc())
             .limit(1)
             .options(*self._load_options())
@@ -94,6 +97,7 @@ class SQLSessionRepository(
                 if orm.inactivity_timeout_seconds is not None
                 else None
             ),
+            is_current=orm.is_current,
             entries=[entry for _, entry in positioned_entries],
         )
 
@@ -108,6 +112,7 @@ class SQLSessionRepository(
                 else None
             ),
             turn_active=domain.turn_active,
+            is_current=domain.is_current,
         )
         for position, entry in enumerate(domain.entries):
             if isinstance(entry, UserMessage):

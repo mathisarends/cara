@@ -18,8 +18,8 @@ from gateway.features.conversation.application import (
     ToolCallCompleted,
     ToolCallStarted,
     TurnLease,
-    TurnService,
     TurnSteered,
+    TurnWorker,
 )
 from gateway.features.conversation.domain import (
     ChannelRef,
@@ -340,12 +340,25 @@ async def _wait_for_event(
         await asyncio.sleep(0.01)
 
 
+class _Sessions:
+    def __init__(self, units: UnitOfWork[SessionRepository]) -> None:
+        self._units = units
+
+    async def create(self, *, channel: ChannelRef):
+        async with self._units() as repository:
+            return await SessionService(repository).create(channel=channel)
+
+    async def get(self, session_id):
+        async with self._units() as repository:
+            return await SessionService(repository).get(session_id)
+
+
 def _services(
     session_units: UnitOfWork[SessionRepository],
     lease_units: UnitOfWork[TurnLease],
     publisher: EventPublisher,
     runner: AgentRuntime,
-) -> tuple[SessionService, TurnService]:
-    sessions = SessionService(session_units)
-    turns = TurnService(session_units, sessions, lease_units, publisher, runner)
+) -> tuple[_Sessions, TurnWorker]:
+    sessions = _Sessions(session_units)
+    turns = TurnWorker(session_units, lease_units, publisher, runner)
     return sessions, turns

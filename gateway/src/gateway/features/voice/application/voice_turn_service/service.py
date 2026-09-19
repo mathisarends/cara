@@ -6,7 +6,7 @@ from uuid import UUID
 from gateway.features.conversation.application import (
     ConversationEventType,
     EventSource,
-    TurnService,
+    TurnWorker,
 )
 from gateway.features.conversation.domain import NoActiveTurnError
 from gateway.features.voice.application.events import VoiceEvent, VoiceEventType
@@ -42,7 +42,7 @@ class VoiceTurnService:
         self,
         repositories: UnitOfWork[VoiceSessionRepository],
         sessions: VoiceSessionService,
-        turns: TurnService,
+        turns: TurnWorker,
         events: VoiceEventPublisher,
         media: MediaSessions,
         conversation_events: EventSource,

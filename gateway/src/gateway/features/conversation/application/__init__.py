@@ -14,6 +14,7 @@ from .events import ConversationEvent, ConversationEventType
 from .ports import EventPublisher, EventSource, EventSubscription, TurnLease
 from .session_service import SessionService
 from .turn_service import TurnService
+from .turn_worker import TurnWorker
 
 __all__ = [
     "AgentChannelRef",
@@ -31,6 +32,7 @@ __all__ = [
     "SessionService",
     "TurnLease",
     "TurnService",
+    "TurnWorker",
     "ToolCallCompleted",
     "ToolCallStarted",
     "TurnSteered",

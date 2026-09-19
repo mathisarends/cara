@@ -9,6 +9,7 @@ from gateway.features.conversation.application import (
     SessionService,
     TurnLease,
     TurnService,
+    TurnWorker,
 )
 from gateway.features.conversation.domain import SessionRepository
 from gateway.features.conversation.infrastructure.repository import (
@@ -16,7 +17,7 @@ from gateway.features.conversation.infrastructure.repository import (
 )
 from gateway.features.conversation.infrastructure.turn_lease import SQLTurnLease
 from gateway.platform.database import ScopedUnitOfWork
-from gateway.shared import UnitOfWork
+from gateway.shared import Transaction, UnitOfWork
 
 
 class ConversationProvider(Provider):
@@ -31,12 +32,19 @@ class ConversationProvider(Provider):
     ) -> UnitOfWork[SessionRepository]:
         return ScopedUnitOfWork(container, SessionRepository)
 
-    @provide(scope=Scope.APP)
+    @provide(scope=Scope.REQUEST)
     def session_service(
         self,
-        sessions: UnitOfWork[SessionRepository],
+        sessions: SessionRepository,
     ) -> SessionService:
         return SessionService(sessions)
+
+    @provide(scope=Scope.APP)
+    def session_service_unit_of_work(
+        self,
+        container: AsyncContainer,
+    ) -> UnitOfWork[SessionService]:
+        return ScopedUnitOfWork(container, SessionService)
 
     @provide(scope=Scope.REQUEST)
     def turn_lease(self, session: AsyncSession) -> TurnLease:
@@ -50,16 +58,25 @@ class ConversationProvider(Provider):
         return ScopedUnitOfWork(container, TurnLease)
 
     @provide(scope=Scope.APP)
-    async def turn_service(
+    async def turn_worker(
         self,
         sessions: UnitOfWork[SessionRepository],
-        session_service: SessionService,
         leases: UnitOfWork[TurnLease],
         events: EventPublisher,
         agent: AgentRuntime,
-    ) -> AsyncIterator[TurnService]:
-        service = TurnService(sessions, session_service, leases, events, agent)
+    ) -> AsyncIterator[TurnWorker]:
+        worker = TurnWorker(sessions, leases, events, agent)
         try:
-            yield service
+            yield worker
         finally:
-            await service.close()
+            await worker.close()
+
+    @provide(scope=Scope.REQUEST)
+    def turn_service(
+        self,
+        sessions: SessionRepository,
+        lease: TurnLease,
+        transaction: Transaction,
+        worker: TurnWorker,
+    ) -> TurnService:
+        return TurnService(sessions, lease, transaction, worker)

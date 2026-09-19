@@ -23,7 +23,7 @@ class VoiceSessionService:
     def __init__(
         self,
         repositories: UnitOfWork[VoiceSessionRepository],
-        sessions: SessionService,
+        sessions: UnitOfWork[SessionService],
         events: VoiceEventPublisher,
         media: MediaSessions,
     ) -> None:
@@ -39,7 +39,8 @@ class VoiceSessionService:
         input_formats: tuple[AudioFormat, ...],
         output_formats: tuple[AudioFormat, ...],
     ) -> VoiceSession:
-        await self._sessions.get(session_id)
+        async with self._sessions() as sessions:
+            await sessions.get(session_id)
         input_format = _negotiate(input_formats, _SUPPORTED_INPUT, "input")
         output_format = _negotiate(output_formats, _SUPPORTED_OUTPUT, "output")
         async with self._repositories() as repository:
@@ -105,11 +106,12 @@ class VoiceSessionService:
 
     async def switch_to_new_conversation(self, voice_session: VoiceSession) -> None:
         """Point the voice session at a fresh conversation session; the caller saves."""
-        current = await self._sessions.get(voice_session.session_id)
-        conversation = await self._sessions.create(
-            channel=current.channel,
-            inactivity_timeout=current.inactivity_timeout,
-        )
+        async with self._sessions() as sessions:
+            current = await sessions.get(voice_session.session_id)
+            conversation = await sessions.create(
+                channel=current.channel,
+                inactivity_timeout=current.inactivity_timeout,
+            )
         voice_session.switch_conversation(conversation.id)
 
     def media_connected(self, voice_session_id: UUID) -> bool:

@@ -37,6 +37,7 @@ from gateway.features.conversation.domain import (
 from gateway.features.conversation.domain import (
     UserMessage as StoredUserMessage,
 )
+from gateway.shared import UnitOfWork
 from llm import (
     AssistantMessage,
     Message,
@@ -55,7 +56,7 @@ class _SandboxPrewarmer(Protocol):
 class CaraAgentRuntime:
     def __init__(
         self,
-        sessions: SessionService,
+        sessions: UnitOfWork[SessionService],
         factory: AgentFactory,
         sandbox: _SandboxPrewarmer,
         tool_dependencies: TurnToolDependencies,
@@ -130,11 +131,12 @@ class CaraAgentRuntime:
 
 
 async def _context_messages(
-    sessions: SessionService,
+    sessions: UnitOfWork[SessionService],
     session_id: UUID,
     input_id: UUID | None,
 ) -> list[Message]:
-    session = await sessions.get(session_id)
+    async with sessions() as service:
+        session = await service.get(session_id)
 
     messages: list[Message] = []
     for entry in session.entries:

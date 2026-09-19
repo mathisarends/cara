@@ -23,7 +23,7 @@ from gateway.features.automation.infrastructure.scheduling import (
     AutomationRuntime,
     InProcessAutomationScheduler,
 )
-from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.application import SessionService, TurnWorker
 from gateway.features.voice.application import VoiceTurnService
 from gateway.platform.database import ScopedUnitOfWork
 from gateway.shared.transaction import Transaction
@@ -42,8 +42,8 @@ class AutomationProvider(Provider):
     @provide(scope=Scope.APP)
     def action_executor(
         self,
-        sessions: SessionService,
-        turns: TurnService,
+        sessions: UnitOfWork[SessionService],
+        turns: TurnWorker,
         voice_turns: VoiceTurnService,
     ) -> AutomationActionExecutor:
         return ConversationAutomationActionExecutor(

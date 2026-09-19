@@ -12,26 +12,28 @@ from gateway.features.alarm.domain import (
     SessionTarget,
     WeeklyRecurrence,
 )
-from gateway.features.conversation.application import SessionService, TurnService
+from gateway.features.conversation.application import SessionService, TurnWorker
 from gateway.features.voice.application import VoiceTurnService
+from gateway.shared import UnitOfWork
 
 logger = logging.getLogger(__name__)
 
 
 class ConversationAlarmTargetResolver(AlarmTargetResolver):
-    def __init__(self, sessions: SessionService) -> None:
+    def __init__(self, sessions: UnitOfWork[SessionService]) -> None:
         self._sessions = sessions
 
     async def require(self, target: AlarmTarget) -> None:
         match target:
             case SessionTarget(session_id=session_id):
-                await self._sessions.get(session_id)
+                async with self._sessions() as sessions:
+                    await sessions.get(session_id)
 
 
 class ConversationAlarmRunExecutor(AlarmRunExecutor):
     def __init__(
         self,
-        turns: TurnService,
+        turns: TurnWorker,
         voice_turns: VoiceTurnService,
         local_timezone: ZoneInfo,
     ) -> None:
