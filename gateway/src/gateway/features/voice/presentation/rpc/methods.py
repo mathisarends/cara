@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from pyrpckit import Inject, RpcChannel
 
 from gateway.features.voice.application import VoiceTurnService
@@ -18,8 +20,15 @@ voice_turn_channel = RpcChannel(
 )
 
 
-@voice_turn_channel.method(
-    "start", raises=(MediaNotConnectedRpcError, VoiceTurnAlreadyActiveRpcError)
+class _VoiceTurnMethod(StrEnum):
+    START = "start"
+    INTERRUPT = "interrupt"
+    PLAYBACK_COMPLETED = "playback_completed"
+
+
+@voice_turn_channel.server.method(
+    _VoiceTurnMethod.START,
+    raises=(MediaNotConnectedRpcError, VoiceTurnAlreadyActiveRpcError),
 )
 async def start_voice_turn(
     params: StartVoiceTurnParams,
@@ -32,7 +41,7 @@ async def start_voice_turn(
     )
 
 
-@voice_turn_channel.method("interrupt")
+@voice_turn_channel.server.method(_VoiceTurnMethod.INTERRUPT)
 async def interrupt_voice_turn(
     params: InterruptVoiceTurnParams,
     turns: Inject[VoiceTurnService],
@@ -45,7 +54,7 @@ async def interrupt_voice_turn(
     )
 
 
-@voice_turn_channel.method("playback_completed")
+@voice_turn_channel.server.method(_VoiceTurnMethod.PLAYBACK_COMPLETED)
 async def complete_voice_playback(
     params: VoiceTurnParams,
     turns: Inject[VoiceTurnService],

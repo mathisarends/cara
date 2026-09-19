@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from pyrpckit import Inject, RpcChannel
 
 from gateway.features.conversation.presentation.rpc.models import (
@@ -14,7 +16,17 @@ from gateway.presentation.websocket.subscriptions import EventStreamRpcMethods
 subscription_channel = RpcChannel("subscription")
 
 
-@subscription_channel.method("subscribe", raises=(ResourceNotFoundError,))
+class _SubscriptionMethod(StrEnum):
+    SUBSCRIBE = "subscribe"
+    UNSUBSCRIBE = "unsubscribe"
+    SUBSCRIBE_CHANNEL = "subscribe_channel"
+    UNSUBSCRIBE_CHANNEL = "unsubscribe_channel"
+
+
+@subscription_channel.server.method(
+    _SubscriptionMethod.SUBSCRIBE,
+    raises=(ResourceNotFoundError,),
+)
 async def subscribe_session(
     params: SessionParams,
     handler: Inject[EventStreamRpcMethods],
@@ -22,7 +34,7 @@ async def subscribe_session(
     return await handler.subscribe_session(params)
 
 
-@subscription_channel.method("unsubscribe")
+@subscription_channel.server.method(_SubscriptionMethod.UNSUBSCRIBE)
 async def unsubscribe_session(
     params: SessionParams,
     handler: Inject[EventStreamRpcMethods],
@@ -30,7 +42,7 @@ async def unsubscribe_session(
     return await handler.unsubscribe_session(params)
 
 
-@subscription_channel.method
+@subscription_channel.server.method(_SubscriptionMethod.SUBSCRIBE_CHANNEL)
 async def subscribe_channel(
     params: ChannelParams,
     handler: Inject[EventStreamRpcMethods],
@@ -38,7 +50,7 @@ async def subscribe_channel(
     return handler.subscribe_channel(params)
 
 
-@subscription_channel.method
+@subscription_channel.server.method(_SubscriptionMethod.UNSUBSCRIBE_CHANNEL)
 async def unsubscribe_channel(
     params: ChannelParams,
     handler: Inject[EventStreamRpcMethods],

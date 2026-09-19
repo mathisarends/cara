@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 media_channel = RpcChannel("voice_media", namespace="voice")
 
 
-@media_channel.stream(
+@media_channel.server.stream(
     "media",
     input_content_type="application/octet-stream",
 )

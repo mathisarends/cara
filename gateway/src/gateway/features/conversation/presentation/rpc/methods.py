@@ -16,7 +16,7 @@ from gateway.presentation.rpc.errors import (
 turn_channel = RpcChannel("turn", raises=(ResourceNotFoundError,))
 
 
-@turn_channel.method("prepare")
+@turn_channel.server.method("prepare")
 async def prepare_turn(
     params: SessionParams,
     turns: Inject[TurnService],
@@ -25,7 +25,7 @@ async def prepare_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@turn_channel.method("start", raises=(TurnAlreadyRunningError,))
+@turn_channel.server.method("start", raises=(TurnAlreadyRunningError,))
 async def start_turn(
     params: StartTurnParams,
     turns: Inject[TurnService],
@@ -37,7 +37,7 @@ async def start_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@turn_channel.method("steer", raises=(NoActiveTurnError,))
+@turn_channel.server.method("steer", raises=(NoActiveTurnError,))
 async def steer_turn(
     params: SteerTurnParams,
     turns: Inject[TurnService],
@@ -46,7 +46,7 @@ async def steer_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@turn_channel.method("finish")
+@turn_channel.server.method("finish")
 async def finish_turn(
     params: SessionParams,
     turns: Inject[TurnService],
@@ -55,7 +55,7 @@ async def finish_turn(
     return TurnCommandResult(session_id=params.session_id)
 
 
-@turn_channel.method("cancel", raises=(NoActiveTurnError,))
+@turn_channel.server.method("cancel", raises=(NoActiveTurnError,))
 async def cancel_turn(
     params: SessionParams,
     turns: Inject[TurnService],

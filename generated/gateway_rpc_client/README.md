@@ -6,7 +6,7 @@ Resources such as sessions, automations, and alarms live in
 [`gateway-rest-client`](../gateway_rest_client); see
 [docs/gateway-transport.md](../../docs/gateway-transport.md).
 
-`pyrpckit` 0.6.0 generates the models, namespace clients, WebSocket transports,
+`pyrpckit` 0.7.0 generates the models, namespace clients, WebSocket transports,
 and internal runtime from `gateway/schema/gateway.openrpc.json`.
 `gateway-server`'s `cara-gateway-rpc-client-generate` command adds the bearer-token
 connection helper. The package does not import `gateway-server`.

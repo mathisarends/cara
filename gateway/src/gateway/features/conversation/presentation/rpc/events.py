@@ -9,7 +9,7 @@ from gateway.presentation.websocket.subscriptions import EventReceiver
 session_channel = RpcChannel("session")
 
 
-@session_channel.event("event")
+@session_channel.server.event("event")
 async def session_events(
     receiver: Inject[EventReceiver],
 ) -> AsyncIterator[SessionEvent]:

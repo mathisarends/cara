@@ -24,7 +24,7 @@ dependencies = [
     "vocalbin[deepgram]>=0.7.0",
     # Uvicorn only serves the WebSocket API when a WS implementation is present.
     "websockets>=13.0",
-    "pyrpckit==0.6.0",
+    "pyrpckit==0.7.0",
     "mcp>=2.2,<3",
     "lameenc>=1.8.4",
 ]
@@ -43,7 +43,7 @@ build-backend = "hatchling.build"
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=1.0.0",
-    "pyrpckit[codegen]==0.6.0",
+    "pyrpckit[codegen]==0.7.0",
     "ruff>=0.14.0",
 ]
 

@@ -9,7 +9,7 @@ from gateway.presentation.websocket.subscriptions import EventReceiver
 voice_channel = RpcChannel("voice")
 
 
-@voice_channel.event("event")
+@voice_channel.server.event("event")
 async def voice_events(
     receiver: Inject[EventReceiver],
 ) -> AsyncIterator[VoiceEventMessage]:
