@@ -8,13 +8,12 @@ from voice import VoiceSessionFactory
 
 # The root level stays at INFO: websockets logs every media frame at DEBUG.
 logging.basicConfig(level=logging.INFO)
-# CARA_VOICE_LOG_LEVEL=DEBUG traces every event on the voice bus.
+# CARA_VOICE_LOG_LEVEL=DEBUG traces every voice lifecycle event.
 logging.getLogger("voice").setLevel(os.environ.get("CARA_VOICE_LOG_LEVEL", "INFO"))
 
 
 async def main() -> None:
-    factory = VoiceSessionFactory.from_yaml()
-    session = await factory.create()
+    session = await VoiceSessionFactory.from_yaml()
     async with session:
         await session.run()
 
