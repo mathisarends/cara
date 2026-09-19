@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import UUID
@@ -26,7 +26,7 @@ class AlarmStore:
         self._lock = asyncio.Lock()
 
     @asynccontextmanager
-    async def mutation(self) -> AsyncIterator[None]:
+    async def mutation(self) -> AsyncGenerator[None]:
         async with self._lock:
             yield
 

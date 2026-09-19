@@ -9,8 +9,8 @@ from pyrpckit.dishka import DishkaResolver
 from starlette.testclient import WebSocketDenialResponse
 
 from gateway.features.conversation.application import (
-    ConversationEvent,
     ConversationEventType,
+    create_conversation_event,
 )
 from gateway.features.conversation.domain.values import ChannelRef
 from gateway.features.voice.application import VoiceEvent, VoiceEventType
@@ -138,7 +138,7 @@ async def _receive_published_events(app: FastAPI, session_id: str) -> list[str]:
     stream = await app.state.dishka_container.get(InMemoryEventStream)
     async with _gateway(app) as gateway:
         await gateway.request("subscription.subscribe", {"sessionId": session_id})
-        await stream.publish_voice(
+        await stream.publish(
             VoiceEvent(
                 VoiceEventType.TURN_COMPLETED,
                 uuid4(),
@@ -149,11 +149,11 @@ async def _receive_published_events(app: FastAPI, session_id: str) -> list[str]:
             )
         )
         await stream.publish(
-            ConversationEvent(
-                type=ConversationEventType.CHAT_COMPLETED,
-                session_id=UUID(session_id),
-                channel=ChannelRef(name="cli"),
-                data={"text": "done", "finish_reason": "stop"},
+            create_conversation_event(
+                ConversationEventType.CHAT_COMPLETED,
+                UUID(session_id),
+                ChannelRef(name="cli"),
+                {"text": "done", "finish_reason": "stop"},
                 sequence=1,
             )
         )

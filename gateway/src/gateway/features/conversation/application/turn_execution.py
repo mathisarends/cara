@@ -10,8 +10,8 @@ from gateway.features.conversation.application.agent import (
     TurnSteered,
 )
 from gateway.features.conversation.application.events import (
-    ConversationEvent,
     ConversationEventType,
+    create_conversation_event,
 )
 from gateway.features.conversation.application.ports import EventPublisher
 from gateway.features.conversation.domain import Session, SessionRepository
@@ -101,17 +101,16 @@ class TurnExecution:
         call_id: str | None = None,
     ) -> None:
         self._sequence += 1
-        await self._publisher.publish(
-            ConversationEvent(
-                type=event_type,
-                session_id=self._session.id,
-                channel=self._session.channel,
-                call_id=call_id,
-                sequence=self._sequence,
-                metadata=metadata or {},
-                data=data,
-            )
+        event = create_conversation_event(
+            event_type,
+            self._session.id,
+            self._session.channel,
+            data,
+            call_id=call_id,
+            sequence=self._sequence,
+            metadata=metadata,
         )
+        await self._publisher.publish(event)
 
     async def save_session(self) -> None:
         await self._save_session()

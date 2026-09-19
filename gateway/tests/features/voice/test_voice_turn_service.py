@@ -7,7 +7,8 @@ from gateway.features.conversation.application import (
     ConversationEvent,
     ConversationEventType,
     EventSource,
-    TurnService,
+    TurnWorker,
+    create_conversation_event,
 )
 from gateway.features.conversation.domain import ChannelRef
 from gateway.features.voice.application import (
@@ -22,7 +23,10 @@ from gateway.features.voice.application import (
     VoiceRecordingStore,
 )
 from gateway.features.voice.application.voice_session_service import VoiceSessionService
-from gateway.features.voice.application.voice_turn_service import VoiceTurnService
+from gateway.features.voice.application.voice_turn_service import (
+    VoiceTurnService,
+    VoiceTurnServiceConfig,
+)
 from gateway.features.voice.domain import (
     Activation,
     AudioEncoding,
@@ -44,19 +48,18 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
     repository = _VoiceSessionRepository(voice_session)
     events = _VoiceEvents()
     service = VoiceTurnService(
-        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
-        cast(VoiceSessionService, _VoiceSessions(voice_session)),
-        cast(TurnService, object()),
-        cast(VoiceEventPublisher, events),
-        cast(MediaSessions, _MediaSessions()),
-        cast(EventSource, object()),
-        cast(SpeechToText, _EmptySpeechToText()),
-        cast(TextToSpeech, object()),
-        _recording_service(voice_session, _RecordingStore()),
-        8,
-        0.01,
-        0.02,
-        0,
+        voice_session_unit_of_work=cast(
+            UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)
+        ),
+        voice_session_service=cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        turn_worker=cast(TurnWorker, object()),
+        voice_event_publisher=cast(VoiceEventPublisher, events),
+        media_sessions=cast(MediaSessions, _MediaSessions()),
+        conversation_event_source=cast(EventSource, object()),
+        speech_to_text=cast(SpeechToText, _EmptySpeechToText()),
+        text_to_speech=cast(TextToSpeech, object()),
+        recording_service=_recording_service(voice_session, _RecordingStore()),
+        service_config=VoiceTurnServiceConfig(8, 0.01, 0.02, 0),
     )
 
     try:
@@ -101,19 +104,18 @@ async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
     repository = _VoiceSessionRepository(voice_session)
     events = _VoiceEvents()
     service = VoiceTurnService(
-        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
-        cast(VoiceSessionService, _VoiceSessions(voice_session)),
-        cast(TurnService, object()),
-        cast(VoiceEventPublisher, events),
-        cast(MediaSessions, _MediaSessions()),
-        cast(EventSource, object()),
-        cast(SpeechToText, _EmptySpeechToText()),
-        cast(TextToSpeech, object()),
-        _recording_service(voice_session, _RecordingStore()),
-        8,
-        0,
-        0.02,
-        0,
+        voice_session_unit_of_work=cast(
+            UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)
+        ),
+        voice_session_service=cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        turn_worker=cast(TurnWorker, object()),
+        voice_event_publisher=cast(VoiceEventPublisher, events),
+        media_sessions=cast(MediaSessions, _MediaSessions()),
+        conversation_event_source=cast(EventSource, object()),
+        speech_to_text=cast(SpeechToText, _EmptySpeechToText()),
+        text_to_speech=cast(TextToSpeech, object()),
+        recording_service=_recording_service(voice_session, _RecordingStore()),
+        service_config=VoiceTurnServiceConfig(8, 0, 0.02, 0),
     )
 
     try:
@@ -138,19 +140,18 @@ async def test_ended_conversation_moves_the_next_wake_word_to_a_new_session() ->
     repository = _VoiceSessionRepository(voice_session)
     events = _VoiceEvents()
     service = VoiceTurnService(
-        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
-        cast(VoiceSessionService, _VoiceSessions(voice_session)),
-        cast(TurnService, object()),
-        cast(VoiceEventPublisher, events),
-        cast(MediaSessions, _MediaSessions()),
-        cast(EventSource, object()),
-        cast(SpeechToText, _EmptySpeechToText()),
-        cast(TextToSpeech, object()),
-        _recording_service(voice_session, _RecordingStore()),
-        8,
-        0,
-        0.02,
-        0,
+        voice_session_unit_of_work=cast(
+            UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)
+        ),
+        voice_session_service=cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        turn_worker=cast(TurnWorker, object()),
+        voice_event_publisher=cast(VoiceEventPublisher, events),
+        media_sessions=cast(MediaSessions, _MediaSessions()),
+        conversation_event_source=cast(EventSource, object()),
+        speech_to_text=cast(SpeechToText, _EmptySpeechToText()),
+        text_to_speech=cast(TextToSpeech, object()),
+        recording_service=_recording_service(voice_session, _RecordingStore()),
+        service_config=VoiceTurnServiceConfig(8, 0, 0.02, 0),
     )
 
     try:
@@ -188,19 +189,18 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
     recording_store = _RecordingStore()
     recordings = _recording_service(voice_session, recording_store)
     service = VoiceTurnService(
-        cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
-        cast(VoiceSessionService, _VoiceSessions(voice_session)),
-        cast(TurnService, turns),
-        cast(VoiceEventPublisher, events),
-        cast(MediaSessions, media),
-        cast(EventSource, conversation_events),
-        cast(SpeechToText, _EmptySpeechToText()),
-        cast(TextToSpeech, text_to_speech),
-        recordings,
-        8,
-        0,
-        30,
-        5,
+        voice_session_unit_of_work=cast(
+            UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)
+        ),
+        voice_session_service=cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        turn_worker=cast(TurnWorker, turns),
+        voice_event_publisher=cast(VoiceEventPublisher, events),
+        media_sessions=cast(MediaSessions, media),
+        conversation_event_source=cast(EventSource, conversation_events),
+        speech_to_text=cast(SpeechToText, _EmptySpeechToText()),
+        text_to_speech=cast(TextToSpeech, text_to_speech),
+        recording_service=recordings,
+        service_config=VoiceTurnServiceConfig(8, 0, 30, 5),
     )
 
     try:
@@ -289,7 +289,7 @@ class _VoiceEvents:
     def __init__(self) -> None:
         self.items = []
 
-    async def publish_voice(self, event) -> None:
+    async def publish(self, event) -> None:
         self.items.append(event)
 
 
@@ -330,13 +330,20 @@ class _ConversationEvents:
         assert session_id == self._session_id
         yield _ConversationSubscription(self._queue)
 
-    async def publish(self, event_type: ConversationEventType, data: dict) -> None:
+    async def publish(
+        self,
+        event_type: ConversationEventType,
+        data: dict,
+        *,
+        call_id: str | None = None,
+    ) -> None:
         await self._queue.put(
-            ConversationEvent(
-                type=event_type,
-                session_id=self._session_id,
-                channel=ChannelRef("voice"),
-                data=data,
+            create_conversation_event(
+                event_type,
+                self._session_id,
+                ChannelRef("voice"),
+                data,
+                call_id=call_id,
             )
         )
 
@@ -362,17 +369,22 @@ class _ScheduledTurns:
         await self._events.publish(
             ConversationEventType.TOOL_CALL_STARTED,
             {"name": "list_reminders", "arguments": {}},
+            call_id="call-1",
         )
         await asyncio.wait_for(self._text_to_speech.first_segment_spoken.wait(), 1)
         await self._events.publish(
             ConversationEventType.TOOL_CALL_COMPLETED,
             {"name": "list_reminders", "result": "[]", "is_error": False},
+            call_id="call-1",
         )
         await self._events.publish(
             ConversationEventType.CHAT_DELTA,
             {"text": "Your train ticket reminder"},
         )
-        await self._events.publish(ConversationEventType.CHAT_COMPLETED, {})
+        await self._events.publish(
+            ConversationEventType.CHAT_COMPLETED,
+            {"text": "Your train ticket reminder", "finish_reason": "stop"},
+        )
         await self._events.publish(ConversationEventType.TURN_COMPLETED, {})
 
 

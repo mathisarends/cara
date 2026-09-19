@@ -10,7 +10,19 @@ from .agent import (
     ToolCallStarted,
     TurnSteered,
 )
-from .events import ConversationEvent, ConversationEventType
+from .events import (
+    ConversationChatCompleted,
+    ConversationChatDelta,
+    ConversationEvent,
+    ConversationEventType,
+    ConversationToolCallCompleted,
+    ConversationToolCallStarted,
+    ConversationTurnCancelled,
+    ConversationTurnCompleted,
+    ConversationTurnFailed,
+    ConversationTurnSteered,
+    create_conversation_event,
+)
 from .ports import EventPublisher, EventSource, EventSubscription, TurnLease
 from .session_service import SessionService
 from .turn_service import TurnService
@@ -24,8 +36,16 @@ __all__ = [
     "AgentSessionRef",
     "ChatCompleted",
     "ChatDelta",
+    "ConversationChatCompleted",
+    "ConversationChatDelta",
     "ConversationEvent",
     "ConversationEventType",
+    "ConversationToolCallCompleted",
+    "ConversationToolCallStarted",
+    "ConversationTurnCancelled",
+    "ConversationTurnCompleted",
+    "ConversationTurnFailed",
+    "ConversationTurnSteered",
     "EventPublisher",
     "EventSource",
     "EventSubscription",
@@ -33,6 +53,7 @@ __all__ = [
     "TurnLease",
     "TurnService",
     "TurnWorker",
+    "create_conversation_event",
     "ToolCallCompleted",
     "ToolCallStarted",
     "TurnSteered",

@@ -11,8 +11,8 @@ from gateway.features.conversation.application.agent import (
     AgentSessionRef,
 )
 from gateway.features.conversation.application.events import (
-    ConversationEvent,
     ConversationEventType,
+    create_conversation_event,
 )
 from gateway.features.conversation.application.ports import EventPublisher, TurnLease
 from gateway.features.conversation.application.turn_execution import TurnExecution
@@ -212,15 +212,14 @@ class TurnWorker:
             return
         if session is None:
             return
-        await self._events.publish(
-            ConversationEvent(
-                type=event_type,
-                session_id=session.id,
-                channel=session.channel,
-                sequence=1,
-                data=data,
-            )
+        event = create_conversation_event(
+            event_type,
+            session.id,
+            session.channel,
+            data,
+            sequence=1,
         )
+        await self._events.publish(event)
 
     async def _fail_pending_tool_calls(
         self,

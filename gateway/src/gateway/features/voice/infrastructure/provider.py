@@ -18,6 +18,7 @@ from gateway.features.voice.application import (
     VoiceRecordingStore,
     VoiceSessionService,
     VoiceTurnService,
+    VoiceTurnServiceConfig,
 )
 from gateway.features.voice.domain import VoiceSessionRepository
 from gateway.features.voice.infrastructure.deepgram_stt import DeepgramSpeechToText
@@ -109,31 +110,40 @@ class VoiceProvider(Provider):
     @provide(scope=Scope.APP)
     async def turn_service(
         self,
-        repositories: UnitOfWork[VoiceSessionRepository],
-        sessions: VoiceSessionService,
-        turns: TurnWorker,
-        events: VoiceEventPublisher,
-        media: MediaSessions,
-        conversation_events: EventSource,
+        voice_session_unit_of_work: UnitOfWork[VoiceSessionRepository],
+        voice_session_service: VoiceSessionService,
+        turn_worker: TurnWorker,
+        voice_event_publisher: VoiceEventPublisher,
+        media_sessions: MediaSessions,
+        conversation_event_source: EventSource,
         speech_to_text: SpeechToText,
         text_to_speech: TextToSpeech,
-        recordings: VoiceRecordingService,
+        recording_service: VoiceRecordingService,
         settings: VoiceSettings,
     ) -> AsyncIterator[VoiceTurnService]:
+        config = VoiceTurnServiceConfig(
+            input_queue_size=settings.input_queue_size,
+            conversation_follow_up_delay_seconds=(
+                settings.conversation_follow_up_delay_seconds
+            ),
+            conversation_inactivity_timeout_seconds=(
+                settings.conversation_inactivity_timeout_seconds
+            ),
+            conversation_inactivity_countdown_seconds=(
+                settings.conversation_inactivity_countdown_seconds
+            ),
+        )
         service = VoiceTurnService(
-            repositories,
-            sessions,
-            turns,
-            events,
-            media,
-            conversation_events,
-            speech_to_text,
-            text_to_speech,
-            recordings,
-            settings.input_queue_size,
-            settings.conversation_follow_up_delay_seconds,
-            settings.conversation_inactivity_timeout_seconds,
-            settings.conversation_inactivity_countdown_seconds,
+            voice_session_unit_of_work=voice_session_unit_of_work,
+            voice_session_service=voice_session_service,
+            turn_worker=turn_worker,
+            voice_event_publisher=voice_event_publisher,
+            media_sessions=media_sessions,
+            conversation_event_source=conversation_event_source,
+            speech_to_text=speech_to_text,
+            text_to_speech=text_to_speech,
+            recording_service=recording_service,
+            service_config=config,
         )
         try:
             yield service

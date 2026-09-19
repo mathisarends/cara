@@ -1,14 +1,20 @@
 import asyncio
 import logging
 from collections import defaultdict
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from uuid import UUID
 
 from gateway.features.conversation.application import (
+    ConversationChatCompleted,
+    ConversationChatDelta,
     ConversationEvent,
     ConversationEventType,
+    ConversationToolCallCompleted,
+    ConversationToolCallStarted,
+    ConversationTurnFailed,
+    ConversationTurnSteered,
     EventPublisher,
     EventSource,
     EventSubscription,
@@ -68,7 +74,7 @@ class InMemoryEventStream(EventPublisher, EventSource, VoiceEventPublisher):
     async def listen(
         self,
         session_id: UUID,
-    ) -> AsyncIterator[EventSubscription]:
+    ) -> AsyncGenerator[EventSubscription]:
         subscription = _InternalEventSubscription()
         self._internal_subscriptions[session_id].add(subscription)
         try:
@@ -123,7 +129,10 @@ class InMemoryEventStream(EventPublisher, EventSource, VoiceEventPublisher):
             channel,
         )
 
-    async def publish(self, event: ConversationEvent) -> None:
+    async def publish(self, event: ConversationEvent | VoiceEvent) -> None:
+        if isinstance(event, VoiceEvent):
+            await self._publish_voice(event)
+            return
         client_ids = self._subscriptions.get(event.session_id, set()) | (
             self._channel_subscriptions.get(event.channel.name, set())
         )
@@ -139,7 +148,7 @@ class InMemoryEventStream(EventPublisher, EventSource, VoiceEventPublisher):
             await subscription.put(event)
         _log_event(event, delivered)
 
-    async def publish_voice(self, event: VoiceEvent) -> None:
+    async def _publish_voice(self, event: VoiceEvent) -> None:
         delivered = 0
         for client_id in self._subscriptions.get(event.session_id, set()):
             receiver = self._clients.get(client_id)
@@ -172,20 +181,22 @@ def _log_event(event: ConversationEvent, recipients: int) -> None:
 
 
 def _event_detail(event: ConversationEvent) -> str:
-    match event.type:
-        case ConversationEventType.CHAT_COMPLETED:
-            return f", text={_preview(event.data.get('text'))!r}"
-        case ConversationEventType.TURN_STEERED:
-            return f", text={_preview(event.data.get('text'))!r}"
-        case ConversationEventType.TOOL_CALL_STARTED:
-            return f", tool={event.data.get('name')!r}, call_id={event.call_id}"
-        case ConversationEventType.TOOL_CALL_COMPLETED:
+    match event:
+        case (
+            ConversationChatDelta()
+            | ConversationChatCompleted()
+            | ConversationTurnSteered()
+        ):
+            return f", text={_preview(event.text)!r}"
+        case ConversationToolCallStarted():
+            return f", tool={event.name!r}, call_id={event.call_id}"
+        case ConversationToolCallCompleted():
             return (
-                f", tool={event.data.get('name')!r}, call_id={event.call_id}, "
-                f"error={bool(event.data.get('is_error'))}"
+                f", tool={event.name!r}, call_id={event.call_id}, "
+                f"error={event.is_error}"
             )
-        case ConversationEventType.TURN_FAILED:
-            return f", code={event.data.get('code')!r}"
+        case ConversationTurnFailed():
+            return f", code={event.code!r}"
         case _:
             return ""
 

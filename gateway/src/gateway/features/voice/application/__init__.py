@@ -10,7 +10,7 @@ from .ports import (
 )
 from .voice_recording_service import VoiceRecordingService
 from .voice_session_service import VoiceSessionService
-from .voice_turn_service import VoiceTurnService
+from .voice_turn_service import VoiceTurnService, VoiceTurnServiceConfig
 
 __all__ = [
     "AudioEncoder",
@@ -25,4 +25,5 @@ __all__ = [
     "VoiceRecordingStore",
     "VoiceSessionService",
     "VoiceTurnService",
+    "VoiceTurnServiceConfig",
 ]

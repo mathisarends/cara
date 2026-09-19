@@ -13,6 +13,8 @@ from gateway.features.conversation.application import (
     ChatDelta,
     ConversationEvent,
     ConversationEventType,
+    ConversationTurnFailed,
+    ConversationTurnSteered,
     EventPublisher,
     SessionService,
     ToolCallCompleted,
@@ -169,12 +171,11 @@ async def test_failed_turn_publishes_turn_failed_event(
         ConversationEventType.TURN_FAILED,
     ]
     failure = publisher.events[1]
+    assert isinstance(failure, ConversationTurnFailed)
     assert failure.session_id == session.id
     # NotImplementedError carries no message, so the type name stands in for it.
-    assert failure.data == {
-        "code": "NotImplementedError",
-        "message": "NotImplementedError",
-    }
+    assert failure.code == "NotImplementedError"
+    assert failure.message == "NotImplementedError"
 
 
 async def test_agent_stream_updates_session_and_publishes_ordered_events(
@@ -241,7 +242,9 @@ async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
         ConversationEventType.CHAT_COMPLETED,
         ConversationEventType.TURN_COMPLETED,
     ]
-    assert publisher.events[3].data == {"text": "also check Hamburg"}
+    steered = publisher.events[3]
+    assert isinstance(steered, ConversationTurnSteered)
+    assert steered.text == "also check Hamburg"
 
     persisted = await sessions.get(session.id)
     assert [type(entry).__name__ for entry in persisted.entries] == [

@@ -55,7 +55,7 @@ class VoiceRecordingStore(ABC):
 
 class VoiceEventPublisher(ABC):
     @abstractmethod
-    async def publish_voice(self, event: VoiceEvent) -> None: ...
+    async def publish(self, event: VoiceEvent) -> None: ...
 
 
 class MediaSessions(ABC):

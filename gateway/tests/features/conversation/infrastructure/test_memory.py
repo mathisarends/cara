@@ -7,17 +7,18 @@ import pytest
 from gateway.features.conversation.application import (
     ConversationEvent,
     ConversationEventType,
+    create_conversation_event,
 )
 from gateway.features.conversation.domain import ChannelRef
 from gateway.presentation.websocket.subscriptions import InMemoryEventStream
 
 
 def _event(session_id) -> ConversationEvent:
-    return ConversationEvent(
-        type=ConversationEventType.CHAT_DELTA,
-        session_id=session_id,
-        channel=ChannelRef("voice"),
-        data={"text": "hi"},
+    return create_conversation_event(
+        ConversationEventType.CHAT_DELTA,
+        session_id,
+        ChannelRef("voice"),
+        {"text": "hi"},
     )
 
 
@@ -89,12 +90,12 @@ async def test_lifecycle_events_are_logged_with_delivery_count(caplog) -> None:
     session_id = uuid4()
     broker.connect("client-12345678")
     broker.subscribe("client-12345678", session_id)
-    event = ConversationEvent(
-        type=ConversationEventType.CHAT_COMPLETED,
-        session_id=session_id,
-        channel=ChannelRef("voice"),
+    event = create_conversation_event(
+        ConversationEventType.CHAT_COMPLETED,
+        session_id,
+        ChannelRef("voice"),
+        {"text": "Assistant reply", "finish_reason": "stop"},
         sequence=2,
-        data={"text": "Assistant reply", "finish_reason": "stop"},
     )
 
     with caplog.at_level(logging.INFO):

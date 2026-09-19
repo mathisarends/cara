@@ -93,7 +93,7 @@ class VoiceSessionService:
             voice_session = await repository.save(voice_session)
         await self._media.disconnect(voice_session_id)
         if was_open:
-            await self._events.publish_voice(
+            await self._events.publish(
                 VoiceEvent(
                     VoiceEventType.SESSION_CLOSED,
                     voice_session.id,

@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from enum import Enum, auto
 
 
@@ -8,6 +9,14 @@ class Flush(Enum):
 
 
 type SpeechQueue = asyncio.Queue[str | Flush | None]
+
+
+@dataclass(frozen=True, slots=True)
+class VoiceTurnServiceConfig:
+    input_queue_size: int
+    conversation_follow_up_delay_seconds: float
+    conversation_inactivity_timeout_seconds: float
+    conversation_inactivity_countdown_seconds: int
 
 
 class SpeechSegments:
