@@ -21,3 +21,4 @@ class VoiceSettings(BaseSettings):
     conversation_follow_up_delay_seconds: float = Field(default=0.5, ge=0)
     conversation_inactivity_timeout_seconds: float = Field(default=5.0, gt=0)
     conversation_inactivity_countdown_seconds: int = Field(default=3, ge=0)
+    recording_bit_rate_kbps: int = Field(default=64, gt=0)

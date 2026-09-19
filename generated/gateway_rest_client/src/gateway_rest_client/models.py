@@ -511,6 +511,17 @@ class UpdateAutomationRequest(BaseModel):
     name: str | None = None
 
 
+class VoiceRecordingNotFoundProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/voice_recording_not_found"]
+    title: Literal["Voice recording not found"]
+    status: Literal[404]
+    code: Literal["voice_recording_not_found"]
+    detail: str | None = None
+    instance: str | None = None
+
+
 class VoiceSessionAlreadyOpenProblem(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 

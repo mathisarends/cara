@@ -22,6 +22,7 @@ class StoredObject:
 
 class ContentType(StrEnum):
     OCTET_STREAM = "application/octet-stream"
+    MPEG = "audio/mpeg"
     PDF = "application/pdf"
     GIF = "image/gif"
     ICO = "image/x-icon"

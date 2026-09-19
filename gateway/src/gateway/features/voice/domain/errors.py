@@ -11,6 +11,11 @@ class VoiceTurnNotFoundError(Exception):
         super().__init__(f"Voice turn {voice_turn_id} was not found")
 
 
+class VoiceRecordingNotFoundError(Exception):
+    def __init__(self, voice_session_id: UUID) -> None:
+        super().__init__(f"Voice session {voice_session_id} has no recorded turns")
+
+
 class VoiceSessionAlreadyOpenError(Exception):
     def __init__(self, room: str, voice_session_id: UUID) -> None:
         self.voice_session_id = voice_session_id

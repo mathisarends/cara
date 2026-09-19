@@ -14,6 +14,7 @@ from agenttoolkit.builtins import (
 )
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from obstore.store import MemoryStore
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -33,6 +34,7 @@ from gateway.features.conversation.application import (
     ChatCompleted,
 )
 from gateway.platform.database.migrations import run_migrations
+from gateway.platform.storage.obstore_storage import ObstoreObjectStorage
 from gateway.shared import UnitOfWork
 
 _TOKEN = "test-gateway-token-with-32-characters"
@@ -92,6 +94,10 @@ def app(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> FastAPI:
     monkeypatch.setattr(
         "gateway.agent_runtime.provider.CaraAgentRuntime",
         lambda *args: _TestAgentRuntime(),
+    )
+    monkeypatch.setattr(
+        "gateway.platform.storage.di.S3ObjectStorage",
+        lambda *args, **kwargs: ObstoreObjectStorage(MemoryStore()),
     )
     return create_app()
 

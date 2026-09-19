@@ -26,6 +26,7 @@ dependencies = [
     "websockets>=13.0",
     "pyrpckit==0.6.0",
     "mcp>=2.2,<3",
+    "lameenc>=1.8.4",
 ]
 
 [project.scripts]

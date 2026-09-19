@@ -1538,6 +1538,79 @@
           }
         }
       }
+    },
+    "/v1/voice-sessions/{voice_session_id}/recording": {
+      "get": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Get Voice Session Recording",
+        "operationId": "get_voice_session_recording",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "voice_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Voice Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every saved turn of the voice session in turn order",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Possible problems: Voice session not found, Voice recording not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/VoiceSessionNotFoundProblem"
+                    },
+                    {
+                      "$ref": "#/components/schemas/VoiceRecordingNotFoundProblem"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "code",
+                    "mapping": {
+                      "voice_session_not_found": "#/components/schemas/VoiceSessionNotFoundProblem",
+                      "voice_recording_not_found": "#/components/schemas/VoiceRecordingNotFoundProblem"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3453,6 +3526,50 @@
           "code": {
             "type": "string",
             "const": "voice_turn_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
+      "VoiceRecordingNotFoundProblem": {
+        "type": "object",
+        "title": "VoiceRecordingNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/voice_recording_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Voice recording not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "voice_recording_not_found"
           },
           "detail": {
             "type": [

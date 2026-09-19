@@ -16,6 +16,10 @@ services:
       CARA_GATEWAY_VOICE_CONVERSATION_FOLLOW_UP_DELAY_SECONDS: ${CARA_GATEWAY_VOICE_CONVERSATION_FOLLOW_UP_DELAY_SECONDS:-0.5}
       CARA_GATEWAY_VOICE_CONVERSATION_INACTIVITY_TIMEOUT_SECONDS: ${CARA_GATEWAY_VOICE_CONVERSATION_INACTIVITY_TIMEOUT_SECONDS:-5}
       CARA_GATEWAY_VOICE_CONVERSATION_INACTIVITY_COUNTDOWN_SECONDS: ${CARA_GATEWAY_VOICE_CONVERSATION_INACTIVITY_COUNTDOWN_SECONDS:-3}
+      CARA_GATEWAY_STORAGE_BUCKET: ${CARA_MINIO_BUCKET:-cara}
+      CARA_GATEWAY_STORAGE_ENDPOINT_URL: http://minio:9000
+      CARA_GATEWAY_STORAGE_ACCESS_KEY: ${CARA_MINIO_ROOT_USER:-cara}
+      CARA_GATEWAY_STORAGE_SECRET_KEY: ${CARA_MINIO_ROOT_PASSWORD:-change-me-minio-password}
       CARA_WORKSPACE_ROOT: /workspace
       CARA_SANDBOX_URL: http://sandbox-manager:8080
       CARA_TOOLS: '[{"name":"info","url":"http://cara-tools:8080/mcp"}]'
@@ -33,6 +37,8 @@ services:
         condition: service_healthy
       sandbox-manager:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
   cara-tools:
     build:

@@ -16,6 +16,9 @@ from gateway.features.voice.application.ports import (
     TextToSpeech,
     VoiceEventPublisher,
 )
+from gateway.features.voice.application.voice_recording_service import (
+    VoiceRecordingService,
+)
 from gateway.features.voice.application.voice_session_service import VoiceSessionService
 from gateway.features.voice.application.voice_turn_service.models import (
     Flush,
@@ -29,6 +32,7 @@ from gateway.features.voice.domain import (
     VoiceSessionStatus,
     VoiceTurn,
     VoiceTurnNotFoundError,
+    VoiceTurnStatus,
 )
 from gateway.shared import UnitOfWork
 
@@ -44,6 +48,7 @@ class VoiceTurnService:
         conversation_events: EventSource,
         speech_to_text: SpeechToText,
         text_to_speech: TextToSpeech,
+        recordings: VoiceRecordingService,
         input_queue_size: int,
         conversation_follow_up_delay_seconds: float,
         conversation_inactivity_timeout_seconds: float,
@@ -57,6 +62,7 @@ class VoiceTurnService:
         self._conversation_events = conversation_events
         self._speech_to_text = speech_to_text
         self._text_to_speech = text_to_speech
+        self._recordings = recordings
         self._input_queue_size = input_queue_size
         self._conversation_follow_up_delay_seconds = (
             conversation_follow_up_delay_seconds
@@ -237,6 +243,7 @@ class VoiceTurnService:
         sequence = voice_session.next_sequence()
         async with self._repositories() as repository:
             await repository.save(voice_session)
+        self._recordings.finish(voice_session)
         await self._events.publish_voice(
             VoiceEvent(
                 event_type,
@@ -272,6 +279,7 @@ class VoiceTurnService:
         self._cancel_tasks(turn.id)
         async with self._repositories() as repository:
             await repository.save(voice_session)
+        self._recordings.finish(voice_session)
         await self._events.publish_voice(
             VoiceEvent(
                 VoiceEventType.TURN_CANCELLED,
@@ -290,6 +298,7 @@ class VoiceTurnService:
         sequence = voice_session.next_sequence()
         async with self._repositories() as repository:
             await repository.save(voice_session)
+        self._recordings.finish(voice_session)
         await self._events.publish_voice(
             VoiceEvent(
                 VoiceEventType.TURN_COMPLETED,
@@ -352,11 +361,17 @@ class VoiceTurnService:
                     "input_overrun",
                     "The speech-to-text input queue is full",
                 )
+            else:
+                # Frames still in flight after the transcript ended are not speech.
+                if turn.status is VoiceTurnStatus.LISTENING:
+                    self._recordings.record_input(turn.id, payload)
 
     async def media_disconnected(self, voice_session_id: UUID) -> None:
         voice_session = await self._sessions.get(voice_session_id)
         turn = voice_session.active_turn
         if turn is None:
+            # Closing the voice session cancels its turn before media drops.
+            self._recordings.finish(voice_session)
             return
         if turn.user_message_id is not None:
             with suppress(NoActiveTurnError):
@@ -369,6 +384,7 @@ class VoiceTurnService:
         self._cancel_tasks(turn.id)
         async with self._repositories() as repository:
             await repository.save(voice_session)
+        self._recordings.finish(voice_session)
         await self._events.publish_voice(
             VoiceEvent(
                 VoiceEventType.TURN_CANCELLED,
@@ -585,6 +601,7 @@ class VoiceTurnService:
                 if not started:
                     await self._speech_started(voice_turn_id)
                     started = True
+                self._recordings.record_output(voice_turn_id, chunk)
                 voice_session, turn = await self._find_turn(voice_turn_id)
                 sequence += 1
                 await self._media.send_audio(
@@ -665,6 +682,7 @@ class VoiceTurnService:
         self._cancel_tasks(voice_turn_id)
         async with self._repositories() as repository:
             await repository.save(voice_session)
+        self._recordings.finish(voice_session)
         await self._events.publish_voice(
             VoiceEvent(
                 VoiceEventType.TURN_FAILED,

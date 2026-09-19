@@ -25,6 +25,7 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 - Automations: `/v1/owners/{owner_id}/automations` (CRUD)
 - Alarms: `/v1/owners/{owner_id}/alarms` (CRUD, `enabled`, `skip-next`, `snooze`, `dismiss`)
 - Voice sessions: `POST /v1/voice-sessions`, list/get/close, and persisted turn snapshots
+- Voice recordings: `GET /v1/voice-sessions/{id}/recording` serves every finished turn as one MP3 (`audio/mpeg`); segments live per turn in object storage (`CARA_GATEWAY_STORAGE_*`, MinIO in Compose)
 - Future resource features: REST only, no RPC layer
 - Every resource router requires `Authorization: Bearer <CARA_GATEWAY_TOKEN>` (`require_token`, OpenAPI scheme `GatewayToken`); only health is open
 

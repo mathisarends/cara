@@ -3,7 +3,8 @@
 # ============================================================================
 
 
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Self
 from uuid import UUID
 
@@ -47,6 +48,7 @@ from gateway_rest_client.models import (
     SortOrder,
     UpdateAlarmRequest,
     UpdateAutomationRequest,
+    VoiceRecordingNotFoundProblem,
     VoiceSessionAlreadyOpenProblem,
     VoiceSessionListResponse,
     VoiceSessionNotFoundProblem,
@@ -61,7 +63,7 @@ from gateway_rest_client.serialization import (
     serialize_path,
     serialize_query,
 )
-from gateway_rest_client.transport import AsyncHttpClient
+from gateway_rest_client.transport import AsyncHttpClient, BinaryStream
 
 
 class GatewayRestClient:
@@ -1389,6 +1391,100 @@ class GatewayRestClient:
                 response.status_code, response, error
             )
             raise validation_error from error
+
+    async def get_voice_session_recording(
+        self,
+        voice_session_id: UUID,
+        *,
+        timeout: float | None = None,
+    ) -> bytes:
+        async with self.stream_get_voice_session_recording(
+            voice_session_id=voice_session_id,
+            timeout=timeout,
+        ) as stream:
+            return b"".join([chunk async for chunk in stream.iter_bytes()])
+
+    @asynccontextmanager
+    async def stream_get_voice_session_recording(
+        self,
+        voice_session_id: UUID,
+        *,
+        timeout: float | None = None,
+    ) -> AsyncIterator[BinaryStream]:
+        try:
+            path = "/v1/voice-sessions/{voice_session_id}/recording"
+            path = path.replace(
+                "{voice_session_id}",
+                serialize_path("voice_session_id", voice_session_id),
+            )
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "audio/mpeg, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        response_stack = AsyncExitStack()
+        try:
+            response_context = self._client.stream(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+            response = await response_stack.enter_async_context(response_context)
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            binary_stream: BinaryStream | None = None
+            if response.status_code == 200:
+                response_content_type = response.headers.get("Content-Type", "")
+                response_content_type = (
+                    response_content_type.split(";", 1)[0].strip().lower()
+                )
+                if response_content_type not in ("audio/mpeg",):
+                    raise ValueError(
+                        f"unsupported response Content-Type: {response_content_type}"
+                    )
+                binary_stream = BinaryStream(response, response_content_type)
+            if binary_stream is None:
+                await response.aread()
+                if response.status_code == 404:
+                    detail = TypeAdapter(
+                        VoiceSessionNotFoundProblem | VoiceRecordingNotFoundProblem
+                    ).validate_python(response.json())
+                    raise ApiError(
+                        response.status_code, response.text, detail, response
+                    )
+                if response.status_code == 422:
+                    detail = RequestValidationProblem.model_validate(response.json())
+                    raise ApiError(
+                        response.status_code, response.text, detail, response
+                    )
+                raise ApiError(response.status_code, response.text, response=response)
+            assert binary_stream is not None
+
+        except ClientError:
+            await response_stack.aclose()
+            raise
+        except Exception as error:
+            await response_stack.aclose()
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+        try:
+            yield binary_stream
+        finally:
+            await response_stack.aclose()
 
     async def get_voice_turn(
         self,

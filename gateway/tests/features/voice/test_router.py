@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from gateway.features.voice.application import VoiceRecordingStore
 from gateway.features.voice.presentation.media import (
     InMemoryMediaSessions,
     MediaFrame,
@@ -81,6 +82,39 @@ def test_media_socket_is_bidirectional_and_owns_the_voice_session(
 
     snapshot = client.get(f"/v1/voice-sessions/{voice_session['id']}").json()
     assert snapshot["voice_session"]["media_connected"] is False
+
+
+def test_voice_session_recording_is_served_as_mp3(client: TestClient) -> None:
+    session_id = _conversation_session(client)
+    voice_session = client.post(
+        "/v1/voice-sessions",
+        json={"session_id": session_id, "room": "studio", **_FORMATS},
+    ).json()
+    recording_path = f"/v1/voice-sessions/{voice_session['id']}/recording"
+
+    missing = client.get(recording_path)
+    assert missing.status_code == 404
+    assert missing.json()["code"] == "voice_recording_not_found"
+
+    client.portal.call(_save_turns, client.app, UUID(voice_session["id"]))
+    recording = client.get(recording_path)
+
+    assert recording.status_code == 200
+    assert recording.headers["content-type"] == "audio/mpeg"
+    assert recording.content == b"first turnsecond turn"
+
+
+def test_recording_of_unknown_voice_session_is_not_found(client: TestClient) -> None:
+    response = client.get(f"/v1/voice-sessions/{UUID(int=0)}/recording")
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "voice_session_not_found"
+
+
+async def _save_turns(app: FastAPI, voice_session_id: UUID) -> None:
+    store = await app.state.dishka_container.get(VoiceRecordingStore)
+    await store.save_turn(voice_session_id, 2, b"second turn")
+    await store.save_turn(voice_session_id, 1, b"first turn")
 
 
 async def _send_output_frame(app: FastAPI, voice_session_id: UUID) -> None:

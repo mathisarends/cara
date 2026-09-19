@@ -2,6 +2,7 @@ from fastapi_canon import Error, ErrorRegistry
 
 from gateway.features.voice.domain import (
     InvalidVoiceSessionError,
+    VoiceRecordingNotFoundError,
     VoiceSessionAlreadyOpenError,
     VoiceSessionClosedError,
     VoiceSessionNotFoundError,
@@ -20,6 +21,13 @@ VOICE_TURN_NOT_FOUND = Error(
     status=404,
     code="voice_turn_not_found",
     title="Voice turn not found",
+    detail=str,
+)
+VOICE_RECORDING_NOT_FOUND = Error(
+    VoiceRecordingNotFoundError,
+    status=404,
+    code="voice_recording_not_found",
+    title="Voice recording not found",
     detail=str,
 )
 VOICE_SESSION_ALREADY_OPEN = Error(
@@ -49,6 +57,7 @@ VOICE_ERRORS = ErrorRegistry(
     errors=[
         VOICE_SESSION_NOT_FOUND,
         VOICE_TURN_NOT_FOUND,
+        VOICE_RECORDING_NOT_FOUND,
         VOICE_SESSION_ALREADY_OPEN,
         VOICE_SESSION_CLOSED,
         INVALID_VOICE_SESSION,

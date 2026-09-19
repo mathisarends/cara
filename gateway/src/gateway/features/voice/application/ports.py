@@ -32,6 +32,27 @@ class TextToSpeech(ABC):
     def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]: ...
 
 
+class AudioEncoder(ABC):
+    """Encodes mono 16-bit PCM; outputs of one encoder concatenate into one stream."""
+
+    @abstractmethod
+    async def encode(self, pcm: bytes, sample_rate: int) -> bytes: ...
+
+
+class VoiceRecordingStore(ABC):
+    @abstractmethod
+    async def save_turn(
+        self,
+        voice_session_id: UUID,
+        voice_turn_index: int,
+        audio: bytes,
+    ) -> None: ...
+
+    @abstractmethod
+    async def load(self, voice_session_id: UUID) -> bytes | None:
+        """Returns the saved turns in turn order, or None if none were saved."""
+
+
 class VoiceEventPublisher(ABC):
     @abstractmethod
     async def publish_voice(self, event: VoiceEvent) -> None: ...

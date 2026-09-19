@@ -2,14 +2,18 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import Depends, Query, status
-from fastapi_canon import CanonRouter
+from fastapi import Depends, Query, Response, status
+from fastapi_canon import CanonResponse, CanonRouter
 
-from gateway.features.voice.application import VoiceSessionService
+from gateway.features.voice.application import (
+    VoiceRecordingService,
+    VoiceSessionService,
+)
 from gateway.features.voice.domain import VoiceSessionStatus
 from gateway.features.voice.presentation.errors import (
     INVALID_VOICE_SESSION,
     VOICE_ERRORS,
+    VOICE_RECORDING_NOT_FOUND,
     VOICE_SESSION_ALREADY_OPEN,
     VOICE_SESSION_NOT_FOUND,
     VOICE_TURN_NOT_FOUND,
@@ -29,6 +33,8 @@ from gateway.features.voice.presentation.schemas import (
     VoiceTurnResponse,
 )
 from gateway.presentation.authentication import require_token
+
+_MP3 = "audio/mpeg"
 
 voice_router = CanonRouter(
     prefix="/v1/voice-sessions",
@@ -123,3 +129,21 @@ async def get_voice_turn(
 ) -> VoiceTurnResponse:
     voice_session = await service.get(voice_session_id)
     return to_voice_turn_response(voice_session.get_turn(voice_turn_id))
+
+
+@voice_router.get(
+    "/{voice_session_id}/recording",
+    operation_id="get_voice_session_recording",
+    response=CanonResponse(
+        media_type=_MP3,
+        schema={"type": "string", "format": "binary"},
+        description="Every saved turn of the voice session in turn order",
+    ),
+    raises=[VOICE_SESSION_NOT_FOUND, VOICE_RECORDING_NOT_FOUND],
+)
+async def get_voice_session_recording(
+    voice_session_id: UUID,
+    recordings: FromDishka[VoiceRecordingService],
+) -> Response:
+    recording = await recordings.get(voice_session_id)
+    return Response(recording, media_type=_MP3)

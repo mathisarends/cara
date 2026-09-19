@@ -11,12 +11,15 @@ from gateway.features.conversation.application import (
 )
 from gateway.features.conversation.domain import ChannelRef
 from gateway.features.voice.application import (
+    AudioEncoder,
     MediaSessions,
     SpeechToText,
     TextToSpeech,
     Transcription,
     VoiceEventPublisher,
     VoiceEventType,
+    VoiceRecordingService,
+    VoiceRecordingStore,
 )
 from gateway.features.voice.application.voice_session_service import VoiceSessionService
 from gateway.features.voice.application.voice_turn_service import VoiceTurnService
@@ -49,6 +52,7 @@ async def test_gateway_owns_follow_up_and_ends_inactive_conversation() -> None:
         cast(EventSource, object()),
         cast(SpeechToText, _EmptySpeechToText()),
         cast(TextToSpeech, object()),
+        _recording_service(voice_session, _RecordingStore()),
         8,
         0.01,
         0.02,
@@ -105,6 +109,7 @@ async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
         cast(EventSource, object()),
         cast(SpeechToText, _EmptySpeechToText()),
         cast(TextToSpeech, object()),
+        _recording_service(voice_session, _RecordingStore()),
         8,
         0,
         0.02,
@@ -141,6 +146,7 @@ async def test_ended_conversation_moves_the_next_wake_word_to_a_new_session() ->
         cast(EventSource, object()),
         cast(SpeechToText, _EmptySpeechToText()),
         cast(TextToSpeech, object()),
+        _recording_service(voice_session, _RecordingStore()),
         8,
         0,
         0.02,
@@ -179,6 +185,8 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
     media = _MediaSessions()
     text_to_speech = _TextToSpeech()
     turns = _ScheduledTurns(conversation_events, text_to_speech)
+    recording_store = _RecordingStore()
+    recordings = _recording_service(voice_session, recording_store)
     service = VoiceTurnService(
         cast(UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)),
         cast(VoiceSessionService, _VoiceSessions(voice_session)),
@@ -188,6 +196,7 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
         cast(EventSource, conversation_events),
         cast(SpeechToText, _EmptySpeechToText()),
         cast(TextToSpeech, text_to_speech),
+        recordings,
         8,
         0,
         30,
@@ -217,8 +226,24 @@ async def test_proactive_turn_streams_a_scheduled_answer_to_the_room() -> None:
             VoiceEventType.ASSISTANT_AUDIO_COMPLETED,
         ]
         assert events.items[3].data == {"name": "list_reminders"}
+
+        await service.playback_completed(turn.id)
+        await recordings.close()
+
+        assert recording_store.turns == {(voice_session.id, 1): b"24000:audioaudio"}
     finally:
         await service.close()
+
+
+def _recording_service(
+    voice_session: VoiceSession,
+    store: "_RecordingStore",
+) -> VoiceRecordingService:
+    return VoiceRecordingService(
+        cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        cast(AudioEncoder, _TaggingEncoder()),
+        cast(VoiceRecordingStore, store),
+    )
 
 
 def _uuid():
@@ -360,3 +385,16 @@ class _TextToSpeech:
         self.segments.append("".join([chunk async for chunk in text]))
         yield b"audio"
         self.first_segment_spoken.set()
+
+
+class _TaggingEncoder:
+    async def encode(self, pcm: bytes, sample_rate: int) -> bytes:
+        return f"{sample_rate}:".encode() + pcm
+
+
+class _RecordingStore:
+    def __init__(self) -> None:
+        self.turns: dict[tuple[object, int], bytes] = {}
+
+    async def save_turn(self, voice_session_id, voice_turn_index, audio) -> None:
+        self.turns[(voice_session_id, voice_turn_index)] = audio

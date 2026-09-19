@@ -1,3 +1,4 @@
+from .di import StorageProvider
 from .object_storage import (
     ContentType,
     ObjectNotFoundError,
@@ -11,5 +12,6 @@ __all__ = [
     "ObjectNotFoundError",
     "ObjectStorage",
     "S3ObjectStorage",
+    "StorageProvider",
     "StoredObject",
 ]

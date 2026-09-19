@@ -9,20 +9,28 @@ from gateway.features.conversation.application import (
     TurnService,
 )
 from gateway.features.voice.application import (
+    AudioEncoder,
     MediaSessions,
     SpeechToText,
     TextToSpeech,
     VoiceEventPublisher,
+    VoiceRecordingService,
+    VoiceRecordingStore,
     VoiceSessionService,
     VoiceTurnService,
 )
 from gateway.features.voice.domain import VoiceSessionRepository
 from gateway.features.voice.infrastructure.deepgram_stt import DeepgramSpeechToText
 from gateway.features.voice.infrastructure.deepgram_tts import DeepgramTextToSpeech
+from gateway.features.voice.infrastructure.lame_encoder import LameMp3Encoder
+from gateway.features.voice.infrastructure.recording_store import (
+    ObjectStorageVoiceRecordingStore,
+)
 from gateway.features.voice.infrastructure.repository import SQLVoiceSessionRepository
 from gateway.features.voice.infrastructure.settings import VoiceSettings
 from gateway.features.voice.presentation.media import InMemoryMediaSessions
 from gateway.platform.database import ScopedUnitOfWork
+from gateway.platform.storage import ObjectStorage
 from gateway.shared import UnitOfWork
 
 
@@ -65,6 +73,30 @@ class VoiceProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
+    def audio_encoder(self, settings: VoiceSettings) -> AudioEncoder:
+        return LameMp3Encoder(
+            output_sample_rate=24_000,
+            bit_rate_kbps=settings.recording_bit_rate_kbps,
+        )
+
+    @provide(scope=Scope.APP)
+    def recording_store(self, storage: ObjectStorage) -> VoiceRecordingStore:
+        return ObjectStorageVoiceRecordingStore(storage)
+
+    @provide(scope=Scope.APP)
+    async def recording_service(
+        self,
+        sessions: VoiceSessionService,
+        encoder: AudioEncoder,
+        store: VoiceRecordingStore,
+    ) -> AsyncIterator[VoiceRecordingService]:
+        service = VoiceRecordingService(sessions, encoder, store)
+        try:
+            yield service
+        finally:
+            await service.close()
+
+    @provide(scope=Scope.APP)
     def session_service(
         self,
         repositories: UnitOfWork[VoiceSessionRepository],
@@ -85,6 +117,7 @@ class VoiceProvider(Provider):
         conversation_events: EventSource,
         speech_to_text: SpeechToText,
         text_to_speech: TextToSpeech,
+        recordings: VoiceRecordingService,
         settings: VoiceSettings,
     ) -> AsyncIterator[VoiceTurnService]:
         service = VoiceTurnService(
@@ -96,6 +129,7 @@ class VoiceProvider(Provider):
             conversation_events,
             speech_to_text,
             text_to_speech,
+            recordings,
             settings.input_queue_size,
             settings.conversation_follow_up_delay_seconds,
             settings.conversation_inactivity_timeout_seconds,
