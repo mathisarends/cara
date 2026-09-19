@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from voice.integration import VoiceIntegration, VoiceIntegrationContext
-from voice.playback.policy import SonosAudioFocusPolicy
+from voice.integrations import VoiceIntegration, VoiceIntegrationContext
+from voice.integrations.sonos_audio_focus.policy import SonosAudioFocusPolicy
 
 
 class SonosAudioFocusIntegration(VoiceIntegration):

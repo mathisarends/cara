@@ -5,7 +5,7 @@ from uuid import UUID
 from hueify import GroupedLight, Hueify, Room
 from hueify.models import HueEvent
 
-from voice.lights.hue.baseline import (
+from voice.integrations.hue.baseline import (
     BRIGHTNESS_RANGE,
     TEMPERATURE_RANGE,
     Baseline,
@@ -14,8 +14,8 @@ from voice.lights.hue.baseline import (
     mirek_to_percentage,
     percentage_to_mirek,
 )
-from voice.lights.hue.effects import EFFECTS, TRANSITIONS
-from voice.lights.state import LightingState
+from voice.integrations.hue.effects import EFFECTS, TRANSITIONS
+from voice.integrations.hue.state import LightingState
 
 logger = logging.getLogger(__name__)
 

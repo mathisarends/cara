@@ -3,7 +3,7 @@ import logging
 
 from sonosify import SonosClient, TransportState
 
-from voice.playback.policy import SonosAudioFocusPolicy
+from voice.integrations.sonos_audio_focus.policy import SonosAudioFocusPolicy
 
 logger = logging.getLogger(__name__)
 

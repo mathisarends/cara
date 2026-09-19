@@ -2,10 +2,10 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
-from voice.integration import VoiceIntegration, VoiceIntegrationContext
+from voice.integrations import VoiceIntegration, VoiceIntegrationContext
 
-# parents[2]: sound.py -> voice/src/voice(project) -> voice
-_DEFAULT_SOUNDS_DIR = Path(__file__).parents[2] / "static" / "sounds"
+# parents[4]: sounds -> integrations -> voice -> src -> voice (project)
+_DEFAULT_SOUNDS_DIR = Path(__file__).parents[4] / "static" / "sounds"
 
 
 class Earcon(StrEnum):

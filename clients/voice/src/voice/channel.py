@@ -24,7 +24,8 @@ from voice.events.bus import EventBus
 from voice.events.listener import EventTrace, LoggingListener
 from voice.events.models import VoiceResourcesClosing, VoiceTurnEnded
 from voice.gateway import GatewayVoiceBridge, GatewayVoiceSession
-from voice.integration import VoiceIntegration, VoiceIntegrationBridge
+from voice.integrations import VoiceIntegration
+from voice.integrations.bridge import VoiceIntegrationBridge
 from voice.wakeword import WakeWordListener, WakeWordSettings
 
 

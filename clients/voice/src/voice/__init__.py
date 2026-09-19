@@ -24,20 +24,17 @@ from .config import (
 )
 from .factory import VoiceSessionFactory
 from .gateway import GatewayVoiceSession
-from .integration import (
-    VoiceIntegration,
-    VoiceIntegrationBridge,
-    VoiceIntegrationContext,
-)
-from .lights import HueIntegration, LightingState
-from .playback import (
+from .integrations import VoiceIntegration, VoiceIntegrationContext
+from .integrations.bridge import VoiceIntegrationBridge
+from .integrations.hue import HueIntegration, LightingState
+from .integrations.sonos_audio_focus import (
     SonosAudioFocusIntegration,
     SonosAudioFocusPolicy,
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
+from .integrations.sounds import Earcon, SoundIntegration
 from .session import VoiceSession
-from .sound import Earcon, SoundIntegration
 from .wakeword import WakeWord, WakeWordSettings
 
 __all__ = [

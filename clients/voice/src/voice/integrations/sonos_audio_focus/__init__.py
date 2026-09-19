@@ -1,5 +1,5 @@
-from .audio_focus import SonosAudioFocusIntegration
 from .ducking import SonosDuckingPolicy
+from .integration import SonosAudioFocusIntegration
 from .pause import SonosPausePolicy
 from .policy import SonosAudioFocusPolicy
 

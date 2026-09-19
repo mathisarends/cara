@@ -6,8 +6,8 @@ import pytest
 
 from voice import Earcon, SoundIntegration
 from voice.audio import AudioPlayback
-from voice.integration import VoiceIntegrationContext
-from voice.sound import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
+from voice.integrations import VoiceIntegrationContext
+from voice.integrations.sounds.integration import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
 
 
 class _RecordingAudioPlayer(AudioPlayback):

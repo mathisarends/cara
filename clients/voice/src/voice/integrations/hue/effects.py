@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from voice.lights.state import LightingState
+from voice.integrations.hue.state import LightingState
 
 
 @dataclass(frozen=True, slots=True)

@@ -10,7 +10,7 @@ from sonosify import (
     TransportState,
 )
 
-import voice.playback.ducking as ducking_module
+import voice.integrations.sonos_audio_focus.ducking as ducking_module
 from voice import (
     SonosAudioFocusIntegration,
     SonosDuckingPolicy,
@@ -23,7 +23,7 @@ from voice.events import (
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
-from voice.integration import VoiceIntegrationBridge
+from voice.integrations.bridge import VoiceIntegrationBridge
 
 
 class _RecordingSonosClient:
@@ -91,7 +91,7 @@ class _RecordingEventSubscription:
 
 
 def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> None:
-    caplog.set_level(logging.INFO, logger="voice.playback.ducking")
+    caplog.set_level(logging.INFO, logger=ducking_module.__name__)
 
     async def run() -> _RecordingSonosClient:
         event_bus = EventBus()

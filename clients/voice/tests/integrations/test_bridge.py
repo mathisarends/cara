@@ -8,11 +8,8 @@ from voice.events import (
     VoiceConversationInactivityCountdown,
 )
 from voice.events.bus import EventBus
-from voice.integration import (
-    VoiceIntegration,
-    VoiceIntegrationBridge,
-    VoiceIntegrationContext,
-)
+from voice.integrations import VoiceIntegration, VoiceIntegrationContext
+from voice.integrations.bridge import VoiceIntegrationBridge
 
 
 class _RecordingVoiceIntegration(VoiceIntegration):

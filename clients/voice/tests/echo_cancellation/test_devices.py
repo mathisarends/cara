@@ -10,7 +10,7 @@ from voice.echo_cancellation import PlaybackReference, ReferenceTapOutput
 from voice.events import WakeWordDetected
 from voice.events.bus import EventBus
 from voice.events.models import VoiceResourcesClosing
-from voice.integration import VoiceIntegrationBridge
+from voice.integrations.bridge import VoiceIntegrationBridge
 
 _SAMPLE_RATE = 16_000
 _FRAMES = 160

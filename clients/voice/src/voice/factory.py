@@ -20,16 +20,16 @@ from voice.config import (
 )
 from voice.echo_cancellation import EchoCancellationSettings
 from voice.gateway import GatewayVoiceSession
-from voice.integration import VoiceIntegration
-from voice.lights import HueIntegration
-from voice.playback import (
+from voice.integrations import VoiceIntegration
+from voice.integrations.hue import HueIntegration
+from voice.integrations.sonos_audio_focus import (
     SonosAudioFocusIntegration,
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
+from voice.integrations.sounds import SoundIntegration
 from voice.session import VoiceSession
 from voice.sonos import SonosSettings
-from voice.sound import SoundIntegration
 from voice.wakeword import WakeWord, WakeWordSettings
 
 

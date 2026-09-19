@@ -18,7 +18,7 @@ from voice.events import (
 )
 from voice.events.bus import EventBus
 from voice.events.models import Event
-from voice.integration import VoiceIntegrationBridge
+from voice.integrations.bridge import VoiceIntegrationBridge
 
 _ROOM_ID = UUID("00000000-0000-0000-0000-000000000001")
 _GROUPED_LIGHT_ID = UUID("00000000-0000-0000-0000-000000000002")

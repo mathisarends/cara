@@ -8,8 +8,12 @@ from voice.events import (
     WakeWordDetected,
 )
 from voice.events.bus import EventBus
-from voice.integration import VoiceIntegrationBridge
-from voice.sound import _DEFAULT_SOUNDS_DIR, Earcon, SoundIntegration
+from voice.integrations.bridge import VoiceIntegrationBridge
+from voice.integrations.sounds.integration import (
+    _DEFAULT_SOUNDS_DIR,
+    Earcon,
+    SoundIntegration,
+)
 
 
 def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> None:

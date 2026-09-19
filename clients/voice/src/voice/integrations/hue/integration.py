@@ -5,9 +5,9 @@ from uuid import UUID
 
 from hueify import Hueify
 
-from voice.integration import VoiceIntegration, VoiceIntegrationContext
-from voice.lights.hue import HueRoomLighting
-from voice.lights.state import LightingState
+from voice.integrations import VoiceIntegration, VoiceIntegrationContext
+from voice.integrations.hue.room_lighting import HueRoomLighting
+from voice.integrations.hue.state import LightingState
 
 logger = logging.getLogger(__name__)
 
