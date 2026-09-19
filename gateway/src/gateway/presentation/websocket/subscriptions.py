@@ -12,15 +12,6 @@ from gateway.features.conversation.application import (
     EventPublisher,
     EventSource,
     EventSubscription,
-    SessionService,
-)
-from gateway.features.conversation.presentation.rpc.models import (
-    ChannelParams,
-    ChannelSubscriptionResult,
-    ChannelUnsubscriptionResult,
-    SessionParams,
-    SubscriptionResult,
-    UnsubscriptionResult,
 )
 from gateway.features.voice.application import VoiceEvent, VoiceEventPublisher
 
@@ -162,41 +153,6 @@ class InMemoryEventStream(EventPublisher, EventSource, VoiceEventPublisher):
             event.sequence,
             delivered,
         )
-
-
-class EventStreamRpcMethods:
-    def __init__(
-        self,
-        sessions: SessionService,
-        stream: InMemoryEventStream,
-        client: GatewayClient,
-    ) -> None:
-        self._sessions = sessions
-        self._stream = stream
-        self._client = client
-
-    async def subscribe_session(self, params: SessionParams) -> SubscriptionResult:
-        await self._sessions.get(params.session_id)
-        self._stream.subscribe(self._client.id, params.session_id)
-        return SubscriptionResult(subscribed=params.session_id)
-
-    async def unsubscribe_session(
-        self,
-        params: SessionParams,
-    ) -> UnsubscriptionResult:
-        self._stream.unsubscribe(self._client.id, params.session_id)
-        return UnsubscriptionResult(unsubscribed=params.session_id)
-
-    def subscribe_channel(self, params: ChannelParams) -> ChannelSubscriptionResult:
-        self._stream.subscribe_channel(self._client.id, params.channel)
-        return ChannelSubscriptionResult(subscribed_channel=params.channel)
-
-    def unsubscribe_channel(
-        self,
-        params: ChannelParams,
-    ) -> ChannelUnsubscriptionResult:
-        self._stream.unsubscribe_channel(self._client.id, params.channel)
-        return ChannelUnsubscriptionResult(unsubscribed_channel=params.channel)
 
 
 def _log_event(event: ConversationEvent, recipients: int) -> None:

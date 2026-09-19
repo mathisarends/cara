@@ -9,7 +9,6 @@ from pyrpckit import RpcConnection
 from gateway.features.conversation.application import (
     EventPublisher,
     EventSource,
-    SessionService,
 )
 from gateway.features.voice.application import VoiceEventPublisher
 from gateway.presentation.authentication import (
@@ -18,7 +17,6 @@ from gateway.presentation.authentication import (
 )
 from gateway.presentation.websocket.subscriptions import (
     EventReceiver,
-    EventStreamRpcMethods,
     GatewayClient,
     InMemoryEventStream,
 )
@@ -86,15 +84,6 @@ class GatewayProvider(Provider):
     @provide(scope=Scope.SESSION)
     def receiver(self, client: GatewayClient) -> EventReceiver:
         return client.receiver
-
-    @provide(scope=Scope.REQUEST)
-    def rpc_methods(
-        self,
-        sessions: SessionService,
-        stream: InMemoryEventStream,
-        client: GatewayClient,
-    ) -> EventStreamRpcMethods:
-        return EventStreamRpcMethods(sessions, stream, client)
 
 
 def _remote_address(connection: RpcConnection) -> str:
