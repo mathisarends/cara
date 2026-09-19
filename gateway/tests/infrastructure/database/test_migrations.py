@@ -53,7 +53,7 @@ async def test_alembic_migrates_an_empty_database_to_head(tmp_path: Path) -> Non
         "gateway_session_user_messages",
     } <= tables
     assert "channel_name" in session_columns
-    assert "inactivity_timeout_seconds" in session_columns
+    assert "inactivity_timeout_seconds" not in session_columns
     assert "is_current" in session_columns
     assert "channel_account_id" not in session_columns
     assert "ix_gateway_sessions_channel" in session_indexes

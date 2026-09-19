@@ -2223,18 +2223,6 @@
         "properties": {
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
-          },
-          "inactivity_timeout_seconds": {
-            "anyOf": [
-              {
-                "type": "number",
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Inactivity Timeout Seconds"
           }
         },
         "additionalProperties": false,
@@ -2403,18 +2391,6 @@
         "properties": {
           "channel": {
             "$ref": "#/components/schemas/SessionChannel"
-          },
-          "inactivity_timeout_seconds": {
-            "anyOf": [
-              {
-                "type": "number",
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Inactivity Timeout Seconds"
           }
         },
         "additionalProperties": false,

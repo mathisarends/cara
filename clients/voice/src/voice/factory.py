@@ -133,7 +133,6 @@ class VoiceSessionFactory:
             BackendConnectionOptions(
                 room=self._config.room,
                 channel=session.channel,
-                inactivity_timeout_seconds=session.inactivity_timeout_seconds,
                 input_format=AudioFormat(
                     sample_rate=devices.input.sample_rate,
                     channels=devices.input.channels,

@@ -9,7 +9,6 @@ room: bedroom
 
 session:
   channel: voice
-  inactivity_timeout_seconds: 1800
 
 activation:
   wake_word:

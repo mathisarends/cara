@@ -42,10 +42,7 @@ class GatewayVoiceBackendConnector(VoiceBackendConnector):
             for open_voice_session in existing.voice_sessions:
                 await rest.close_voice_session(open_voice_session.id)
             session = await rest.create_session(
-                CreateSessionRequest(
-                    channel=SessionChannel(name=options.channel),
-                    inactivity_timeout_seconds=options.inactivity_timeout_seconds,
-                )
+                CreateSessionRequest(channel=SessionChannel(name=options.channel))
             )
             voice_session = await rest.open_voice_session(
                 OpenVoiceSessionRequest(

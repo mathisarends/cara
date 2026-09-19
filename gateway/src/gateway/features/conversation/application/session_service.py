@@ -1,5 +1,4 @@
 import logging
-from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from gateway.features.conversation.domain import (
@@ -21,37 +20,17 @@ class SessionService:
         self,
         *,
         channel: ChannelRef,
-        inactivity_timeout: timedelta | None = None,
     ) -> Session:
-        return await _create(
-            self._sessions,
-            channel,
-            inactivity_timeout=inactivity_timeout,
-        )
+        return await _create(self._sessions, channel)
 
     async def open(
         self,
         *,
         channel: ChannelRef,
-        inactivity_timeout: timedelta | None = None,
     ) -> Session:
         session = await self._sessions.find_latest_by_channel(channel)
         if session is None:
-            return await _create(
-                self._sessions,
-                channel,
-                inactivity_timeout=inactivity_timeout,
-            )
-        if inactivity_timeout is not None:
-            session.set_inactivity_timeout(inactivity_timeout)
-        if session.is_inactive_at(datetime.now(UTC)):
-            return await _create(
-                self._sessions,
-                channel,
-                inactivity_timeout=session.inactivity_timeout,
-            )
-        if inactivity_timeout is not None:
-            session = await self._sessions.save(session)
+            return await _create(self._sessions, channel)
         logger.info(
             "Opened existing conversation session %s for channel %s",
             session.id,
@@ -69,18 +48,12 @@ class SessionService:
         return session
 
 
-async def _create(
-    sessions: SessionRepository,
-    channel: ChannelRef,
-    *,
-    inactivity_timeout: timedelta | None = None,
-) -> Session:
+async def _create(sessions: SessionRepository, channel: ChannelRef) -> Session:
     current = await sessions.find_latest_by_channel(channel)
     if current is not None:
         current.supersede()
         await sessions.save(current)
     session = Session.create(channel)
-    session.set_inactivity_timeout(inactivity_timeout)
     saved = await sessions.save(session)
     logger.info(
         "Created conversation session %s for channel %s",

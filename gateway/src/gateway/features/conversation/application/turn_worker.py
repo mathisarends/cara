@@ -266,5 +266,4 @@ def _agent_session_ref(session: Session) -> AgentSessionRef:
     return AgentSessionRef(
         id=session.id,
         channel=AgentChannelRef(session.channel.name),
-        inactivity_timeout=session.inactivity_timeout,
     )

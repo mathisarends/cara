@@ -300,7 +300,6 @@ class CreateSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     channel: SessionChannel
-    inactivity_timeout_seconds: float | None = None
 
 
 class DismissAlarmResponse(BaseModel):
@@ -392,7 +391,6 @@ class OpenSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     channel: SessionChannel
-    inactivity_timeout_seconds: float | None = None
 
 
 class OpenVoiceSessionRequest(BaseModel):

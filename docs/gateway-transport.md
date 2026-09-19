@@ -43,6 +43,6 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 ## Client flow
 
-1. Get or create the session via REST. A client that wants ephemeral context may pass `inactivity_timeout_seconds`; omitting it means that the session never expires automatically.
-2. A history-oriented client loads the snapshot via `GET /v1/sessions/{id}`, then calls `subscription.subscribe` on the socket. A persistent channel client such as Voice calls `subscription.subscribe_channel` instead.
+1. Get or create the session via REST. Use creation for a fresh context and opening to resume the current session of a channel.
+2. A history-oriented client loads the snapshot via `GET /v1/sessions/{id}`, then calls `subscription.subscribe` on the socket. Clients that intentionally follow whichever session is current for a channel use `subscription.subscribe_channel` instead.
 3. The snapshot carries no event `sequence` yet, so events between steps 2 and 3 can be missed; a snapshot sequence would allow subscribe-first with dedupe.

@@ -35,7 +35,6 @@ class BackendSessionState:
 class BackendConnectionOptions:
     room: str
     channel: str
-    inactivity_timeout_seconds: float
     input_format: AudioFormat
     output_format: AudioFormat
 

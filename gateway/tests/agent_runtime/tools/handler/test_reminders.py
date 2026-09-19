@@ -81,7 +81,6 @@ async def test_reminders_call_the_gateway_service_in_process() -> None:
         owner_id=_OWNER_ID,
         session_id=_SESSION_ID,
         channel="cli",
-        channel_scoped=False,
         voice_sessions=_voice_sessions(),
     )
 
@@ -108,22 +107,21 @@ async def test_reminders_list_is_scoped_to_its_owner() -> None:
         owner_id=_OWNER_ID,
         session_id=_SESSION_ID,
         channel="cli",
-        channel_scoped=False,
         voice_sessions=_voice_sessions(),
     )
 
     assert await reminders.list() == ()
 
 
-async def test_reminders_from_an_expiring_session_target_the_channel() -> None:
+async def test_reminders_from_a_voice_session_target_the_channel() -> None:
     service = _AutomationService()
+    voice_session = _VoiceSession("bedroom")
     reminders = GatewayReminders(
         _UnitOfWork(service),
         owner_id=_OWNER_ID,
         session_id=_SESSION_ID,
         channel="voice",
-        channel_scoped=True,
-        voice_sessions=_voice_sessions(),
+        voice_sessions=cast(VoiceSessionService, _VoiceSessions(voice_session)),
     )
 
     await reminders.create(
@@ -143,7 +141,6 @@ async def test_reminders_created_by_voice_are_bound_to_the_current_room() -> Non
         owner_id=_OWNER_ID,
         session_id=_SESSION_ID,
         channel="voice",
-        channel_scoped=True,
         voice_sessions=cast(VoiceSessionService, _VoiceSessions(voice_session)),
     )
 

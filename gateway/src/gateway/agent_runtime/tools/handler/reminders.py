@@ -24,7 +24,7 @@ from gateway.features.automation.domain import (
 )
 from gateway.features.conversation.domain import SessionNotFoundError
 from gateway.features.voice.application import VoiceSessionService
-from gateway.features.voice.domain import VoiceSessionStatus
+from gateway.features.voice.domain import VoiceSession, VoiceSessionStatus
 from gateway.shared import UnitOfWork, VoiceDelivery
 
 
@@ -38,14 +38,12 @@ class GatewayReminders(Reminders):
         owner_id: str,
         session_id: UUID,
         channel: str,
-        channel_scoped: bool,
         voice_sessions: VoiceSessionService,
     ) -> None:
         self._automations = automations
         self._owner_id = owner_id
         self._session_id = session_id
         self._channel = channel
-        self._channel_scoped = channel_scoped
         self._voice_sessions = voice_sessions
 
     async def list(self) -> tuple[Reminder, ...]:
@@ -61,10 +59,14 @@ class GatewayReminders(Reminders):
         name: str | None = None,
     ) -> Reminder:
         try:
+            voice_sessions = await self._voice_sessions.list(
+                session_id=self._session_id,
+                status=VoiceSessionStatus.OPEN,
+            )
             async with self._automations() as service:
                 target = (
                     ChannelTarget(self._channel)
-                    if self._channel_scoped
+                    if voice_sessions
                     else SessionTarget(self._session_id)
                 )
                 automation = await service.create(
@@ -73,17 +75,15 @@ class GatewayReminders(Reminders):
                     schedule=_automation_schedule(schedule),
                     action=PromptAction(instruction),
                     name=name,
-                    delivery=await self._voice_delivery(),
+                    delivery=self._voice_delivery(voice_sessions),
                 )
         except (SessionNotFoundError, ValueError) as error:
             raise ToolError(str(error)) from None
         return _reminder(automation)
 
-    async def _voice_delivery(self) -> VoiceDelivery | None:
-        sessions = await self._voice_sessions.list(
-            session_id=self._session_id,
-            status=VoiceSessionStatus.OPEN,
-        )
+    def _voice_delivery(
+        self, sessions: tuple[VoiceSession, ...]
+    ) -> VoiceDelivery | None:
         active = tuple(
             session
             for session in sessions

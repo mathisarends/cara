@@ -31,12 +31,10 @@ class SessionChannel(ApiModel):
 
 class CreateSessionRequest(ApiModel):
     channel: SessionChannel
-    inactivity_timeout_seconds: float | None = Field(default=None, gt=0)
 
 
 class OpenSessionRequest(ApiModel):
     channel: SessionChannel
-    inactivity_timeout_seconds: float | None = Field(default=None, gt=0)
 
 
 class SessionResponse(ApiModel):

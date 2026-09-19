@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Self
 from uuid import UUID
 
@@ -23,14 +23,12 @@ class Session(Aggregate):
         *,
         id: UUID | None = None,
         created_at: datetime | None = None,
-        inactivity_timeout: timedelta | None = None,
         is_current: bool = True,
     ) -> None:
         super().__init__(id=id, created_at=created_at)
         self._channel = channel
         self._entries = list(entries)
         self._turn_active = turn_active
-        self._inactivity_timeout = inactivity_timeout
         self._is_current = is_current
 
     @classmethod
@@ -50,33 +48,11 @@ class Session(Aggregate):
         return self._turn_active
 
     @property
-    def inactivity_timeout(self) -> timedelta | None:
-        return self._inactivity_timeout
-
-    @property
     def is_current(self) -> bool:
         return self._is_current
 
-    @property
-    def last_activity_at(self) -> datetime:
-        timestamps = (entry.created_at for entry in self._entries)
-        return max(timestamps, default=self.created_at)
-
-    def set_inactivity_timeout(self, timeout: timedelta | None) -> None:
-        if timeout is not None and timeout <= timedelta(0):
-            raise ValueError("Session inactivity timeout must be positive")
-        self._inactivity_timeout = timeout
-
     def supersede(self) -> None:
         self._is_current = False
-
-    def is_inactive_at(self, now: datetime) -> bool:
-        timeout = self._inactivity_timeout
-        return (
-            timeout is not None
-            and not self._turn_active
-            and now - self.last_activity_at >= timeout
-        )
 
     def add_user_message(self, content: str) -> UserMessage:
         if self._find_pending_tool_call_sequence() is not None:

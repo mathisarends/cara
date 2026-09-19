@@ -48,7 +48,6 @@ class TurnToolDependencies:
                 owner_id=owner_id,
                 session_id=session.id,
                 channel=session.channel.name,
-                channel_scoped=session.inactivity_timeout is not None,
                 voice_sessions=self._voice_sessions,
             ),
         )

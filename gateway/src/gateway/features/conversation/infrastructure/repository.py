@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,11 +92,6 @@ class SQLSessionRepository(
             id=orm.id,
             created_at=_as_utc(orm.created_at),
             turn_active=orm.turn_active,
-            inactivity_timeout=(
-                timedelta(seconds=orm.inactivity_timeout_seconds)
-                if orm.inactivity_timeout_seconds is not None
-                else None
-            ),
             is_current=orm.is_current,
             entries=[entry for _, entry in positioned_entries],
         )
@@ -106,11 +101,6 @@ class SQLSessionRepository(
             id=domain.id,
             created_at=domain.created_at,
             channel_name=domain.channel.name,
-            inactivity_timeout_seconds=(
-                domain.inactivity_timeout.total_seconds()
-                if domain.inactivity_timeout is not None
-                else None
-            ),
             turn_active=domain.turn_active,
             is_current=domain.is_current,
         )
