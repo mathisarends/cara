@@ -12,19 +12,21 @@ class VoiceIntegrationContext:
 
 
 class VoiceIntegration:
-    """Local feature that reacts to semantic :class:`VoiceChannel` events.
+    """Local feature that reacts to the lifecycle of a voice session.
 
-    Subclass this class and pass instances to ``VoiceChannel(integrations=...)``.
-    Every callback is an async no-op by default, so subclasses only need to
-    override the events they are interested in.
+    Subclass this class and pass instances to ``VoiceSessionFactory``. Every
+    callback is an async no-op by default, so subclasses only need to override
+    the events they are interested in. A failing ``prepare`` or
+    ``on_session_starting`` aborts the session; failures of later callbacks
+    are logged and never affect the session.
     """
 
     async def prepare(self, context: VoiceIntegrationContext) -> None:
-        """Prepare resources before the channel starts its wake-word cycle."""
+        """Prepare resources before the session starts listening."""
 
-    async def on_channel_starting(self) -> None: ...
+    async def on_session_starting(self) -> None: ...
 
-    async def on_channel_stopped(self) -> None: ...
+    async def on_session_stopped(self) -> None: ...
 
     async def on_wake_word_detected(
         self, name: str, score: float, sequence: int
@@ -32,9 +34,7 @@ class VoiceIntegration:
 
     async def on_user_turn_started(self) -> None: ...
 
-    async def on_assistant_turn_started(self) -> None: ...
-
-    async def on_assistant_response_started(self, turn_id: UUID) -> None: ...
+    async def on_assistant_turn_started(self, turn_id: UUID) -> None: ...
 
     async def on_assistant_text_started(self, turn_id: UUID) -> None: ...
 

@@ -1,90 +1,67 @@
 import asyncio
 from uuid import uuid4
 
-from voice.events import (
-    AssistantResponseStarted,
-    AudioPlaybackRequested,
-    VoiceConversationEnded,
-    WakeWordDetected,
-)
-from voice.events.bus import EventBus
-from voice.integrations.bridge import VoiceIntegrationBridge
+from voice.audio import AudioPlayback
+from voice.integrations import VoiceIntegrationContext
+from voice.integrations.notifier import VoiceIntegrationNotifier
 from voice.integrations.sounds.integration import (
     _DEFAULT_SOUNDS_DIR,
     Earcon,
     SoundIntegration,
 )
+from voice.lifecycle import (
+    AssistantTurnStarted,
+    VoiceConversationEnded,
+    VoiceLifecycleEvent,
+    WakeWordDetected,
+)
 
 
-def test_wake_word_detected_plays_wake_earcon_before_dispatch_completes() -> None:
+class _RecordingPlayback(AudioPlayback):
+    def __init__(self) -> None:
+        self.audio: list[bytes] = []
+
+    async def play(self, audio: bytes) -> None:
+        self.audio.append(audio)
+
+
+def _played(event: VoiceLifecycleEvent) -> list[bytes]:
     async def run() -> list[bytes]:
-        event_bus = EventBus()
-        requested: list[bytes] = []
+        playback = _RecordingPlayback()
+        notifier = VoiceIntegrationNotifier((SoundIntegration(),))
+        await notifier.start(VoiceIntegrationContext(audio_player=playback))
+        await notifier.on_lifecycle_event(event)
+        return playback.audio
 
-        async def capture(request: AudioPlaybackRequested) -> None:
-            requested.append(request.audio)
-
-        event_bus.on_request(AudioPlaybackRequested, capture)
-        integration = SoundIntegration()
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus,
-            integrations=(integration,),
-        )
-        bridge.setup()
-        await bridge.prepare()
-        await event_bus.emit(
-            WakeWordDetected(score=0.8, sequence=4, name="hey_mycroft")
-        )
-        return requested
-
-    assert asyncio.run(run()) == [
-        (_DEFAULT_SOUNDS_DIR / f"{Earcon.WAKE}.wav").read_bytes()
-    ]
+    return asyncio.run(run())
 
 
-def test_conversation_ended_plays_sleep_earcon_before_dispatch_completes() -> None:
+def _earcon(earcon: Earcon) -> bytes:
+    return (_DEFAULT_SOUNDS_DIR / f"{earcon}.wav").read_bytes()
+
+
+def test_wake_word_detected_plays_the_wake_earcon() -> None:
+    event = WakeWordDetected(score=0.8, sequence=4, name="hey_mycroft")
+
+    assert _played(event) == [_earcon(Earcon.WAKE)]
+
+
+def test_conversation_ended_plays_the_sleep_earcon() -> None:
+    event = VoiceConversationEnded(reason="inactivity_timeout")
+
+    assert _played(event) == [_earcon(Earcon.SLEEP)]
+
+
+def test_assistant_turn_started_plays_the_success_earcon() -> None:
+    assert _played(AssistantTurnStarted(turn_id=uuid4())) == [_earcon(Earcon.SUCCESS)]
+
+
+def test_session_stop_plays_the_sleep_earcon() -> None:
     async def run() -> list[bytes]:
-        event_bus = EventBus()
-        requested: list[bytes] = []
+        playback = _RecordingPlayback()
+        notifier = VoiceIntegrationNotifier((SoundIntegration(),))
+        await notifier.start(VoiceIntegrationContext(audio_player=playback))
+        await notifier.stop()
+        return playback.audio
 
-        async def capture(request: AudioPlaybackRequested) -> None:
-            requested.append(request.audio)
-
-        event_bus.on_request(AudioPlaybackRequested, capture)
-        integration = SoundIntegration()
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus,
-            integrations=(integration,),
-        )
-        bridge.setup()
-        await bridge.prepare()
-        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
-        return requested
-
-    assert asyncio.run(run()) == [
-        (_DEFAULT_SOUNDS_DIR / f"{Earcon.SLEEP}.wav").read_bytes()
-    ]
-
-
-def test_assistant_response_started_plays_success_earcon() -> None:
-    async def run() -> list[bytes]:
-        event_bus = EventBus()
-        requested: list[bytes] = []
-
-        async def capture(request: AudioPlaybackRequested) -> None:
-            requested.append(request.audio)
-
-        event_bus.on_request(AudioPlaybackRequested, capture)
-        integration = SoundIntegration()
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus,
-            integrations=(integration,),
-        )
-        bridge.setup()
-        await bridge.prepare()
-        await event_bus.emit(AssistantResponseStarted(turn_id=uuid4()))
-        return requested
-
-    assert asyncio.run(run()) == [
-        (_DEFAULT_SOUNDS_DIR / f"{Earcon.SUCCESS}.wav").read_bytes()
-    ]
+    assert asyncio.run(run()) == [_earcon(Earcon.SLEEP)]

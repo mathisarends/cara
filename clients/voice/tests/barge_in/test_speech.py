@@ -1,127 +1,82 @@
 import asyncio
-from collections.abc import AsyncGenerator
-from typing import cast
+from collections.abc import AsyncIterator
 
 import numpy as np
 
-from voice.audio.models import AudioFormat
+from voice.activation import ActivationKind, ListenActivation
+from voice.audio import AudioFormat, AudioFrame, AudioFrameSource
 from voice.barge_in import (
-    BargeInContext,
     BargeInSignal,
     BargeInStrategy,
     NoBargeIn,
     SpeechBargeIn,
     WakeWordBargeIn,
 )
-from voice.echo_cancellation import EchoPresence
-from voice.events import (
-    UserAudioChunk,
-    WakeWordDetected,
-)
-from voice.events.bus import EventBus
 from voice.vad import VoiceActivityDetector
 
 _FORMAT = AudioFormat(sample_rate=16_000)
+_LOUD = -20.0
 
 
-def test_wake_word_strategy_signals_detected_wake_words() -> None:
-    async def run() -> list[BargeInSignal]:
-        event_bus = EventBus()
-        strategy = WakeWordBargeIn()
-        strategy.set_context(_context(event_bus))
+def test_wake_word_strategy_interrupts_on_wake_word_activations_only() -> None:
+    strategy = WakeWordBargeIn()
 
-        await event_bus.emit(
-            WakeWordDetected(score=0.9, sequence=7, name="hey_mycroft")
-        )
-        return await _drain(strategy)
-
-    assert asyncio.run(run()) == [BargeInSignal(sequence=7)]
+    assert strategy.interruption_for(
+        ListenActivation(sequence=7, kind=ActivationKind.WAKE_WORD)
+    ) == BargeInSignal(sequence=7)
+    assert strategy.interruption_for(ListenActivation(sequence=7)) is None
 
 
 def test_speech_strategy_signals_where_sustained_speech_started() -> None:
-    async def run() -> list[BargeInSignal]:
-        event_bus = EventBus()
-        strategy = _speech_strategy(event_bus, _AlwaysSpeech())
+    frames = [_frame(1, dbfs=-60.0), _frame(2), _frame(3)]
 
-        await _publish(event_bus, 1, _pcm(dbfs=-60.0, samples=1_024))
-        await _publish(event_bus, 2, _pcm(dbfs=-20.0, samples=1_024))
-        await _publish(event_bus, 3, _pcm(dbfs=-20.0, samples=1_024))
-        return await _drain(strategy)
-
-    assert asyncio.run(run()) == [BargeInSignal(sequence=2)]
+    assert _signals(_AlwaysSpeech(), frames) == [BargeInSignal(sequence=2)]
 
 
 def test_speech_strategy_ignores_speech_below_the_minimum_duration() -> None:
-    async def run() -> list[BargeInSignal]:
-        event_bus = EventBus()
-        strategy = _speech_strategy(event_bus, _AlwaysSpeech())
+    frames = [_frame(1), _frame(2, dbfs=-60.0), _frame(3)]
 
-        await _publish(event_bus, 1, _pcm(dbfs=-20.0, samples=1_024))
-        await _publish(event_bus, 2, _pcm(dbfs=-60.0, samples=1_024))
-        await _publish(event_bus, 3, _pcm(dbfs=-20.0, samples=1_024))
-        return await _drain(strategy)
+    assert _signals(_AlwaysSpeech(), frames) == []
 
-    assert asyncio.run(run()) == []
+
+def test_speech_strategy_does_not_sustain_speech_across_missed_frames() -> None:
+    frames = [_frame(1), _frame(3)]
+
+    assert _signals(_AlwaysSpeech(), frames) == []
 
 
 def test_speech_strategy_never_interrupts_on_the_assistants_own_voice() -> None:
-    async def run() -> list[BargeInSignal]:
-        event_bus = EventBus()
-        # Loud, and speech by every measure the detector has - but it is the
-        # assistant's own playback leaking through an imperfect canceller.
-        echo = _Echo(confidence=0.8)
-        strategy = _speech_strategy(event_bus, _AlwaysSpeech(), echo)
+    # Loud, and speech by every measure the detector has - but it is the
+    # assistant's own playback leaking through an imperfect canceller.
+    frames = [_frame(sequence, echo_confidence=0.8) for sequence in (1, 2, 3, 4)]
 
-        for sequence in (1, 2, 3, 4):
-            await _publish(event_bus, sequence, _pcm(dbfs=-20.0, samples=1_024))
-        return await _drain(strategy)
-
-    assert asyncio.run(run()) == []
+    assert _signals(_AlwaysSpeech(), frames) == []
 
 
 def test_speech_strategy_interrupts_once_the_room_is_no_longer_just_playback() -> None:
-    async def run() -> list[BargeInSignal]:
-        event_bus = EventBus()
-        echo = _Echo(confidence=0.8)
-        strategy = _speech_strategy(event_bus, _AlwaysSpeech(), echo)
-
-        await _publish(event_bus, 1, _pcm(dbfs=-20.0, samples=1_024))
+    frames = [
+        _frame(1, echo_confidence=0.8),
         # The user speaks up, so the playback no longer explains the window.
-        echo.confidence = 0.2
-        await _publish(event_bus, 2, _pcm(dbfs=-20.0, samples=1_024))
-        await _publish(event_bus, 3, _pcm(dbfs=-20.0, samples=1_024))
-        return await _drain(strategy)
+        _frame(2, echo_confidence=0.2),
+        _frame(3, echo_confidence=0.2),
+    ]
 
-    assert asyncio.run(run()) == [BargeInSignal(sequence=2)]
+    assert _signals(_AlwaysSpeech(), frames) == [BargeInSignal(sequence=2)]
 
 
 def test_speech_strategy_keeps_loud_non_speech_from_interrupting() -> None:
-    async def run() -> tuple[list[BargeInSignal], int]:
-        event_bus = EventBus()
-        detector = _NeverSpeech()
-        strategy = _speech_strategy(event_bus, detector)
+    detector = _NeverSpeech()
 
-        for sequence in (1, 2, 3):
-            await _publish(event_bus, sequence, _pcm(dbfs=-20.0, samples=1_024))
-        return await _drain(strategy), detector.scored_windows
-
-    signals, scored_windows = asyncio.run(run())
-
-    assert signals == []
-    assert scored_windows == 6
+    assert _signals(detector, [_frame(1), _frame(2), _frame(3)]) == []
+    assert detector.scored_windows == 6
 
 
 def test_speech_strategy_keeps_silence_away_from_the_detector() -> None:
-    async def run() -> int:
-        event_bus = EventBus()
-        detector = _AlwaysSpeech()
-        strategy = _speech_strategy(event_bus, detector)
+    detector = _AlwaysSpeech()
 
-        await _publish(event_bus, 1, _pcm(dbfs=-80.0, samples=1_024))
-        await _drain(strategy)
-        return detector.scored_windows
+    _signals(detector, [_frame(1, dbfs=-80.0)])
 
-    assert asyncio.run(run()) == 0
+    assert detector.scored_windows == 0
 
 
 def test_disabled_strategy_never_signals() -> None:
@@ -158,53 +113,38 @@ class _NeverSpeech(_AlwaysSpeech):
         return 0.0
 
 
-class _Echo(EchoPresence):
-    def __init__(self, confidence: float = 0.0) -> None:
-        self.confidence = confidence
+class _Frames(AudioFrameSource):
+    def __init__(self, frames: list[AudioFrame]) -> None:
+        self._frames = frames
 
     @property
-    def echo_confidence(self) -> float:
-        return self.confidence
+    def format(self) -> AudioFormat:
+        return _FORMAT
+
+    async def live_frames(self) -> AsyncIterator[AudioFrame]:
+        for frame in self._frames:
+            yield frame
 
 
-def _context(event_bus: EventBus, echo: EchoPresence | None = None) -> BargeInContext:
-    return BargeInContext(
-        event_bus=event_bus,
-        audio_format=_FORMAT,
-        echo_presence=echo or _Echo(),
-    )
-
-
-def _speech_strategy(
-    event_bus: EventBus,
-    detector: VoiceActivityDetector,
-    echo: EchoPresence | None = None,
-) -> SpeechBargeIn:
-    strategy = SpeechBargeIn(
+def _signals(
+    detector: VoiceActivityDetector, frames: list[AudioFrame]
+) -> list[BargeInSignal]:
+    strategy: BargeInStrategy = SpeechBargeIn(
+        _Frames(frames),
         detector=detector,
         min_level_dbfs=-40.0,
         min_speech_seconds=0.096,
     )
-    strategy.set_context(_context(event_bus, echo))
-    return strategy
+
+    async def run() -> list[BargeInSignal]:
+        return [signal async for signal in strategy.signals()]
+
+    return asyncio.run(run())
 
 
-async def _publish(event_bus: EventBus, sequence: int, chunk: bytes) -> None:
-    await event_bus.emit(UserAudioChunk(sequence=sequence, chunk=chunk))
-
-
-async def _drain(strategy: BargeInStrategy) -> list[BargeInSignal]:
-    signals = cast(AsyncGenerator[BargeInSignal], strategy.signals())
-    collected: list[BargeInSignal] = []
-    try:
-        while True:
-            collected.append(await asyncio.wait_for(anext(signals), timeout=0.01))
-    except TimeoutError:
-        return collected
-    finally:
-        await signals.aclose()
-
-
-def _pcm(*, dbfs: float, samples: int) -> bytes:
+def _frame(
+    sequence: int, *, dbfs: float = _LOUD, echo_confidence: float = 0.0
+) -> AudioFrame:
     amplitude = round(32_768.0 * 10 ** (dbfs / 20.0))
-    return np.full(samples, amplitude, dtype=np.int16).tobytes()
+    pcm = np.full(1_024, amplitude, dtype=np.int16).tobytes()
+    return AudioFrame(sequence, pcm, echo_confidence=echo_confidence)

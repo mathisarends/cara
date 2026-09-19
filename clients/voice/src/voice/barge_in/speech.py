@@ -3,14 +3,8 @@ from collections.abc import AsyncIterator
 
 import numpy as np
 
-from voice.barge_in.port import (
-    BargeInContext,
-    BargeInSignal,
-    BargeInStrategy,
-    PendingSignal,
-)
-from voice.echo_cancellation import EchoPresence
-from voice.events import UserAudioChunk
+from voice.audio import AudioFrame, AudioFrameSource
+from voice.barge_in.port import BargeInSignal, BargeInStrategy
 from voice.vad import SileroVoiceActivityDetector, VoiceActivityDetector
 
 _SILENCE_DBFS = -120.0
@@ -28,6 +22,7 @@ class SpeechBargeIn(BargeInStrategy):
 
     def __init__(
         self,
+        frames: AudioFrameSource,
         *,
         detector: VoiceActivityDetector | None = None,
         min_level_dbfs: float = -45.0,
@@ -43,71 +38,75 @@ class SpeechBargeIn(BargeInStrategy):
             raise ValueError("min_speech_seconds must be positive")
         if not 0.0 < max_echo_confidence <= 1.0:
             raise ValueError("max_echo_confidence must be within (0, 1]")
-
-        self._detector = detector or SileroVoiceActivityDetector()
-        self._min_level_dbfs = min_level_dbfs
-        self._min_speech_probability = min_speech_probability
-        self._min_speech_seconds = min_speech_seconds
-        self._max_echo_confidence = max_echo_confidence
-        self._echo_presence: EchoPresence | None = None
-        self._samples_required = 0
-        self._pending = PendingSignal()
-        self._buffer = np.zeros(0, dtype=np.int16)
-        self._speech_start: int | None = None
-        self._voiced_samples = 0
-
-    def set_context(self, context: BargeInContext) -> None:
-        audio_format = context.audio_format
-        if audio_format.sample_rate != self._detector.sample_rate:
+        detector = detector or SileroVoiceActivityDetector()
+        audio_format = frames.format
+        if audio_format.sample_rate != detector.sample_rate:
             raise ValueError(
-                f"Speech barge-in requires {self._detector.sample_rate} Hz audio."
+                f"Speech barge-in requires {detector.sample_rate} Hz audio."
             )
         if audio_format.channels != 1:
             raise ValueError("Speech barge-in requires mono audio.")
 
+        self._frames = frames
+        self._detector = detector
+        self._min_level_dbfs = min_level_dbfs
+        self._min_speech_probability = min_speech_probability
         self._samples_required = math.ceil(
-            self._min_speech_seconds * audio_format.sample_rate
+            min_speech_seconds * audio_format.sample_rate
         )
-        self._echo_presence = context.echo_presence
-        context.event_bus.on(UserAudioChunk, self._on_audio_chunk)
+        self._max_echo_confidence = max_echo_confidence
+        self._buffer = np.zeros(0, dtype=np.int16)
+        self._speech_start: int | None = None
+        self._voiced_samples = 0
 
-    def signals(self) -> AsyncIterator[BargeInSignal]:
-        return self._pending.stream()
+    async def signals(self) -> AsyncIterator[BargeInSignal]:
+        previous_sequence: int | None = None
+        async for frame in self._frames.live_frames():
+            if (
+                previous_sequence is not None
+                and frame.sequence != previous_sequence + 1
+            ):
+                # Speech cannot be sustained across audio this strategy missed.
+                self._buffer = np.zeros(0, dtype=np.int16)
+                self._end_speech()
+            previous_sequence = frame.sequence
+            speech_start = self._score_frame(frame)
+            if speech_start is not None:
+                yield BargeInSignal(sequence=speech_start)
 
-    async def _on_audio_chunk(self, event: UserAudioChunk) -> None:
+    def _score_frame(self, frame: AudioFrame) -> int | None:
         self._buffer = np.concatenate(
-            (self._buffer, np.frombuffer(event.chunk, dtype=np.int16))
+            (self._buffer, np.frombuffer(frame.pcm, dtype=np.int16))
         )
         window_samples = self._detector.window_samples
+        speech_start: int | None = None
         while self._buffer.size >= window_samples:
             window = self._buffer[:window_samples]
             self._buffer = self._buffer[window_samples:]
-            self._score_window(window, event.sequence)
+            started = self._score_window(window, frame)
+            if started is not None and speech_start is None:
+                speech_start = started
+        return speech_start
 
-    def _score_window(self, window: np.ndarray, sequence: int) -> None:
-        if self._hears_own_playback():
+    def _score_window(self, window: np.ndarray, frame: AudioFrame) -> int | None:
+        if frame.echo_confidence >= self._max_echo_confidence:
             # Whatever the detector would make of this window, the assistant
             # is not allowed to take its own voice for an interruption.
             self._end_speech()
-            return
+            return None
         if not self._is_speech(window):
             self._end_speech()
-            return
+            return None
 
         if self._speech_start is None:
-            self._speech_start = sequence
+            self._speech_start = frame.sequence
         self._voiced_samples += window.size
         if self._voiced_samples < self._samples_required:
-            return
+            return None
 
         speech_start = self._speech_start
         self._end_speech()
-        self._pending.put(speech_start)
-
-    def _hears_own_playback(self) -> bool:
-        if self._echo_presence is None:
-            return False
-        return self._echo_presence.echo_confidence >= self._max_echo_confidence
+        return speech_start
 
     def _is_speech(self, window: np.ndarray) -> bool:
         if _level_dbfs(window) < self._min_level_dbfs:

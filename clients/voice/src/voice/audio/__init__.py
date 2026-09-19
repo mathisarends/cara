@@ -1,17 +1,17 @@
-from .bridge import AudioBridge
 from .buffered_input import AudioOverrunError, AudioReader, BufferedAudioInput
+from .devices import AudioDeviceFactory, AudioDevices
 from .models import AudioFormat, AudioFrame
 from .player import AudioPlayer
-from .ports import AudioInput, AudioOutput, AudioPlayback
-from .request_player import EventAudioPlayer
+from .ports import AudioFrameSource, AudioInput, AudioOutput, AudioPlayback
 from .session import PortAudioSession
-from .user_audio import UserAudioProducer
 from .volume import VolumeControl
 
 __all__ = [
-    "AudioBridge",
+    "AudioDeviceFactory",
+    "AudioDevices",
     "AudioFormat",
     "AudioFrame",
+    "AudioFrameSource",
     "AudioInput",
     "AudioOutput",
     "AudioOverrunError",
@@ -19,8 +19,6 @@ __all__ = [
     "AudioPlayer",
     "AudioReader",
     "BufferedAudioInput",
-    "EventAudioPlayer",
     "PortAudioSession",
-    "UserAudioProducer",
     "VolumeControl",
 ]

@@ -39,7 +39,7 @@ class HueIntegration(VoiceIntegration):
     async def on_user_turn_started(self) -> None:
         self._submit_state(LightingState.LISTENING)
 
-    async def on_assistant_turn_started(self) -> None:
+    async def on_assistant_turn_started(self, turn_id: UUID) -> None:
         self._submit_state(LightingState.PROCESSING)
 
     async def on_assistant_tool_started(self, name: str) -> None:
@@ -63,7 +63,7 @@ class HueIntegration(VoiceIntegration):
     async def on_voice_turn_timed_out(self, turn_id: UUID) -> None:
         self._submit_state(LightingState.IDLE)
 
-    async def on_channel_stopped(self) -> None:
+    async def on_session_stopped(self) -> None:
         if not self._lighting.is_prepared:
             return
         self._submit_state(LightingState.IDLE)

@@ -1,25 +1,21 @@
 from collections.abc import AsyncIterator
 
-from voice.barge_in.port import (
-    BargeInContext,
-    BargeInSignal,
-    BargeInStrategy,
-    PendingSignal,
-)
-from voice.events import WakeWordDetected
+from voice.activation import Activation, ActivationKind
+from voice.barge_in.port import BargeInSignal, BargeInStrategy
 
 
 class WakeWordBargeIn(BargeInStrategy):
     """Treats the wake word as an interruption while the assistant responds."""
 
-    def __init__(self) -> None:
-        self._pending = PendingSignal()
+    async def signals(self) -> AsyncIterator[BargeInSignal]:
+        # Wake words already arrive as activations, so a second detector
+        # listening for them would only duplicate the work.
+        return
+        yield  # Unreachable, but makes this an empty async generator.
 
-    def set_context(self, context: BargeInContext) -> None:
-        context.event_bus.on(WakeWordDetected, self._on_wake_word_detected)
-
-    def signals(self) -> AsyncIterator[BargeInSignal]:
-        return self._pending.stream()
-
-    async def _on_wake_word_detected(self, event: WakeWordDetected) -> None:
-        self._pending.put(event.sequence)
+    def interruption_for(self, activation: Activation) -> BargeInSignal | None:
+        if activation.kind is not ActivationKind.WAKE_WORD:
+            return None
+        if activation.sequence is None:
+            return None
+        return BargeInSignal(sequence=activation.sequence)

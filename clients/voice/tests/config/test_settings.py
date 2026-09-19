@@ -2,13 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from voice import (
-    AudioOutputType,
-    BargeInType,
-    VoiceConfigError,
-    VoiceSessionConfig,
-    VoiceSessionFactory,
-)
+from voice import VoiceConfigError, VoiceSessionConfig
+from voice.config import AudioOutputType, BargeInType
 
 
 def test_loads_friendly_yaml_values(tmp_path: Path) -> None:
@@ -98,17 +93,6 @@ def test_accepts_legacy_yaml_filename(tmp_path: Path, monkeypatch) -> None:
     config = VoiceSessionConfig.from_yaml()
 
     assert config.room == "bedroom"
-
-
-def test_factory_loads_an_explicit_yaml_path(tmp_path: Path) -> None:
-    config_path = _write(
-        tmp_path,
-        "gateway:\n  token: test-token\nroom: office\n",
-    )
-
-    factory = VoiceSessionFactory.from_yaml(config_path)
-
-    assert isinstance(factory, VoiceSessionFactory)
 
 
 def _write(directory: Path, content: str) -> Path:

@@ -2,39 +2,35 @@ import asyncio
 from collections.abc import AsyncIterator
 from typing import cast
 
-from voice.activation import WakeWordActivationSource
-from voice.events import WakeWordDetected
-from voice.events.bus import EventBus
+from voice.activation import (
+    ActivationKind,
+    ListenActivation,
+    WakeWordActivationSource,
+)
 from voice.wakeword import WakeWordDetection, WakeWordListener
+
+_DETECTIONS = (
+    WakeWordDetection(sequence=1, score=0.9, name="hey_mycroft"),
+    WakeWordDetection(sequence=2, score=0.8, name="hey_mycroft"),
+)
 
 
 class _WakeWords:
     async def detections(self) -> AsyncIterator[WakeWordDetection]:
-        yield WakeWordDetection(sequence=1, score=0.9, name="hey_mycroft")
-        yield WakeWordDetection(sequence=2, score=0.8, name="hey_mycroft")
+        for detection in _DETECTIONS:
+            yield detection
 
 
-def test_publishes_every_detection_after_its_activation() -> None:
-    async def run() -> list[str]:
-        event_bus = EventBus()
-        observed: list[str] = []
-
-        async def record_detection(event: WakeWordDetected) -> None:
-            observed.append(f"detected:{event.sequence}")
-
-        event_bus.on(WakeWordDetected, record_detection)
-        source = WakeWordActivationSource(
-            event_bus=event_bus,
-            listener=cast(WakeWordListener, _WakeWords()),
-        )
-
-        async for activation in source.activations():
-            observed.append(f"activated:{activation.sequence}")
-        return observed
+def test_activates_on_every_detection() -> None:
+    async def run() -> list[ListenActivation]:
+        source = WakeWordActivationSource(cast(WakeWordListener, _WakeWords()))
+        return [activation async for activation in source.activations()]
 
     assert asyncio.run(run()) == [
-        "activated:1",
-        "detected:1",
-        "activated:2",
-        "detected:2",
+        ListenActivation(
+            sequence=detection.sequence,
+            kind=ActivationKind.WAKE_WORD,
+            detection=detection,
+        )
+        for detection in _DETECTIONS
     ]

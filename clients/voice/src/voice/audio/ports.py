@@ -1,10 +1,28 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
+from voice.audio.models import AudioFormat, AudioFrame
+
 
 class AudioPlayback(ABC):
     @abstractmethod
     async def play(self, audio: bytes) -> None: ...
+
+
+class AudioFrameSource(ABC):
+    """Sequenced frames from a shared microphone capture."""
+
+    @property
+    @abstractmethod
+    def format(self) -> AudioFormat: ...
+
+    @abstractmethod
+    def live_frames(self) -> AsyncIterator[AudioFrame]:
+        """Yield frames from the live tail until capture stops.
+
+        A consumer that falls behind skips ahead to the live tail again, so
+        callers must expect gaps in the sequence numbers.
+        """
 
 
 class AudioInput(ABC):

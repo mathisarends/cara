@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 from collections import deque
 from collections.abc import AsyncIterator
 
 from voice.audio.models import AudioFormat, AudioFrame
-from voice.audio.ports import AudioInput
+from voice.audio.ports import AudioFrameSource, AudioInput
 from voice.echo_cancellation.ports import EchoPresence
+
+logger = logging.getLogger(__name__)
 
 
 class AudioOverrunError(RuntimeError):
@@ -47,7 +50,7 @@ class AudioReader:
         self._closed = True
 
 
-class BufferedAudioInput:
+class BufferedAudioInput(AudioFrameSource):
     """Buffers one audio input and exposes independent readers over its frames."""
 
     def __init__(
@@ -115,6 +118,26 @@ class BufferedAudioInput:
             await asyncio.gather(task, return_exceptions=True)
         async with self._condition:
             self._condition.notify_all()
+
+    async def wait_stopped(self) -> None:
+        """Return once capture has stopped, raising the error that stopped it."""
+        async with self._condition:
+            while self._running:
+                await self._condition.wait()
+            if self._failure is not None:
+                raise self._failure
+
+    async def live_frames(self) -> AsyncIterator[AudioFrame]:
+        while True:
+            reader = await self.open_reader()
+            try:
+                async for frame in reader:
+                    yield frame
+                return
+            except AudioOverrunError:
+                logger.warning("A live audio reader fell behind; skipping ahead")
+            finally:
+                await reader.aclose()
 
     async def open_reader(
         self,

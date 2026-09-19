@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from voice import Earcon, SoundIntegration
 from voice.audio import AudioPlayback
 from voice.integrations import VoiceIntegrationContext
+from voice.integrations.sounds import Earcon, SoundIntegration
 from voice.integrations.sounds.integration import _DEFAULT_SOUNDS_DIR as _SOUNDS_DIR
 
 

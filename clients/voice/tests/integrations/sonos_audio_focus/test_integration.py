@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from typing import cast
+from uuid import UUID
 
 from sonosify import (
     AVTransportEvent,
@@ -11,19 +12,21 @@ from sonosify import (
 )
 
 import voice.integrations.sonos_audio_focus.ducking as ducking_module
-from voice import (
+from voice.audio import AudioPlayback
+from voice.integrations import VoiceIntegration, VoiceIntegrationContext
+from voice.integrations.notifier import VoiceIntegrationNotifier
+from voice.integrations.sonos_audio_focus import (
     SonosAudioFocusIntegration,
     SonosDuckingPolicy,
     SonosPausePolicy,
 )
-from voice.events import (
-    SessionEnded,
+from voice.lifecycle import (
     UserTurnStarted,
     VoiceConversationEnded,
     WakeWordDetected,
 )
-from voice.events.bus import EventBus
-from voice.integrations.bridge import VoiceIntegrationBridge
+
+_TURN_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
 class _RecordingSonosClient:
@@ -94,23 +97,20 @@ def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> Non
     caplog.set_level(logging.INFO, logger=ducking_module.__name__)
 
     async def run() -> _RecordingSonosClient:
-        event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PLAYING)
         integration = SonosAudioFocusIntegration(
             policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier = await _start(integration)
 
-        await event_bus.emit(UserTurnStarted())
-        await event_bus.emit(
+        await notifier.on_lifecycle_event(UserTurnStarted(turn_id=_TURN_ID))
+        await notifier.on_lifecycle_event(
             WakeWordDetected(name="hey_mycroft", score=0.9, sequence=2)
         )
-        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
-        await event_bus.emit(SessionEnded())
+        await notifier.on_lifecycle_event(
+            VoiceConversationEnded(reason="inactivity_timeout")
+        )
+        await notifier.stop()
         return client
 
     client = asyncio.run(run())
@@ -130,19 +130,16 @@ def test_ducks_playback_for_interaction_and_unducks_after_timeout(caplog) -> Non
 
 def test_does_not_unduck_playback_it_did_not_duck() -> None:
     async def run() -> _RecordingSonosClient:
-        event_bus = EventBus()
         client = _RecordingSonosClient(TransportState.PAUSED_PLAYBACK)
         integration = SonosAudioFocusIntegration(
             policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier = await _start(integration)
 
-        await event_bus.emit(UserTurnStarted())
-        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
+        await notifier.on_lifecycle_event(UserTurnStarted(turn_id=_TURN_ID))
+        await notifier.on_lifecycle_event(
+            VoiceConversationEnded(reason="inactivity_timeout")
+        )
         return client
 
     client = asyncio.run(run())
@@ -157,16 +154,13 @@ def test_refreshes_duck_until_interaction_ends(monkeypatch) -> None:
         integration = SonosAudioFocusIntegration(
             policy=SonosDuckingPolicy(client=cast(SonosClient, client))
         )
-        event_bus = EventBus()
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier = await _start(integration)
 
-        await event_bus.emit(UserTurnStarted())
+        await notifier.on_lifecycle_event(UserTurnStarted(turn_id=_TURN_ID))
         await asyncio.wait_for(client.duck_refreshed.wait(), timeout=1)
-        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
+        await notifier.on_lifecycle_event(
+            VoiceConversationEnded(reason="inactivity_timeout")
+        )
         return client
 
     monkeypatch.setattr(ducking_module, "_DUCK_REFRESH_SECONDS", 0.01)
@@ -184,15 +178,12 @@ def test_can_use_pause_policy() -> None:
         integration = SonosAudioFocusIntegration(
             policy=SonosPausePolicy(client=cast(SonosClient, client)),
         )
-        event_bus = EventBus()
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier = await _start(integration)
 
-        await event_bus.emit(UserTurnStarted())
-        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
+        await notifier.on_lifecycle_event(UserTurnStarted(turn_id=_TURN_ID))
+        await notifier.on_lifecycle_event(
+            VoiceConversationEnded(reason="inactivity_timeout")
+        )
         return client
 
     client = asyncio.run(run())
@@ -211,19 +202,16 @@ def test_pause_policy_does_not_resume_after_external_pause() -> None:
         integration = SonosAudioFocusIntegration(
             policy=SonosPausePolicy(client=cast(SonosClient, client)),
         )
-        event_bus = EventBus()
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier = await _start(integration)
 
-        await event_bus.emit(UserTurnStarted())
+        await notifier.on_lifecycle_event(UserTurnStarted(turn_id=_TURN_ID))
         await client.subscription.emit(TransportState.PAUSED_PLAYBACK)
         await asyncio.sleep(0)
         await client.subscription.emit(TransportState.PAUSED_PLAYBACK)
         await asyncio.sleep(0)
-        await event_bus.emit(VoiceConversationEnded(reason="inactivity_timeout"))
+        await notifier.on_lifecycle_event(
+            VoiceConversationEnded(reason="inactivity_timeout")
+        )
         return client
 
     client = asyncio.run(run())
@@ -231,3 +219,14 @@ def test_pause_policy_does_not_resume_after_external_pause() -> None:
     assert client.pause_calls == 1
     assert client.play_calls == 0
     assert client.subscription.closed is True
+
+
+class _SilentPlayback(AudioPlayback):
+    async def play(self, audio: bytes) -> None:
+        pass
+
+
+async def _start(integration: VoiceIntegration) -> VoiceIntegrationNotifier:
+    notifier = VoiceIntegrationNotifier((integration,))
+    await notifier.start(VoiceIntegrationContext(audio_player=_SilentPlayback()))
+    return notifier

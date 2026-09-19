@@ -3,14 +3,14 @@ import io
 import wave
 from pathlib import Path
 
-from voice import Earcon, SoundIntegration
-from voice.audio import AudioBridge
+from voice.audio import AudioFormat
+from voice.audio.playback import PlaybackController
 from voice.audio.ports import AudioOutput
 from voice.echo_cancellation import PlaybackReference, ReferenceTapOutput
-from voice.events import WakeWordDetected
-from voice.events.bus import EventBus
-from voice.events.models import VoiceResourcesClosing
-from voice.integrations.bridge import VoiceIntegrationBridge
+from voice.integrations import VoiceIntegrationContext
+from voice.integrations.notifier import VoiceIntegrationNotifier
+from voice.integrations.sounds import Earcon, SoundIntegration
+from voice.lifecycle import WakeWordDetected
 
 _SAMPLE_RATE = 16_000
 _FRAMES = 160
@@ -55,25 +55,19 @@ def test_earcon_playback_is_available_as_mono_microphone_reference(
         (tmp_path / f"{earcon}.wav").write_bytes(_wav())
 
     reference = PlaybackReference(_SAMPLE_RATE)
-    output_device = ReferenceTapOutput(RecordingOutput(), reference)
-    event_bus = EventBus()
-    AudioBridge(
-        event_bus=event_bus,
-        output_device=output_device,
+    playback = PlaybackController(
+        ReferenceTapOutput(RecordingOutput(), reference),
+        audio_format=AudioFormat(sample_rate=24_000),
+        notify=lambda _: None,
     )
-    integration = SoundIntegration(sounds_dir=tmp_path)
-    integration_bridge = VoiceIntegrationBridge(
-        event_bus=event_bus,
-        integrations=(integration,),
-    )
-    integration_bridge.setup()
+    notifier = VoiceIntegrationNotifier((SoundIntegration(sounds_dir=tmp_path),))
 
     async def run() -> None:
-        await integration_bridge.prepare()
-        await event_bus.emit(
+        await notifier.start(VoiceIntegrationContext(audio_player=playback))
+        await notifier.on_lifecycle_event(
             WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft")
         )
-        await event_bus.emit(VoiceResourcesClosing())
+        await playback.stop()
 
     asyncio.run(run())
 

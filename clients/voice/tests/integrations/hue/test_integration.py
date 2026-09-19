@@ -5,23 +5,24 @@ from uuid import UUID
 from hueify import GroupedLight, Room
 from hueify.models import GroupArchetype, GroupMetadata, HueEvent
 
-from voice import HueIntegration
-from voice.events import (
+from voice.audio import AudioPlayback
+from voice.integrations import VoiceIntegrationContext
+from voice.integrations.hue import HueIntegration
+from voice.integrations.notifier import VoiceIntegrationNotifier
+from voice.lifecycle import (
     AssistantSpeechStarted,
     AssistantToolCompleted,
     AssistantToolStarted,
     AssistantTurnStarted,
-    SessionEnded,
     UserTurnStarted,
     VoiceConversationEnded,
+    VoiceLifecycleEvent,
     WakeWordDetected,
 )
-from voice.events.bus import EventBus
-from voice.events.models import Event
-from voice.integrations.bridge import VoiceIntegrationBridge
 
 _ROOM_ID = UUID("00000000-0000-0000-0000-000000000001")
 _GROUPED_LIGHT_ID = UUID("00000000-0000-0000-0000-000000000002")
+_TURN_ID = UUID("00000000-0000-0000-0000-000000000003")
 
 
 class _RecordingRooms:
@@ -93,70 +94,85 @@ class _RecordingHue:
         await self._handlers["grouped_light"](event)
 
 
+class _SilentPlayback(AudioPlayback):
+    async def play(self, audio: bytes) -> None:
+        pass
+
+
+async def _start(
+    hue: _RecordingHue,
+) -> tuple[VoiceIntegrationNotifier, HueIntegration]:
+    integration = HueIntegration(room_name="Test room", hue=hue)
+    notifier = VoiceIntegrationNotifier((integration,))
+    await notifier.start(VoiceIntegrationContext(audio_player=_SilentPlayback()))
+    return notifier, integration
+
+
 async def _dispatch_and_drain(
-    event_bus: EventBus, integration: HueIntegration, event: Event
+    notifier: VoiceIntegrationNotifier,
+    integration: HueIntegration,
+    event: VoiceLifecycleEvent,
 ) -> None:
-    await event_bus.emit(event)
+    await notifier.on_lifecycle_event(event)
     await asyncio.wait_for(integration._jobs.join(), timeout=1)
 
 
 def test_hue_integration_reflects_voice_turn_and_tool_lifecycle() -> None:
     async def run() -> _RecordingHue:
-        event_bus = EventBus()
         hue = _RecordingHue()
-        integration = HueIntegration(room_name="Test room", hue=hue)
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier, integration = await _start(hue)
 
         assert hue.rooms.changes == []
         await _dispatch_and_drain(
-            event_bus,
+            notifier,
             integration,
             WakeWordDetected(score=0.9, sequence=1, name="hey_mycroft"),
         )
-        await _dispatch_and_drain(event_bus, integration, UserTurnStarted())
-        await _dispatch_and_drain(event_bus, integration, AssistantTurnStarted())
-        await _dispatch_and_drain(event_bus, integration, AssistantSpeechStarted())
-        turn_id = UUID("00000000-0000-0000-0000-000000000003")
         await _dispatch_and_drain(
-            event_bus,
-            integration,
-            AssistantToolStarted(turn_id=turn_id, name="weather"),
+            notifier, integration, UserTurnStarted(turn_id=_TURN_ID)
         )
         await _dispatch_and_drain(
-            event_bus,
-            integration,
-            AssistantToolCompleted(turn_id=turn_id, name="weather"),
+            notifier, integration, AssistantTurnStarted(turn_id=_TURN_ID)
         )
         await _dispatch_and_drain(
-            event_bus,
-            integration,
-            AssistantToolStarted(turn_id=turn_id, name="calendar"),
+            notifier, integration, AssistantSpeechStarted(turn_id=_TURN_ID)
         )
         await _dispatch_and_drain(
-            event_bus,
+            notifier,
             integration,
-            AssistantToolStarted(turn_id=turn_id, name="mail"),
+            AssistantToolStarted(turn_id=_TURN_ID, name="weather"),
         )
         await _dispatch_and_drain(
-            event_bus,
+            notifier,
             integration,
-            AssistantToolCompleted(turn_id=turn_id, name="calendar"),
+            AssistantToolCompleted(turn_id=_TURN_ID, name="weather"),
         )
         await _dispatch_and_drain(
-            event_bus,
+            notifier,
             integration,
-            AssistantToolCompleted(turn_id=turn_id, name="mail"),
+            AssistantToolStarted(turn_id=_TURN_ID, name="calendar"),
         )
         await _dispatch_and_drain(
-            event_bus,
+            notifier,
+            integration,
+            AssistantToolStarted(turn_id=_TURN_ID, name="mail"),
+        )
+        await _dispatch_and_drain(
+            notifier,
+            integration,
+            AssistantToolCompleted(turn_id=_TURN_ID, name="calendar"),
+        )
+        await _dispatch_and_drain(
+            notifier,
+            integration,
+            AssistantToolCompleted(turn_id=_TURN_ID, name="mail"),
+        )
+        await _dispatch_and_drain(
+            notifier,
             integration,
             VoiceConversationEnded(reason="inactivity_timeout"),
         )
-        await event_bus.emit(SessionEnded())
+        await notifier.stop()
         return hue
 
     hue = asyncio.run(run())
@@ -172,16 +188,12 @@ def test_hue_integration_reflects_voice_turn_and_tool_lifecycle() -> None:
 
 def test_hue_integration_preserves_external_changes_in_its_baseline() -> None:
     async def run() -> list[tuple[float, int | None, float]]:
-        event_bus = EventBus()
         hue = _RecordingHue()
-        integration = HueIntegration(room_name="Test room", hue=hue)
-        bridge = VoiceIntegrationBridge(
-            event_bus=event_bus, integrations=(integration,)
-        )
-        bridge.setup()
-        await bridge.prepare()
+        notifier, integration = await _start(hue)
 
-        await _dispatch_and_drain(event_bus, integration, UserTurnStarted())
+        await _dispatch_and_drain(
+            notifier, integration, UserTurnStarted(turn_id=_TURN_ID)
+        )
         await hue.emit(
             HueEvent.model_validate(
                 {
@@ -192,7 +204,7 @@ def test_hue_integration_preserves_external_changes_in_its_baseline() -> None:
                 }
             )
         )
-        await event_bus.emit(SessionEnded())
+        await notifier.stop()
         return hue.rooms.changes
 
     assert asyncio.run(run()) == [(58.0, 275, 0.2), (67.0, 267, 0.5)]

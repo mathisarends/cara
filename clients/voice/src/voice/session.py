@@ -2,7 +2,7 @@ from contextlib import AsyncExitStack
 from types import TracebackType
 from typing import Self
 
-from voice.channel import VoiceChannel
+from voice.runtime import VoiceRuntime
 
 
 class VoiceSession:
@@ -11,10 +11,12 @@ class VoiceSession:
     def __init__(
         self,
         *,
-        channel: VoiceChannel,
+        runtime: VoiceRuntime,
         resources: AsyncExitStack,
     ) -> None:
-        self._channel = channel
+        self._runtime = runtime
+        # The only owner of external resources such as the backend connection
+        # and audio devices; the runtime merely uses them.
         self._resources: AsyncExitStack | None = resources
         self._closed = False
 
@@ -35,7 +37,7 @@ class VoiceSession:
         if self._closed:
             raise RuntimeError("Voice session is closed.")
         try:
-            await self._channel.start()
+            await self._runtime.run()
         finally:
             await self.close()
 
@@ -45,7 +47,7 @@ class VoiceSession:
         self._closed = True
         resources, self._resources = self._resources, None
         try:
-            await self._channel.stop()
+            await self._runtime.stop()
         finally:
             if resources is not None:
                 await resources.aclose()
