@@ -7,14 +7,14 @@ class RegistrationService:
     def __init__(
         self,
         room: Room,
-        registry: GatewayRegistry,
-        readiness: ReadinessService,
+        gateway_registry: GatewayRegistry,
+        readiness_service: ReadinessService,
     ) -> None:
         self._room = room
-        self._registry = registry
-        self._readiness = readiness
+        self._gateway_registry = gateway_registry
+        self._readiness_service = readiness_service
 
     async def register(self) -> None:
-        self._readiness.gateway_registered(False)
-        await self._registry.register(self._room)
-        self._readiness.gateway_registered(True)
+        self._readiness_service.gateway_registered(False)
+        await self._gateway_registry.register(self._room)
+        self._readiness_service.gateway_registered(True)

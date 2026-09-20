@@ -7,7 +7,7 @@ from room.platform import RoomConfig
 from room.platform_feature import create_platform_feature
 
 
-def create_app(config: RoomConfig) -> FastAPI:
+def create_app(room_config: RoomConfig) -> FastAPI:
     app = FastAPI(
         title="Cara Room API",
         summary="Local diagnostics for one Cara room process.",
@@ -18,7 +18,7 @@ def create_app(config: RoomConfig) -> FastAPI:
             {"name": "room", "description": "Local room and device state."},
         ],
     )
-    platform_feature = create_platform_feature(config)
+    platform_feature = create_platform_feature(room_config)
     composition = Composition(
         platform_feature,
         *FEATURES,

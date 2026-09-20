@@ -11,27 +11,27 @@ from room.features.room.domain import DeviceStatus, RoomState
 class GatewayRoomConnection(RoomConnection):
     def __init__(
         self,
-        client: GatewayRpcClient,
+        gateway_client: GatewayRpcClient,
         *,
         heartbeat_seconds: float,
     ) -> None:
-        self._client = client
+        self._gateway_client = gateway_client
         self._heartbeat_seconds = heartbeat_seconds
         self._state = RoomState.IDLE
         self._closed = False
 
     async def report_state(self, state: RoomState) -> None:
         self._state = state
-        await self._client.room.report_state(state=RpcRoomState(state.value))
+        await self._gateway_client.room.report_state(state=RpcRoomState(state.value))
 
     async def report_device(self, device_id: str, status: DeviceStatus) -> None:
-        await self._client.room.report_device(
+        await self._gateway_client.room.report_device(
             device_id=device_id,
             status=RpcDeviceStatus(status.value),
         )
 
     async def report_volume(self, volume: int) -> None:
-        await self._client.room.report_volume(volume=volume)
+        await self._gateway_client.room.report_volume(volume=volume)
 
     async def wait_closed(self) -> None:
         while not self._closed:
@@ -42,30 +42,30 @@ class GatewayRoomConnection(RoomConnection):
         if self._closed:
             return
         self._closed = True
-        await self._client.close()
+        await self._gateway_client.close()
 
 
 class GatewayRoomConnector(RoomConnector):
     def __init__(
         self,
-        url: str,
+        gateway_url: str,
         room_id: UUID,
         *,
-        token: str,
+        gateway_token: str,
         heartbeat_seconds: float,
     ) -> None:
-        self._url = url
+        self._gateway_url = gateway_url
         self._room_id = room_id
-        self._token = token
+        self._gateway_token = gateway_token
         self._heartbeat_seconds = heartbeat_seconds
 
     async def connect(self) -> RoomConnection:
-        client = await connect_room(
-            self._url,
+        gateway_client = await connect_room(
+            self._gateway_url,
             self._room_id,
-            token=self._token,
+            token=self._gateway_token,
         )
         return GatewayRoomConnection(
-            client,
+            gateway_client,
             heartbeat_seconds=self._heartbeat_seconds,
         )

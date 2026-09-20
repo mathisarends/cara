@@ -20,67 +20,80 @@ from room.platform import RoomConfig
 
 class RoomProvider(Provider):
     @provide(scope=Scope.APP)
-    def room(self, config: RoomConfig, readiness: ReadinessService) -> Room:
-        devices = config.build_devices()
-        room = Room(config.room_id, devices)
-        readiness.devices_initialized()
+    def room(
+        self,
+        room_config: RoomConfig,
+        readiness_service: ReadinessService,
+    ) -> Room:
+        devices = room_config.build_devices()
+        room = Room(room_config.room_id, devices)
+        readiness_service.devices_initialized()
         return room
 
     @provide(scope=Scope.APP)
-    async def registry(self, config: RoomConfig) -> AsyncIterator[GatewayRoomRegistry]:
-        registry = GatewayRoomRegistry(
-            config.gateway.url,
-            token=config.gateway.token,
+    async def gateway_registry(
+        self,
+        room_config: RoomConfig,
+    ) -> AsyncIterator[GatewayRoomRegistry]:
+        gateway_registry = GatewayRoomRegistry(
+            room_config.gateway.url,
+            gateway_token=room_config.gateway.token,
         )
         try:
-            yield registry
+            yield gateway_registry
         finally:
-            await registry.close()
+            await gateway_registry.close()
 
     @provide(scope=Scope.APP)
-    def registry_port(self, registry: GatewayRoomRegistry) -> GatewayRegistry:
-        return registry
+    def gateway_registry_port(
+        self,
+        gateway_registry: GatewayRoomRegistry,
+    ) -> GatewayRegistry:
+        return gateway_registry
 
     @provide(scope=Scope.APP)
-    def connector(self, config: RoomConfig) -> GatewayRoomConnector:
-        gateway = config.gateway
+    def room_connector(self, room_config: RoomConfig) -> GatewayRoomConnector:
+        gateway_config = room_config.gateway
         return GatewayRoomConnector(
-            gateway.url,
-            config.room_id,
-            token=gateway.token,
-            heartbeat_seconds=gateway.heartbeat_seconds,
+            gateway_config.url,
+            room_config.room_id,
+            gateway_token=gateway_config.token,
+            heartbeat_seconds=gateway_config.heartbeat_seconds,
         )
 
     @provide(scope=Scope.APP)
-    def connector_port(self, connector: GatewayRoomConnector) -> RoomConnector:
-        return connector
+    def room_connector_port(
+        self,
+        room_connector: GatewayRoomConnector,
+    ) -> RoomConnector:
+        return room_connector
 
     @provide(scope=Scope.APP)
-    def reporting(self, room: Room) -> ReportingService:
+    def reporting_service(self, room: Room) -> ReportingService:
         return ReportingService(room)
 
     @provide(scope=Scope.APP)
-    def registration(
+    def registration_service(
         self,
         room: Room,
-        registry: GatewayRegistry,
-        readiness: ReadinessService,
+        gateway_registry: GatewayRegistry,
+        readiness_service: ReadinessService,
     ) -> RegistrationService:
-        return RegistrationService(room, registry, readiness)
+        return RegistrationService(room, gateway_registry, readiness_service)
 
     @provide(scope=Scope.APP)
-    def link(
+    def gateway_link(
         self,
         room: Room,
-        registration: RegistrationService,
-        connector: RoomConnector,
-        reporting: ReportingService,
-        readiness: ReadinessService,
+        registration_service: RegistrationService,
+        room_connector: RoomConnector,
+        reporting_service: ReportingService,
+        readiness_service: ReadinessService,
     ) -> GatewayLink:
         return GatewayLink(
             room,
-            registration,
-            connector,
-            reporting,
-            readiness,
+            registration_service,
+            room_connector,
+            reporting_service,
+            readiness_service,
         )

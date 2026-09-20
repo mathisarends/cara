@@ -17,20 +17,20 @@ def main() -> None:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     try:
-        config = RoomConfig.from_yaml(arguments.config)
-        asyncio.run(_run(config))
+        room_config = RoomConfig.from_yaml(arguments.config)
+        asyncio.run(_run(room_config))
     except RoomConfigError as error:
         raise SystemExit(str(error)) from error
     except KeyboardInterrupt:
         pass
 
 
-async def _run(config: RoomConfig) -> None:
-    app = create_app(config)
+async def _run(room_config: RoomConfig) -> None:
+    app = create_app(room_config)
     server_config = uvicorn.Config(
         app,
-        host=config.http.host,
-        port=config.http.port,
+        host=room_config.http.host,
+        port=room_config.http.port,
         log_level="info",
     )
     server = uvicorn.Server(server_config)

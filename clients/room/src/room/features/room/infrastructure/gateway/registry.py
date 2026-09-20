@@ -14,12 +14,12 @@ from room.features.room.domain import Room
 
 
 class GatewayRoomRegistry(GatewayRegistry):
-    def __init__(self, url: str, *, token: str) -> None:
-        self._http = httpx2.AsyncClient()
-        self._client = GatewayRestClient(
-            self._http,
-            url,
-            credentials={"GatewayToken": token},
+    def __init__(self, gateway_url: str, *, gateway_token: str) -> None:
+        self._http_client = httpx2.AsyncClient()
+        self._gateway_client = GatewayRestClient(
+            self._http_client,
+            gateway_url,
+            credentials={"GatewayToken": gateway_token},
         )
 
     async def register(self, room: Room) -> None:
@@ -37,8 +37,8 @@ class GatewayRoomRegistry(GatewayRegistry):
             devices=devices,
             client_version=version("room-client"),
         )
-        await self._client.register_room(room.room_id, request)
+        await self._gateway_client.register_room(room.room_id, request)
 
     async def close(self) -> None:
-        await self._client.aclose()
-        await self._http.aclose()
+        await self._gateway_client.aclose()
+        await self._http_client.aclose()

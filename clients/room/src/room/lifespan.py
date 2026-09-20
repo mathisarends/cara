@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,15 +11,18 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("%s starting up", app.title)
-    container = app.state.dishka_container
-    link = await container.get(GatewayLink)
-    link_task = asyncio.create_task(link.run(), name="room-gateway-link")
+    dependency_container = app.state.dishka_container
+    gateway_link = await dependency_container.get(GatewayLink)
+    gateway_link_task = asyncio.create_task(
+        gateway_link.run(),
+        name="room-gateway-link",
+    )
     try:
         yield
     finally:
-        link.stop()
-        link_task.cancel()
-        await asyncio.gather(link_task, return_exceptions=True)
+        gateway_link.stop()
+        gateway_link_task.cancel()
+        await asyncio.gather(gateway_link_task, return_exceptions=True)
         logger.info("%s shutting down", app.title)

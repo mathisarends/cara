@@ -14,19 +14,19 @@ class GatewayLink:
     def __init__(
         self,
         room: Room,
-        registration: RegistrationService,
-        connector: RoomConnector,
-        reporting: ReportingService,
-        readiness: ReadinessService,
+        registration_service: RegistrationService,
+        room_connector: RoomConnector,
+        reporting_service: ReportingService,
+        readiness_service: ReadinessService,
         *,
         initial_retry_seconds: float = 1.0,
         maximum_retry_seconds: float = 30.0,
     ) -> None:
         self._room = room
-        self._registration = registration
-        self._connector = connector
-        self._reporting = reporting
-        self._readiness = readiness
+        self._registration_service = registration_service
+        self._room_connector = room_connector
+        self._reporting_service = reporting_service
+        self._readiness_service = readiness_service
         self._initial_retry_seconds = initial_retry_seconds
         self._maximum_retry_seconds = maximum_retry_seconds
         self._stopped = asyncio.Event()
@@ -34,24 +34,24 @@ class GatewayLink:
     async def run(self) -> None:
         delay = self._initial_retry_seconds
         while not self._stopped.is_set():
-            connection: RoomConnection | None = None
+            room_connection: RoomConnection | None = None
             try:
-                await self._registration.register()
-                connection = await self._connector.connect()
-                await self._reporting.attach(connection)
-                self._readiness.gateway_connected(True)
+                await self._registration_service.register()
+                room_connection = await self._room_connector.connect()
+                await self._reporting_service.attach(room_connection)
+                self._readiness_service.gateway_connected(True)
                 delay = self._initial_retry_seconds
                 logger.info("Room %s connected to the Gateway", self._room.room_id)
-                await self._wait_until_disconnected(connection)
+                await self._wait_until_disconnected(room_connection)
             except asyncio.CancelledError:
                 raise
             except Exception:
                 logger.exception("Room Gateway link failed; reconnecting")
             finally:
-                self._readiness.gateway_connected(False)
-                if connection is not None:
-                    await self._reporting.detach(connection)
-                    await connection.close()
+                self._readiness_service.gateway_connected(False)
+                if room_connection is not None:
+                    await self._reporting_service.detach(room_connection)
+                    await room_connection.close()
             if await self._wait_for_retry(delay):
                 return
             delay = min(delay * 2, self._maximum_retry_seconds)
@@ -66,8 +66,11 @@ class GatewayLink:
             return False
         return True
 
-    async def _wait_until_disconnected(self, connection: RoomConnection) -> None:
-        connection_closed = asyncio.create_task(connection.wait_closed())
+    async def _wait_until_disconnected(
+        self,
+        room_connection: RoomConnection,
+    ) -> None:
+        connection_closed = asyncio.create_task(room_connection.wait_closed())
         stop_requested = asyncio.create_task(self._stopped.wait())
         done, pending = await asyncio.wait(
             (connection_closed, stop_requested),

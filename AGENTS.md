@@ -5,9 +5,11 @@
 - Re-export only the intended public API from package `__init__.py` files. Define `__all__` only in package `__init__.py` files; never add it to regular modules. Mark module-private implementation details with a leading underscore.
 - Do not give a symbol a leading underscore when it is imported by another module. Leading underscores are reserved for implementation details used only within their defining module.
 - Do not add `from __future__ import annotations` defensively by default; the project targets Python 3.14, so only use it when a concrete compatibility reason requires it.
+- Annotate asynchronous generator functions decorated with `@asynccontextmanager` as `AsyncGenerator[YieldType]`, not `AsyncIterator[YieldType]`. The decorated function must match `contextlib.asynccontextmanager`'s generator contract; using `AsyncIterator` there is deprecated by the type checker.
 - Avoid defensive `getattr` probing for known APIs. Prefer concrete types, typed protocols, or explicit branches over duck-typed fallback logic unless the code genuinely supports multiple external shapes.
 - Use dataclasses only for classes that are primarily data containers. Prefer regular classes when a class owns significant behavior or validation logic.
 - Keep class attributes and instance variables private by default. Expose public attributes only when they are intentionally part of the public API.
+- Name injected dependencies and stored collaborators by their concrete role, such as `registration_service`, `room_connector`, or `gateway_client`. Avoid generic or abbreviated names such as `service`, `client`, `registry`, or `config` when the specific role is known; call sites like `self._registration_service.register()` should remain understandable without looking up the attribute's type.
 - Prefer private module-level helper functions for module-local or cross-module logic instead of static methods that do not need class state.
 - Do not inline factory or constructor calls as arguments to another operation. Assign the created object to a descriptive local variable first, especially before passing it to a repository or service call.
 - When renaming an API, complete the rename throughout the codebase instead of leaving compatibility aliases or other transitional shims unless explicitly requested.
