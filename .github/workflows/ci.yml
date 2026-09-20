@@ -52,6 +52,48 @@ jobs:
           uv run --frozen --package gateway-rpc-client
           pytest generated/gateway_rpc_client/tests -q
 
+  stt:
+    name: STT tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.9.2"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.13
+
+      - name: Run STT tests
+        run: uv run --frozen --package stt pytest libs/stt/tests -q
+
+  tts:
+    name: TTS tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.9.2"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.13
+
+      - name: Run TTS tests
+        run: uv run --frozen --package tts pytest libs/tts/tests -q
+
   voice:
     name: Voice tests
     runs-on: ubuntu-latest
