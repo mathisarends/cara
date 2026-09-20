@@ -20,6 +20,24 @@
           "description": "Gateway WebSocket base URL."
         }
       }
+    },
+    {
+      "name": "channel",
+      "url": "{gateway_url}/v1/rooms/{room_id}/channel",
+      "x-rpckit-transport": {
+        "type": "websocket",
+        "messageEncoding": "json",
+        "frameType": "text"
+      },
+      "variables": {
+        "gateway_url": {
+          "default": "ws://127.0.0.1:8000",
+          "description": "Gateway WebSocket base URL."
+        },
+        "room_id": {
+          "default": "{room_id}"
+        }
+      }
     }
   ],
   "methods": [
@@ -697,6 +715,153 @@
           }
         }
       ]
+    },
+    {
+      "name": "room.report_state",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "state",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/RoomState"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ReportAccepted"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/ReportStateRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/RoomStateReport"
+      },
+      "servers": [
+        {
+          "name": "channel",
+          "url": "{gateway_url}/v1/rooms/{room_id}/channel",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            },
+            "room_id": {
+              "default": "{room_id}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "room.report_device",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "deviceId",
+          "required": true,
+          "schema": {
+            "minLength": 1,
+            "title": "Deviceid",
+            "type": "string"
+          }
+        },
+        {
+          "name": "status",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/DeviceStatus"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ReportAccepted"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/ReportDeviceRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/DeviceStatusReport"
+      },
+      "servers": [
+        {
+          "name": "channel",
+          "url": "{gateway_url}/v1/rooms/{room_id}/channel",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            },
+            "room_id": {
+              "default": "{room_id}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "room.report_volume",
+      "paramStructure": "by-name",
+      "params": [
+        {
+          "name": "volume",
+          "required": true,
+          "schema": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Volume",
+            "type": "integer"
+          }
+        }
+      ],
+      "result": {
+        "name": "result",
+        "schema": {
+          "$ref": "#/components/schemas/ReportAccepted"
+        }
+      },
+      "x-rpc-request-schema": {
+        "$ref": "#/components/schemas/ReportVolumeRequest"
+      },
+      "x-rpc-params-schema": {
+        "$ref": "#/components/schemas/VolumeReport"
+      },
+      "servers": [
+        {
+          "name": "channel",
+          "url": "{gateway_url}/v1/rooms/{room_id}/channel",
+          "x-rpckit-transport": {
+            "type": "websocket",
+            "messageEncoding": "json",
+            "frameType": "text"
+          },
+          "variables": {
+            "gateway_url": {
+              "default": "ws://127.0.0.1:8000",
+              "description": "Gateway WebSocket base URL."
+            },
+            "room_id": {
+              "default": "{room_id}"
+            }
+          }
+        }
+      ]
     }
   ],
   "components": {
@@ -856,6 +1021,34 @@
         "title": "ChatDelta",
         "type": "object"
       },
+      "DeviceStatus": {
+        "enum": [
+          "available",
+          "unavailable",
+          "error"
+        ],
+        "title": "DeviceStatus",
+        "type": "string"
+      },
+      "DeviceStatusReport": {
+        "additionalProperties": false,
+        "properties": {
+          "deviceId": {
+            "minLength": 1,
+            "title": "Deviceid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeviceStatus"
+          }
+        },
+        "required": [
+          "deviceId",
+          "status"
+        ],
+        "title": "DeviceStatusReport",
+        "type": "object"
+      },
       "InterruptVoiceTurnParams": {
         "additionalProperties": false,
         "properties": {
@@ -882,6 +1075,41 @@
           "voiceTurnId"
         ],
         "title": "InterruptVoiceTurnParams",
+        "type": "object"
+      },
+      "ReportAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "ReportAccepted",
+        "type": "object"
+      },
+      "RoomState": {
+        "enum": [
+          "idle",
+          "listening",
+          "thinking",
+          "speaking"
+        ],
+        "title": "RoomState",
+        "type": "string"
+      },
+      "RoomStateReport": {
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/RoomState"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "RoomStateReport",
         "type": "object"
       },
       "SessionEvent": {
@@ -2359,6 +2587,22 @@
         "title": "VoiceTurnStarted",
         "type": "object"
       },
+      "VolumeReport": {
+        "additionalProperties": false,
+        "properties": {
+          "volume": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Volume",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "volume"
+        ],
+        "title": "VolumeReport",
+        "type": "object"
+      },
       "PrepareTurnRequest": {
         "additionalProperties": false,
         "type": "object",
@@ -2795,6 +3039,117 @@
           },
           "params": {
             "$ref": "#/components/schemas/ChannelParams"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "ReportStateRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReportStateRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "room.report_state",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/RoomStateReport"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "ReportDeviceRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReportDeviceRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "room.report_device",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/DeviceStatusReport"
+          }
+        },
+        "required": [
+          "jsonrpc",
+          "method",
+          "params"
+        ]
+      },
+      "ReportVolumeRequest": {
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReportVolumeRequest",
+        "properties": {
+          "jsonrpc": {
+            "const": "2.0",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "method": {
+            "const": "room.report_volume",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/VolumeReport"
           }
         },
         "required": [

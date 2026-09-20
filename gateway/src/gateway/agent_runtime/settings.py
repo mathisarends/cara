@@ -1,4 +1,5 @@
 from pathlib import Path
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import (
@@ -12,6 +13,10 @@ from agent.configuration import AgentSettings
 from gateway.agent_runtime.mcp import McpServerSettings
 from gateway.agent_runtime.sandbox import SandboxClientSettings
 from gateway.features.llm.infrastructure import LlmSettings
+from gateway.features.rooms.infrastructure.settings import (
+    RoomGroupTopologySettings,
+    RoomTopologySettings,
+)
 
 
 class WorkspaceSettings(BaseModel):
@@ -36,6 +41,8 @@ class GatewaySettings(BaseSettings):
     workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
     sandbox: SandboxClientSettings = Field(default_factory=SandboxClientSettings)
     tools: tuple[McpServerSettings, ...] = ()
+    rooms: dict[UUID, RoomTopologySettings] = Field(default_factory=dict)
+    room_groups: dict[UUID, RoomGroupTopologySettings] = Field(default_factory=dict)
 
     @classmethod
     def settings_customise_sources(

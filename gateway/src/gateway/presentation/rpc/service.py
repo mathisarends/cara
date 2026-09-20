@@ -5,6 +5,7 @@ from gateway.features.conversation.presentation.rpc.events import session_channe
 from gateway.features.conversation.presentation.rpc.subscriptions import (
     subscription_channel,
 )
+from gateway.features.rooms.presentation.rpc import room_channel
 from gateway.features.voice.presentation.media import voice_media_stream
 from gateway.features.voice.presentation.rpc import voice_channel
 from gateway.presentation.websocket.error_mapping import gateway_error_mapper
@@ -17,6 +18,10 @@ gateway_endpoint = gateway_service.socket(
 gateway_media_endpoint = gateway_service.stream(
     "/v1/voice-sessions/{voice_session_id}/media",
     voice_media_stream,
+)
+room_endpoint = gateway_service.socket(
+    "/v1/rooms/{room_id}/channel",
+    channels=(room_channel,),
 )
 gateway_contract = gateway_service.contract(
     title="Cara Gateway",

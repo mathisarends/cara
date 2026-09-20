@@ -1,4 +1,5 @@
 import asyncio
+from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Response, WebSocket, status
@@ -6,8 +7,14 @@ from pyrpckit.dishka import DishkaResolver
 from pyrpckit.fastapi import FastApiSocket
 from pyrpckit.service import RpcEndpoint, RpcStreamEndpoint
 
+from gateway.features.rooms.application import RoomRegistryService
+from gateway.features.rooms.domain import RoomNotFoundError, RoomNotRegisteredError
 from gateway.presentation.authentication import GatewayAuthenticator
-from gateway.presentation.rpc.service import gateway_endpoint, gateway_media_endpoint
+from gateway.presentation.rpc.service import (
+    gateway_endpoint,
+    gateway_media_endpoint,
+    room_endpoint,
+)
 
 gateway_router = APIRouter(tags=["gateway"])
 
@@ -32,6 +39,28 @@ async def voice_media_socket(
     if not await _authenticate(websocket, authenticator):
         return
     await _serve(gateway_media_endpoint, websocket)
+
+
+@gateway_router.websocket(room_endpoint.path, name="room_socket")
+@inject
+async def room_socket(
+    websocket: WebSocket,
+    room_id: UUID,
+    authenticator: FromDishka[GatewayAuthenticator],
+    registry: FromDishka[RoomRegistryService],
+) -> None:
+    if not await _authenticate(websocket, authenticator):
+        return
+    connection_id = uuid4()
+    try:
+        registry.connect(room_id, connection_id)
+    except (RoomNotFoundError, RoomNotRegisteredError) as error:
+        await websocket.close(code=1008, reason=str(error))
+        return
+    try:
+        await _serve(room_endpoint, websocket)
+    finally:
+        registry.disconnect(room_id, connection_id)
 
 
 async def _authenticate(

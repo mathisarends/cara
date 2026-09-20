@@ -47,3 +47,14 @@ sandbox_manager:
 #     url: http://github-tools:8080/mcp
 #     token: replace-me
 tools: []
+
+# Stable room topology. Runtime presence and devices are supplied by room clients.
+rooms:
+  8edc5cf8-0caa-4d5a-9b5b-10da42dfdde2:
+    display_name: Schlafzimmer
+
+room_groups:
+  66e8bff4-846b-4832-b4dd-9c81068ad169:
+    display_name: Ganzes Haus
+    rooms:
+      - 8edc5cf8-0caa-4d5a-9b5b-10da42dfdde2

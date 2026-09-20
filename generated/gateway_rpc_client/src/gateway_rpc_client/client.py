@@ -13,7 +13,7 @@ from gateway_rpc_client.internal import (
     RpcTransportPool,
     RpcTransportSource,
 )
-from gateway_rpc_client.namespaces import Session, Subscription, Turn, Voice
+from gateway_rpc_client.namespaces import Room, Session, Subscription, Turn, Voice
 from gateway_rpc_client.streams import (
     BinaryStreamEndpoint,
     BinaryStreamOpener,
@@ -46,6 +46,7 @@ class GatewayRpcClient:
         self.turn = Turn(self._rpc)
         self.voice = Voice(self._rpc)
         self.subscription = Subscription(self._rpc)
+        self.room = Room(self._rpc)
         self.session = Session(self._rpc)
 
     @classmethod
@@ -70,7 +71,7 @@ class GatewayRpcClient:
         cls,
         *,
         gateway_url: str | None = None,
-        url: str | None = None,
+        room_id: str | None = None,
         servers: Mapping[ServerName, str | Endpoint] | None = None,
         request_timeout: float | None = None,
         notification_queue_size: int = 100,
@@ -78,15 +79,13 @@ class GatewayRpcClient:
         socket_factory: WebSocketFactory | None = None,
         stream_socket_factory: BinaryWebSocketFactory | None = None,
         hooks: Iterable[RpcClientHook] = (),
-        eager: bool = True,
+        eager: bool = False,
     ) -> ClientConnection[Self, ServerName]:
         """Configure the declared servers and optionally open them eagerly."""
         variables: dict[str, str | None] = {
             "gateway_url": gateway_url,
+            "room_id": room_id,
         }
-        overrides = dict(servers or {})
-        if url is not None:
-            overrides.setdefault(ServerName.GATEWAY, url)
 
         async def open_transport(
             endpoint_url: str,
@@ -112,7 +111,7 @@ class GatewayRpcClient:
             )
 
         pool = RpcTransportPool(
-            endpoints=resolve_endpoints(variables, overrides),
+            endpoints=resolve_endpoints(variables, servers),
             transport_factory=open_transport,
             request_timeout=request_timeout,
             notification_queue_size=notification_queue_size,

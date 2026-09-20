@@ -38,7 +38,11 @@ from gateway_rest_client.models import (
     OpenSessionRequest,
     OpenVoiceSessionRequest,
     ReadinessResponse,
+    RegisterRoomRequest,
     RequestValidationProblem,
+    RoomListResponse,
+    RoomNotFoundProblem,
+    RoomResponse,
     SessionListResponse,
     SessionNotFoundProblem,
     SessionResponse,
@@ -942,6 +946,157 @@ class GatewayRestClient:
         try:
             if response.status_code == 200:
                 return ReadinessResponse.model_validate(response.json())
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def list_rooms(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> RoomListResponse:
+        try:
+            path = "/v1/rooms"
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return RoomListResponse.model_validate(response.json())
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def get_room(
+        self,
+        room_id: UUID,
+        *,
+        timeout: float | None = None,
+    ) -> RoomResponse:
+        try:
+            path = "/v1/rooms/{room_id}"
+            path = path.replace("{room_id}", serialize_path("room_id", room_id))
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return RoomResponse.model_validate(response.json())
+            if response.status_code == 404:
+                detail = RoomNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def register_room(
+        self,
+        room_id: UUID,
+        body: RegisterRoomRequest,
+        *,
+        timeout: float | None = None,
+    ) -> RoomResponse:
+        try:
+            path = "/v1/rooms/{room_id}/registration"
+            path = path.replace("{room_id}", serialize_path("room_id", room_id))
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json, application/problem+json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+            json_body = TypeAdapter(RegisterRoomRequest).dump_python(
+                body, mode="json", by_alias=True, exclude_none=True
+            )
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.PUT,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                json=json_body,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return RoomResponse.model_validate(response.json())
+            if response.status_code == 404:
+                detail = RoomNotFoundProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
+            if response.status_code == 422:
+                detail = RequestValidationProblem.model_validate(response.json())
+                raise ApiError(response.status_code, response.text, detail, response)
 
             raise ApiError(response.status_code, response.text, response=response)
         except ClientError:

@@ -8,7 +8,10 @@ from gateway_rpc_client.models import (
     ChannelParams,
     ChannelSubscriptionResult,
     ChannelUnsubscriptionResult,
+    DeviceStatusReport,
     InterruptVoiceTurnParams,
+    ReportAccepted,
+    RoomStateReport,
     SessionEvent,
     SessionEventNotification,
     SessionParams,
@@ -22,6 +25,7 @@ from gateway_rpc_client.models import (
     VoiceEventNotification,
     VoiceTurnCommandResult,
     VoiceTurnParams,
+    VolumeReport,
 )
 
 TURN_PREPARE: RpcRouteInfo[SessionParams, TurnCommandResult] = RpcRouteInfo(
@@ -106,6 +110,24 @@ SUBSCRIPTION_UNSUBSCRIBE_CHANNEL: RpcRouteInfo[
     method="subscription.unsubscribe_channel",
     result_adapter=TypeAdapter(ChannelUnsubscriptionResult),
     server="gateway",
+)
+
+ROOM_REPORT_STATE: RpcRouteInfo[RoomStateReport, ReportAccepted] = RpcRouteInfo(
+    method="room.report_state",
+    result_adapter=TypeAdapter(ReportAccepted),
+    server="channel",
+)
+
+ROOM_REPORT_DEVICE: RpcRouteInfo[DeviceStatusReport, ReportAccepted] = RpcRouteInfo(
+    method="room.report_device",
+    result_adapter=TypeAdapter(ReportAccepted),
+    server="channel",
+)
+
+ROOM_REPORT_VOLUME: RpcRouteInfo[VolumeReport, ReportAccepted] = RpcRouteInfo(
+    method="room.report_volume",
+    result_adapter=TypeAdapter(ReportAccepted),
+    server="channel",
 )
 
 SESSION_EVENT: RpcNotificationInfo[SessionEvent] = RpcNotificationInfo(

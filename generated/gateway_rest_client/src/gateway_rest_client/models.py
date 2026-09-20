@@ -269,6 +269,13 @@ class AutomationNotFoundProblem(BaseModel):
     instance: str | None = None
 
 
+class Capability(StrEnum):
+    AUDIO_INPUT = "audio_input"
+    AUDIO_OUTPUT = "audio_output"
+    MEDIA_PLAYBACK = "media_playback"
+    LIGHT = "light"
+
+
 class CreateAlarmRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -300,6 +307,35 @@ class CreateSessionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     channel: SessionChannel
+
+
+class DeviceKind(StrEnum):
+    MICROPHONE = "microphone"
+    SPEAKER = "speaker"
+    LIGHT = "light"
+
+
+class DeviceRegistration(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    device_id: str = Field(min_length=1)
+    kind: DeviceKind
+    capabilities: list[Capability] = Field(min_length=1)
+
+
+class DeviceStatus(StrEnum):
+    AVAILABLE = "available"
+    UNAVAILABLE = "unavailable"
+    ERROR = "error"
+
+
+class DeviceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    device_id: str
+    kind: DeviceKind
+    capabilities: list[Capability]
+    status: DeviceStatus
 
 
 class DismissAlarmResponse(BaseModel):
@@ -419,6 +455,13 @@ class ReadinessResponse(BaseModel):
     status: Literal["ready"] = "ready"
 
 
+class RegisterRoomRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    devices: list[DeviceRegistration]
+    client_version: str = Field(min_length=1)
+
+
 class RequestValidationProblemErrorsItem(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -439,6 +482,50 @@ class RequestValidationProblem(BaseModel):
     detail: str | None = None
     instance: str | None = None
     errors: list[RequestValidationProblemErrorsItem]
+
+
+class RoomFunction(StrEnum):
+    CONVERSATION = "conversation"
+    ANNOUNCE = "announce"
+    MUSIC = "music"
+    LIGHT = "light"
+
+
+class RoomState(StrEnum):
+    IDLE = "idle"
+    LISTENING = "listening"
+    THINKING = "thinking"
+    SPEAKING = "speaking"
+
+
+class RoomResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    room_id: UUID
+    display_name: str
+    online: bool
+    functions: list[RoomFunction]
+    state: RoomState
+    volume: int | None
+    client_version: str | None
+    devices: list[DeviceResponse]
+
+
+class RoomListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rooms: list[RoomResponse]
+
+
+class RoomNotFoundProblem(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    type: Literal["urn:cara:problem/room_not_found"]
+    title: Literal["Room not found"]
+    status: Literal[404]
+    code: Literal["room_not_found"]
+    detail: str | None = None
+    instance: str | None = None
 
 
 class SessionResponse(BaseModel):

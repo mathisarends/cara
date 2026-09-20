@@ -19,6 +19,12 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 - The authenticated connection is the sole input/output owner of that voice session.
 - Audio never passes through JSON-RPC. A turn's input completion is an ordered media frame; the pyrpckit end message closes input for the whole media stream.
 
+## Room WebSocket (`/v1/rooms/{room_id}/channel`, JSON-RPC)
+
+- Presence is bound to the authenticated socket lifetime; Uvicorn ping/pong heartbeats detect broken connections.
+- Room clients report room state, device status, and volume on this connection.
+- A room must exist in `gateway.yml` and register its devices through REST before connecting.
+
 ## REST
 
 - Sessions: `POST /v1/sessions`, `POST /v1/sessions/open`, `GET /v1/sessions/{id}`
@@ -26,6 +32,7 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 - Alarms: `/v1/owners/{owner_id}/alarms` (CRUD, `enabled`, `skip-next`, `snooze`, `dismiss`)
 - Voice sessions: `POST /v1/voice-sessions`, list/get/close, and persisted turn snapshots
 - Voice recordings: `GET /v1/voice-sessions/{id}/recording` serves every finished turn as one MP3 (`audio/mpeg`); segments live per turn in object storage (`CARA_GATEWAY_STORAGE_*`, MinIO in Compose)
+- Rooms: `GET /v1/rooms`, `GET /v1/rooms/{room_id}`, and idempotent `PUT /v1/rooms/{room_id}/registration`
 - Future resource features: REST only, no RPC layer
 - Every resource router requires `Authorization: Bearer <CARA_GATEWAY_TOKEN>` (`require_token`, OpenAPI scheme `GatewayToken`); only health is open
 

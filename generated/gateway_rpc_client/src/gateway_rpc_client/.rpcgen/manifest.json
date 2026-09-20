@@ -3,7 +3,7 @@
   "generatorVersion": "0.7.0",
   "layoutVersion": 10,
   "language": "python",
-  "contractSha256": "e0126a8404065b4c1abd27227947a1638d00ed9aea79650de98b69988a8b090d",
+  "contractSha256": "d6fa22dfb813636ab071f0870324a98ee777dae5267d4ab9aad3ff0c569c6aaf",
   "files": [
     ".rpcgen/manifest.json",
     "__init__.py",
@@ -20,6 +20,7 @@
     "internal/unset.py",
     "models.py",
     "namespaces/__init__.py",
+    "namespaces/room.py",
     "namespaces/session.py",
     "namespaces/subscription.py",
     "namespaces/turn.py",

@@ -1198,6 +1198,158 @@
         }
       }
     },
+    "/v1/rooms": {
+      "get": {
+        "tags": [
+          "rooms"
+        ],
+        "summary": "List Rooms",
+        "operationId": "list_rooms",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ]
+      }
+    },
+    "/v1/rooms/{room_id}": {
+      "get": {
+        "tags": [
+          "rooms"
+        ],
+        "summary": "Get Room",
+        "operationId": "get_room",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Room not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rooms/{room_id}/registration": {
+      "put": {
+        "tags": [
+          "rooms"
+        ],
+        "summary": "Register Room",
+        "operationId": "register_room",
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Room Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRoomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Room not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomNotFoundProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/voice-sessions": {
       "post": {
         "tags": [
@@ -2094,6 +2246,16 @@
           }
         }
       },
+      "Capability": {
+        "type": "string",
+        "enum": [
+          "audio_input",
+          "audio_output",
+          "media_playback",
+          "light"
+        ],
+        "title": "Capability"
+      },
       "ChannelTarget": {
         "properties": {
           "kind": {
@@ -2263,6 +2425,84 @@
           "timezone"
         ],
         "title": "CronSchedule"
+      },
+      "DeviceKind": {
+        "type": "string",
+        "enum": [
+          "microphone",
+          "speaker",
+          "light"
+        ],
+        "title": "DeviceKind"
+      },
+      "DeviceRegistration": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Device Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DeviceKind"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "title": "Capabilities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_id",
+          "kind",
+          "capabilities"
+        ],
+        "title": "DeviceRegistration"
+      },
+      "DeviceResponse": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DeviceKind"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Capabilities"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DeviceStatus"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "device_id",
+          "kind",
+          "capabilities",
+          "status"
+        ],
+        "title": "DeviceResponse"
+      },
+      "DeviceStatus": {
+        "type": "string",
+        "enum": [
+          "available",
+          "unavailable",
+          "error"
+        ],
+        "title": "DeviceStatus"
       },
       "DismissAlarmResponse": {
         "properties": {
@@ -2452,6 +2692,29 @@
         "type": "object",
         "title": "ReadinessResponse"
       },
+      "RegisterRoomRequest": {
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceRegistration"
+            },
+            "type": "array",
+            "title": "Devices"
+          },
+          "client_version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Client Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "devices",
+          "client_version"
+        ],
+        "title": "RegisterRoomRequest"
+      },
       "ReminderPayload": {
         "properties": {
           "kind": {
@@ -2473,6 +2736,113 @@
           "instruction"
         ],
         "title": "ReminderPayload"
+      },
+      "RoomFunction": {
+        "type": "string",
+        "enum": [
+          "conversation",
+          "announce",
+          "music",
+          "light"
+        ],
+        "title": "RoomFunction"
+      },
+      "RoomListResponse": {
+        "properties": {
+          "rooms": {
+            "items": {
+              "$ref": "#/components/schemas/RoomResponse"
+            },
+            "type": "array",
+            "title": "Rooms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rooms"
+        ],
+        "title": "RoomListResponse"
+      },
+      "RoomResponse": {
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Room Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "online": {
+            "type": "boolean",
+            "title": "Online"
+          },
+          "functions": {
+            "items": {
+              "$ref": "#/components/schemas/RoomFunction"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Functions"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RoomState"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          },
+          "client_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Version"
+          },
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/DeviceResponse"
+            },
+            "type": "array",
+            "title": "Devices"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "room_id",
+          "display_name",
+          "online",
+          "functions",
+          "state",
+          "volume",
+          "client_version",
+          "devices"
+        ],
+        "title": "RoomResponse"
+      },
+      "RoomState": {
+        "type": "string",
+        "enum": [
+          "idle",
+          "listening",
+          "thinking",
+          "speaking"
+        ],
+        "title": "RoomState"
       },
       "SessionChannel": {
         "properties": {
@@ -3437,6 +3807,50 @@
         ],
         "additionalProperties": true
       },
+      "RoomNotFoundProblem": {
+        "type": "object",
+        "title": "RoomNotFoundProblem",
+        "description": "RFC 9457 Problem Details with a stable application code.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "const": "urn:cara:problem/room_not_found"
+          },
+          "title": {
+            "type": "string",
+            "const": "Room not found"
+          },
+          "status": {
+            "type": "integer",
+            "const": 404
+          },
+          "code": {
+            "type": "string",
+            "const": "room_not_found"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "instance": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri-reference"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": true
+      },
       "VoiceSessionNotFoundProblem": {
         "type": "object",
         "title": "VoiceSessionNotFoundProblem",
@@ -3812,6 +4226,10 @@
     {
       "name": "voice",
       "description": "Persistent voice and media sessions."
+    },
+    {
+      "name": "rooms",
+      "description": "Room topology and live device state."
     }
   ]
 }

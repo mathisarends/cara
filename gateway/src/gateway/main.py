@@ -15,6 +15,12 @@ def main() -> None:
         "gateway.app:app",
         host=os.environ.get("CARA_GATEWAY_HOST", "127.0.0.1"),
         port=int(os.environ.get("CARA_GATEWAY_PORT", "8000")),
+        ws_ping_interval=float(
+            os.environ.get("CARA_GATEWAY_WS_PING_INTERVAL_SECONDS", "20")
+        ),
+        ws_ping_timeout=float(
+            os.environ.get("CARA_GATEWAY_WS_PING_TIMEOUT_SECONDS", "20")
+        ),
         reload=False,
     )
 

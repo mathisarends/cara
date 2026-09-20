@@ -14,6 +14,7 @@ from gateway_rpc_client.internal import (
 
 class ServerName(StrEnum):
     GATEWAY = "gateway"
+    CHANNEL = "channel"
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +32,24 @@ _SERVERS = {
             "gateway_url": RpcServerVariable(
                 default="ws://127.0.0.1:8000",
                 description="Gateway WebSocket base URL.",
+            ),
+        },
+        transport=RpcTransportDescriptor(
+            type="websocket",
+            message_encoding="json",
+            options={"frameType": "text"},
+        ),
+    ),
+    ServerName.CHANNEL: RpcServerInfo(
+        name="channel",
+        url="{gateway_url}/v1/rooms/{room_id}/channel",
+        variables={
+            "gateway_url": RpcServerVariable(
+                default="ws://127.0.0.1:8000",
+                description="Gateway WebSocket base URL.",
+            ),
+            "room_id": RpcServerVariable(
+                default="{room_id}",
             ),
         },
         transport=RpcTransportDescriptor(
@@ -67,6 +86,20 @@ def gateway(
         ServerName.GATEWAY,
         {
             "gateway_url": gateway_url,
+        },
+    )
+
+
+def channel(
+    *,
+    gateway_url: str = "ws://127.0.0.1:8000",
+    room_id: str = "{room_id}",
+) -> Endpoint:
+    return endpoint(
+        ServerName.CHANNEL,
+        {
+            "gateway_url": gateway_url,
+            "room_id": room_id,
         },
     )
 

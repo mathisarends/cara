@@ -92,10 +92,39 @@ class ChatDelta(RpcModel):
     text: str
 
 
+class DeviceStatus(StrEnum):
+    AVAILABLE = "available"
+    UNAVAILABLE = "unavailable"
+    ERROR = "error"
+
+
+class DeviceStatusReport(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    device_id: str = Field(alias="deviceId")
+    status: DeviceStatus
+
+
 class InterruptVoiceTurnParams(RpcModel):
     model_config = ConfigDict(extra="forbid")
     voice_turn_id: UUID = Field(alias="voiceTurnId")
     input_sequence: int | None = Field(None, alias="inputSequence")
+
+
+class ReportAccepted(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    accepted: bool = True
+
+
+class RoomState(StrEnum):
+    IDLE = "idle"
+    LISTENING = "listening"
+    THINKING = "thinking"
+    SPEAKING = "speaking"
+
+
+class RoomStateReport(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    state: RoomState
 
 
 class SessionParams(RpcModel):
@@ -448,6 +477,11 @@ class VoiceTurnStarted(RpcModel):
     activation: Activation
 
 
+class VolumeReport(RpcModel):
+    model_config = ConfigDict(extra="forbid")
+    volume: int
+
+
 class SessionEventNotification(RpcModel):
     model_config = ConfigDict(extra="forbid")
     jsonrpc: Literal["2.0"]
@@ -502,7 +536,10 @@ ChannelSubscriptionResult.model_rebuild()
 ChannelUnsubscriptionResult.model_rebuild()
 ChatCompleted.model_rebuild()
 ChatDelta.model_rebuild()
+DeviceStatusReport.model_rebuild()
 InterruptVoiceTurnParams.model_rebuild()
+ReportAccepted.model_rebuild()
+RoomStateReport.model_rebuild()
 SessionParams.model_rebuild()
 StartTurnParams.model_rebuild()
 StartVoiceTurnParams.model_rebuild()
@@ -535,5 +572,6 @@ VoiceTurnDiscarded.model_rebuild()
 VoiceTurnFailed.model_rebuild()
 VoiceTurnParams.model_rebuild()
 VoiceTurnStarted.model_rebuild()
+VolumeReport.model_rebuild()
 SessionEventNotification.model_rebuild()
 VoiceEventNotification.model_rebuild()
