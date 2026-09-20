@@ -1,12 +1,13 @@
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
-from types import EllipsisType
 from typing import Protocol, Self, runtime_checkable
 
 from llm import ChatModel, Message, ModelEvent, ModelResponse, ModelTool, UserMessage
 
 type ModelFactory = Callable[[str | None], ChatModel]
 type ModelSmokeTest = Callable[[ChatModel], Awaitable[None]]
+
+_UNSET = object()
 
 
 @runtime_checkable
@@ -117,9 +118,9 @@ class ModelSwitch(ChatModel):
     async def switch(
         self,
         name: str,
-        reasoning_effort: str | None | EllipsisType = ...,
+        reasoning_effort: str | None | object = _UNSET,
     ) -> None:
-        if reasoning_effort is ...:
+        if reasoning_effort is _UNSET:
             reasoning_effort = self._current_reasoning_effort
         await self._activate(name, reasoning_effort)
 
