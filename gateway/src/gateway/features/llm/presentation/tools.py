@@ -78,7 +78,7 @@ def register_model_control_tools(tools: Tools) -> None:
             if params.reasoning_effort is None:
                 await models.switch(params.name)
             else:
-                await models.switch_with_reasoning_effort(
+                await models.switch(
                     params.name,
                     _resolve_reasoning_effort(params.reasoning_effort),
                 )

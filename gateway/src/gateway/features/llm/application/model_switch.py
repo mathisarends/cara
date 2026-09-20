@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from types import EllipsisType
 from typing import Protocol, Self, runtime_checkable
 
 from llm import ChatModel, Message, ModelEvent, ModelResponse, ModelTool, UserMessage
@@ -113,14 +114,13 @@ class ModelSwitch(ChatModel):
     ) -> ModelResponse:
         return await self.current.invoke(messages, tools=tools)
 
-    async def switch(self, name: str) -> None:
-        await self._activate(name, self._current_reasoning_effort)
-
-    async def switch_with_reasoning_effort(
+    async def switch(
         self,
         name: str,
-        reasoning_effort: str | None,
+        reasoning_effort: str | None | EllipsisType = ...,
     ) -> None:
+        if reasoning_effort is ...:
+            reasoning_effort = self._current_reasoning_effort
         await self._activate(name, reasoning_effort)
 
     async def set_reasoning_effort(self, reasoning_effort: str | None) -> None:
