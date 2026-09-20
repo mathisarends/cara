@@ -163,7 +163,7 @@ class PydanticAICodexModel(ChatModel):
             async for event in self._stream(messages, tools, websocket=False):
                 yield event
 
-    async def invoke(
+    async def call(
         self,
         messages: Sequence[Message],
         *,

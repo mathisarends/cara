@@ -107,13 +107,13 @@ class ModelSwitch(ChatModel):
     ) -> None:
         await self.current.prepare(messages, tools=tools)
 
-    async def invoke(
+    async def call(
         self,
         messages: Sequence[Message],
         *,
         tools: Sequence[ModelTool] = (),
     ) -> ModelResponse:
-        return await self.current.invoke(messages, tools=tools)
+        return await self.current.call(messages, tools=tools)
 
     async def switch(
         self,

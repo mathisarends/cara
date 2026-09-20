@@ -129,7 +129,7 @@ class ChatModel(ABC):
     ) -> AsyncIterator[ModelEvent]: ...
 
     @abstractmethod
-    async def invoke(
+    async def call(
         self,
         messages: Sequence[Message],
         *,

@@ -61,7 +61,7 @@ def test_create_codex_model_uses_pydantic_ai_codex_provider() -> None:
     model_type.assert_called_once_with("gpt-5.6-sol", provider=provider)
 
 
-async def test_invoke_returns_a_completion_without_streaming() -> None:
+async def test_call_returns_a_completion_without_streaming() -> None:
     model = _codex_model()
     model._model.request = AsyncMock(
         return_value=PydanticResponse(
@@ -74,7 +74,7 @@ async def test_invoke_returns_a_completion_without_streaming() -> None:
         )
     )
 
-    response = await model.invoke(
+    response = await model.call(
         [UserMessage(content="Question")],
         tools=[
             ModelTool(name="lookup", description="Look something up", parameters={})
@@ -125,7 +125,7 @@ async def test_websocket_failure_before_response_falls_back_to_http() -> None:
             transport=CodexTransport.WEBSOCKET,
         )
 
-    response = await model.invoke([UserMessage(content="Question")])
+    response = await model.call([UserMessage(content="Question")])
 
     assert response.completion == "HTTP answer"
     assert pydantic_model.request.await_count == 2
@@ -168,7 +168,7 @@ async def test_prepare_warms_request_state_for_the_next_message() -> None:
 
     system = SystemMessage(content="System")
     await model.prepare([system])
-    response = await model.invoke([system, UserMessage(content="Question")])
+    response = await model.call([system, UserMessage(content="Question")])
 
     assert response.completion == "Answer"
     warmup_messages = pydantic_model.request.await_args_list[0].args[0]
@@ -255,7 +255,7 @@ async def test_prepare_uses_pydantic_ai_to_build_the_warmup_request() -> None:
     assert prepared_request.response.provider_name == "openai-codex"
     assert prepared_request.response.provider_response_id == "warmup-response"
 
-    await model.invoke(
+    await model.call(
         [
             SystemMessage(content="System"),
             UserMessage(content="Question"),
@@ -305,7 +305,7 @@ async def test_http_fallback_does_not_reuse_websocket_warmup_state() -> None:
 
     system = SystemMessage(content="System")
     await model.prepare([system])
-    response = await model.invoke([system, UserMessage(content="Question")])
+    response = await model.call([system, UserMessage(content="Question")])
 
     assert response.completion == "HTTP answer"
     websocket_messages = pydantic_model.request.await_args_list[1].args[0]
