@@ -3,8 +3,7 @@ from fastapi_canon import Feature
 
 from gateway.agent_runtime.provider import AgentRuntimeProvider
 from gateway.platform import DatabaseProvider, StorageProvider
-from gateway.presentation.websocket.provider import GatewayProvider
-from gateway.presentation.websocket.router import gateway_router
+from gateway.presentation.websocket import GatewayProvider, gateway_router
 
 platform_feature = Feature(
     name="platform",

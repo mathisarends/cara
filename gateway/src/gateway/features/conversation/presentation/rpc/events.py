@@ -4,7 +4,7 @@ from pyrpckit import Inject, RpcChannel
 
 from gateway.features.conversation.presentation.rpc.mapping import session_event
 from gateway.features.conversation.presentation.rpc.models import SessionEvent
-from gateway.presentation.websocket.subscriptions import EventReceiver
+from gateway.presentation.subscriptions import EventReceiver
 
 session_channel = RpcChannel("session")
 

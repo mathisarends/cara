@@ -8,7 +8,7 @@ from gateway.features.conversation.presentation.rpc.subscriptions import (
 from gateway.features.rooms.presentation.rpc import room_channel
 from gateway.features.voice.presentation.media import voice_media_stream
 from gateway.features.voice.presentation.rpc import voice_channel
-from gateway.presentation.websocket.error_mapping import gateway_error_mapper
+from gateway.presentation.error_mapping import gateway_error_mapper
 
 gateway_service = RpcService(error_mapper=gateway_error_mapper)
 gateway_endpoint = gateway_service.socket(

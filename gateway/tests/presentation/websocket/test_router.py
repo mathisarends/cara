@@ -14,9 +14,9 @@ from gateway.features.conversation.application import (
 )
 from gateway.features.conversation.domain.values import ChannelRef
 from gateway.features.voice.application import VoiceEvent, VoiceEventType
+from gateway.presentation.error_mapping import gateway_error_mapper
 from gateway.presentation.rpc.service import gateway_service
-from gateway.presentation.websocket.error_mapping import gateway_error_mapper
-from gateway.presentation.websocket.subscriptions import InMemoryEventStream
+from gateway.presentation.subscriptions import InMemoryEventStream
 
 from ._rpc_test_client import RpcTestClient, RpcTestError
 

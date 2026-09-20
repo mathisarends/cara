@@ -10,7 +10,7 @@ from gateway.features.conversation.presentation.rpc.models import (
     UnsubscriptionResult,
 )
 from gateway.presentation.rpc.errors import ResourceNotFoundError
-from gateway.presentation.websocket.subscriptions import (
+from gateway.presentation.subscriptions import (
     GatewayClient,
     InMemoryEventStream,
 )

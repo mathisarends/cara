@@ -15,7 +15,7 @@ from gateway.presentation.authentication import (
     GatewayAuthenticator,
     GatewayAuthSettings,
 )
-from gateway.presentation.websocket.subscriptions import (
+from gateway.presentation.subscriptions import (
     EventReceiver,
     GatewayClient,
     InMemoryEventStream,

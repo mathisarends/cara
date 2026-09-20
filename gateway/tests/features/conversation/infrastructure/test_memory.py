@@ -10,7 +10,7 @@ from gateway.features.conversation.application import (
     create_conversation_event,
 )
 from gateway.features.conversation.domain import ChannelRef
-from gateway.presentation.websocket.subscriptions import InMemoryEventStream
+from gateway.presentation.subscriptions import InMemoryEventStream
 
 
 def _event(session_id) -> ConversationEvent:

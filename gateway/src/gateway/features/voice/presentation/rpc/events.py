@@ -4,7 +4,7 @@ from pyrpckit import Inject, RpcChannel
 
 from gateway.features.voice.presentation.rpc.mapping import voice_event
 from gateway.features.voice.presentation.rpc.models import VoiceEventMessage
-from gateway.presentation.websocket.subscriptions import EventReceiver
+from gateway.presentation.subscriptions import EventReceiver
 
 voice_channel = RpcChannel("voice")
 
