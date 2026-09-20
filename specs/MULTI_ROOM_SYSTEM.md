@@ -86,7 +86,7 @@ Die **Topologie** (Räume, Gruppen, Anzeigenamen und Aliase für den Agenten) st
 
 ## Room Client
 
-Ein Prozess pro Raum (`clients/room`, Package `room`), der die Geräte des Raums besitzt, sich beim Gateway anmeldet und dessen Kommandos ausführt. Alle Räume nutzen dasselbe Binary bzw. Docker-Image; `room_id`, Gateway und Geräte kommen aus der Config. Keine raumspezifischen Klassen.
+Ein Prozess pro Raum (`room`, Package `room`), der die Geräte des Raums besitzt, sich beim Gateway anmeldet und dessen Kommandos ausführt. Alle Räume nutzen dasselbe Binary bzw. Docker-Image; `room_id`, Gateway und Geräte kommen aus der Config. Keine raumspezifischen Klassen.
 
 ### Schichten
 

@@ -18,8 +18,7 @@ environments = [
 members = [
     "agent",
     "cara-tools",
-    "clients/cli",
-    "clients/room",
+    "cli",
     "clients/voice",
     "gateway",
     "generated/gateway_rest_client",
@@ -28,6 +27,7 @@ members = [
     "libs/llm",
     "libs/scheduler",
     "memory",
+    "room",
     "sandbox_manager",
 ]
 
@@ -80,7 +80,6 @@ known-first-party = [
     "gateway_rpc_client",
     "llm",
     "memory",
-    "room",
     "sandbox_manager_client",
     "scheduler",
     "voice",

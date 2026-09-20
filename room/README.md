@@ -6,7 +6,7 @@ exposes local diagnostic endpoints.
 
 ```powershell
 $env:CARA_GATEWAY_TOKEN = "..."
-uv run --package room-client cara-room --config clients/room/room.example.yml
+uv run --package room-client cara-room --config room/room.example.yml
 ```
 
 The configured `room_id` must exist in `gateway.yml`. The client exposes

@@ -36,4 +36,4 @@ packages = ["src/room"]
 asyncio_mode = "auto"
 
 [tool.ruff]
-extend = "../../pyproject.toml"
+extend = "../pyproject.toml"

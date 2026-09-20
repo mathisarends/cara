@@ -70,7 +70,7 @@ headline and no result.
 ## Layout
 
 ```text
-clients/cli/src/cli/
+cli/src/cli/
 ├── main.py       argument parsing, connection, top-level error handling
 ├── chat.py       ChatSession: session lifecycle, commands, steering, rendering
 ├── commands.py   the slash commands: help text, completion, dispatch

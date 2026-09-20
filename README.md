@@ -33,7 +33,7 @@ than invented from scratch.
 ```mermaid
 flowchart TD
     Voice["voice client<br/>(clients/voice/, examples/voice_main.py)"]
-    Cli["cli client<br/>(clients/cli/, cara-chat)"]
+    Cli["cli client<br/>(cli/, cara-chat)"]
     Rest["gateway_rest_client<br/>(generated, typed)"]
     Rpc["gateway_rpc_client<br/>(generated, typed)"]
     Gateway["gateway (FastAPI)<br/>sessions · turns · persistence · event fan-out"]
@@ -74,7 +74,7 @@ Three ideas hold this together:
   operations go through the separately deployed Sandbox Manager, while user integrations are
   out-of-process [MCP tool servers](docs/mcp-tools.md).
 
-[`voice`](clients/voice#readme) and [`cli`](clients/cli#readme) are both thin clients built on the
+[`voice`](clients/voice#readme) and [`cli`](cli#readme) are both thin clients built on the
 generated gateway clients: neither talks to an LLM directly, and both get session-per-channel reuse
 (`POST /v1/sessions/open`) for free from the gateway.
 
@@ -111,7 +111,7 @@ flowchart TD
 | [`gateway-rest-client`](generated/gateway_rest_client#readme) | Generated, fully typed client for the gateway's REST resources (sessions, automations, alarms). |
 | [`gateway-rpc-client`](generated/gateway_rpc_client#readme) | Generated, fully typed client for the gateway's JSON-RPC WebSocket (turns, events). |
 | [`voice`](clients/voice#readme)               | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
-| [`cli`](clients/cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
+| [`cli`](cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](libs/llm#readme)                      | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
 | [`retrieval`](libs/retrieval#readme)          | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
 | [`scheduler`](libs/scheduler#readme)          | A small in-memory async scheduler, independent of agent runtimes and persistence.              |
@@ -175,7 +175,7 @@ uv run cara-chat
 ```
 
 `cara-chat` reuses the current session on its channel across runs, so restarting it continues the
-same conversation. Use `/quit`, `/exit`, `/q`, or Ctrl+C to leave. See [`cli`](clients/cli#readme) for the
+same conversation. Use `/quit`, `/exit`, `/q`, or Ctrl+C to leave. See [`cli`](cli#readme) for the
 full command list.
 
 ## Workspace and Docker binds

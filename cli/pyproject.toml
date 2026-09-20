@@ -26,4 +26,4 @@ gateway-rest-client = { workspace = true }
 gateway-rpc-client = { workspace = true }
 
 [tool.ruff]
-extend = "../../pyproject.toml"
+extend = "../pyproject.toml"

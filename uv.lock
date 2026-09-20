@@ -227,7 +227,7 @@ wheels = [
 [[package]]
 name = "cli"
 version = "0.1.0"
-source = { editable = "clients/cli" }
+source = { editable = "cli" }
 dependencies = [
     { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "gateway-rpc-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -1494,7 +1494,7 @@ wheels = [
 [[package]]
 name = "room-client"
 version = "0.1.0"
-source = { editable = "clients/room" }
+source = { editable = "room" }
 dependencies = [
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
