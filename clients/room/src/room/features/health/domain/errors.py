@@ -1,0 +1,2 @@
+class RoomNotReadyError(RuntimeError):
+    pass

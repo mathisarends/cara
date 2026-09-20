@@ -19,6 +19,7 @@ members = [
     "agent",
     "cara-tools",
     "clients/cli",
+    "clients/room",
     "clients/voice",
     "gateway",
     "generated/gateway_rest_client",
@@ -37,6 +38,7 @@ asyncio_mode = "auto"
 agent = { workspace = true }
 cara-tools = { workspace = true }
 cli = { workspace = true }
+room-client = { workspace = true }
 gateway-server = { workspace = true }
 gateway-rest-client = { workspace = true }
 gateway-rpc-client = { workspace = true }
@@ -78,6 +80,7 @@ known-first-party = [
     "gateway_rpc_client",
     "llm",
     "memory",
+    "room",
     "sandbox_manager_client",
     "scheduler",
     "voice",

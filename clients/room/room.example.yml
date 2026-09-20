@@ -1,0 +1,15 @@
+room_id: 8edc5cf8-0caa-4d5a-9b5b-10da42dfdde2
+gateway:
+  url: http://127.0.0.1:8000
+  # CARA_GATEWAY_TOKEN overrides this value.
+  token: change-me-gateway-token-32-characters
+  heartbeat_seconds: 15
+devices:
+  - device_id: microphone
+    driver: portaudio
+  - device_id: speaker
+    driver: sonos
+    ip_address: 192.168.1.20
+http:
+  host: 127.0.0.1
+  port: 8081
