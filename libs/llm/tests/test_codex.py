@@ -35,9 +35,14 @@ from llm.codex_transport import WebSocketUnavailable
 def test_create_codex_model_uses_pydantic_ai_codex_provider() -> None:
     provider = object()
     model = object()
+    responses_resource = object()
     with (
         patch("llm.codex.OpenAICodexProvider", return_value=provider),
         patch("llm.codex.OpenAICodexModel", return_value=model) as model_type,
+        patch(
+            "llm.codex.install_codex_responses_resource",
+            return_value=responses_resource,
+        ) as install_resource,
     ):
         created = create_codex_model(
             CodexModel.SOL,
@@ -45,6 +50,7 @@ def test_create_codex_model_uses_pydantic_ai_codex_provider() -> None:
         )
 
     assert isinstance(created, PydanticAICodexModel)
+    install_resource.assert_called_once_with(provider)
     model_type.assert_called_once_with("gpt-5.6-sol", provider=provider)
 
 
@@ -170,7 +176,10 @@ def _codex_model() -> PydanticAICodexModel:
         patch("llm.codex.OpenAICodexProvider"),
         patch("llm.codex.OpenAICodexModel"),
     ):
-        return PydanticAICodexModel(CodexModel.SOL)
+        return PydanticAICodexModel(
+            CodexModel.SOL,
+            transport=CodexTransport.HTTP,
+        )
 
 
 @asynccontextmanager

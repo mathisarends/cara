@@ -9,7 +9,7 @@ class LlmSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     default: CodexModel = CodexModel.LUNA
-    transport: CodexTransport = CodexTransport.HTTP
+    transport: CodexTransport = CodexTransport.WEBSOCKET
     available: tuple[CodexModel, ...] = Field(
         default=(CodexModel.LUNA,),
         min_length=1,

@@ -74,7 +74,7 @@ class PydanticAICodexModel(ChatModel):
         model: CodexModel,
         *,
         reasoning_effort: CodexReasoningEffort | None = None,
-        transport: CodexTransport = CodexTransport.HTTP,
+        transport: CodexTransport = CodexTransport.WEBSOCKET,
     ) -> None:
         self._provider = OpenAICodexProvider()
         self._responses_resource: CodexResponsesResource | None = None
@@ -217,7 +217,7 @@ def create_codex_model(
     model: CodexModel,
     *,
     reasoning_effort: CodexReasoningEffort | None = None,
-    transport: CodexTransport = CodexTransport.HTTP,
+    transport: CodexTransport = CodexTransport.WEBSOCKET,
 ) -> PydanticAICodexModel:
     return PydanticAICodexModel(
         model,
