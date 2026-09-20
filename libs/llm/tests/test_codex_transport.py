@@ -96,6 +96,39 @@ async def test_non_streaming_request_returns_completed_websocket_response() -> N
     await client.close()
 
 
+async def test_warmup_request_disables_generation() -> None:
+    response = SimpleNamespace(id="warmup-response")
+    completed = ResponseCompletedEvent.model_construct(
+        type="response.completed",
+        sequence_number=1,
+        response=response,
+    )
+    connection = _connection(completed)
+    client, resource = _resource(connection)
+
+    async with resource.warmup_request():
+        result = await resource.create(
+            model="gpt-5.6-sol",
+            input="",
+            tools=[],
+            stream=False,
+        )
+
+    assert result is response
+    connection.send.assert_awaited_once_with(
+        {
+            "type": "response.create",
+            "model": "gpt-5.6-sol",
+            "input": "",
+            "tools": [],
+            "stream_id": "main",
+            "generate": False,
+        }
+    )
+    connection.response.create.assert_not_awaited()
+    await client.close()
+
+
 async def test_websocket_request_removes_http_fields() -> None:
     error = ResponseWsError(
         type="error",
@@ -141,5 +174,6 @@ def _resource(connection: Any) -> tuple[AsyncOpenAI, CodexResponsesResource]:
 def _connection(*events: object) -> SimpleNamespace:
     return SimpleNamespace(
         response=SimpleNamespace(create=AsyncMock()),
+        send=AsyncMock(),
         recv=AsyncMock(side_effect=events),
     )

@@ -1,4 +1,6 @@
+import asyncio
 from collections.abc import AsyncIterator, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from uuid import uuid4
 
@@ -26,6 +28,7 @@ from pydantic_ai.usage import RequestUsage
 
 from llm.codex_transport import (
     CodexResponsesResource,
+    WebSocketInterrupted,
     WebSocketUnavailable,
     install_codex_responses_resource,
 )
@@ -66,6 +69,14 @@ class CodexTransport(StrEnum):
     WEBSOCKET = "websocket"
 
 
+@dataclass(frozen=True, slots=True)
+class _PreparedRequestState:
+    messages: tuple[Message, ...]
+    tools: tuple[ModelTool, ...]
+    response: PydanticResponse
+    connection_generation: int
+
+
 class PydanticAICodexModel(ChatModel):
     """Pydantic AI adapter for Codex subscription authentication."""
 
@@ -97,6 +108,8 @@ class PydanticAICodexModel(ChatModel):
             **settings,
             openai_previous_response_id="auto",
         )
+        self._prepared_request: _PreparedRequestState | None = None
+        self._prepared_request_lock = asyncio.Lock()
 
     async def prepare(
         self,
@@ -104,15 +117,30 @@ class PydanticAICodexModel(ChatModel):
         *,
         tools: Sequence[ModelTool] = (),
     ) -> None:
-        del messages, tools
-        if self._responses_resource is None:
+        resource = self._responses_resource
+        if resource is None:
             return
+        await self._clear_prepared_request()
         try:
-            await self._responses_resource.prewarm(
-                extra_headers=self._http_settings["extra_headers"]
-            )
-        except WebSocketUnavailable:
+            async with resource.warmup_request():
+                response = await self._model.request(
+                    _pydantic_messages(messages, ensure_request=True),
+                    self._websocket_settings,
+                    _request_parameters(tools),
+                )
+        except (WebSocketUnavailable, WebSocketInterrupted):
             return
+        connection_generation = resource.connection_generation
+        if response.provider_response_id is None or connection_generation is None:
+            return
+        prepared_request = _PreparedRequestState(
+            messages=tuple(messages),
+            tools=tuple(tools),
+            response=response,
+            connection_generation=connection_generation,
+        )
+        async with self._prepared_request_lock:
+            self._prepared_request = prepared_request
 
     async def stream(
         self,
@@ -162,24 +190,36 @@ class PydanticAICodexModel(ChatModel):
         *,
         websocket: bool,
     ) -> AsyncIterator[ModelEvent]:
-        settings = self._websocket_settings if websocket else self._http_settings
         resource = self._responses_resource
+        pydantic_messages, settings = await self._request_context(
+            messages,
+            tools,
+            websocket=websocket,
+        )
         if resource is not None and not websocket:
             async with resource.use_http():
-                async for event in self._stream_response(messages, tools, settings):
+                async for event in self._stream_response(
+                    pydantic_messages,
+                    tools,
+                    settings,
+                ):
                     yield event
             return
-        async for event in self._stream_response(messages, tools, settings):
+        async for event in self._stream_response(
+            pydantic_messages,
+            tools,
+            settings,
+        ):
             yield event
 
     async def _stream_response(
         self,
-        messages: Sequence[Message],
+        messages: list[PydanticMessage],
         tools: Sequence[ModelTool],
         settings: OpenAIResponsesModelSettings,
     ) -> AsyncIterator[ModelEvent]:
         async with self._model.request_stream(
-            _pydantic_messages(messages),
+            messages,
             settings,
             _request_parameters(tools),
         ) as response:
@@ -197,20 +237,73 @@ class PydanticAICodexModel(ChatModel):
         *,
         websocket: bool,
     ) -> PydanticResponse:
-        settings = self._websocket_settings if websocket else self._http_settings
         resource = self._responses_resource
+        pydantic_messages, settings = await self._request_context(
+            messages,
+            tools,
+            websocket=websocket,
+        )
         if resource is None or websocket:
             return await self._model.request(
-                _pydantic_messages(messages),
+                pydantic_messages,
                 settings,
                 _request_parameters(tools),
             )
         async with resource.use_http():
             return await self._model.request(
-                _pydantic_messages(messages),
+                pydantic_messages,
                 settings,
                 _request_parameters(tools),
             )
+
+    async def _request_context(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ModelTool],
+        *,
+        websocket: bool,
+    ) -> tuple[list[PydanticMessage], OpenAIResponsesModelSettings]:
+        if not websocket:
+            return _pydantic_messages(messages), self._http_settings
+        prepared_response = await self._take_prepared_response(messages, tools)
+        if prepared_response is None:
+            return _pydantic_messages(messages), self._websocket_settings
+        prepared_length, response = prepared_response
+        assert response.provider_response_id is not None
+        settings = OpenAIResponsesModelSettings(**self._websocket_settings)
+        settings["openai_previous_response_id"] = response.provider_response_id
+        instructions = _latest_system_instruction(messages[:prepared_length])
+        request_messages = _pydantic_messages(
+            messages[prepared_length:],
+            initial_instructions=instructions,
+        )
+        return request_messages, settings
+
+    async def _take_prepared_response(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ModelTool],
+    ) -> tuple[int, PydanticResponse] | None:
+        async with self._prepared_request_lock:
+            prepared_request = self._prepared_request
+            self._prepared_request = None
+        if prepared_request is None:
+            return None
+        prepared_length = len(prepared_request.messages)
+        resource = self._responses_resource
+        if (
+            resource is None
+            or resource.connection_generation != prepared_request.connection_generation
+            or len(messages) <= prepared_length
+            or tuple(messages[:prepared_length]) != prepared_request.messages
+            or tuple(tools) != prepared_request.tools
+        ):
+            return None
+        return prepared_length, prepared_request.response
+
+    async def _clear_prepared_request(self) -> None:
+        async with self._prepared_request_lock:
+            self._prepared_request = None
 
 
 def create_codex_model(
@@ -268,8 +361,13 @@ def _tool_definition(tool: ModelTool) -> ToolDefinition:
     )
 
 
-def _pydantic_messages(messages: Sequence[Message]) -> list[PydanticMessage]:
-    instructions: str | None = None
+def _pydantic_messages(
+    messages: Sequence[Message],
+    *,
+    initial_instructions: str | None = None,
+    ensure_request: bool = False,
+) -> list[PydanticMessage]:
+    instructions = initial_instructions
     converted: list[PydanticMessage] = []
     for message in messages:
         match message:
@@ -307,7 +405,17 @@ def _pydantic_messages(messages: Sequence[Message]) -> list[PydanticMessage]:
                         instructions=instructions,
                     )
                 )
+    if ensure_request:
+        converted.append(ModelRequest(parts=[], instructions=instructions))
     return converted
+
+
+def _latest_system_instruction(messages: Sequence[Message]) -> str | None:
+    instructions = None
+    for message in messages:
+        if isinstance(message, SystemMessage):
+            instructions = message.content
+    return instructions
 
 
 def _text_delta(event: object) -> str:

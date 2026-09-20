@@ -3,6 +3,12 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+from openai import AsyncOpenAI
+from openai.types.responses import (
+    Response,
+    ResponseCompletedEvent,
+    ResponseCreatedEvent,
+)
 from pydantic_ai.messages import (
     ModelRequest,
     TextPart,
@@ -12,6 +18,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.messages import (
     ModelResponse as PydanticResponse,
 )
+from pydantic_ai.providers.openai_codex import OpenAICodexProvider
 from pydantic_ai.usage import RequestUsage
 
 from llm import (
@@ -126,6 +133,191 @@ async def test_websocket_failure_before_response_falls_back_to_http() -> None:
     http_settings = pydantic_model.request.await_args_list[1].args[1]
     assert websocket_settings["openai_previous_response_id"] == "auto"
     assert "openai_previous_response_id" not in http_settings
+
+
+async def test_prepare_warms_request_state_for_the_next_message() -> None:
+    provider = SimpleNamespace(client=SimpleNamespace(close=AsyncMock()))
+    warmup_response = PydanticResponse(
+        parts=[],
+        provider_name="openai-codex",
+        provider_response_id="warmup-response",
+    )
+    pydantic_model = SimpleNamespace(
+        request=AsyncMock(
+            side_effect=[
+                warmup_response,
+                PydanticResponse(parts=[TextPart("Answer")]),
+            ]
+        )
+    )
+    responses_resource = SimpleNamespace(
+        aclose=AsyncMock(),
+        connection_generation=1,
+        warmup_request=lambda: _http_mode(),
+        use_http=lambda: _http_mode(),
+    )
+    with (
+        patch("llm.codex.OpenAICodexProvider", return_value=provider),
+        patch("llm.codex.OpenAICodexModel", return_value=pydantic_model),
+        patch(
+            "llm.codex.install_codex_responses_resource",
+            return_value=responses_resource,
+        ),
+    ):
+        model = PydanticAICodexModel(CodexModel.SOL)
+
+    system = SystemMessage(content="System")
+    await model.prepare([system])
+    response = await model.invoke([system, UserMessage(content="Question")])
+
+    assert response.completion == "Answer"
+    warmup_messages = pydantic_model.request.await_args_list[0].args[0]
+    assert len(warmup_messages) == 1
+    assert isinstance(warmup_messages[0], ModelRequest)
+    assert warmup_messages[0].instructions == "System"
+    assert warmup_messages[0].parts == []
+    request_messages = pydantic_model.request.await_args_list[1].args[0]
+    request_settings = pydantic_model.request.await_args_list[1].args[1]
+    assert len(request_messages) == 1
+    assert isinstance(request_messages[0], ModelRequest)
+    assert request_messages[0].instructions == "System"
+    assert request_messages[0].parts[0].content == "Question"
+    assert request_settings["openai_previous_response_id"] == "warmup-response"
+
+
+async def test_prepare_uses_pydantic_ai_to_build_the_warmup_request() -> None:
+    client = AsyncOpenAI(api_key="test")
+    provider = OpenAICodexProvider(openai_client=client)
+    response = Response.model_construct(
+        id="warmup-response",
+        created_at=0.0,
+        model="gpt-5.6-sol",
+        object="response",
+        output=[],
+        parallel_tool_calls=True,
+        tool_choice="auto",
+        tools=[],
+        status="completed",
+    )
+    completed = ResponseCompletedEvent.model_construct(
+        type="response.completed",
+        sequence_number=1,
+        response=response,
+    )
+    created = ResponseCreatedEvent.model_construct(
+        type="response.created",
+        sequence_number=0,
+        response=response,
+    )
+    actual_response = Response.model_construct(
+        id="actual-response",
+        created_at=1.0,
+        model="gpt-5.6-sol",
+        object="response",
+        output=[],
+        parallel_tool_calls=True,
+        tool_choice="auto",
+        tools=[],
+        status="completed",
+    )
+    actual_completed = ResponseCompletedEvent.model_construct(
+        type="response.completed",
+        sequence_number=2,
+        response=actual_response,
+    )
+    connection = SimpleNamespace(
+        close=AsyncMock(),
+        recv=AsyncMock(side_effect=[created, completed, actual_completed]),
+        response=SimpleNamespace(create=AsyncMock()),
+        send=AsyncMock(),
+    )
+    with patch("llm.codex.OpenAICodexProvider", return_value=provider):
+        model = PydanticAICodexModel(CodexModel.SOL)
+    resource = model._responses_resource
+    assert resource is not None
+    resource._connection = connection
+    resource._connection_generation = 1
+
+    await model.prepare(
+        [SystemMessage(content="System")],
+        tools=[ModelTool(name="lookup", description="Look up", parameters={})],
+    )
+
+    sent = connection.send.await_args
+    assert sent is not None
+    request = sent.args[0]
+    assert request["generate"] is False
+    assert request["instructions"] == "System"
+    assert request["input"] == [{"role": "user", "content": ""}]
+    assert request["tools"][0]["name"] == "lookup"
+    prepared_request = model._prepared_request
+    assert prepared_request is not None
+    assert prepared_request.response.provider_name == "openai-codex"
+    assert prepared_request.response.provider_response_id == "warmup-response"
+
+    await model.invoke(
+        [
+            SystemMessage(content="System"),
+            UserMessage(content="Question"),
+        ],
+        tools=[ModelTool(name="lookup", description="Look up", parameters={})],
+    )
+
+    actual_request = connection.response.create.await_args
+    assert actual_request is not None
+    assert actual_request.kwargs["previous_response_id"] == "warmup-response"
+    assert len(actual_request.kwargs["input"]) == 1
+    assert actual_request.kwargs["input"][0]["role"] == "user"
+    await model.aclose()
+
+
+async def test_http_fallback_does_not_reuse_websocket_warmup_state() -> None:
+    provider = SimpleNamespace(client=SimpleNamespace(close=AsyncMock()))
+    warmup_response = PydanticResponse(
+        parts=[],
+        provider_name="openai-codex",
+        provider_response_id="warmup-response",
+    )
+    pydantic_model = SimpleNamespace(
+        request=AsyncMock(
+            side_effect=[
+                warmup_response,
+                WebSocketUnavailable("socket unavailable"),
+                PydanticResponse(parts=[TextPart("HTTP answer")]),
+            ]
+        )
+    )
+    responses_resource = SimpleNamespace(
+        aclose=AsyncMock(),
+        connection_generation=1,
+        warmup_request=lambda: _http_mode(),
+        use_http=lambda: _http_mode(),
+    )
+    with (
+        patch("llm.codex.OpenAICodexProvider", return_value=provider),
+        patch("llm.codex.OpenAICodexModel", return_value=pydantic_model),
+        patch(
+            "llm.codex.install_codex_responses_resource",
+            return_value=responses_resource,
+        ),
+    ):
+        model = PydanticAICodexModel(CodexModel.SOL)
+
+    system = SystemMessage(content="System")
+    await model.prepare([system])
+    response = await model.invoke([system, UserMessage(content="Question")])
+
+    assert response.completion == "HTTP answer"
+    websocket_messages = pydantic_model.request.await_args_list[1].args[0]
+    websocket_settings = pydantic_model.request.await_args_list[1].args[1]
+    http_messages = pydantic_model.request.await_args_list[2].args[0]
+    http_settings = pydantic_model.request.await_args_list[2].args[1]
+    assert websocket_messages[0].parts[0].content == "Question"
+    assert websocket_settings["openai_previous_response_id"] == "warmup-response"
+    assert warmup_response not in http_messages
+    assert "openai_previous_response_id" not in http_settings
+    assert isinstance(http_messages[0], ModelRequest)
+    assert http_messages[0].parts[0].content == "Question"
 
 
 def test_messages_are_mapped_without_exposing_pydantic_ai_to_callers() -> None:

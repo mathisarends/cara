@@ -3,7 +3,7 @@ import time
 from collections.abc import AsyncIterator, Mapping
 from contextlib import AbstractAsyncContextManager
 from contextvars import ContextVar, Token
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, Self, cast
 
 from openai import AsyncOpenAI, NotGiven, Omit, OpenAIError
 from openai.resources.responses import AsyncResponses
@@ -52,12 +52,19 @@ class CodexResponsesResource(AsyncResponses):
         self._connection_lock = asyncio.Lock()
         self._request_lock = asyncio.Lock()
         self._http_only = ContextVar("codex_http_only", default=False)
+        self._warmup_request = ContextVar("codex_warmup_request", default=False)
+        self._connection_generation = 0
         self._retry_websocket_at = 0.0
 
     async def create(self, **request: Any) -> Any:
         if self._http_only.get():
             return await super().create(**request)
-        stream = _WebSocketResponseStream(self, request)
+        stream = _WebSocketResponseStream(
+            self,
+            request,
+            request_lock=self._request_lock,
+            warmup=self._warmup_request.get(),
+        )
         if request.get("stream") is True:
             return stream
         return await self._complete_response(stream)
@@ -75,17 +82,25 @@ class CodexResponsesResource(AsyncResponses):
     def use_http(self) -> "_HTTPOnly":
         return _HTTPOnly(self._http_only)
 
+    def warmup_request(self) -> "_WarmupRequest":
+        return _WarmupRequest(self._warmup_request)
+
+    @property
+    def connection_generation(self) -> int | None:
+        if self._connection is None:
+            return None
+        return self._connection_generation
+
     async def _complete_response(self, stream: "_WebSocketResponseStream") -> Any:
         async with stream:
             async for event in stream:
-                if isinstance(
-                    event,
-                    (
-                        ResponseCompletedEvent,
-                        ResponseFailedEvent,
-                        ResponseIncompleteEvent,
-                    ),
-                ):
+                if isinstance(event, ResponseCompletedEvent):
+                    return event.response
+                if isinstance(event, (ResponseFailedEvent, ResponseIncompleteEvent)):
+                    if stream.is_warmup:
+                        raise WebSocketUnavailable(
+                            "Codex WebSocket warmup did not complete successfully"
+                        )
                     return event.response
         raise WebSocketInterrupted(
             "Codex WebSocket ended without a terminal response event"
@@ -131,6 +146,7 @@ class CodexResponsesResource(AsyncResponses):
 
             self._connection_manager = manager
             self._connection = connection
+            self._connection_generation += 1
             self._retry_websocket_at = 0.0
             return connection
 
@@ -164,30 +180,67 @@ class _HTTPOnly:
         self._state.reset(self._token)
 
 
+class _WarmupRequest:
+    def __init__(self, state: ContextVar[bool]) -> None:
+        self._state = state
+        self._token: Token[bool] | None = None
+
+    async def __aenter__(self) -> None:
+        self._token = self._state.set(True)
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: object | None,
+    ) -> None:
+        assert self._token is not None
+        self._state.reset(self._token)
+
+
 class _WebSocketResponseStream:
     def __init__(
         self,
         resource: CodexResponsesResource,
         request: dict[str, Any],
+        *,
+        request_lock: asyncio.Lock,
+        warmup: bool,
     ) -> None:
         self._resource = resource
         self._request = request
+        self._request_lock = request_lock
+        self._warmup = warmup
         self._connection: Any | None = None
         self._entered = False
         self._started = False
         self._finished = False
 
-    async def __aenter__(self) -> "_WebSocketResponseStream":
-        await self._resource._request_lock.acquire()
+    @property
+    def is_warmup(self) -> bool:
+        return self._warmup
+
+    async def __aenter__(self) -> Self:
+        await self._request_lock.acquire()
         try:
             headers = _string_headers(self._request.get("extra_headers"))
             self._connection = await self._resource._ensure_connection(headers)
-            await self._connection.response.create(**_websocket_request(self._request))
+            websocket_request = _websocket_request(self._request)
+            if self._warmup:
+                await self._connection.send(
+                    {
+                        "type": "response.create",
+                        **websocket_request,
+                        "generate": False,
+                    }
+                )
+            else:
+                await self._connection.response.create(**websocket_request)
             self._entered = True
             return self
         except BaseException as error:
             await self._resource._discard_connection()
-            self._resource._request_lock.release()
+            self._request_lock.release()
             if isinstance(error, asyncio.CancelledError):
                 raise
             if isinstance(error, WebSocketUnavailable):
@@ -210,7 +263,7 @@ class _WebSocketResponseStream:
         finally:
             if self._entered:
                 self._entered = False
-                self._resource._request_lock.release()
+                self._request_lock.release()
 
     def __aiter__(self) -> AsyncIterator[ResponseStreamEvent]:
         return self
