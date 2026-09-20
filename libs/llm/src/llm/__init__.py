@@ -1,6 +1,7 @@
 from .codex import (
     CodexModel,
     CodexReasoningEffort,
+    CodexTransport,
     PydanticAICodexModel,
     create_codex_model,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "AssistantMessage",
     "CodexModel",
     "CodexReasoningEffort",
+    "CodexTransport",
     "ChatModel",
     "Message",
     "MessageType",

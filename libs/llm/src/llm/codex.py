@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator, Sequence
 from enum import StrEnum
+from uuid import uuid4
 
 from pydantic_ai.messages import (
     ModelMessage as PydanticMessage,
@@ -23,6 +24,11 @@ from pydantic_ai.providers.openai_codex import OpenAICodexProvider
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.usage import RequestUsage
 
+from llm.codex_transport import (
+    CodexResponsesResource,
+    WebSocketUnavailable,
+    install_codex_responses_resource,
+)
 from llm.ports import (
     AssistantMessage,
     ChatModel,
@@ -55,22 +61,58 @@ class CodexReasoningEffort(StrEnum):
     MAX = "max"
 
 
+class CodexTransport(StrEnum):
+    HTTP = "http"
+    WEBSOCKET = "websocket"
+
+
 class PydanticAICodexModel(ChatModel):
-    """HTTP adapter for Codex subscription authentication."""
+    """Pydantic AI adapter for Codex subscription authentication."""
 
     def __init__(
         self,
         model: CodexModel,
         *,
         reasoning_effort: CodexReasoningEffort | None = None,
+        transport: CodexTransport = CodexTransport.HTTP,
     ) -> None:
         self._provider = OpenAICodexProvider()
+        self._responses_resource: CodexResponsesResource | None = None
+        if transport is CodexTransport.WEBSOCKET:
+            self._responses_resource = install_codex_responses_resource(self._provider)
         self._model = OpenAICodexModel(model.value, provider=self._provider)
-        self._settings = (
-            OpenAIResponsesModelSettings(openai_reasoning_effort=reasoning_effort.value)
-            if reasoning_effort is not None
-            else None
+        session_id = str(uuid4())
+        settings = OpenAIResponsesModelSettings(
+            extra_headers={
+                "session-id": session_id,
+                "thread-id": session_id,
+                "x-client-request-id": session_id,
+            },
+            openai_prompt_cache_key=session_id,
         )
+        if reasoning_effort is not None:
+            settings["openai_reasoning_effort"] = reasoning_effort.value
+        self._http_settings = settings
+        self._websocket_settings = OpenAIResponsesModelSettings(
+            **settings,
+            openai_previous_response_id="auto",
+        )
+
+    async def prepare(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> None:
+        del messages, tools
+        if self._responses_resource is None:
+            return
+        try:
+            await self._responses_resource.prewarm(
+                extra_headers=self._http_settings["extra_headers"]
+            )
+        except WebSocketUnavailable:
+            return
 
     async def stream(
         self,
@@ -78,18 +120,20 @@ class PydanticAICodexModel(ChatModel):
         *,
         tools: Sequence[ModelTool] = (),
     ) -> AsyncIterator[ModelEvent]:
-        async with self._model.request_stream(
-            _pydantic_messages(messages),
-            self._settings,
-            _request_parameters(tools),
-        ) as response:
-            async for event in response:
-                delta = _text_delta(event)
-                if delta:
-                    yield TextDelta(delta=delta)
-            final = response.get()
-
-        yield _model_response(final)
+        if self._responses_resource is None:
+            async for event in self._stream(messages, tools, websocket=False):
+                yield event
+            return
+        emitted = False
+        try:
+            async for event in self._stream(messages, tools, websocket=True):
+                emitted = True
+                yield event
+        except WebSocketUnavailable:
+            if emitted:
+                raise
+            async for event in self._stream(messages, tools, websocket=False):
+                yield event
 
     async def invoke(
         self,
@@ -97,23 +141,89 @@ class PydanticAICodexModel(ChatModel):
         *,
         tools: Sequence[ModelTool] = (),
     ) -> ModelResponse:
-        response = await self._model.request(
-            _pydantic_messages(messages),
-            self._settings,
-            _request_parameters(tools),
-        )
+        if self._responses_resource is None:
+            response = await self._request(messages, tools, websocket=False)
+            return _model_response(response)
+        try:
+            response = await self._request(messages, tools, websocket=True)
+        except WebSocketUnavailable:
+            response = await self._request(messages, tools, websocket=False)
         return _model_response(response)
 
     async def aclose(self) -> None:
+        if self._responses_resource is not None:
+            await self._responses_resource.aclose()
         await self._provider.client.close()
+
+    async def _stream(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ModelTool],
+        *,
+        websocket: bool,
+    ) -> AsyncIterator[ModelEvent]:
+        settings = self._websocket_settings if websocket else self._http_settings
+        resource = self._responses_resource
+        if resource is not None and not websocket:
+            async with resource.use_http():
+                async for event in self._stream_response(messages, tools, settings):
+                    yield event
+            return
+        async for event in self._stream_response(messages, tools, settings):
+            yield event
+
+    async def _stream_response(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ModelTool],
+        settings: OpenAIResponsesModelSettings,
+    ) -> AsyncIterator[ModelEvent]:
+        async with self._model.request_stream(
+            _pydantic_messages(messages),
+            settings,
+            _request_parameters(tools),
+        ) as response:
+            async for event in response:
+                delta = _text_delta(event)
+                if delta:
+                    yield TextDelta(delta=delta)
+            final = response.get()
+        yield _model_response(final)
+
+    async def _request(
+        self,
+        messages: Sequence[Message],
+        tools: Sequence[ModelTool],
+        *,
+        websocket: bool,
+    ) -> PydanticResponse:
+        settings = self._websocket_settings if websocket else self._http_settings
+        resource = self._responses_resource
+        if resource is None or websocket:
+            return await self._model.request(
+                _pydantic_messages(messages),
+                settings,
+                _request_parameters(tools),
+            )
+        async with resource.use_http():
+            return await self._model.request(
+                _pydantic_messages(messages),
+                settings,
+                _request_parameters(tools),
+            )
 
 
 def create_codex_model(
     model: CodexModel,
     *,
     reasoning_effort: CodexReasoningEffort | None = None,
+    transport: CodexTransport = CodexTransport.HTTP,
 ) -> PydanticAICodexModel:
-    return PydanticAICodexModel(model, reasoning_effort=reasoning_effort)
+    return PydanticAICodexModel(
+        model,
+        reasoning_effort=reasoning_effort,
+        transport=transport,
+    )
 
 
 def _request_parameters(tools: Sequence[ModelTool]) -> ModelRequestParameters:

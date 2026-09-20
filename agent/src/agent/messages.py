@@ -25,8 +25,10 @@ class MessageManager:
     def add_user(self, text: str) -> None:
         self._messages.append(UserMessage(content=text))
 
-    def add_assistant(self, text: str) -> None:
-        self._messages.append(AssistantMessage(content=text))
+    def add_assistant(self, text: str, *, provider_state: object | None = None) -> None:
+        self._messages.append(
+            AssistantMessage(content=text, provider_state=provider_state)
+        )
 
     def add_tool_round(
         self,

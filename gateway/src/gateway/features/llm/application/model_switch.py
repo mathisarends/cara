@@ -97,6 +97,14 @@ class ModelSwitch(ChatModel):
     ) -> AsyncIterator[ModelEvent]:
         return self.current.stream(messages, tools=tools)
 
+    async def prepare(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> None:
+        await self.current.prepare(messages, tools=tools)
+
     async def invoke(
         self,
         messages: Sequence[Message],

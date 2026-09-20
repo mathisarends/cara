@@ -24,6 +24,17 @@ def test_messages_are_appended_in_order(tmp_path: Path) -> None:
     ]
 
 
+def test_assistant_provider_state_is_preserved(tmp_path: Path) -> None:
+    manager = _manager(tmp_path)
+    provider_state = object()
+
+    manager.add_assistant("answer", provider_state=provider_state)
+
+    assistant = manager.to_llm_messages()[1]
+    assert isinstance(assistant, AssistantMessage)
+    assert assistant.provider_state is provider_state
+
+
 def test_tool_round_pairs_calls_with_their_results(tmp_path: Path) -> None:
     manager = _manager(tmp_path)
     tool_call = ToolCall(id="call-1", name="lookup")

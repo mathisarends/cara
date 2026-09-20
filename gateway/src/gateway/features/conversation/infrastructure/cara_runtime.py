@@ -70,8 +70,9 @@ class CaraAgentRuntime:
         self._registry_lock = asyncio.Lock()
 
     async def prepare(self, session: AgentSessionRef) -> None:
+        agent = await self._get_or_create_agent(session)
         await asyncio.gather(
-            self._get_or_create_agent(session),
+            agent.prepare(),
             self._sandbox.ensure(),
         )
 

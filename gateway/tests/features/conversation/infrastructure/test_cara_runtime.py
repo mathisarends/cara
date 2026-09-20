@@ -42,6 +42,10 @@ class _Agent:
     def __init__(self) -> None:
         self.inputs: list[str] = []
         self.closed = False
+        self.prepare_count = 0
+
+    async def prepare(self) -> None:
+        self.prepare_count += 1
 
     async def start_turn(self, text: str) -> AsyncIterator[object]:
         self.inputs.append(text)
@@ -116,6 +120,7 @@ async def test_runtime_reuses_one_agent_until_the_session_is_finished() -> None:
     assert len(factory.agents) == 1
     assert factory.dependencies == [(session.id,)]
     assert factory.agents[0].inputs == ["first", "second"]
+    assert factory.agents[0].prepare_count == 2
     assert sandbox.ensure_count == 2
 
     await runtime.finish(session_ref)

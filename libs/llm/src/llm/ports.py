@@ -111,6 +111,15 @@ type ModelEvent = Annotated[TextDelta | ModelResponse, Field(discriminator="type
 
 
 class ChatModel(ABC):
+    async def prepare(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> None:
+        """Prepare resources for a future request, when supported."""
+        return None
+
     @abstractmethod
     def stream(
         self,

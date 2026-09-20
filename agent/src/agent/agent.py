@@ -83,6 +83,12 @@ class Agent:
             self._turn = turn
             return self._stream_turn(events, turn)
 
+    async def prepare(self) -> None:
+        await self._model.prepare(
+            self._context.to_llm_messages(),
+            tools=self._llm_tools(),
+        )
+
     async def steer(self, text: str) -> None:
         """Queue text for the running turn.
 
@@ -143,7 +149,10 @@ class Agent:
                 nudges.record_update()
 
             if not end.tool_calls:
-                self._context.add_assistant(completion)
+                self._context.add_assistant(
+                    completion,
+                    provider_state=end.provider_state,
+                )
                 await events.put(
                     TurnCompleted(
                         text="".join(response_parts),
