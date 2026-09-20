@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from typing import Protocol, Self, runtime_checkable
 
-from llm import ChatModel, Message, ModelEvent, ModelTool, UserMessage
+from llm import ChatModel, Message, ModelEvent, ModelResponse, ModelTool, UserMessage
 
 type ModelFactory = Callable[[str | None], ChatModel]
 type ModelSmokeTest = Callable[[ChatModel], Awaitable[None]]
@@ -96,6 +96,14 @@ class ModelSwitch(ChatModel):
         tools: Sequence[ModelTool] = (),
     ) -> AsyncIterator[ModelEvent]:
         return self.current.stream(messages, tools=tools)
+
+    async def invoke(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> ModelResponse:
+        return await self.current.invoke(messages, tools=tools)
 
     async def switch(self, name: str) -> None:
         await self._activate(name, self._current_reasoning_effort)

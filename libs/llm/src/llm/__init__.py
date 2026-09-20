@@ -18,6 +18,7 @@ from .ports import (
     TextDelta,
     ToolCall,
     ToolResultMessage,
+    Usage,
     UserMessage,
 )
 
@@ -38,6 +39,7 @@ __all__ = [
     "TextDelta",
     "ToolCall",
     "ToolResultMessage",
+    "Usage",
     "UserMessage",
     "create_codex_model",
 ]

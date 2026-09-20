@@ -77,6 +77,18 @@ class ModelTool(BaseModel):
     parameters: dict[str, object]
 
 
+class Usage(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+
 class TextDelta(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -91,6 +103,7 @@ class ModelResponse(BaseModel):
     completion: str = ""
     finish_reason: str = "stop"
     tool_calls: tuple[ToolCall, ...] = ()
+    usage: Usage = Usage()
     provider_state: object | None = Field(default=None, repr=False)
 
 
@@ -105,6 +118,14 @@ class ChatModel(ABC):
         *,
         tools: Sequence[ModelTool] = (),
     ) -> AsyncIterator[ModelEvent]: ...
+
+    @abstractmethod
+    async def invoke(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> ModelResponse: ...
 
     @abstractmethod
     async def aclose(self) -> None: ...

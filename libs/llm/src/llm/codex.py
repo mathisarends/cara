@@ -21,6 +21,7 @@ from pydantic_ai.models.openai import OpenAIResponsesModelSettings
 from pydantic_ai.models.openai_codex import OpenAICodexModel
 from pydantic_ai.providers.openai_codex import OpenAICodexProvider
 from pydantic_ai.tools import ToolDefinition
+from pydantic_ai.usage import RequestUsage
 
 from llm.ports import (
     AssistantMessage,
@@ -33,6 +34,7 @@ from llm.ports import (
     TextDelta,
     ToolCall,
     ToolResultMessage,
+    Usage,
     UserMessage,
 )
 
@@ -54,7 +56,7 @@ class CodexReasoningEffort(StrEnum):
 
 
 class PydanticAICodexModel(ChatModel):
-    """HTTP streaming adapter for Codex subscription authentication."""
+    """HTTP adapter for Codex subscription authentication."""
 
     def __init__(
         self,
@@ -76,13 +78,10 @@ class PydanticAICodexModel(ChatModel):
         *,
         tools: Sequence[ModelTool] = (),
     ) -> AsyncIterator[ModelEvent]:
-        request_parameters = ModelRequestParameters(
-            function_tools=[_tool_definition(tool) for tool in tools]
-        )
         async with self._model.request_stream(
             _pydantic_messages(messages),
             self._settings,
-            request_parameters,
+            _request_parameters(tools),
         ) as response:
             async for event in response:
                 delta = _text_delta(event)
@@ -90,22 +89,20 @@ class PydanticAICodexModel(ChatModel):
                     yield TextDelta(delta=delta)
             final = response.get()
 
-        yield ModelResponse(
-            completion="".join(
-                part.content for part in final.parts if isinstance(part, TextPart)
-            ),
-            finish_reason=final.finish_reason or "stop",
-            tool_calls=tuple(
-                ToolCall(
-                    id=part.tool_call_id,
-                    name=part.tool_name,
-                    arguments=part.args_as_json_str(),
-                )
-                for part in final.parts
-                if isinstance(part, ToolCallPart)
-            ),
-            provider_state=final,
+        yield _model_response(final)
+
+    async def invoke(
+        self,
+        messages: Sequence[Message],
+        *,
+        tools: Sequence[ModelTool] = (),
+    ) -> ModelResponse:
+        response = await self._model.request(
+            _pydantic_messages(messages),
+            self._settings,
+            _request_parameters(tools),
         )
+        return _model_response(response)
 
     async def aclose(self) -> None:
         await self._provider.client.close()
@@ -117,6 +114,40 @@ def create_codex_model(
     reasoning_effort: CodexReasoningEffort | None = None,
 ) -> PydanticAICodexModel:
     return PydanticAICodexModel(model, reasoning_effort=reasoning_effort)
+
+
+def _request_parameters(tools: Sequence[ModelTool]) -> ModelRequestParameters:
+    return ModelRequestParameters(
+        function_tools=[_tool_definition(tool) for tool in tools]
+    )
+
+
+def _model_response(response: PydanticResponse) -> ModelResponse:
+    return ModelResponse(
+        completion="".join(
+            part.content for part in response.parts if isinstance(part, TextPart)
+        ),
+        finish_reason=response.finish_reason or "stop",
+        tool_calls=tuple(
+            ToolCall(
+                id=part.tool_call_id,
+                name=part.tool_name,
+                arguments=part.args_as_json_str(),
+            )
+            for part in response.parts
+            if isinstance(part, ToolCallPart)
+        ),
+        usage=_usage(response.usage),
+        provider_state=response,
+    )
+
+
+def _usage(usage: RequestUsage) -> Usage:
+    return Usage(
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
+        cache_read_tokens=usage.cache_read_tokens,
+    )
 
 
 def _tool_definition(tool: ModelTool) -> ToolDefinition:
