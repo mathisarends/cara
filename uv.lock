@@ -503,9 +503,10 @@ dependencies = [
     { name = "sandbox-manager-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "scheduler", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sqlmodel", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "stt", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "tts", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "tzdata", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "vocalbin", extra = ["deepgram"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -537,9 +538,10 @@ requires-dist = [
     { name = "sandbox-manager-client", editable = "generated/sandbox_manager_client" },
     { name = "scheduler", editable = "libs/scheduler" },
     { name = "sqlmodel", specifier = ">=0.0.31" },
+    { name = "stt", editable = "libs/stt" },
+    { name = "tts", editable = "libs/tts" },
     { name = "tzdata", specifier = ">=2024.1" },
     { name = "uvicorn", specifier = ">=0.30.0" },
-    { name = "vocalbin", extras = ["deepgram"], specifier = ">=0.7.0" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 
@@ -1974,25 +1976,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f1/a5/81f987504738e6defeed61ec1c47e2aefab3c35d8eeb87e1b3f38cf28254/virtualenv-21.5.1.tar.gz", hash = "sha256:dca3bf98275a59c652b69d68e73433e597d977c2da9198882479d1a7188009c8", size = 4578798, upload-time = "2026-06-16T16:23:58.603Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/02/3623e6169bed617ed1e2d372f7c69f92ec28d54c4dfc997055c8578ec148/virtualenv-21.5.1-py3-none-any.whl", hash = "sha256:55aa670b67bbfb991b03fda39bd3276d92c419d702376e98c5df1c9989a26783", size = 4558820, upload-time = "2026-06-16T16:23:56.963Z" },
-]
-
-[[package]]
-name = "vocalbin"
-version = "0.7.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "openai", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/70/d763d2c0bfc5591d38191820867aa118d362cfd6cbee4b6dbcd32cdf0fc5/vocalbin-0.7.0.tar.gz", hash = "sha256:8e60bb4c077cd9232084aba73a5e9b8da53a57cbeda3d452be1667ad7ffccf67", size = 6130579, upload-time = "2026-08-19T19:13:15.904Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/66/c0af9434b8e956a3cefa70be1c16bcd8f8798381269013873e792300d2bc/vocalbin-0.7.0-py3-none-any.whl", hash = "sha256:c22ae991eced8217686dc419d924fbcdbdb4997aa8948d18eb7189c591305ebd", size = 82308, upload-time = "2026-08-19T19:13:13.75Z" },
-]
-
-[package.optional-dependencies]
-deepgram = [
-    { name = "deepgram-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [[package]]

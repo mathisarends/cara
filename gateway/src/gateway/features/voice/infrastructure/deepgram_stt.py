@@ -1,9 +1,8 @@
 from collections.abc import AsyncIterable, AsyncIterator
 
-from vocalbin.deepgram.events import TurnEagerEnd, TurnEnd, TurnUpdate
-from vocalbin.deepgram.stt import StreamingSpeechToText
-
 from gateway.features.voice.application import SpeechToText, Transcription
+from stt.deepgram import SpeechToText as DeepgramClient
+from stt.deepgram.events import TurnEagerEnd, TurnEnd, TurnUpdate
 
 
 class DeepgramSpeechToText(SpeechToText):
@@ -14,7 +13,7 @@ class DeepgramSpeechToText(SpeechToText):
         model: str,
         sample_rate: int = 16_000,
     ) -> None:
-        self._client = StreamingSpeechToText(
+        self._client = DeepgramClient(
             api_key,
             model=model,
             sample_rate=sample_rate,

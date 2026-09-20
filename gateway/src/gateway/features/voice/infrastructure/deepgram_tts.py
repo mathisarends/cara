@@ -1,8 +1,7 @@
 from collections.abc import AsyncIterable, AsyncIterator
 
-from vocalbin.deepgram.tts import TextToSpeech as VocalbinTextToSpeech
-
 from gateway.features.voice.application import TextToSpeech
+from tts.deepgram import TextToSpeech as DeepgramClient
 
 
 class DeepgramTextToSpeech(TextToSpeech):
@@ -13,7 +12,7 @@ class DeepgramTextToSpeech(TextToSpeech):
         model: str,
         sample_rate: int = 24_000,
     ) -> None:
-        self._client = VocalbinTextToSpeech(
+        self._client = DeepgramClient(
             api_key,
             model=model,
             sample_rate=sample_rate,
