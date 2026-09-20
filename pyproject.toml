@@ -27,6 +27,7 @@ members = [
     "libs/llm",
     "libs/scheduler",
     "libs/stt",
+    "libs/tts",
     "memory",
     "room",
     "sandbox_manager",
@@ -49,6 +50,7 @@ scheduler = { workspace = true }
 sandbox-manager = { workspace = true }
 sandbox-manager-client = { workspace = true }
 stt = { workspace = true }
+tts = { workspace = true }
 voice = { workspace = true }
 
 [tool.ruff]
@@ -85,5 +87,6 @@ known-first-party = [
     "sandbox_manager_client",
     "scheduler",
     "stt",
+    "tts",
     "voice",
 ]
