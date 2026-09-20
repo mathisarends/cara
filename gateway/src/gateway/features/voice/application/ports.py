@@ -28,6 +28,11 @@ class SpeechToText(ABC):
 
 
 class TextToSpeech(ABC):
+    async def warmup(self) -> None:
+        """Prepares the next synthesis for low latency. Never a precondition
+        for synthesize()."""
+        return None
+
     @abstractmethod
     def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]: ...
 

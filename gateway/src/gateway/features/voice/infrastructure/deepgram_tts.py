@@ -18,6 +18,12 @@ class DeepgramTextToSpeech(TextToSpeech):
             sample_rate=sample_rate,
         )
 
+    async def warmup(self) -> None:
+        await self._client.warmup()
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
     async def synthesize(self, text: AsyncIterable[str]) -> AsyncIterator[bytes]:
         async for chunk in self._client.stream_incremental(text):
             if chunk:

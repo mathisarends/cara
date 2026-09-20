@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncGenerator, AsyncIterable, AsyncIterator
-from contextlib import suppress
+from contextlib import AbstractAsyncContextManager, AsyncExitStack, suppress
 from types import TracebackType
 from typing import Any, Self
 
@@ -31,6 +31,7 @@ class TextToSpeech(StreamingTextToSpeech[TextToSpeechConfig]):
         model: TextToSpeechModel | str = TextToSpeechModel.AURA_2_THALIA_EN,
         encoding: AudioEncoding = AudioEncoding.LINEAR16,
         sample_rate: int | None = 24000,
+        warmup_idle_timeout: float = 30.0,
     ) -> None:
         if api_key is not None and client is not None:
             raise ValueError("Pass either 'api_key' or 'client', not both.")
@@ -47,8 +48,29 @@ class TextToSpeech(StreamingTextToSpeech[TextToSpeechConfig]):
         self._default_config = TextToSpeechConfig(
             model=model, encoding=encoding, sample_rate=sample_rate
         )
+        self._warmup_idle_timeout = warmup_idle_timeout
+        self._warmup_lock = asyncio.Lock()
+        self._warmup_expiry: asyncio.Task[None] | None = None
+        self._prepared: _PreparedConnection | None = None
+
+    async def warmup(self) -> None:
+        if self._prepared is not None:
+            return
+        async with self._warmup_lock:
+            if self._prepared is not None:
+                return
+            context = self._deepgram_client.speak.v1.connect(
+                **_connect_params(self._default_config)
+            )
+            connection = await context.__aenter__()
+            self._prepared = _PreparedConnection(
+                context, connection, self._default_config
+            )
+            self._warmup_expiry = asyncio.create_task(self._expire_warmup())
 
     async def aclose(self) -> None:
+        self._cancel_warmup_expiry()
+        await self._release_prepared()
         if self._http_client is not None:
             await self._http_client.aclose()
             self._http_client = None
@@ -86,9 +108,8 @@ class TextToSpeech(StreamingTextToSpeech[TextToSpeechConfig]):
         config: TextToSpeechConfig | None = None,
     ) -> AsyncGenerator[bytes]:
         resolved_config = config if config is not None else self._default_config
-        async with self._deepgram_client.speak.v1.connect(
-            **_connect_params(resolved_config)
-        ) as connection:
+        async with AsyncExitStack() as stack:
+            connection = await self._acquire(stack, resolved_config)
             sender = asyncio.create_task(self._send_text(connection, text))
             responses = connection.__aiter__()
             receiver = asyncio.ensure_future(anext(responses))
@@ -128,6 +149,35 @@ class TextToSpeech(StreamingTextToSpeech[TextToSpeechConfig]):
                 await _stop_task(receiver)
                 await _stop_task(sender)
 
+    async def _acquire(
+        self, stack: AsyncExitStack, config: TextToSpeechConfig
+    ) -> AsyncV1SocketClient:
+        prepared = self._prepared
+        if prepared is not None and prepared.matches(config):
+            self._prepared = None
+            self._cancel_warmup_expiry()
+            stack.push_async_callback(prepared.aclose)
+            return prepared.connection
+        context = self._deepgram_client.speak.v1.connect(**_connect_params(config))
+        return await stack.enter_async_context(context)
+
+    async def _expire_warmup(self) -> None:
+        await asyncio.sleep(self._warmup_idle_timeout)
+        self._warmup_expiry = None
+        await self._release_prepared()
+
+    async def _release_prepared(self) -> None:
+        prepared = self._prepared
+        self._prepared = None
+        if prepared is not None:
+            await prepared.aclose()
+
+    def _cancel_warmup_expiry(self) -> None:
+        expiry = self._warmup_expiry
+        self._warmup_expiry = None
+        if expiry is not None:
+            expiry.cancel()
+
     async def _send_text(
         self, connection: AsyncV1SocketClient, text: AsyncIterable[str]
     ) -> None:
@@ -144,6 +194,30 @@ class TextToSpeech(StreamingTextToSpeech[TextToSpeechConfig]):
             )
         flush_message = SpeakV1ControlMessage(type="Flush")
         await connection.send_control(flush_message)
+
+
+class _PreparedConnection:
+    """A connection opened by warmup(), consumed by at most one stream."""
+
+    def __init__(
+        self,
+        context: AbstractAsyncContextManager[AsyncV1SocketClient],
+        connection: AsyncV1SocketClient,
+        config: TextToSpeechConfig,
+    ) -> None:
+        self._context = context
+        self._connection = connection
+        self._config = config
+
+    @property
+    def connection(self) -> AsyncV1SocketClient:
+        return self._connection
+
+    def matches(self, config: TextToSpeechConfig) -> bool:
+        return self._config == config
+
+    async def aclose(self) -> None:
+        await self._context.__aexit__(None, None, None)
 
 
 def _resolve_api_key(api_key: str | None) -> str:

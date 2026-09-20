@@ -101,6 +101,7 @@ class VoiceTurnService:
         queue: asyncio.Queue[bytes | None] = asyncio.Queue(self._input_queue_size)
         self._input_queues[turn.id] = queue
         self._start_task(turn.id, self._transcribe(turn.id, queue))
+        self._start_task(turn.id, self._warm_up_speech())
         if activation is not Activation.PROACTIVE:
             self._start_conversation_timeout(voice_session.id, turn.id)
         return turn
@@ -493,6 +494,12 @@ class VoiceTurnService:
             await self._fail(voice_turn_id, type(error).__name__, str(error))
         finally:
             self._input_queues.pop(voice_turn_id, None)
+
+    async def _warm_up_speech(self) -> None:
+        # Opening the speech websocket costs more than the synthesis itself, so
+        # it happens while the user is still speaking instead of afterwards.
+        with suppress(Exception):
+            await self._text_to_speech.warmup()
 
     async def _conversation_to_speech(
         self,

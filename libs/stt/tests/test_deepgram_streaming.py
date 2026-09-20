@@ -171,3 +171,63 @@ async def test_aclose_closes_the_owned_transport() -> None:
 
     assert http_client.is_closed
     assert listener._http_client is None
+
+
+async def test_warmup_opens_the_connection_that_the_next_stream_consumes(
+    audio_stream,
+) -> None:
+    connection = FakeConnection([TurnInfoMessage(event="StartOfTurn")])
+    listener, client = build_listener(connection)
+
+    await listener.warmup()
+    assert len(client.v2.calls) == 1
+
+    events = [event async for event in listener.stream(audio_stream(b"audio"))]
+
+    assert [type(event) for event in events] == [TurnStart]
+    assert len(client.v2.calls) == 1
+    assert connection.closed
+
+
+async def test_warmup_keeps_at_most_one_prepared_connection() -> None:
+    connection = FakeConnection([])
+    listener, client = build_listener(connection)
+
+    await listener.warmup()
+    await listener.warmup()
+
+    assert len(client.v2.calls) == 1
+    await listener.aclose()
+
+
+async def test_stream_connects_again_when_the_config_differs_from_the_warmup(
+    audio_stream,
+) -> None:
+    connection = FakeConnection([])
+    listener, client = build_listener(connection)
+    config = StreamingSpeechToTextConfig(
+        model="flux-general-en",
+        encoding=StreamingSpeechToTextEncoding.LINEAR16,
+        sample_rate=48000,
+    )
+
+    async for _ in listener.stream(audio_stream(b"audio"), config=config):
+        pass
+
+    assert len(client.v2.calls) == 1
+    await listener.warmup()
+    async for _ in listener.stream(audio_stream(b"audio"), config=config):
+        pass
+
+    assert len(client.v2.calls) == 3
+    await listener.aclose()
+
+
+async def test_aclose_closes_a_prepared_connection_that_was_never_used() -> None:
+    connection = FakeConnection([])
+    listener, _ = build_listener(connection)
+
+    await listener.warmup()
+    await listener.aclose()
+
+    assert connection.closed

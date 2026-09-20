@@ -149,3 +149,58 @@ async def test_aclose_closes_the_owned_transport() -> None:
 
     assert http_client.is_closed
     assert speech._http_client is None
+
+
+async def test_warmup_opens_the_connection_that_the_next_stream_consumes(
+    text_stream,
+) -> None:
+    connection = FakeConnection([b"audio", FlushedMessage()])
+    speech, client = build_speech(connection)
+
+    await speech.warmup()
+    assert len(client.v1.calls) == 1
+
+    audio = [chunk async for chunk in speech.stream_incremental(text_stream("Hallo"))]
+
+    assert audio == [b"audio"]
+    assert len(client.v1.calls) == 1
+    assert connection.closed
+
+
+async def test_warmup_keeps_at_most_one_prepared_connection() -> None:
+    connection = FakeConnection([FlushedMessage()])
+    speech, client = build_speech(connection)
+
+    await speech.warmup()
+    await speech.warmup()
+
+    assert len(client.v1.calls) == 1
+    await speech.aclose()
+
+
+async def test_stream_connects_again_when_the_config_differs_from_the_warmup(
+    text_stream,
+) -> None:
+    connection = FakeConnection([FlushedMessage()])
+    speech, client = build_speech(connection)
+    config = TextToSpeechConfig(
+        model="aura-2-andromeda-en", encoding=AudioEncoding.LINEAR16, sample_rate=48000
+    )
+
+    await speech.warmup()
+    async for _ in speech.stream_incremental(text_stream("Hallo"), config=config):
+        pass
+
+    assert len(client.v1.calls) == 2
+    assert client.v1.calls[-1]["model"] == "aura-2-andromeda-en"
+    await speech.aclose()
+
+
+async def test_aclose_closes_a_prepared_connection_that_was_never_used() -> None:
+    connection = FakeConnection([FlushedMessage()])
+    speech, _ = build_speech(connection)
+
+    await speech.warmup()
+    await speech.aclose()
+
+    assert connection.closed

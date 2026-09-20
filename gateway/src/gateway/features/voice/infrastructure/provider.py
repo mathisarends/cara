@@ -67,11 +67,22 @@ class VoiceProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    def text_to_speech(self, settings: VoiceSettings) -> TextToSpeech:
-        return DeepgramTextToSpeech(
+    async def deepgram_text_to_speech(
+        self,
+        settings: VoiceSettings,
+    ) -> AsyncIterator[DeepgramTextToSpeech]:
+        speech = DeepgramTextToSpeech(
             api_key=settings.deepgram_api_key.get_secret_value(),
             model=settings.tts_model,
         )
+        try:
+            yield speech
+        finally:
+            await speech.aclose()
+
+    @provide(scope=Scope.APP)
+    def text_to_speech(self, speech: DeepgramTextToSpeech) -> TextToSpeech:
+        return speech
 
     @provide(scope=Scope.APP)
     def audio_encoder(self, settings: VoiceSettings) -> AudioEncoder:

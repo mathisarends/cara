@@ -129,6 +129,39 @@ async def test_wake_word_without_speech_ends_inactive_conversation() -> None:
         await service.close()
 
 
+async def test_wake_word_warms_up_speech_synthesis() -> None:
+    voice_session = VoiceSession(
+        session_id=_uuid(),
+        room="bedroom",
+        input_format=AudioFormat(AudioEncoding.PCM_S16LE, 16_000, 1),
+        output_format=AudioFormat(AudioEncoding.PCM_S16LE, 24_000, 1),
+    )
+    repository = _VoiceSessionRepository(voice_session)
+    text_to_speech = _TextToSpeech()
+    service = VoiceTurnService(
+        voice_session_unit_of_work=cast(
+            UnitOfWork[VoiceSessionRepository], _UnitOfWork(repository)
+        ),
+        voice_session_service=cast(VoiceSessionService, _VoiceSessions(voice_session)),
+        turn_worker=cast(TurnWorker, object()),
+        voice_event_publisher=cast(VoiceEventPublisher, _VoiceEvents()),
+        media_sessions=cast(MediaSessions, _MediaSessions()),
+        conversation_event_source=cast(EventSource, object()),
+        speech_to_text=cast(SpeechToText, _EmptySpeechToText()),
+        text_to_speech=cast(TextToSpeech, text_to_speech),
+        recording_service=_recording_service(voice_session, _RecordingStore()),
+        service_config=VoiceTurnServiceConfig(8, 0, 60, 0),
+    )
+
+    try:
+        await service.start(voice_session.id, Activation.WAKE_WORD)
+
+        # The websocket opens while the user speaks, not after the transcript.
+        await asyncio.wait_for(text_to_speech.warmed.wait(), timeout=1)
+    finally:
+        await service.close()
+
+
 async def test_ended_conversation_moves_the_next_wake_word_to_a_new_session() -> None:
     voice_session = VoiceSession(
         session_id=_uuid(),
@@ -392,6 +425,10 @@ class _TextToSpeech:
     def __init__(self) -> None:
         self.segments: list[str] = []
         self.first_segment_spoken = asyncio.Event()
+        self.warmed = asyncio.Event()
+
+    async def warmup(self) -> None:
+        self.warmed.set()
 
     async def synthesize(self, text):
         self.segments.append("".join([chunk async for chunk in text]))
