@@ -991,6 +991,32 @@
         }
       }
     },
+    "/v1/llm/model-options": {
+      "get": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "List the models and reasoning efforts available for runtime selection",
+        "operationId": "get_model_options",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelOptionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "GatewayToken": []
+          }
+        ]
+      }
+    },
     "/v1/sessions": {
       "get": {
         "tags": [
@@ -2278,6 +2304,29 @@
         ],
         "title": "ChannelTarget"
       },
+      "CodexModel": {
+        "type": "string",
+        "enum": [
+          "gpt-5.3-codex-spark",
+          "gpt-5.6-luna",
+          "gpt-5.6-terra",
+          "gpt-5.6-sol"
+        ],
+        "title": "CodexModel"
+      },
+      "CodexReasoningEffort": {
+        "type": "string",
+        "enum": [
+          "none",
+          "minimal",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ],
+        "title": "CodexReasoningEffort"
+      },
       "CreateAlarmRequest": {
         "properties": {
           "target": {
@@ -2595,6 +2644,34 @@
             "user_message": "#/components/schemas/UserMessageItem"
           }
         }
+      },
+      "ModelOptionsResponse": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/CodexModel"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "default_model": {
+            "$ref": "#/components/schemas/CodexModel"
+          },
+          "reasoning_efforts": {
+            "items": {
+              "$ref": "#/components/schemas/CodexReasoningEffort"
+            },
+            "type": "array",
+            "title": "Reasoning Efforts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models",
+          "default_model",
+          "reasoning_efforts"
+        ],
+        "title": "ModelOptionsResponse"
       },
       "OccurrenceState": {
         "type": "string",

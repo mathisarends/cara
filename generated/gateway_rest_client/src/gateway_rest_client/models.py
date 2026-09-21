@@ -276,6 +276,23 @@ class Capability(StrEnum):
     LIGHT = "light"
 
 
+class CodexModel(StrEnum):
+    GPT_5_3_CODEX_SPARK = "gpt-5.3-codex-spark"
+    GPT_5_6_LUNA = "gpt-5.6-luna"
+    GPT_5_6_TERRA = "gpt-5.6-terra"
+    GPT_5_6_SOL = "gpt-5.6-sol"
+
+
+class CodexReasoningEffort(StrEnum):
+    NONE = "none"
+    MINIMAL = "minimal"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    XHIGH = "xhigh"
+    MAX = "max"
+
+
 class CreateAlarmRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -421,6 +438,14 @@ Item = Annotated[
     UserMessageItem | AssistantMessageItem | ToolCallItem,
     Field(discriminator="type"),
 ]
+
+
+class ModelOptionsResponse(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    models: list[CodexModel]
+    default_model: CodexModel
+    reasoning_efforts: list[CodexReasoningEffort]
 
 
 class OpenSessionRequest(BaseModel):

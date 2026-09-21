@@ -35,6 +35,7 @@ from gateway_rest_client.models import (
     InvalidVoiceSessionProblem,
     ListSessionsParams,
     ListVoiceSessionsParams,
+    ModelOptionsResponse,
     OpenSessionRequest,
     OpenVoiceSessionRequest,
     ReadinessResponse,
@@ -126,6 +127,49 @@ class GatewayRestClient:
         try:
             if response.status_code == 200:
                 return HealthResponse.model_validate(response.json())
+
+            raise ApiError(response.status_code, response.text, response=response)
+        except ClientError:
+            raise
+        except Exception as error:
+            validation_error = ResponseValidationError(
+                response.status_code, response, error
+            )
+            raise validation_error from error
+
+    async def get_model_options(
+        self,
+        *,
+        timeout: float | None = None,
+    ) -> ModelOptionsResponse:
+        try:
+            path = "/v1/llm/model-options"
+
+            headers = dict(self._headers)
+            headers.setdefault("Accept", "application/json")
+
+            apply_security(self._credentials, [("GatewayToken",)], headers, [], {})
+
+        except ClientError:
+            raise
+        except Exception as error:
+            raise RequestValidationError(error) from error
+
+        try:
+            response = await self._client.request(
+                method=HttpMethods.GET,
+                url=f"{self._base_url}{path}",
+                headers=headers,
+                timeout=self._timeout if timeout is None else timeout,
+            )
+        except ClientError:
+            raise
+        except Exception as error:
+            raise TransportError(error) from error
+
+        try:
+            if response.status_code == 200:
+                return ModelOptionsResponse.model_validate(response.json())
 
             raise ApiError(response.status_code, response.text, response=response)
         except ClientError:

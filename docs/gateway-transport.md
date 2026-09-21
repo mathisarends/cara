@@ -33,6 +33,7 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 - Voice sessions: `POST /v1/voice-sessions`, list/get/close, and persisted turn snapshots
 - Voice recordings: `GET /v1/voice-sessions/{id}/recording` serves every finished turn as one MP3 (`audio/mpeg`); segments live per turn in object storage (`CARA_GATEWAY_STORAGE_*`, MinIO in Compose)
 - Rooms: `GET /v1/rooms`, `GET /v1/rooms/{room_id}`, and idempotent `PUT /v1/rooms/{room_id}/registration`
+- LLM: `GET /v1/llm/model-options` lists the configured models and reasoning efforts; the active selection is per conversation and changes through the agent's model-control tools
 - Future resource features: REST only, no RPC layer
 - Every resource router requires `Authorization: Bearer <CARA_GATEWAY_TOKEN>` (`require_token`, OpenAPI scheme `GatewayToken`); only health is open
 
