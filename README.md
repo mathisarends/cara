@@ -126,6 +126,9 @@ the Gateway:
 docker compose up --build -d
 ```
 
+The stack includes Jaeger; the Gateway exports its traces there and the UI is
+at <http://localhost:16686>. See [docs/telemetry.md](docs/telemetry.md).
+
 The workspace sandbox is created lazily, shared across conversations, and
 stopped after 600 idle seconds by default. Its lifecycle, resource limits, and
 host CLI credential mounts are configured under `sandbox_manager` in

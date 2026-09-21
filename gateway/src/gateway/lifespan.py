@@ -3,11 +3,13 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from gateway.features.alarm.infrastructure import AlarmRuntime
 from gateway.features.automation.infrastructure import AutomationRuntime
 from gateway.features.conversation.application import AgentRuntime
 from gateway.features.voice.infrastructure.settings import VoiceSettings
+from gateway.platform.observability import Telemetry
 from gateway.presentation.authentication import GatewayAuthenticator
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("%s starting up", app.title)
     container = app.state.dishka_container
+    telemetry: Telemetry = app.state.telemetry
+    telemetry.instrument_engine(await container.get(AsyncEngine))
     await container.get(GatewayAuthenticator)
     await container.get(VoiceSettings)
     await container.get(AgentRuntime)
@@ -32,4 +36,5 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     finally:
         await automation.stop()
         await container.close()
+        telemetry.shutdown()
         logger.info("%s shutting down", app.title)

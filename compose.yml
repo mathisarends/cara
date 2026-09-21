@@ -23,6 +23,9 @@ services:
       CARA_WORKSPACE_ROOT: /workspace
       CARA_SANDBOX_URL: http://sandbox-manager:8080
       CARA_TOOLS: '[{"name":"info","url":"http://cara-tools:8080/mcp"}]'
+      CARA_TELEMETRY_ENABLED: ${CARA_TELEMETRY_ENABLED:-true}
+      CARA_TELEMETRY_SERVICE_NAME: cara-gateway
+      CARA_TELEMETRY_OTLP_ENDPOINT: http://jaeger:4317
     ports:
       - "8000:8000"
     volumes:
@@ -39,6 +42,16 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    # OTLP receiver, UI, and an in-memory span store that is lost on restart.
+    image: jaegertracing/jaeger:2.21.0
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
 
   cara-tools:
     build:

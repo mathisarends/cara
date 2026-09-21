@@ -3,6 +3,7 @@ from fastapi_canon import Composition, ErrorOptions
 
 from gateway.features import FEATURES
 from gateway.lifespan import lifespan
+from gateway.platform.observability import Telemetry, TelemetrySettings
 from gateway.platform_feature import platform_feature
 from gateway.presentation import RequestLoggingMiddleware
 
@@ -34,6 +35,9 @@ def create_app() -> FastAPI:
         *FEATURES,
         errors=ErrorOptions(type_base="urn:cara:problem"),
     ).apply(app)
+    telemetry = Telemetry(TelemetrySettings())
+    telemetry.install(app)
+    app.state.telemetry = telemetry
     return app
 
 
