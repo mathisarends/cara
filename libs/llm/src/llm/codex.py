@@ -49,6 +49,7 @@ from llm.ports import (
 
 
 class CodexModel(StrEnum):
+    SPARK = "gpt-5.3-codex-spark"
     LUNA = "gpt-5.6-luna"
     TERRA = "gpt-5.6-terra"
     SOL = "gpt-5.6-sol"

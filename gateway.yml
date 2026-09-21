@@ -5,8 +5,9 @@ agent:
 
 llm:
   # Default model and models available for runtime switching.
-  default: gpt-5.6-luna
+  default: gpt-5.3-codex-spark
   available:
+    - gpt-5.3-codex-spark
     - gpt-5.6-luna
     - gpt-5.6-terra
     - gpt-5.6-sol
