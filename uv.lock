@@ -1722,10 +1722,13 @@ dependencies = [
     { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "gateway-rpc-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "sonosify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "voice", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [package.dev-dependencies]
@@ -1742,10 +1745,13 @@ requires-dist = [
     { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
     { name = "httpx2", specifier = ">=2.9.1" },
+    { name = "hueify", specifier = ">=0.9.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "sonosify", specifier = ">=0.5.0" },
     { name = "uvicorn", specifier = ">=0.30.0" },
+    { name = "voice", editable = "libs/voice" },
 ]
 
 [package.metadata.requires-dev]
@@ -2197,12 +2203,11 @@ wheels = [
 [[package]]
 name = "voice"
 version = "0.1.0"
-source = { editable = "clients/voice" }
+source = { editable = "libs/voice" }
 dependencies = [
     { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "gateway-rpc-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "hueify", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "numpy", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "onnxruntime", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -2225,7 +2230,6 @@ requires-dist = [
     { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
     { name = "httpx2", specifier = ">=2.9.1" },
-    { name = "hueify", specifier = ">=0.9.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "pyaudio", specifier = ">=0.2.14" },

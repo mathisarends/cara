@@ -13,3 +13,4 @@ class ReadinessResponse(_ResponseModel):
     ready: bool
     missing: tuple[str, ...]
     gateway_connected: bool
+    voice_ready: bool

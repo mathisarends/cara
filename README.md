@@ -3,7 +3,7 @@
 Cara is an attempt at building a Jarvis-like presence: an agent you talk to naturally, with
 low-latency, interruptible voice conversations, that follows you across machines instead of living
 inside one chat window. A central gateway owns all conversation state over one JSON-RPC WebSocket;
-a wake-word-driven voice client and a terminal client are both just thin clients of it, so a
+a Room process with an embedded voice runtime and a terminal client connect to it, so a
 conversation started by voice can be picked up from the terminal and back.
 
 The voice pipeline puts particular emphasis on feeling immediate rather than following the classic
@@ -11,7 +11,7 @@ The voice pipeline puts particular emphasis on feeling immediate rather than fol
 are both streamed, and barge-in plus acoustic echo cancellation let you interrupt Cara mid-sentence.
 Ambient side effects (currently Philips Hue lighting reacting to listening/processing/speaking) make
 the assistant felt, not just heard. See [Architecture](#architecture) below and the
-[`voice`](clients/voice#readme) package for how that's actually built.
+[`voice`](libs/voice#readme) package for how that's actually built.
 
 This is a learning project built to understand, hands-on, how an agent-gateway architecture like
 [OpenClaw's](https://github.com/openclaw/openclaw) actually works — several concepts here (session
@@ -32,7 +32,7 @@ than invented from scratch.
 
 ```mermaid
 flowchart TD
-    Voice["voice client<br/>(clients/voice/, examples/voice_main.py)"]
+    Room["room process<br/>(room/ + libs/voice/)"]
     Cli["cli client<br/>(cli/, cara-chat)"]
     Rest["gateway_rest_client<br/>(generated, typed)"]
     Rpc["gateway_rpc_client<br/>(generated, typed)"]
@@ -42,8 +42,8 @@ flowchart TD
     Sandbox["workspace sandbox<br/>shell · files · processes"]
     MCP["MCP tool servers"]
 
-    Voice --> Rest
-    Voice --> Rpc
+    Room --> Rest
+    Room --> Rpc
     Cli --> Rest
     Cli --> Rpc
     Rest -- "REST<br/>sessions · automations · alarms" --> Gateway
@@ -74,7 +74,7 @@ Three ideas hold this together:
   operations go through the separately deployed Sandbox Manager, while user integrations are
   out-of-process [MCP tool servers](docs/mcp-tools.md).
 
-[`voice`](clients/voice#readme) and [`cli`](cli#readme) are both thin clients built on the
+The Room's [`voice`](libs/voice#readme) runtime and [`cli`](cli#readme) use the
 generated gateway clients: neither talks to an LLM directly, and both get session-per-channel reuse
 (`POST /v1/sessions/open`) for free from the gateway.
 
@@ -86,6 +86,9 @@ members. Their relevant runtime dependency graph is:
 
 ```mermaid
 flowchart TD
+    room --> voice
+    room --> gateway_rest_client
+    room --> gateway_rpc_client
     voice --> gateway_rest_client
     voice --> gateway_rpc_client
     cli --> gateway_rest_client
@@ -110,7 +113,8 @@ flowchart TD
 | [`sandbox-manager`](sandbox_manager)          | Workspace-scoped Docker lifecycle and remote shell/filesystem API. |
 | [`gateway-rest-client`](generated/gateway_rest_client#readme) | Generated, fully typed client for the gateway's REST resources (sessions, automations, alarms). |
 | [`gateway-rpc-client`](generated/gateway_rpc_client#readme) | Generated, fully typed client for the gateway's JSON-RPC WebSocket (turns, events). |
-| [`voice`](clients/voice#readme)               | The local audio pipeline: wake word, STT/TTS, barge-in, echo cancellation, Sonos support.      |
+| [`room`](room#readme)                         | One physical room process: Gateway presence, Voice lifecycle, and local diagnostics.           |
+| [`voice`](libs/voice#readme)                  | Internal audio library: wake word, STT/TTS, barge-in, echo cancellation, Sonos output.         |
 | [`cli`](cli#readme)                   | Interactive terminal client (`cara-chat`) for the gateway.                                     |
 | [`llm`](libs/llm#readme)                      | Cara's Codex/OpenAI Responses model configuration, used by `agent`.                            |
 | [`retrieval`](libs/retrieval#readme)          | Provider-agnostic chunking, dense/lexical/hybrid retrieval — no dependencies in the core.      |
@@ -145,31 +149,23 @@ JSON-RPC 2.0 WebSocket at `/v1/gateway`. Both require the `CARA_GATEWAY_TOKEN`
 bearer token. See [docs/gateway-transport.md](docs/gateway-transport.md) for the
 split and [`gateway-server`](gateway#readme) for the session/turn lifecycle.
 
-Connect a microphone and speakers, then run the voice client:
+Connect a microphone and speakers, then run one Room process:
 
 ```powershell
-uv run python examples/voice_main.py
+uv run --package room-client cara-room --config room/room.example.yml --voice-config voice.yml
 ```
 
 Say **Hey Mycroft**, wait for the wake sound, and speak. Cara records until you
 stop speaking, answers through the speakers, and briefly listens for a follow-up.
-Press Ctrl+C to stop the client. See [`voice`](clients/voice#readme) for the full pipeline.
+Press Ctrl+C to stop the process. See [`voice`](libs/voice#readme) for the full pipeline.
 
-Each voice client has a stable logical `room` in `voice.yml`. Reminders created
+Each process has a stable `room_id` in its Room configuration. The existing
+logical `room` in `voice.yml` remains the Voice session contract. Reminders created
 during a voice turn are bound to that room automatically. Gateway automation
 and alarm requests can set the same `room` explicitly; when they become due,
 the Gateway starts a proactive voice turn and streams the answer to the
 connected client in that room. If no client is connected, the run is skipped;
 there is no offline queue yet.
-
-`examples/voice_activation_main.py` is a minimal variant that additionally
-opens the microphone from a local timer, standing in for a hardware button.
-It is only an input example; scheduled Gateway reminders use proactive delivery
-and do not need an `ExternalActivationSource`:
-
-```powershell
-uv run python examples/voice_activation_main.py
-```
 
 For a terminal conversation against the same gateway, run:
 

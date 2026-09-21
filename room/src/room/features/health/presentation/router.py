@@ -40,5 +40,6 @@ async def readiness(
         ready=snapshot.ready,
         missing=snapshot.missing,
         gateway_connected=snapshot.gateway_connected,
+        voice_ready=snapshot.voice_ready,
     )
     return response

@@ -3,7 +3,7 @@
 gateway:
   url: http://127.0.0.1:8000
 
-# Stable logical room for this voice client. Reminders created here are
+# Stable logical room for this Room process. Reminders created here are
 # delivered back to this room by default.
 room: bedroom
 

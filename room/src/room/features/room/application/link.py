@@ -50,8 +50,10 @@ class GatewayLink:
             finally:
                 self._readiness_service.gateway_connected(False)
                 if room_connection is not None:
-                    await self._reporting_service.detach(room_connection)
-                    await room_connection.close()
+                    try:
+                        await self._reporting_service.detach(room_connection)
+                    finally:
+                        await room_connection.close()
             if await self._wait_for_retry(delay):
                 return
             delay = min(delay * 2, self._maximum_retry_seconds)

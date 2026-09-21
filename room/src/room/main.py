@@ -7,6 +7,7 @@ import uvicorn
 
 from room.app import create_app
 from room.platform import DEFAULT_CONFIG_FILE, RoomConfig, RoomConfigError
+from voice import VoiceConfigError, VoiceSessionConfig
 
 
 def main() -> None:
@@ -18,15 +19,19 @@ def main() -> None:
     )
     try:
         room_config = RoomConfig.from_yaml(arguments.config)
-        asyncio.run(_run(room_config))
-    except RoomConfigError as error:
+        voice_config = VoiceSessionConfig.from_yaml(arguments.voice_config)
+        asyncio.run(_run(room_config, voice_config))
+    except (RoomConfigError, VoiceConfigError) as error:
         raise SystemExit(str(error)) from error
     except KeyboardInterrupt:
         pass
 
 
-async def _run(room_config: RoomConfig) -> None:
-    app = create_app(room_config)
+async def _run(
+    room_config: RoomConfig,
+    voice_config: VoiceSessionConfig,
+) -> None:
+    app = create_app(room_config, voice_config)
     server_config = uvicorn.Config(
         app,
         host=room_config.http.host,
@@ -47,6 +52,12 @@ def _parse_arguments() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_CONFIG_FILE,
         help="room YAML configuration",
+    )
+    parser.add_argument(
+        "--voice-config",
+        type=Path,
+        default=Path("voice.yml"),
+        help="voice YAML configuration",
     )
     return parser.parse_args()
 
