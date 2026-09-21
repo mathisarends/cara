@@ -2,16 +2,15 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from llm import CodexModel, CodexTransport
+from llm import CodexModel
 
 
 class LlmSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    default: CodexModel = CodexModel.LUNA
-    transport: CodexTransport = CodexTransport.WEBSOCKET
+    default: CodexModel = CodexModel.SPARK
     available: tuple[CodexModel, ...] = Field(
-        default=(CodexModel.LUNA,),
+        default=(CodexModel.SPARK,),
         min_length=1,
     )
 
