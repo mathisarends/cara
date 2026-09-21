@@ -8,9 +8,9 @@ from llm import CodexModel
 class LlmSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    default: CodexModel = CodexModel.SPARK
+    default: CodexModel = CodexModel.LUNA
     available: tuple[CodexModel, ...] = Field(
-        default=(CodexModel.SPARK,),
+        default=(CodexModel.LUNA,),
         min_length=1,
     )
 

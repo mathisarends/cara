@@ -277,7 +277,6 @@ class Capability(StrEnum):
 
 
 class CodexModel(StrEnum):
-    GPT_5_3_CODEX_SPARK = "gpt-5.3-codex-spark"
     GPT_5_6_LUNA = "gpt-5.6-luna"
     GPT_5_6_TERRA = "gpt-5.6-terra"
     GPT_5_6_SOL = "gpt-5.6-sol"

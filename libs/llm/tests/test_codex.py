@@ -359,7 +359,6 @@ def test_provider_response_state_is_preserved_for_tool_followups() -> None:
 
 
 def test_codex_enums_expose_configured_values() -> None:
-    assert CodexModel.SPARK.value == "gpt-5.3-codex-spark"
     assert CodexModel.SOL.value == "gpt-5.6-sol"
     assert CodexReasoningEffort.XHIGH.value == "xhigh"
 
