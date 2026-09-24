@@ -3,9 +3,9 @@ from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Response, WebSocket, status
-from pyrpckit.dishka import DishkaResolver
-from pyrpckit.fastapi import FastApiSocket
-from pyrpckit.service import RpcEndpoint, RpcStreamEndpoint
+from rpckit.dishka import DishkaResolver
+from rpckit.fastapi import FastApiSocket
+from rpckit.service import RpcEndpoint, RpcStreamEndpoint
 
 from gateway.features.rooms.application import RoomRegistryService
 from gateway.features.rooms.domain import RoomNotFoundError, RoomNotRegisteredError

@@ -3261,6 +3261,7 @@
       ]
     }
   ],
+  "x-rpc-subscriptions": [],
   "x-rpc-notification-types": [
     {
       "name": "turn.started",

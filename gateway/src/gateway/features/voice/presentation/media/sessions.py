@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
-from pyrpckit import RpcBinaryOutput, RpcConnection, RpcConnectionClose
+from rpckit import RpcBinaryOutput, RpcConnection, RpcConnectionClose
 
 from gateway.features.voice.application import MediaSessions
 from gateway.features.voice.presentation.media.framing import MediaFrame, MediaFrameKind

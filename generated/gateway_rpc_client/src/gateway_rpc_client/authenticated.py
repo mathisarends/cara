@@ -12,7 +12,7 @@ async def connect_gateway(base_url: str, *, token: str) -> GatewayRpcClient:
     connection = GatewayRpcClient.connect(
         gateway_url=gateway_url,
         headers={"Authorization": f"Bearer {token}"},
-        eager=False,
+        lazy=True,
     )
     return await connection
 
@@ -29,6 +29,6 @@ async def connect_room(
         gateway_url=gateway_url,
         room_id=str(room_id),
         headers={"Authorization": f"Bearer {token}"},
-        eager=False,
+        lazy=True,
     )
     return await connection

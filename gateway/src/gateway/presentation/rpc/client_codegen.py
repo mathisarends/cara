@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from pyrpckit.codegen import PythonClientOptions, render_python_client, write_files
+from rpckit.codegen import PythonClientOptions, render_python_client, write_files
 
 _REPO_ROOT = Path(__file__).resolve().parents[5]
 _PACKAGE = "gateway_rpc_client"
@@ -26,7 +26,7 @@ async def connect_gateway(base_url: str, *, token: str) -> GatewayRpcClient:
     connection = GatewayRpcClient.connect(
         gateway_url=gateway_url,
         headers={"Authorization": f"Bearer {token}"},
-        eager=False,
+        lazy=True,
     )
     return await connection
 
@@ -43,39 +43,27 @@ async def connect_room(
         gateway_url=gateway_url,
         room_id=str(room_id),
         headers={"Authorization": f"Bearer {token}"},
-        eager=False,
+        lazy=True,
     )
     return await connection
 """
 
 
 def generate(schema_path: Path, output_directory: Path, *, check: bool = False) -> bool:
-    """Generate the Gateway RPC client with pyrpckit's bundled Python runtime."""
+    """Generate the Gateway RPC client with rpckit's bundled Python runtime."""
     document = json.loads(schema_path.read_text(encoding="utf-8"))
     options = PythonClientOptions(
         package=_PACKAGE,
         client_name="GatewayRpcClient",
         source=schema_path.name,
         with_transport="websocket",
+        extra_files={"authenticated.py": _AUTHENTICATED_CLIENT},
+        extra_exports={
+            "connect_gateway": "authenticated",
+            "connect_room": "authenticated",
+        },
     )
     rendered = dict(render_python_client(document, options))
-    rendered["authenticated.py"] = _AUTHENTICATED_CLIENT
-    rendered["__init__.py"] = (
-        rendered["__init__.py"]
-        .replace(
-            "from .client import GatewayRpcClient\n",
-            "from .authenticated import connect_gateway, connect_room\n"
-            "from .client import GatewayRpcClient\n",
-        )
-        .replace(
-            '    "WebSocketTransport",\n',
-            '    "WebSocketTransport",\n    "connect_gateway",\n    "connect_room",\n',
-        )
-    )
-    manifest = json.loads(rendered[".rpcgen/manifest.json"])
-    manifest["files"].append("authenticated.py")
-    manifest["files"].sort()
-    rendered[".rpcgen/manifest.json"] = json.dumps(manifest, indent=2) + "\n"
     formatted = {
         path: _ruff_format(path, _separate_header(content))
         if path.endswith(".py")

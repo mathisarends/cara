@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pyrpckit import Inject, RpcChannel, RpcConnection
+from rpckit import Inject, RpcChannel, RpcConnection
 
 from gateway.features.rooms.application import RoomRegistryService
 from gateway.features.rooms.presentation.rpc.models import (

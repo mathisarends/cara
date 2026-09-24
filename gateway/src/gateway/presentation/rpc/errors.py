@@ -1,4 +1,4 @@
-import pyrpckit as rpc
+import rpckit as rpc
 
 
 class ResourceNotFoundError(rpc.RpcError):

@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-import pyrpckit as rpc
-from pyrpckit.schema import render_openrpc
+import rpckit as rpc
+from rpckit.schema import render_openrpc
 
 from gateway.app import create_app
 from gateway.presentation.rpc.service import gateway_contract
@@ -28,12 +28,11 @@ def write_gateway_schemas(
     contract: rpc.RpcContract = gateway_contract,
 ) -> tuple[Path, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    openrpc_path = output_dir / "gateway.openrpc.json"
+    contract.write(openrpc_path)
     return (
         _write_json(output_dir / "openapi.json", create_app().openapi()),
-        _write_json(
-            output_dir / "gateway.openrpc.json",
-            render_openrpc_schema(contract),
-        ),
+        openrpc_path,
     )
 
 

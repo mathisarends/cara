@@ -1,4 +1,4 @@
-from pyrpckit import Inject, RpcChannel
+from rpckit import Inject, RpcChannel
 
 from gateway.features.voice.application import VoiceTurnService
 from gateway.features.voice.presentation.rpc.models import (

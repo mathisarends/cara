@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator
 
-from pyrpckit import Inject, RpcChannel
+from rpckit import Inject, RpcChannel
 
 from gateway.features.voice.presentation.rpc.mapping import voice_event
 from gateway.features.voice.presentation.rpc.models import VoiceEventMessage

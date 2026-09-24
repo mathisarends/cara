@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator
 
-from pyrpckit import Inject, RpcChannel
+from rpckit import Inject, RpcChannel
 
 from gateway.features.conversation.presentation.rpc.mapping import session_event
 from gateway.features.conversation.presentation.rpc.models import SessionEvent

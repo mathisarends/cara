@@ -1,4 +1,4 @@
-import pyrpckit as rpc
+import rpckit as rpc
 from pydantic import ValidationError
 
 from gateway.features.alarm.domain import AlarmNotFoundError, AlarmStateError

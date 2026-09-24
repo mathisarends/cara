@@ -1,4 +1,4 @@
-from pyrpckit import Inject, RpcChannel
+from rpckit import Inject, RpcChannel
 
 from gateway.features.conversation.application import SessionService
 from gateway.features.conversation.presentation.rpc.models import (

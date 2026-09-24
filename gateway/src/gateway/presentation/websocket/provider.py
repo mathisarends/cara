@@ -4,7 +4,7 @@ import uuid
 from collections.abc import AsyncIterator
 
 from dishka import Provider, Scope, from_context, provide
-from pyrpckit import RpcConnection
+from rpckit import RpcConnection
 
 from gateway.features.conversation.application import (
     EventPublisher,

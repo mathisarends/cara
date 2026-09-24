@@ -5,15 +5,15 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any, Self
 
-from pyrpckit import (
+from rpckit import (
     RpcConnectionClose,
     RpcDisconnect,
     RpcHandshake,
     RpcRejection,
     RpcService,
 )
-from pyrpckit.dependencies import RpcResolverLike
-from pyrpckit.server import RpcErrorMapper
+from rpckit.dependencies import RpcResolverLike
+from rpckit.server import RpcErrorMapper
 
 
 class RpcTestError(Exception):

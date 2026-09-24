@@ -1,4 +1,4 @@
-import pyrpckit as rpc
+import rpckit as rpc
 from fastapi_canon import Feature
 
 from . import alarm, automation, conversation, health, llm, voice

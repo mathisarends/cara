@@ -6,7 +6,7 @@ Resources such as sessions, automations, and alarms live in
 [`gateway-rest-client`](../gateway_rest_client); see
 [docs/gateway-transport.md](../../docs/gateway-transport.md).
 
-`pyrpckit` 0.7.0 generates the models, namespace clients, WebSocket transports,
+`rpckit` 0.8.0 generates the models, namespace clients, WebSocket transports,
 and internal runtime from `gateway/schema/gateway.openrpc.json`.
 `gateway-server`'s `cara-gateway-rpc-client-generate` command adds the bearer-token
 connection helper. The package does not import `gateway-server`.
@@ -24,7 +24,9 @@ async with client:
 ```
 
 `connect_gateway` takes the Gateway base URL and derives both WebSocket
-endpoints (`http` to `ws`, `https` to `wss`).
+endpoints (`http` to `ws`, `https` to `wss`). The helpers use `lazy=True` so
+room sockets open when first used. A direct `GatewayRpcClient.connect()` call
+opens every declared server unless you pass `lazy=True`.
 
 ## Regenerating
 

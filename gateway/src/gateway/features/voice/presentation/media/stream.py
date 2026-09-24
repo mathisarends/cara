@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from pyrpckit import (
+from rpckit import (
     Inject,
     RpcBinaryInput,
     RpcBinaryOutput,

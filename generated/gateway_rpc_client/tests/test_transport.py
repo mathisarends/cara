@@ -43,7 +43,7 @@ async def test_connect_opens_the_gateway_socket_with_the_bearer_token(
         {
             "gateway_url": gateway_url,
             "headers": {"Authorization": "Bearer secret-token"},
-            "eager": False,
+            "lazy": True,
         }
     ]
 
@@ -73,6 +73,6 @@ async def test_connect_room_sets_the_room_endpoint_variable(
             "gateway_url": "wss://gateway.test",
             "room_id": str(room_id),
             "headers": {"Authorization": "Bearer secret-token"},
-            "eager": False,
+            "lazy": True,
         }
     ]

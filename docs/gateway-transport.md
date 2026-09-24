@@ -15,9 +15,9 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 ## Media WebSocket (`/v1/voice-sessions/{id}/media`, binary)
 
-- Full-duplex PCM audio uses pyrpckit's generated bidirectional `voice.media` stream with a compact versioned frame header.
+- Full-duplex PCM audio uses rpckit's generated bidirectional `voice.media` stream with a compact versioned frame header.
 - The authenticated connection is the sole input/output owner of that voice session.
-- Audio never passes through JSON-RPC. A turn's input completion is an ordered media frame; the pyrpckit end message closes input for the whole media stream.
+- Audio never passes through JSON-RPC. A turn's input completion is an ordered media frame; the rpckit end message closes input for the whole media stream.
 
 ## Room WebSocket (`/v1/rooms/{room_id}/channel`, JSON-RPC)
 
@@ -42,7 +42,7 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 | Contract | Schema | Generated client |
 | --- | --- | --- |
 | REST | `gateway/schema/openapi.json` | `generated/gateway_rest_client` (`GatewayRestClient`, httpxgen) |
-| RPC and binary stream | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, pyrpckit) |
+| RPC and binary stream | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, rpckit) |
 
 - Regenerate both: `scripts/codegen/generate_gateway_clients.sh`
 - CI (`gateway-schema-drift.yml`) reruns it and fails on any diff or untracked file

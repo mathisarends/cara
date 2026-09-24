@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from pyrpckit.dishka import DishkaResolver
+from rpckit.dishka import DishkaResolver
 from starlette.testclient import WebSocketDenialResponse
 
 from gateway.features.conversation.application import (
@@ -116,7 +116,7 @@ def test_both_event_streams_reach_a_subscribed_client(client: TestClient) -> Non
 
 
 # Starlette's TestClient cancels the app right after a client disconnect, which
-# races pyrpckit's connection shutdown; RpcTestClient waits for it instead.
+# races rpckit's connection shutdown; RpcTestClient waits for it instead.
 def _request(
     client: TestClient,
     method: str,
