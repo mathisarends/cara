@@ -15,15 +15,21 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 
 ## Media WebSocket (`/v1/voice-sessions/{id}/media`, binary)
 
-- Full-duplex PCM audio uses rpckit's generated bidirectional `voice.media` stream with a compact versioned frame header.
+- Full-duplex PCM audio uses fastapi-rpckit's generated bidirectional `voice.media` stream with a compact versioned frame header.
 - The authenticated connection is the sole input/output owner of that voice session.
-- Audio never passes through JSON-RPC. A turn's input completion is an ordered media frame; the rpckit end message closes input for the whole media stream.
+- Audio never passes through JSON-RPC. A turn's input completion is an ordered media frame; the RPCkit end message closes input for the whole media stream.
 
 ## Room WebSocket (`/v1/rooms/{room_id}/channel`, JSON-RPC)
 
 - Presence is bound to the authenticated socket lifetime; Uvicorn ping/pong heartbeats detect broken connections.
 - Room clients report room state, device status, and volume on this connection.
 - A room must exist in `gateway.yml` and register its devices through REST before connecting.
+- Room state, device status and volume reports declare idempotency in the contract.
+- The room observes the generated SDK's `closed` signal as well as its periodic
+  state-report heartbeat. `GatewayLink` owns reconnect, registration and state replay;
+  SDK reconnect stays disabled to avoid a second recovery loop.
+- All RPC methods are implemented by the Gateway. Future commands to room hardware
+  use typed events and explicit result reports; see [room commands](../specs/ROOM_COMMANDS.md).
 
 ## REST
 
@@ -42,12 +48,32 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 | Contract | Schema | Generated client |
 | --- | --- | --- |
 | REST | `gateway/schema/openapi.json` | `generated/gateway_rest_client` (`GatewayRestClient`, httpxgen) |
-| RPC and binary stream | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, rpckit) |
+| RPC and binary stream | `gateway/schema/gateway.openrpc.json` | `generated/gateway_rpc_client` (`GatewayRpcClient`, fastapi-rpckit) |
 
 - Regenerate both: `scripts/codegen/generate_gateway_clients.sh`
 - CI (`gateway-schema-drift.yml`) reruns it and fails on any diff or untracked file
 - Clients configure one base URL (`http://host:port`); `connect_gateway` derives the JSON-RPC and media `ws(s)` URLs
 - REST discriminated-union members declare their tag (`kind`/`type`) without a default: httpxgen rejects a discriminator that is both required and defaulted
+
+## Canon integration
+
+- Gateway, Room and Sandbox Manager compose their features with `fastapi-canon`
+  0.6.x. HTTP routers retain their explicit success and Problem Details contracts.
+- Gateway uses `fastapi-rpckit[dishka]` 0.4.x. Declare operations directly with
+  `channel.method`, `channel.event` and `channel.stream`.
+- WebSocket admission remains in the presentation layer: authenticate before
+  accepting any socket and register room presence for its connection lifetime.
+  `serve_websocket` owns RPC transport cleanup and propagates task cancellation.
+  The Dishka resolver receives the APP container and opens SESSION per connection
+  and REQUEST per call.
+- Generated SDKs include the current bounded queues, cancellation, connection
+  errors, lifecycle signals and middleware runtime. Runtime packages are independent
+  of the server distribution. Regenerate the contract and SDK together.
+- SDK reconnect and automatic retries remain opt-in. Cara does not automatically
+  repeat turn commands after an ambiguous disconnect or silently recover a socket
+  whose application subscriptions have been lost.
+- SSE and WebRTC are optional Canon transports. The existing voice binary stream
+  remains the deployed media contract; this migration adds no unused transport.
 
 ## Client flow
 

@@ -6,10 +6,11 @@ Resources such as sessions, automations, and alarms live in
 [`gateway-rest-client`](../gateway_rest_client); see
 [docs/gateway-transport.md](../../docs/gateway-transport.md).
 
-`rpckit` 0.8.0 generates the models, namespace clients, WebSocket transports,
+`fastapi-rpckit` 0.4.0 generates the models, namespace clients, WebSocket transports,
 and internal runtime from `gateway/schema/gateway.openrpc.json`.
 `gateway-server`'s `cara-gateway-rpc-client-generate` command adds the bearer-token
-connection helper. The package does not import `gateway-server`.
+connection helpers. The SDK bundles its runtime and requires neither
+`gateway-server` nor `fastapi-rpckit` in consuming applications.
 
 ```python
 from gateway_rpc_client import connect_gateway
@@ -27,6 +28,18 @@ async with client:
 endpoints (`http` to `ws`, `https` to `wss`). The helpers use `lazy=True` so
 room sockets open when first used. A direct `GatewayRpcClient.connect()` call
 opens every declared server unless you pass `lazy=True`.
+
+`client.closed` resolves immediately on terminal connection loss; room presence
+uses that signal alongside its state-report heartbeat. `GatewayLink` owns room
+reconnection and re-registers and replays state on every new connection. SDK
+reconnect and method retries stay disabled: conversation subscriptions and media
+ownership require application-level recovery, and a lost response does not mean
+that a turn command was never executed.
+
+Use `GatewayRpcClient.with_transports(...)` for custom transports. Their
+`request` method accepts keyword-only `metadata` for the new trace-context
+carrier. Use SDK middleware for instrumentation. The generator formats for the
+SDK's declared Python 3.13 minimum so forward references remain valid there.
 
 ## Regenerating
 
