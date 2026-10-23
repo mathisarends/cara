@@ -1,4 +1,4 @@
-import rpckit as rpc
+import fastapi_rpckit as rpc
 from fastapi_canon import Feature
 
 from . import alarm, automation, conversation, health, llm, voice

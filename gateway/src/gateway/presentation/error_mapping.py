@@ -1,4 +1,4 @@
-import rpckit as rpc
+import fastapi_rpckit as rpc
 from pydantic import ValidationError
 
 from gateway.features.alarm.domain import AlarmNotFoundError, AlarmStateError

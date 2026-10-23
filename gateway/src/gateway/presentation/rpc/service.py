@@ -1,4 +1,4 @@
-from rpckit import RpcService, ServerVariable
+from fastapi_rpckit import RpcService, ServerVariable
 
 from gateway.features import RPC_CHANNELS
 from gateway.features.conversation.presentation.rpc.events import session_channel

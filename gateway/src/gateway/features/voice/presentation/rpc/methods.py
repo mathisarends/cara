@@ -1,4 +1,4 @@
-from rpckit import Inject, RpcChannel
+from fastapi_rpckit import Inject, RpcChannel
 
 from gateway.features.voice.application import VoiceTurnService
 from gateway.features.voice.presentation.rpc.models import (
@@ -18,7 +18,7 @@ voice_turn_channel = RpcChannel(
 )
 
 
-@voice_turn_channel.server.method(
+@voice_turn_channel.method(
     "start",
     raises=(MediaNotConnectedRpcError, VoiceTurnAlreadyActiveRpcError),
 )
@@ -33,7 +33,7 @@ async def start_voice_turn(
     )
 
 
-@voice_turn_channel.server.method("interrupt")
+@voice_turn_channel.method("interrupt")
 async def interrupt_voice_turn(
     params: InterruptVoiceTurnParams,
     turns: Inject[VoiceTurnService],
@@ -46,7 +46,7 @@ async def interrupt_voice_turn(
     )
 
 
-@voice_turn_channel.server.method("playback_completed")
+@voice_turn_channel.method("playback_completed")
 async def complete_voice_playback(
     params: VoiceTurnParams,
     turns: Inject[VoiceTurnService],

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from typing import Any
 from uuid import uuid4
 
@@ -13,7 +13,14 @@ class FakeTransport:
         self.closed = False
         self.notification_values: list[dict[str, Any]] = []
 
-    async def request(self, method: str, params: dict[str, Any]) -> Any:
+    async def request(
+        self,
+        method: str,
+        params: dict[str, Any] | None = None,
+        *,
+        metadata: Mapping[str, str] | None = None,
+    ) -> Any:
+        assert params is not None
         self.calls.append((method, params))
         if method == "subscription.subscribe":
             return {"subscribed": params["sessionId"]}
@@ -30,7 +37,7 @@ class FakeTransport:
 @pytest.mark.asyncio
 async def test_namespaced_method_returns_typed_model() -> None:
     transport = FakeTransport()
-    client = GatewayRpcClient(transport)
+    client = GatewayRpcClient.with_transports(transport)
     session_id = uuid4()
 
     result = await client.subscription.subscribe(session_id=session_id)
@@ -44,7 +51,7 @@ async def test_namespaced_method_returns_typed_model() -> None:
 @pytest.mark.asyncio
 async def test_optional_parameters_are_omitted() -> None:
     transport = FakeTransport()
-    client = GatewayRpcClient(transport)
+    client = GatewayRpcClient.with_transports(transport)
     session_id = uuid4()
 
     await client.turn.start(session_id=session_id, message="Hallo")
@@ -57,7 +64,7 @@ async def test_optional_parameters_are_omitted() -> None:
 @pytest.mark.asyncio
 async def test_params_model_serializes_uuid_for_transport() -> None:
     transport = FakeTransport()
-    client = GatewayRpcClient(transport)
+    client = GatewayRpcClient.with_transports(transport)
     session_id = uuid4()
 
     result = await client.turn.cancel(session_id=session_id)
@@ -69,7 +76,7 @@ async def test_params_model_serializes_uuid_for_transport() -> None:
 @pytest.mark.asyncio
 async def test_turn_preparation_and_finish_use_session_commands() -> None:
     transport = FakeTransport()
-    client = GatewayRpcClient(transport)
+    client = GatewayRpcClient.with_transports(transport)
     session_id = uuid4()
 
     await client.turn.prepare(session_id=session_id)
@@ -99,7 +106,7 @@ async def test_notification_is_parsed_as_concrete_event() -> None:
             },
         }
     )
-    client = GatewayRpcClient(transport)
+    client = GatewayRpcClient.with_transports(transport)
 
     notifications = [item async for item in client.session.event()]
 

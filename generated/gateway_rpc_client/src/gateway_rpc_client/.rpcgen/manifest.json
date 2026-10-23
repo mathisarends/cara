@@ -1,9 +1,9 @@
 {
-  "generator": "rpckit",
-  "generatorVersion": "0.8.0",
+  "generator": "fastapi_rpckit",
+  "generatorVersion": "0.4.0",
   "layoutVersion": 10,
   "language": "python",
-  "contractSha256": "ec57bad7ed9b31564acee59289b5d39d58783c0845fae6b354157a3f6d90e2aa",
+  "contractSha256": "b8240022d21944d022168dde84d675e06d3f5d5238e099b6203e9b1b5e961bdb",
   "files": [
     ".rpcgen/manifest.json",
     "__init__.py",

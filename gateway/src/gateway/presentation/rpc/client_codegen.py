@@ -5,7 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rpckit.codegen import PythonClientOptions, render_python_client, write_files
+from fastapi_rpckit.codegen import (
+    PythonClientOptions,
+    render_python_client,
+    write_files,
+)
 
 _REPO_ROOT = Path(__file__).resolve().parents[5]
 _PACKAGE = "gateway_rpc_client"
@@ -50,7 +54,7 @@ async def connect_room(
 
 
 def generate(schema_path: Path, output_directory: Path, *, check: bool = False) -> bool:
-    """Generate the Gateway RPC client with rpckit's bundled Python runtime."""
+    """Generate the Gateway RPC client with fastapi-rpckit's bundled runtime."""
     document = json.loads(schema_path.read_text(encoding="utf-8"))
     options = PythonClientOptions(
         package=_PACKAGE,
@@ -83,8 +87,11 @@ def _separate_header(content: str) -> str:
 
 
 def _ruff_format(filename: str, content: str) -> str:
+    # The SDK supports Python 3.13. A 3.14 target would remove forward-reference
+    # quotes that its generated dataclasses still need on 3.13.
+    ruff_options = ["--target-version", "py313", "--stdin-filename", filename, "-"]
     sorted_content = subprocess.run(
-        [_RUFF, "check", "--fix-only", "--stdin-filename", filename, "-"],
+        [_RUFF, "check", "--fix-only", *ruff_options],
         cwd=_REPO_ROOT,
         input=content,
         capture_output=True,
@@ -92,7 +99,7 @@ def _ruff_format(filename: str, content: str) -> str:
         check=True,
     ).stdout
     return subprocess.run(
-        [_RUFF, "format", "--stdin-filename", filename, "-"],
+        [_RUFF, "format", *ruff_options],
         cwd=_REPO_ROOT,
         input=sorted_content,
         capture_output=True,

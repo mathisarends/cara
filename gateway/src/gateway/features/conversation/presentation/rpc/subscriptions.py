@@ -1,4 +1,4 @@
-from rpckit import Inject, RpcChannel
+from fastapi_rpckit import Inject, RpcChannel
 
 from gateway.features.conversation.application import SessionService
 from gateway.features.conversation.presentation.rpc.models import (
@@ -18,7 +18,7 @@ from gateway.presentation.subscriptions import (
 subscription_channel = RpcChannel("subscription")
 
 
-@subscription_channel.server.method(
+@subscription_channel.method(
     "subscribe",
     raises=(ResourceNotFoundError,),
 )
@@ -33,7 +33,7 @@ async def subscribe_session(
     return SubscriptionResult(subscribed=params.session_id)
 
 
-@subscription_channel.server.method("unsubscribe")
+@subscription_channel.method("unsubscribe")
 async def unsubscribe_session(
     params: SessionParams,
     stream: Inject[InMemoryEventStream],
@@ -43,7 +43,7 @@ async def unsubscribe_session(
     return UnsubscriptionResult(unsubscribed=params.session_id)
 
 
-@subscription_channel.server.method("subscribe_channel")
+@subscription_channel.method("subscribe_channel")
 async def subscribe_channel(
     params: ChannelParams,
     stream: Inject[InMemoryEventStream],
@@ -53,7 +53,7 @@ async def subscribe_channel(
     return ChannelSubscriptionResult(subscribed_channel=params.channel)
 
 
-@subscription_channel.server.method("unsubscribe_channel")
+@subscription_channel.method("unsubscribe_channel")
 async def unsubscribe_channel(
     params: ChannelParams,
     stream: Inject[InMemoryEventStream],

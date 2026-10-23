@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from rpckit import (
+from fastapi_rpckit import (
     Inject,
     RpcBinaryInput,
     RpcBinaryOutput,
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 media_channel = RpcChannel("voice_media", namespace="voice")
 
 
-@media_channel.server.stream(
+@media_channel.stream(
     "media",
     input_content_type="application/octet-stream",
 )

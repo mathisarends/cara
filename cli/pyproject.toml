@@ -7,7 +7,6 @@ dependencies = [
     "gateway-rest-client",
     "gateway-rpc-client",
     "httpx2>=2.9.1",
-    "pyrpckit==0.8.0",
     "python-dotenv>=1.0.0",
 ]
 

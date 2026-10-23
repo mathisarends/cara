@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from rpckit import Inject, RpcChannel, RpcConnection
+from fastapi_rpckit import Inject, RpcChannel, RpcConnection
 
 from gateway.features.rooms.application import RoomRegistryService
 from gateway.features.rooms.presentation.rpc.models import (
@@ -13,7 +13,7 @@ from gateway.features.rooms.presentation.rpc.models import (
 room_channel = RpcChannel("room")
 
 
-@room_channel.server.method("report_state")
+@room_channel.method("report_state", idempotent=True)
 async def report_state(
     params: RoomStateReport,
     connection: Inject[RpcConnection],
@@ -24,7 +24,7 @@ async def report_state(
     return ReportAccepted()
 
 
-@room_channel.server.method("report_device")
+@room_channel.method("report_device", idempotent=True)
 async def report_device(
     params: DeviceStatusReport,
     connection: Inject[RpcConnection],
@@ -35,7 +35,7 @@ async def report_device(
     return ReportAccepted()
 
 
-@room_channel.server.method("report_volume")
+@room_channel.method("report_volume", idempotent=True)
 async def report_volume(
     params: VolumeReport,
     connection: Inject[RpcConnection],

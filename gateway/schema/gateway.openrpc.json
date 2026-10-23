@@ -718,6 +718,7 @@
     },
     {
       "name": "room.report_state",
+      "x-rpc-idempotent": true,
       "paramStructure": "by-name",
       "params": [
         {
@@ -763,6 +764,7 @@
     },
     {
       "name": "room.report_device",
+      "x-rpc-idempotent": true,
       "paramStructure": "by-name",
       "params": [
         {
@@ -817,6 +819,7 @@
     },
     {
       "name": "room.report_volume",
+      "x-rpc-idempotent": true,
       "paramStructure": "by-name",
       "params": [
         {
@@ -2632,6 +2635,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/SessionParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2669,6 +2688,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/StartTurnParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2706,6 +2741,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/SteerTurnParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2743,6 +2794,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/SessionParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2780,6 +2847,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/SessionParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2817,6 +2900,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/StartVoiceTurnParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2854,6 +2953,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/InterruptVoiceTurnParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2891,6 +3006,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/VoiceTurnParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2928,6 +3059,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/SessionParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -2965,6 +3112,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/SessionParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -3002,6 +3165,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/ChannelParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -3039,6 +3218,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/ChannelParams"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -3076,6 +3271,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/RoomStateReport"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -3113,6 +3324,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/DeviceStatusReport"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -3150,6 +3377,22 @@
           },
           "params": {
             "$ref": "#/components/schemas/VolumeReport"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyNames": {
+              "enum": [
+                "traceparent",
+                "tracestate",
+                "baggage"
+              ]
+            },
+            "maxProperties": 3,
+            "x-rpc-max-bytes": 4096
           }
         },
         "required": [
@@ -3207,6 +3450,45 @@
     }
   },
   "x-rpc-protocol-version": 1,
+  "x-rpc-heartbeat": {
+    "method": "$/ping",
+    "params": {},
+    "result": null
+  },
+  "x-rpc-request-metadata": {
+    "version": 1,
+    "location": "envelope",
+    "member": "meta",
+    "maxBytes": 4096,
+    "allowedKeys": [
+      "traceparent",
+      "tracestate",
+      "baggage"
+    ]
+  },
+  "x-rpc-request-cancellation": {
+    "method": "$/cancelRequest",
+    "notification": true,
+    "params": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "error": {
+      "code": -32800,
+      "x-rpckit-code": "request_cancelled"
+    }
+  },
   "x-rpc-notifications": [
     {
       "name": "session.event",

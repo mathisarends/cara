@@ -1,4 +1,4 @@
-import rpckit as rpc
+import fastapi_rpckit as rpc
 
 
 class ResourceNotFoundError(rpc.RpcError):

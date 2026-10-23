@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Any
 from uuid import UUID, uuid4
@@ -5,7 +6,8 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from rpckit.dishka import DishkaResolver
+from fastapi_rpckit.integrations.dishka import DishkaResolver
+from fastapi_rpckit.testing import InMemorySocket, RpcTestClient, RpcTestError
 from starlette.testclient import WebSocketDenialResponse
 
 from gateway.features.conversation.application import (
@@ -17,8 +19,6 @@ from gateway.features.voice.application import VoiceEvent, VoiceEventType
 from gateway.presentation.error_mapping import gateway_error_mapper
 from gateway.presentation.rpc.service import gateway_service
 from gateway.presentation.subscriptions import InMemoryEventStream
-
-from ._rpc_test_client import RpcTestClient, RpcTestError
 
 _AUTH_HEADERS = {
     "Authorization": "Bearer test-gateway-token-with-32-characters",
@@ -115,8 +115,8 @@ def test_both_event_streams_reach_a_subscribed_client(client: TestClient) -> Non
     assert sorted(methods) == ["session.event", "voice.event"]
 
 
-# Starlette's TestClient cancels the app right after a client disconnect, which
-# races rpckit's connection shutdown; RpcTestClient waits for it instead.
+# Exercise RPC dispatch with the library's in-memory client; handshake and
+# connection cleanup also run through the ASGI routes in the integration tests.
 def _request(
     client: TestClient,
     method: str,
@@ -161,16 +161,23 @@ async def _receive_published_events(app: FastAPI, session_id: str) -> list[str]:
 
 
 async def _send_raw(app: FastAPI, frame: str) -> Any:
-    async with _gateway(app) as gateway:
-        await gateway.socket.client_send(frame)
-        return json.loads(await gateway.socket.client_receive())
+    socket = InMemorySocket("/v1/gateway", headers=_AUTH_HEADERS)
+    resolver = DishkaResolver(app.state.dishka_container)
+    serving = asyncio.create_task(gateway_service.serve(socket, resolver=resolver))
+    try:
+        await socket.client_send(frame)
+        return json.loads(await socket.client_receive())
+    finally:
+        await socket.client_disconnect()
+        await serving
 
 
 def _gateway(app: FastAPI) -> RpcTestClient:
+    resolver = DishkaResolver(app.state.dishka_container)
     return RpcTestClient(
         gateway_service,
         "/v1/gateway",
         headers=_AUTH_HEADERS,
-        resolver=DishkaResolver(app.state.dishka_container),
+        resolver=resolver,
         error_mapper=gateway_error_mapper,
     )

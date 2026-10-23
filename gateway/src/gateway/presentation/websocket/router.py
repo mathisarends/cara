@@ -1,11 +1,10 @@
-import asyncio
 from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Response, WebSocket, status
-from rpckit.dishka import DishkaResolver
-from rpckit.fastapi import FastApiSocket
-from rpckit.service import RpcEndpoint, RpcStreamEndpoint
+from fastapi_rpckit import serve_websocket
+from fastapi_rpckit.integrations.dishka import DishkaResolver
+from fastapi_rpckit.service import RpcEndpoint, RpcStreamEndpoint
 
 from gateway.features.rooms.application import RoomRegistryService
 from gateway.features.rooms.domain import RoomNotFoundError, RoomNotRegisteredError
@@ -84,12 +83,6 @@ async def _serve(
     endpoint: RpcEndpoint | RpcStreamEndpoint,
     websocket: WebSocket,
 ) -> None:
-    # The app container, not the socket's: the resolver opens the session scope.
-    try:
-        await endpoint.serve(
-            FastApiSocket(websocket),
-            resolver=DishkaResolver(websocket.app.state.dishka_container),
-        )
-    except asyncio.CancelledError:
-        # Starlette cancels normal WebSocket teardown after delivering disconnect.
-        return
+    # RPCkit opens SESSION per connection and REQUEST per call from the APP root.
+    resolver = DishkaResolver(websocket.app.state.dishka_container)
+    await serve_websocket(endpoint, websocket, resolver=resolver)

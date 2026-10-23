@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-import rpckit as rpc
-from rpckit.schema import render_openrpc
+import fastapi_rpckit as rpc
+from fastapi_rpckit.schema import render_openrpc
 
 from gateway.app import create_app
 from gateway.presentation.rpc.service import gateway_contract

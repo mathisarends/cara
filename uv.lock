@@ -243,7 +243,6 @@ dependencies = [
     { name = "gateway-rest-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "gateway-rpc-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "python-dotenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -252,7 +251,6 @@ requires-dist = [
     { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
     { name = "httpx2", specifier = ">=2.9.1" },
-    { name = "pyrpckit", specifier = "==0.8.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 
@@ -416,16 +414,39 @@ wheels = [
 
 [[package]]
 name = "fastapi-canon"
-version = "0.4.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/d9/e8ee3ed9e8de335a0f766a28c163c81a74d15fd7d4043f48e39e1138aa84/fastapi_canon-0.4.0.tar.gz", hash = "sha256:240708de31b34c6b96c1bd8b3371b14709627768271d55a156fb2ed36d2261da", size = 102058, upload-time = "2026-09-10T14:59:11.634Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f9/99/526cb2481dcd40cf6f55762d66afd965dbcd05da2ec4ef3b7e37299b8aa8/fastapi_canon-0.6.0.tar.gz", hash = "sha256:cf0319f17002be0e3a5ed4f06dbe11ab136327bf21fca2bb8c917a45ed6daba9", size = 64094, upload-time = "2026-10-20T16:30:38.923Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/b7/c3686fd57565019d91be63d41bb84b258f77f97e76a9550a3b8c63195b60/fastapi_canon-0.4.0-py3-none-any.whl", hash = "sha256:db4594fed57df2f75b7e3076177fc8fcb61987691d958ffddc7ded708a78daa8", size = 36475, upload-time = "2026-09-10T14:59:10.423Z" },
+    { url = "https://files.pythonhosted.org/packages/39/9e/b3873d26e702496121d59c90d861d4a7f5b9d7ab90584cffb4d533f56028/fastapi_canon-0.6.0-py3-none-any.whl", hash = "sha256:bac7c4dca863b5159dbc5a444e583ca197d47d075cf9ca4ed731a17431198517", size = 39931, upload-time = "2026-10-20T16:30:37.035Z" },
+]
+
+[[package]]
+name = "fastapi-rpckit"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "pydantic-core", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2c/12/32530f6b34051b96e263510d717f7e20c29fed6380ae60bc7a5d8c43a5d6/fastapi_rpckit-0.4.0.tar.gz", hash = "sha256:9975b6344cc8ef317eba30cdb8946563d38ca3b6c1cf221608d14adb01ee7fea", size = 497546, upload-time = "2026-10-20T16:26:20.569Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/64/253d48051ef9353cc334511ce768e027530ee10a1e642df44886dccf7762/fastapi_rpckit-0.4.0-py3-none-any.whl", hash = "sha256:6154cb57cb69e84c9f78505a90cf20152bc963bc76fb942e53078a5570f92744", size = 190326, upload-time = "2026-10-20T16:26:19.085Z" },
+]
+
+[package.optional-dependencies]
+codegen = [
+    { name = "jinja2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+dishka = [
+    { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [[package]]
@@ -466,7 +487,6 @@ version = "0.1.0"
 source = { editable = "generated/gateway_rpc_client" }
 dependencies = [
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "websockets", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
@@ -479,7 +499,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "pyrpckit", specifier = "==0.8.0" },
     { name = "websockets", specifier = ">=13.0" },
 ]
 
@@ -500,6 +519,7 @@ dependencies = [
     { name = "dishka", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "fastapi-canon", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "fastapi-rpckit", extra = ["dishka"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "httpx2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "lameenc", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -512,7 +532,6 @@ dependencies = [
     { name = "opentelemetry-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pydantic-settings", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "pyrpckit", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "sandbox-manager-client", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "scheduler", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -526,7 +545,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "pyrpckit", extra = ["codegen"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "fastapi-rpckit", extra = ["codegen"], marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "pytest-asyncio", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
     { name = "ruff", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -539,7 +558,8 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.19.1" },
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastapi-canon", specifier = ">=0.4.0,<0.5.0" },
+    { name = "fastapi-canon", specifier = ">=0.6.0,<0.7.0" },
+    { name = "fastapi-rpckit", extras = ["dishka"], specifier = ">=0.4.0,<0.5.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "httpx2", specifier = ">=2.9.1" },
     { name = "lameenc", specifier = ">=1.8.4" },
@@ -552,7 +572,6 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = ">=1.30.0" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
-    { name = "pyrpckit", specifier = "==0.8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "sandbox-manager-client", editable = "generated/sandbox_manager_client" },
     { name = "scheduler", editable = "libs/scheduler" },
@@ -566,7 +585,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pyrpckit", extras = ["codegen"], specifier = "==0.8.0" },
+    { name = "fastapi-rpckit", extras = ["codegen"], specifier = ">=0.4.0,<0.5.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.14.0" },
@@ -1497,23 +1516,6 @@ crypto = [
 ]
 
 [[package]]
-name = "pyrpckit"
-version = "0.8.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/82/212b96e94e7bf5caa2f17aba351bba63d9f9f306ca1fcb079effecb21e40/pyrpckit-0.8.0.tar.gz", hash = "sha256:752b89981f86fd085b38478bef11c01e475481edf344d6d01834f8672b5a31db", size = 245288, upload-time = "2026-09-24T09:08:43.305Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5b/00/95004328b4288d27a46ba873b304d88e5ea96dbb0597d8930924cf4b6e6d/pyrpckit-0.8.0-py3-none-any.whl", hash = "sha256:6dc064ed07ebbc0c5134242689dd90c15f37847c3f318bd0eba7638a5b674709", size = 130626, upload-time = "2026-09-24T09:08:41.861Z" },
-]
-
-[package.optional-dependencies]
-codegen = [
-    { name = "jinja2", marker = "sys_platform == 'darwin' or sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[[package]]
 name = "pysilero-vad"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1741,7 +1743,7 @@ dev = [
 requires-dist = [
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastapi-canon", specifier = ">=0.4.0,<0.5.0" },
+    { name = "fastapi-canon", specifier = ">=0.6.0,<0.7.0" },
     { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
     { name = "httpx2", specifier = ">=2.9.1" },
@@ -1827,7 +1829,7 @@ requires-dist = [
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastapi-canon", specifier = ">=0.4.0,<0.5.0" },
+    { name = "fastapi-canon", specifier = ">=0.6.0,<0.7.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "uvicorn", specifier = ">=0.30.0" },
