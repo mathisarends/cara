@@ -35,8 +35,20 @@ class GatewayRoomConnection(RoomConnection):
 
     async def wait_closed(self) -> None:
         while not self._closed:
-            await asyncio.sleep(self._heartbeat_seconds)
-            await self.report_state(self._state)
+            closure_signal = asyncio.shield(self._gateway_client.closed)
+            try:
+                # Shield the SDK's shared closure signal from heartbeat timeouts
+                # and from cancellation when GatewayLink stops this waiter.
+                error = await asyncio.wait_for(
+                    closure_signal,
+                    timeout=self._heartbeat_seconds,
+                )
+            except TimeoutError:
+                await self.report_state(self._state)
+            else:
+                if error is not None:
+                    raise error
+                return
 
     async def close(self) -> None:
         if self._closed:
