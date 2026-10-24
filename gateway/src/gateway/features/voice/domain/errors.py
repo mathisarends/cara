@@ -1,12 +1,14 @@
 from uuid import UUID
 
+from gateway.shared import ResourceNotFoundError
 
-class VoiceSessionNotFoundError(Exception):
+
+class VoiceSessionNotFoundError(ResourceNotFoundError):
     def __init__(self, voice_session_id: UUID) -> None:
         super().__init__(f"Voice session {voice_session_id} was not found")
 
 
-class VoiceTurnNotFoundError(Exception):
+class VoiceTurnNotFoundError(ResourceNotFoundError):
     def __init__(self, voice_turn_id: UUID) -> None:
         super().__init__(f"Voice turn {voice_turn_id} was not found")
 

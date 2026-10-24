@@ -4,3 +4,7 @@ class RoomNotFoundError(Exception):
 
 class RoomNotRegisteredError(Exception):
     pass
+
+
+class RoomDeviceNotFoundError(ValueError):
+    pass

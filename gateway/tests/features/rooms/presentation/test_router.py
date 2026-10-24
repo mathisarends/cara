@@ -74,6 +74,28 @@ def test_unknown_room_socket_is_rejected_before_acceptance(client: TestClient) -
     assert denial.value.status_code == 404
 
 
+def test_unknown_device_report_returns_its_declared_error(client: TestClient) -> None:
+    response = client.put(
+        f"/v1/rooms/{_ROOM_ID}/registration",
+        json={"client_version": "1.0.0", "devices": []},
+    )
+    assert response.status_code == 200
+
+    with client.websocket_connect(f"/v1/rooms/{_ROOM_ID}/channel") as socket:
+        socket.send_json(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "room.report_device",
+                "params": {"deviceId": "missing-speaker", "status": "available"},
+            }
+        )
+        failure = socket.receive_json()["error"]
+
+    assert failure["code"] == -32017
+    assert failure["data"]["code"] == "room_device_not_found"
+
+
 def test_room_must_register_before_connecting(client: TestClient) -> None:
     with (
         pytest.raises(WebSocketDenialResponse) as denial,

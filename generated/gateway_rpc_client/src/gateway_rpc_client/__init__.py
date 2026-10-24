@@ -6,10 +6,14 @@ from .authenticated import connect_gateway, connect_room
 from .client import GatewayRpcClient
 from .endpoints import Endpoint, ServerName
 from .errors import (
+    InvalidVoiceTurnTransitionError,
     MediaNotConnectedError,
     NoActiveTurnError,
     ResourceNotFoundError,
+    RoomDeviceNotFoundError,
+    RoomNotFoundError,
     TurnAlreadyRunningError,
+    VoiceSessionClosedError,
     VoiceTurnAlreadyActiveError,
 )
 from .internal import (
@@ -122,11 +126,14 @@ __all__ = [
     "Endpoint",
     "GatewayRpcClient",
     "InterruptVoiceTurnParams",
+    "InvalidVoiceTurnTransitionError",
     "MediaNotConnectedError",
     "NoActiveTurnError",
     "ReportAccepted",
     "ResourceNotFoundError",
     "Room",
+    "RoomDeviceNotFoundError",
+    "RoomNotFoundError",
     "RoomState",
     "RoomStateReport",
     "RpcClientCall",
@@ -182,6 +189,7 @@ __all__ = [
     "VoiceEventMessageType",
     "VoiceEventNotification",
     "VoiceSessionClosed",
+    "VoiceSessionClosedError",
     "VoiceTranscriptFinal",
     "VoiceTranscriptPartial",
     "VoiceTurnAlreadyActiveError",

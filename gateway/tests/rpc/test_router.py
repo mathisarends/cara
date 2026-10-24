@@ -12,14 +12,14 @@ from starlette.testclient import WebSocketDenialResponse
 
 from gateway.features.conversation.application import (
     ConversationEventType,
+    TurnService,
     create_conversation_event,
 )
 from gateway.features.conversation.domain.values import ChannelRef
 from gateway.features.voice.application import VoiceEvent, VoiceEventType
-from gateway.presentation.error_mapping import gateway_error_mapper
 from gateway.presentation.subscriptions import InMemoryEventStream
+from gateway.rpc.context import GatewaySocketSession
 from gateway.rpc.service import gateway_service
-from gateway.rpc.sessions import GatewaySocketSession
 
 _AUTH_HEADERS = {
     "Authorization": "Bearer test-gateway-token-with-32-characters",
@@ -125,6 +125,60 @@ def test_channel_subscription_runs_over_gateway_socket(client: TestClient) -> No
     assert result == {"subscribedChannel": "voice"}
 
 
+@pytest.mark.parametrize(
+    "method", ["voice.turn.interrupt", "voice.turn.playback_completed"]
+)
+def test_unknown_voice_turn_retains_the_public_not_found_contract(
+    client: TestClient,
+    method: str,
+) -> None:
+    with pytest.raises(RpcTestError) as error:
+        _request(client, method, {"voiceTurnId": str(uuid4())})
+
+    assert error.value.rpc_code == -32004
+    assert error.value.code == "resource_not_found"
+
+
+def test_cancelling_an_idle_session_returns_the_declared_error(
+    client: TestClient,
+) -> None:
+    response = client.post("/v1/sessions", json={"channel": {"name": "cli"}})
+    assert response.status_code == 201
+
+    with pytest.raises(RpcTestError) as error:
+        _request(client, "turn.cancel", {"sessionId": response.json()["id"]})
+
+    assert error.value.rpc_code == -32010
+    assert error.value.code == "no_active_turn"
+
+
+def test_voice_turn_requires_connected_media(client: TestClient) -> None:
+    params = {"voiceSessionId": str(uuid4()), "activation": "wake_word"}
+
+    with pytest.raises(RpcTestError) as error:
+        _request(client, "voice.turn.start", params)
+
+    assert error.value.rpc_code == -32012
+    assert error.value.code == "media_not_connected"
+
+
+def test_implementation_value_errors_are_internal_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def broken_prepare(self: TurnService, session_id: UUID) -> None:
+        raise ValueError("Private implementation details")
+
+    monkeypatch.setattr(TurnService, "prepare", broken_prepare)
+
+    with pytest.raises(RpcTestError) as error:
+        _request(client, "turn.prepare", {"sessionId": str(uuid4())})
+
+    assert error.value.rpc_code == -32603
+    assert error.value.code == "internal_error"
+    assert "Private implementation details" not in error.value.message
+
+
 def test_both_event_streams_reach_a_subscribed_client(client: TestClient) -> None:
     session_id = client.post("/v1/sessions", json={"channel": {"name": "cli"}}).json()[
         "id"
@@ -204,5 +258,4 @@ def _gateway(app: FastAPI) -> RpcTestClient:
         headers=_AUTH_HEADERS,
         resolver=resolver,
         context=socket_session,
-        error_mapper=gateway_error_mapper,
     )

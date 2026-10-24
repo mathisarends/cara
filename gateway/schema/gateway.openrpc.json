@@ -394,6 +394,11 @@
           "code": -32011,
           "message": "Voice turn already active",
           "x-rpckit-code": "voice_turn_already_active"
+        },
+        {
+          "code": -32015,
+          "message": "Voice session closed",
+          "x-rpckit-code": "voice_session_closed"
         }
       ],
       "servers": [
@@ -513,6 +518,11 @@
           "code": -32004,
           "message": "Resource not found",
           "x-rpckit-code": "resource_not_found"
+        },
+        {
+          "code": -32016,
+          "message": "Invalid voice turn transition",
+          "x-rpckit-code": "invalid_voice_turn_transition"
         }
       ],
       "servers": [
@@ -741,6 +751,13 @@
       "x-rpc-params-schema": {
         "$ref": "#/components/schemas/RoomStateReport"
       },
+      "errors": [
+        {
+          "code": -32018,
+          "message": "Room not found",
+          "x-rpckit-code": "room_not_found"
+        }
+      ],
       "servers": [
         {
           "name": "channel",
@@ -796,6 +813,18 @@
       "x-rpc-params-schema": {
         "$ref": "#/components/schemas/DeviceStatusReport"
       },
+      "errors": [
+        {
+          "code": -32018,
+          "message": "Room not found",
+          "x-rpckit-code": "room_not_found"
+        },
+        {
+          "code": -32017,
+          "message": "Room device not found",
+          "x-rpckit-code": "room_device_not_found"
+        }
+      ],
       "servers": [
         {
           "name": "channel",
@@ -845,6 +874,13 @@
       "x-rpc-params-schema": {
         "$ref": "#/components/schemas/VolumeReport"
       },
+      "errors": [
+        {
+          "code": -32018,
+          "message": "Room not found",
+          "x-rpckit-code": "room_not_found"
+        }
+      ],
       "servers": [
         {
           "name": "channel",

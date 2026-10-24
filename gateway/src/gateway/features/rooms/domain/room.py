@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from gateway.features.rooms.domain.device import Device
+from gateway.features.rooms.domain.errors import RoomDeviceNotFoundError
 from gateway.features.rooms.domain.values import (
     Capability,
     DeviceStatus,
@@ -97,6 +98,6 @@ class Room(Aggregate):
         try:
             self._devices[device_id].report_status(status)
         except KeyError as error:
-            raise ValueError(
+            raise RoomDeviceNotFoundError(
                 f"Unknown device {device_id!r} in room {self.room_id!r}"
             ) from error

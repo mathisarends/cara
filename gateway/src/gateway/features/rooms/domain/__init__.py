@@ -1,5 +1,5 @@
 from .device import Device
-from .errors import RoomNotFoundError, RoomNotRegisteredError
+from .errors import RoomDeviceNotFoundError, RoomNotFoundError, RoomNotRegisteredError
 from .room import Room
 from .room_group import RoomGroup
 from .values import (
@@ -16,6 +16,7 @@ __all__ = [
     "DeviceKind",
     "DeviceStatus",
     "Room",
+    "RoomDeviceNotFoundError",
     "RoomFunction",
     "RoomGroup",
     "RoomNotFoundError",

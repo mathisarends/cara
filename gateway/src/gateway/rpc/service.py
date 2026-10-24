@@ -6,16 +6,12 @@ from gateway.features.conversation.presentation.rpc.subscriptions import (
     subscription_channel,
 )
 from gateway.features.rooms.presentation.rpc import room_channel
+from gateway.features.rooms.presentation.rpc.errors import ROOM_REJECTIONS
 from gateway.features.voice.presentation.media import voice_media_stream
 from gateway.features.voice.presentation.rpc import voice_channel
-from gateway.presentation.error_mapping import gateway_error_mapper
-from gateway.rpc.sessions import (
-    ROOM_REJECTIONS,
-    GatewaySocketSession,
-    RoomSocketSession,
-)
+from gateway.rpc.context import GatewaySocketSession, RoomSocketSession
 
-gateway_service = RpcService(error_mapper=gateway_error_mapper)
+gateway_service = RpcService(strict_errors=True)
 gateway_endpoint = gateway_service.socket(
     "/v1/gateway",
     channels=(*RPC_CHANNELS, subscription_channel, session_channel, voice_channel),

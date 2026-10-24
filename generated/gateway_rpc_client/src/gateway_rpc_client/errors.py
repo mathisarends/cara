@@ -28,12 +28,32 @@ class VoiceTurnAlreadyActiveError(RpcRemoteError):
     code: ClassVar[str] = "voice_turn_already_active"
 
 
+class VoiceSessionClosedError(RpcRemoteError):
+    code: ClassVar[str] = "voice_session_closed"
+
+
+class InvalidVoiceTurnTransitionError(RpcRemoteError):
+    code: ClassVar[str] = "invalid_voice_turn_transition"
+
+
+class RoomNotFoundError(RpcRemoteError):
+    code: ClassVar[str] = "room_not_found"
+
+
+class RoomDeviceNotFoundError(RpcRemoteError):
+    code: ClassVar[str] = "room_device_not_found"
+
+
 ERROR_TYPES: dict[str, type[RpcRemoteError]] = {
     "resource_not_found": ResourceNotFoundError,
     "turn_already_running": TurnAlreadyRunningError,
     "no_active_turn": NoActiveTurnError,
     "media_not_connected": MediaNotConnectedError,
     "voice_turn_already_active": VoiceTurnAlreadyActiveError,
+    "voice_session_closed": VoiceSessionClosedError,
+    "invalid_voice_turn_transition": InvalidVoiceTurnTransitionError,
+    "room_not_found": RoomNotFoundError,
+    "room_device_not_found": RoomDeviceNotFoundError,
 }
 
 

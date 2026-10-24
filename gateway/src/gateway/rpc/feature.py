@@ -3,10 +3,10 @@ from fastapi_canon import Feature
 from fastapi_rpckit import RpcRoutes
 from fastapi_rpckit.integrations.dishka import Dishka
 
+from gateway.features.rooms.presentation.rpc.errors import ROOM_REJECTIONS
 from gateway.rpc.provider import GatewayRpcProvider
 from gateway.rpc.service import gateway_endpoint, gateway_media_endpoint, room_endpoint
 from gateway.rpc.sessions import (
-    ROOM_REJECTIONS,
     RoomDishka,
     open_gateway_session,
     open_room_session,

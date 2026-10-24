@@ -1,11 +1,13 @@
 from uuid import UUID
 
+from gateway.shared import ResourceNotFoundError
+
 
 class ConversationError(Exception):
     """Base for conversation domain errors."""
 
 
-class SessionNotFoundError(ConversationError):
+class SessionNotFoundError(ConversationError, ResourceNotFoundError):
     def __init__(self, session_id: UUID) -> None:
         super().__init__(f"Session {session_id} not found")
 

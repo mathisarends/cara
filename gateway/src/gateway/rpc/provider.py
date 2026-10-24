@@ -19,7 +19,7 @@ from gateway.presentation.subscriptions import (
     GatewayClient,
     InMemoryEventStream,
 )
-from gateway.rpc.sessions import GatewaySocketSession
+from gateway.rpc.context import GatewaySocketSession
 
 logger = logging.getLogger(__name__)
 

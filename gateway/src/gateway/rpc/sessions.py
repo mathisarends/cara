@@ -1,45 +1,17 @@
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from typing import cast
 from uuid import UUID, uuid4
 
 from dishka.integrations.fastapi import FromDishka
 from fastapi import WebSocket
-from fastapi_rpckit import RpcErrorBinding, RpcReject, RpcRejection
+from fastapi_rpckit import RpcReject, RpcRejection
 from fastapi_rpckit.dependencies import RpcResolver
 from fastapi_rpckit.integrations.dishka import Dishka, DishkaResolver
 
 from gateway.features.rooms.application import RoomRegistryService
-from gateway.features.rooms.domain import RoomNotFoundError, RoomNotRegisteredError
 from gateway.presentation.authentication import GatewayAuthenticator
-
-
-@dataclass(frozen=True, slots=True)
-class GatewaySocketSession:
-    connection_id: UUID
-
-
-@dataclass(frozen=True, slots=True)
-class RoomSocketSession:
-    connection_id: UUID
-    room_id: UUID
-
-
-ROOM_NOT_FOUND = RpcErrorBinding(
-    RoomNotFoundError,
-    code="room_not_found",
-    message=str,
-    rpc_code=-32004,
-    rejection=RpcRejection.NOT_FOUND,
-)
-ROOM_NOT_REGISTERED = RpcErrorBinding(
-    RoomNotRegisteredError,
-    code="room_not_registered",
-    message=str,
-    rejection=RpcRejection.FORBIDDEN,
-)
-ROOM_REJECTIONS = (ROOM_NOT_FOUND, ROOM_NOT_REGISTERED)
+from gateway.rpc.context import GatewaySocketSession, RoomSocketSession
 
 
 async def open_gateway_session(
