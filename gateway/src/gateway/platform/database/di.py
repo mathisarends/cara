@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 
 from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import (
@@ -53,10 +53,14 @@ class DatabaseProvider(Provider):
         self,
         session_factory: async_sessionmaker[AsyncSession],
         transaction: DatabaseTransaction,
-    ) -> AsyncIterator[AsyncSession]:
+    ) -> AsyncGenerator[AsyncSession, BaseException | None]:
         async with session_factory() as session:
             try:
-                yield session
+                # Dishka sends the scope's exception into the generator.
+                scope_error = yield session
+                if scope_error is not None:
+                    await session.rollback()
+                    return
                 await session.commit()
             except BaseException:
                 await session.rollback()

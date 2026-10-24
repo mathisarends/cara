@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi_canon import Composition, ErrorOptions
 
 from gateway.features import FEATURES
 from gateway.lifespan import lifespan
+from gateway.platform.api import http_request_scope
 from gateway.platform.observability import Telemetry, TelemetrySettings
 from gateway.platform_feature import platform_feature
 from gateway.presentation import RequestLoggingMiddleware
@@ -10,6 +11,7 @@ from gateway.presentation import RequestLoggingMiddleware
 
 def create_app() -> FastAPI:
     app = FastAPI(
+        dependencies=[Depends(http_request_scope, scope="function")],
         title="Cara Gateway API",
         summary="REST resources and a JSON-RPC WebSocket for Cara clients.",
         description=(
