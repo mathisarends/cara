@@ -27,7 +27,7 @@ from gateway.features.conversation.presentation import SESSION_NOT_FOUND
 from gateway.presentation.authentication import require_token
 
 automation_router = CanonRouter(
-    prefix="/v1/owners/{owner_id}/automations",
+    prefix="/owners/{owner_id}/automations",
     tags=["automations"],
     route_class=DishkaRoute,
     error_registry=AUTOMATION_ERRORS,

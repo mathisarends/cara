@@ -61,11 +61,23 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
   0.6.x. HTTP routers retain their explicit success and Problem Details contracts.
 - Gateway uses `fastapi-rpckit[dishka]` 0.4.x. Declare operations directly with
   `channel.method`, `channel.event` and `channel.stream`.
-- WebSocket admission remains in the presentation layer: authenticate before
-  accepting any socket and register room presence for its connection lifetime.
-  `serve_websocket` owns RPC transport cleanup and propagates task cancellation.
-  The Dishka resolver receives the APP container and opens SESSION per connection
-  and REQUEST per call.
+- The composition root installs the shared `/v1` prefix. Feature routers and RPC
+  endpoints declare local paths; exported contracts retain the public URLs.
+- `gateway.composition` selects feature assemblies. Package initializers do not
+  construct routers or the application. Import the app explicitly from `gateway.app`.
+- `gateway.rpc.feature` mounts endpoints with `RpcRoutes`, authenticating admission
+  before acceptance. Typed contexts identify each Gateway connection and room.
+  The Dishka resolver opens SESSION per connection and REQUEST per method; a room's
+  resolver binds presence and disconnect cleanup to that connection generation.
+- Features declare their domain failures with `RpcErrorBinding` and `raises`.
+  Shared resource-not-found failures reuse one binding. `strict_errors=True` keeps
+  undeclared failures internal; generic implementation `ValueError`s are not
+  classified as invalid caller parameters.
+- HTTP request scopes commit before sending a successful response. Dishka providers
+  inspect the exception sent back through `yield` and roll back failed or cancelled
+  work. After-commit actions run only after a successful commit.
+- Canon owns the application container. Platform lifecycle cleanup stops background
+  runtimes before closing their dependencies, including after partial startup.
 - Generated SDKs include the current bounded queues, cancellation, connection
   errors, lifecycle signals and middleware runtime. Runtime packages are independent
   of the server distribution. Regenerate the contract and SDK together.

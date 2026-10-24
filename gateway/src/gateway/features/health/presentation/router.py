@@ -17,7 +17,7 @@ health_router = APIRouter(tags=["system"], route_class=DishkaRoute)
 
 
 @health_router.get(
-    "/v1/health",
+    "/health",
     operation_id="get_gateway_health",
     response_model=HealthResponse,
     response_description="The gateway process is alive.",
@@ -28,7 +28,7 @@ async def health() -> HealthResponse:
 
 
 @health_router.get(
-    "/v1/readiness",
+    "/readiness",
     operation_id="get_gateway_readiness",
     response_model=ReadinessResponse,
     response_description="The gateway application stack is ready.",

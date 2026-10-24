@@ -1,0 +1,1 @@
+API_PREFIX = "/v1"

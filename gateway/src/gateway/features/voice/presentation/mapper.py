@@ -8,6 +8,7 @@ from gateway.features.voice.presentation.schemas import (
     VoiceSessionSnapshotResponse,
     VoiceTurnResponse,
 )
+from gateway.platform.api import API_PREFIX
 
 
 def to_audio_format(value: AudioFormatSchema) -> AudioFormat:
@@ -26,7 +27,7 @@ def to_voice_session_response(
         status=voice_session.status,
         input_format=_audio_format(voice_session.input_format),
         output_format=_audio_format(voice_session.output_format),
-        media_path=f"/v1/voice-sessions/{voice_session.id}/media",
+        media_path=f"{API_PREFIX}/voice-sessions/{voice_session.id}/media",
         media_connected=media_connected,
         created_at=voice_session.created_at,
         closed_at=voice_session.closed_at,

@@ -2,6 +2,7 @@ from dishka.integrations.fastapi import FastapiProvider
 from fastapi_canon import Feature
 
 from gateway.agent_runtime.provider import AgentRuntimeProvider
+from gateway.lifespan import lifespan
 from gateway.platform import DatabaseProvider, StorageProvider
 
 platform_feature = Feature(
@@ -12,4 +13,5 @@ platform_feature = Feature(
         StorageProvider,
         FastapiProvider,
     ],
+    lifespan=lifespan,
 )

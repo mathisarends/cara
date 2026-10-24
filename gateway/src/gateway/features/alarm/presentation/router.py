@@ -34,7 +34,7 @@ from gateway.features.conversation.presentation import SESSION_NOT_FOUND
 from gateway.presentation.authentication import require_token
 
 alarm_router = CanonRouter(
-    prefix="/v1/owners/{owner_id}/alarms",
+    prefix="/owners/{owner_id}/alarms",
     tags=["alarms"],
     route_class=DishkaRoute,
     error_registry=ALARM_ERRORS,

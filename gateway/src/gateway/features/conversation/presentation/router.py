@@ -28,7 +28,7 @@ from gateway.features.conversation.presentation.schemas import (
 from gateway.presentation.authentication import require_token
 
 conversation_router = CanonRouter(
-    prefix="/v1/sessions",
+    prefix="/sessions",
     tags=["sessions"],
     route_class=DishkaRoute,
     error_registry=CONVERSATION_ERRORS,

@@ -16,7 +16,7 @@ from gateway.features.rooms.presentation.schemas import (
 from gateway.presentation.authentication import require_token
 
 room_router = CanonRouter(
-    prefix="/v1/rooms",
+    prefix="/rooms",
     tags=["rooms"],
     route_class=DishkaRoute,
     error_registry=ROOM_ERRORS,

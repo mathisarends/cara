@@ -37,7 +37,7 @@ from gateway.presentation.authentication import require_token
 _MP3 = "audio/mpeg"
 
 voice_router = CanonRouter(
-    prefix="/v1/voice-sessions",
+    prefix="/voice-sessions",
     tags=["voice"],
     route_class=DishkaRoute,
     error_registry=VOICE_ERRORS,

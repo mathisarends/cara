@@ -1,18 +1,18 @@
-from fastapi import Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi_canon import Composition, ErrorOptions
 
-from gateway.features import FEATURES
-from gateway.lifespan import lifespan
-from gateway.platform.api import http_request_scope
+from gateway.composition import FEATURES
+from gateway.platform.api import API_PREFIX, http_request_scope
+from gateway.platform.feature import platform_feature
 from gateway.platform.observability import Telemetry, TelemetrySettings
-from gateway.platform_feature import platform_feature
 from gateway.presentation import RequestLoggingMiddleware
 from gateway.rpc.feature import feature as rpc_feature
 
 
 def create_app() -> FastAPI:
+    request_scope = Depends(http_request_scope, scope="function")
     app = FastAPI(
-        dependencies=[Depends(http_request_scope, scope="function")],
+        dependencies=[request_scope],
         title="Cara Gateway API",
         summary="REST resources and a JSON-RPC WebSocket for Cara clients.",
         description=(
@@ -21,7 +21,6 @@ def create_app() -> FastAPI:
             "WebSocket connection at /v1/gateway."
         ),
         version="0.1.0",
-        lifespan=lifespan,
         openapi_tags=[
             {"name": "system", "description": "Gateway availability."},
             {"name": "gateway", "description": "Cara gateway protocol."},
@@ -33,16 +32,24 @@ def create_app() -> FastAPI:
         ],
     )
     app.add_middleware(RequestLoggingMiddleware)
-    Composition(
+    error_options = ErrorOptions(type_base="urn:cara:problem")
+    composition = Composition(
         platform_feature,
         *FEATURES,
         rpc_feature,
-        errors=ErrorOptions(type_base="urn:cara:problem"),
-    ).apply(app)
-    telemetry = Telemetry(TelemetrySettings())
+        errors=error_options,
+        router_factory=_api_router,
+    )
+    composition.apply(app)
+    telemetry_settings = TelemetrySettings()
+    telemetry = Telemetry(telemetry_settings)
     telemetry.install(app)
     app.state.telemetry = telemetry
     return app
+
+
+def _api_router() -> APIRouter:
+    return APIRouter(prefix=API_PREFIX)
 
 
 app = create_app()

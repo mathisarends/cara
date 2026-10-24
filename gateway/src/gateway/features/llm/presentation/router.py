@@ -8,7 +8,7 @@ from gateway.presentation.authentication import require_token
 from llm import CodexReasoningEffort
 
 llm_router = CanonRouter(
-    prefix="/v1/llm",
+    prefix="/llm",
     tags=["llm"],
     route_class=DishkaRoute,
     dependencies=[Depends(require_token)],

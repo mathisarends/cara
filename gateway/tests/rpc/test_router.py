@@ -235,7 +235,7 @@ async def _receive_published_events(app: FastAPI, session_id: str) -> list[str]:
 
 
 async def _send_raw(app: FastAPI, frame: str) -> Any:
-    socket = InMemorySocket("/v1/gateway", headers=_AUTH_HEADERS)
+    socket = InMemorySocket("/gateway", headers=_AUTH_HEADERS)
     resolver = DishkaResolver(app.state.dishka_container)
     socket_session = GatewaySocketSession(connection_id=uuid4())
     serving = asyncio.create_task(
@@ -254,7 +254,7 @@ def _gateway(app: FastAPI) -> RpcTestClient:
     socket_session = GatewaySocketSession(connection_id=uuid4())
     return RpcTestClient(
         gateway_service,
-        "/v1/gateway",
+        "/gateway",
         headers=_AUTH_HEADERS,
         resolver=resolver,
         context=socket_session,
