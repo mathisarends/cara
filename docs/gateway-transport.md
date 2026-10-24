@@ -58,8 +58,9 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
 ## Canon integration
 
 - Gateway, Room and Sandbox Manager compose their features with `fastapi-canon`
-  0.6.x. HTTP routers retain their explicit success and Problem Details contracts.
-- Gateway uses `fastapi-rpckit[dishka]` 0.4.x. Declare operations directly with
+  0.6.0. HTTP routers retain their explicit success and Problem Details contracts.
+- Gateway uses `fastapi-rpckit[dishka]` 0.4.0. Runtime and generator dependencies
+  are pinned to the same exact release. Declare operations directly with
   `channel.method`, `channel.event` and `channel.stream`.
 - The composition root installs the shared `/v1` prefix. Feature routers and RPC
   endpoints declare local paths; exported contracts retain the public URLs.
@@ -78,6 +79,9 @@ Rule: WebSocket RPC only for state bound to a live connection or an active turn.
   work. After-commit actions run only after a successful commit.
 - Canon owns the application container. Platform lifecycle cleanup stops background
   runtimes before closing their dependencies, including after partial startup.
+- Application-owned ports such as `AgentRuntime` are ABCs, implemented explicitly
+  by infrastructure. Dependencies and stored collaborators use names describing
+  their role, such as `agent_factory` and `session_unit_of_work`.
 - Generated SDKs include the current bounded queues, cancellation, connection
   errors, lifecycle signals and middleware runtime. Runtime packages are independent
   of the server distribution. Regenerate the contract and SDK together.

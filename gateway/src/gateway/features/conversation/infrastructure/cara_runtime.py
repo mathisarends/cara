@@ -17,6 +17,7 @@ from gateway.agent_runtime.tools import TurnToolDependencies
 from gateway.features.conversation.application import (
     AgentEvent,
     AgentRunRequest,
+    AgentRuntime,
     AgentSessionRef,
     ChatCompleted,
     ChatDelta,
@@ -53,17 +54,17 @@ class _SandboxPrewarmer(Protocol):
     async def ensure(self) -> None: ...
 
 
-class CaraAgentRuntime:
+class CaraAgentRuntime(AgentRuntime):
     def __init__(
         self,
-        sessions: UnitOfWork[SessionService],
-        factory: AgentFactory,
-        sandbox: _SandboxPrewarmer,
+        session_unit_of_work: UnitOfWork[SessionService],
+        agent_factory: AgentFactory,
+        sandbox_client: _SandboxPrewarmer,
         tool_dependencies: TurnToolDependencies,
     ) -> None:
-        self._sessions = sessions
-        self._factory = factory
-        self._sandbox = sandbox
+        self._session_unit_of_work = session_unit_of_work
+        self._agent_factory = agent_factory
+        self._sandbox_client = sandbox_client
         self._tool_dependencies = tool_dependencies
         self._agents: dict[UUID, Agent] = {}
         self._active_sessions: set[UUID] = set()
@@ -73,7 +74,7 @@ class CaraAgentRuntime:
         agent = await self._get_or_create_agent(session)
         await asyncio.gather(
             agent.prepare(),
-            self._sandbox.ensure(),
+            self._sandbox_client.ensure(),
         )
 
     async def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]:
@@ -122,8 +123,10 @@ class CaraAgentRuntime:
             agent = self._agents.get(session.id)
             if agent is not None:
                 return agent
-            messages = await _context_messages(self._sessions, session.id, input_id)
-            agent = await self._factory.create(
+            messages = await _context_messages(
+                self._session_unit_of_work, session.id, input_id
+            )
+            agent = await self._agent_factory.create(
                 messages,
                 tool_dependencies=self._tool_dependencies.create(session),
             )

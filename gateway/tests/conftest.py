@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -30,6 +30,7 @@ from gateway.app import create_app
 from gateway.features.conversation.application import (
     AgentEvent,
     AgentRunRequest,
+    AgentRuntime,
     AgentSessionRef,
     ChatCompleted,
 )
@@ -67,7 +68,7 @@ def make_tools():
     return create_tools
 
 
-class _TestAgentRuntime:
+class _TestAgentRuntime(AgentRuntime):
     async def prepare(self, session: AgentSessionRef) -> None:
         del session
 
@@ -156,7 +157,7 @@ class _CommittingUnitOfWork[ServiceT](UnitOfWork[ServiceT]):
         self._build = build
 
     @asynccontextmanager
-    async def __call__(self) -> AsyncIterator[ServiceT]:
+    async def __call__(self) -> AsyncGenerator[ServiceT]:
         async with self._session_factory() as session:
             yield self._build(session)
             await session.commit()

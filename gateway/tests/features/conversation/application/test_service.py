@@ -48,6 +48,15 @@ class _FailingAgentRuntime(AgentRuntime):
     async def close(self) -> None:
         pass
 
+    async def prepare(self, session: AgentSessionRef) -> None:
+        pass
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        raise NotImplementedError("This test runtime does not support steering")
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        pass
+
 
 class _StreamingAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
@@ -74,6 +83,9 @@ class _StreamingAgentRuntime(AgentRuntime):
     async def close(self) -> None:
         pass
 
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        raise NotImplementedError("This test runtime does not support steering")
+
 
 class _BlockingFirstAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
@@ -92,6 +104,15 @@ class _BlockingFirstAgentRuntime(AgentRuntime):
         yield ChatCompleted("Done", finish_reason="stop")
 
     async def close(self) -> None:
+        pass
+
+    async def prepare(self, session: AgentSessionRef) -> None:
+        pass
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        raise NotImplementedError("This test runtime does not support steering")
+
+    async def finish(self, session: AgentSessionRef) -> None:
         pass
 
 
@@ -119,13 +140,28 @@ class _SteerableAgentRuntime(AgentRuntime):
     async def close(self) -> None:
         pass
 
+    async def prepare(self, session: AgentSessionRef) -> None:
+        pass
+
+    async def finish(self, session: AgentSessionRef) -> None:
+        pass
+
 
 class _RecordingPublisher(EventPublisher):
     def __init__(self) -> None:
         self.events: list[ConversationEvent] = []
+        self._published = asyncio.Condition()
 
     async def publish(self, event: ConversationEvent) -> None:
-        self.events.append(event)
+        async with self._published:
+            self.events.append(event)
+            self._published.notify_all()
+
+    async def wait_for(self, event_type: ConversationEventType) -> None:
+        async with asyncio.timeout(2), self._published:
+            await self._published.wait_for(
+                lambda: any(event.type is event_type for event in self.events)
+            )
 
 
 @pytest.fixture
@@ -163,7 +199,7 @@ async def test_failed_turn_publishes_turn_failed_event(
     session = await sessions.create(channel=_CHANNEL)
 
     await turns.start(session_id=session.id, text="hello")
-    await _wait_for_event(publisher, ConversationEventType.TURN_FAILED)
+    await publisher.wait_for(ConversationEventType.TURN_FAILED)
     await turns.close()
 
     assert [event.type for event in publisher.events] == [
@@ -188,7 +224,7 @@ async def test_agent_stream_updates_session_and_publishes_ordered_events(
     session = await sessions.create(channel=_CHANNEL)
 
     await turns.start(session_id=session.id, text="hello")
-    await _wait_for_event(publisher, ConversationEventType.TURN_COMPLETED)
+    await publisher.wait_for(ConversationEventType.TURN_COMPLETED)
 
     assert [event.type for event in publisher.events] == [
         ConversationEventType.TURN_STARTED,
@@ -232,7 +268,7 @@ async def test_steering_reaches_the_running_agent_and_lands_in_the_transcript(
     await asyncio.wait_for(runner.tool_started.wait(), timeout=1)
 
     await turns.steer(session_id=session.id, text="also check Hamburg")
-    await _wait_for_event(publisher, ConversationEventType.TURN_COMPLETED)
+    await publisher.wait_for(ConversationEventType.TURN_COMPLETED)
 
     assert [event.type for event in publisher.events] == [
         ConversationEventType.TURN_STARTED,
@@ -318,6 +354,7 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
             text="[Scheduled agent run] Execute this",
         )
     )
+    # Observe the real 250 ms lease retry while the interactive turn stays active.
     await asyncio.sleep(0.3)
     assert not automation.done()
 
@@ -327,20 +364,6 @@ async def test_automation_turn_waits_for_an_active_interactive_turn(
     assert len(runner.requests) == 2
     assert runner.requests[1].input_id is None
     await turns.close()
-
-
-async def _wait_for_event(
-    publisher: _RecordingPublisher,
-    event_type: ConversationEventType,
-    timeout: float = 5.0,
-) -> None:
-    loop = asyncio.get_running_loop()
-    deadline = loop.time() + timeout
-    while (
-        not any(event.type is event_type for event in publisher.events)
-        and loop.time() < deadline
-    ):
-        await asyncio.sleep(0.01)
 
 
 class _Sessions:

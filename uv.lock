@@ -558,8 +558,8 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.19.1" },
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastapi-canon", specifier = ">=0.6.0,<0.7.0" },
-    { name = "fastapi-rpckit", extras = ["dishka"], specifier = ">=0.4.0,<0.5.0" },
+    { name = "fastapi-canon", specifier = "==0.6.0" },
+    { name = "fastapi-rpckit", extras = ["dishka"], specifier = "==0.4.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "httpx2", specifier = ">=2.9.1" },
     { name = "lameenc", specifier = ">=1.8.4" },
@@ -585,7 +585,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "fastapi-rpckit", extras = ["codegen"], specifier = ">=0.4.0,<0.5.0" },
+    { name = "fastapi-rpckit", extras = ["codegen"], specifier = "==0.4.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "ruff", specifier = ">=0.14.0" },
@@ -1743,7 +1743,7 @@ dev = [
 requires-dist = [
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastapi-canon", specifier = ">=0.6.0,<0.7.0" },
+    { name = "fastapi-canon", specifier = "==0.6.0" },
     { name = "gateway-rest-client", editable = "generated/gateway_rest_client" },
     { name = "gateway-rpc-client", editable = "generated/gateway_rpc_client" },
     { name = "httpx2", specifier = ">=2.9.1" },
@@ -1829,7 +1829,7 @@ requires-dist = [
     { name = "dishka", specifier = ">=1.10.0" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "fastapi-canon", specifier = ">=0.6.0,<0.7.0" },
+    { name = "fastapi-canon", specifier = "==0.6.0" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "uvicorn", specifier = ">=0.30.0" },

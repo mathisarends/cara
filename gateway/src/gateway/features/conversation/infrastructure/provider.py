@@ -35,9 +35,9 @@ class ConversationProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def session_service(
         self,
-        sessions: SessionRepository,
+        session_repository: SessionRepository,
     ) -> SessionService:
-        return SessionService(sessions)
+        return SessionService(session_repository)
 
     @provide(scope=Scope.APP)
     def session_service_unit_of_work(

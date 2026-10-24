@@ -43,9 +43,18 @@ _CHANNEL = ChannelRef("voice")
 class _RecordingPublisher(EventPublisher):
     def __init__(self) -> None:
         self.events: list[ConversationEvent] = []
+        self._published = asyncio.Condition()
 
     async def publish(self, event: ConversationEvent) -> None:
-        self.events.append(event)
+        async with self._published:
+            self.events.append(event)
+            self._published.notify_all()
+
+    async def wait_for(self, event_type: ConversationEventType) -> None:
+        async with asyncio.timeout(2), self._published:
+            await self._published.wait_for(
+                lambda: any(event.type is event_type for event in self.events)
+            )
 
 
 class _LifecycleAgentRuntime(AgentRuntime):
@@ -65,6 +74,9 @@ class _LifecycleAgentRuntime(AgentRuntime):
     async def close(self) -> None:
         pass
 
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        raise NotImplementedError("This test runtime does not support steering")
+
 
 class _HangingAgentRuntime(AgentRuntime):
     def __init__(self) -> None:
@@ -77,6 +89,15 @@ class _HangingAgentRuntime(AgentRuntime):
         yield  # pragma: no cover
 
     async def close(self) -> None:
+        pass
+
+    async def prepare(self, session: AgentSessionRef) -> None:
+        pass
+
+    async def steer(self, session: AgentSessionRef, text: str) -> None:
+        raise NotImplementedError("This test runtime does not support steering")
+
+    async def finish(self, session: AgentSessionRef) -> None:
         pass
 
 
@@ -171,7 +192,7 @@ async def test_start_turn_runs_the_agent_in_the_background(
     result = await start_turn(
         StartTurnParams(session_id=created.id, message="hello"), turns
     )
-    await _wait_for_turn_completed(publisher)
+    await publisher.wait_for(ConversationEventType.TURN_COMPLETED)
 
     assert result.session_id == created.id
     session = await sessions.get(created.id)
@@ -207,15 +228,3 @@ async def test_turn_methods_raise_for_an_unknown_session(
 
     with pytest.raises(SessionNotFoundError):
         await prepare_turn(SessionParams(session_id=uuid4()), turns)
-
-
-async def _wait_for_turn_completed(
-    publisher: _RecordingPublisher,
-    timeout: float = 2.0,
-) -> None:
-    async with asyncio.timeout(timeout):
-        while not any(
-            event.type is ConversationEventType.TURN_COMPLETED
-            for event in publisher.events
-        ):
-            await asyncio.sleep(0.01)

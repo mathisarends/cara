@@ -1,6 +1,7 @@
+from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any
 from uuid import UUID
 
 
@@ -65,13 +66,18 @@ type AgentEvent = (
 )
 
 
-class AgentRuntime(Protocol):
+class AgentRuntime(ABC):
+    @abstractmethod
     async def prepare(self, session: AgentSessionRef) -> None: ...
 
+    @abstractmethod
     def run(self, request: AgentRunRequest) -> AsyncIterator[AgentEvent]: ...
 
+    @abstractmethod
     async def steer(self, session: AgentSessionRef, text: str) -> None: ...
 
+    @abstractmethod
     async def finish(self, session: AgentSessionRef) -> None: ...
 
+    @abstractmethod
     async def close(self) -> None: ...

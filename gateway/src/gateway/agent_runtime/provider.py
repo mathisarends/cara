@@ -91,13 +91,17 @@ class AgentRuntimeProvider(Provider):
     @provide
     async def agent_runtime(
         self,
-        sessions: UnitOfWork[SessionService],
-        factory: AgentFactory,
-        sandbox: WorkspaceSandboxClient,
+        session_unit_of_work: UnitOfWork[SessionService],
+        agent_factory: AgentFactory,
+        sandbox_client: WorkspaceSandboxClient,
         tool_dependencies: TurnToolDependencies,
     ) -> AsyncIterator[AgentRuntime]:
-        runtime = CaraAgentRuntime(sessions, factory, sandbox, tool_dependencies)
-        warmup = asyncio.create_task(sandbox.ensure(), name="workspace-sandbox-warmup")
+        runtime = CaraAgentRuntime(
+            session_unit_of_work, agent_factory, sandbox_client, tool_dependencies
+        )
+        warmup = asyncio.create_task(
+            sandbox_client.ensure(), name="workspace-sandbox-warmup"
+        )
         try:
             yield runtime
         finally:
