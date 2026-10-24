@@ -1,11 +1,11 @@
 import json
 
 from gateway.app import create_app
-from gateway.presentation.rpc.service import gateway_contract
 from gateway.presentation.schema_export import (
     render_openrpc_schema,
     write_gateway_schemas,
 )
+from gateway.rpc.service import gateway_contract
 
 
 def test_generated_openrpc_keeps_method_result_and_event_payload_links() -> None:

@@ -17,34 +17,54 @@ from gateway.features.conversation.application import (
 from gateway.features.conversation.domain.values import ChannelRef
 from gateway.features.voice.application import VoiceEvent, VoiceEventType
 from gateway.presentation.error_mapping import gateway_error_mapper
-from gateway.presentation.rpc.service import gateway_service
 from gateway.presentation.subscriptions import InMemoryEventStream
+from gateway.rpc.service import gateway_service
+from gateway.rpc.sessions import GatewaySocketSession
 
 _AUTH_HEADERS = {
     "Authorization": "Bearer test-gateway-token-with-32-characters",
 }
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/gateway",
+        "/v1/voice-sessions/090b4d71-8e4d-4b90-8981-8f38df122011/media",
+        "/v1/rooms/8edc5cf8-0caa-4d5a-9b5b-10da42dfdde2/channel",
+    ],
+)
 def test_gateway_socket_rejects_missing_credentials(
     anonymous_client: TestClient,
+    path: str,
 ) -> None:
     with (
         pytest.raises(WebSocketDenialResponse) as denial,
-        anonymous_client.websocket_connect("/v1/gateway"),
+        anonymous_client.websocket_connect(path),
     ):
         pass
 
     assert denial.value.status_code == 401
     assert denial.value.text == "Unauthorized"
+    assert denial.value.headers["www-authenticate"] == "Bearer"
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/gateway",
+        "/v1/voice-sessions/090b4d71-8e4d-4b90-8981-8f38df122011/media",
+        "/v1/rooms/8edc5cf8-0caa-4d5a-9b5b-10da42dfdde2/channel",
+    ],
+)
 def test_gateway_socket_rejects_invalid_credentials(
     anonymous_client: TestClient,
+    path: str,
 ) -> None:
     with (
         pytest.raises(WebSocketDenialResponse) as denial,
         anonymous_client.websocket_connect(
-            "/v1/gateway",
+            path,
             headers={"Authorization": "Bearer invalid-gateway-token"},
         ),
     ):
@@ -163,7 +183,10 @@ async def _receive_published_events(app: FastAPI, session_id: str) -> list[str]:
 async def _send_raw(app: FastAPI, frame: str) -> Any:
     socket = InMemorySocket("/v1/gateway", headers=_AUTH_HEADERS)
     resolver = DishkaResolver(app.state.dishka_container)
-    serving = asyncio.create_task(gateway_service.serve(socket, resolver=resolver))
+    socket_session = GatewaySocketSession(connection_id=uuid4())
+    serving = asyncio.create_task(
+        gateway_service.serve(socket, resolver=resolver, context=socket_session)
+    )
     try:
         await socket.client_send(frame)
         return json.loads(await socket.client_receive())
@@ -174,10 +197,12 @@ async def _send_raw(app: FastAPI, frame: str) -> Any:
 
 def _gateway(app: FastAPI) -> RpcTestClient:
     resolver = DishkaResolver(app.state.dishka_container)
+    socket_session = GatewaySocketSession(connection_id=uuid4())
     return RpcTestClient(
         gateway_service,
         "/v1/gateway",
         headers=_AUTH_HEADERS,
         resolver=resolver,
+        context=socket_session,
         error_mapper=gateway_error_mapper,
     )

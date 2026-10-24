@@ -45,12 +45,16 @@ class RoomRegistryService:
         room.register(devices, client_version)
         return room
 
-    def connect(self, room_id: UUID, connection_id: UUID) -> Room:
+    def require_registered(self, room_id: UUID) -> Room:
         room = self.get(room_id)
         if room.client_version is None:
             raise RoomNotRegisteredError(
                 f"Room {room_id} must register before connecting"
             )
+        return room
+
+    def connect(self, room_id: UUID, connection_id: UUID) -> Room:
+        room = self.require_registered(room_id)
         self._connections.connect(room_id, connection_id)
         room.connected()
         return room

@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from gateway.presentation.rpc.client_codegen import generate
+from gateway.rpc.client_codegen import generate
 
-_REPO_ROOT = Path(__file__).parents[4]
+_REPO_ROOT = Path(__file__).parents[3]
 _CLIENT_SOURCE = (
     _REPO_ROOT / "generated" / "gateway_rpc_client" / "src" / "gateway_rpc_client"
 )

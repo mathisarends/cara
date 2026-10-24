@@ -1,6 +1,5 @@
 import logging
 import time
-import uuid
 from collections.abc import AsyncIterator
 
 from dishka import Provider, Scope, from_context, provide
@@ -20,12 +19,14 @@ from gateway.presentation.subscriptions import (
     GatewayClient,
     InMemoryEventStream,
 )
+from gateway.rpc.sessions import GatewaySocketSession
 
 logger = logging.getLogger(__name__)
 
 
-class GatewayProvider(Provider):
+class GatewayRpcProvider(Provider):
     connection = from_context(provides=RpcConnection, scope=Scope.SESSION)
+    socket_session = from_context(GatewaySocketSession, scope=Scope.SESSION)
 
     @provide(scope=Scope.APP)
     def auth_settings(self) -> GatewayAuthSettings:
@@ -62,8 +63,9 @@ class GatewayProvider(Provider):
         self,
         stream: InMemoryEventStream,
         connection: RpcConnection,
+        socket_session: GatewaySocketSession,
     ) -> AsyncIterator[GatewayClient]:
-        client_id = str(uuid.uuid4())
+        client_id = str(socket_session.connection_id)
         receiver = stream.connect(client_id)
         started = time.perf_counter()
         logger.info(

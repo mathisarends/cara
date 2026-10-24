@@ -38,7 +38,7 @@ dependencies = [
 [project.scripts]
 cara-gateway = "gateway.main:main"
 cara-gateway-schema = "gateway.presentation.schema_export:main"
-cara-gateway-rpc-client-generate = "gateway.presentation.rpc.client_codegen:main"
+cara-gateway-rpc-client-generate = "gateway.rpc.client_codegen:main"
 gateway-migrate = "gateway.platform.database.migrations:main"
 
 [build-system]

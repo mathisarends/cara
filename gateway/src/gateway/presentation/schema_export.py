@@ -7,7 +7,7 @@ import fastapi_rpckit as rpc
 from fastapi_rpckit.schema import render_openrpc
 
 from gateway.app import create_app
-from gateway.presentation.rpc.service import gateway_contract
+from gateway.rpc.service import gateway_contract
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _DEFAULT_OUTPUT_DIR = _REPO_ROOT / "gateway" / "schema"

@@ -11,7 +11,7 @@ from fastapi_rpckit.codegen import (
     write_files,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+_REPO_ROOT = Path(__file__).resolve().parents[4]
 _PACKAGE = "gateway_rpc_client"
 _DEFAULT_OUTPUT = _REPO_ROOT / "generated" / _PACKAGE / "src" / _PACKAGE
 _RUFF = shutil.which("ruff", path=str(Path(sys.executable).parent)) or "ruff"

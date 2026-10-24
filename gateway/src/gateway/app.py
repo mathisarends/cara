@@ -7,6 +7,7 @@ from gateway.platform.api import http_request_scope
 from gateway.platform.observability import Telemetry, TelemetrySettings
 from gateway.platform_feature import platform_feature
 from gateway.presentation import RequestLoggingMiddleware
+from gateway.rpc.feature import feature as rpc_feature
 
 
 def create_app() -> FastAPI:
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
     Composition(
         platform_feature,
         *FEATURES,
+        rpc_feature,
         errors=ErrorOptions(type_base="urn:cara:problem"),
     ).apply(app)
     telemetry = Telemetry(TelemetrySettings())

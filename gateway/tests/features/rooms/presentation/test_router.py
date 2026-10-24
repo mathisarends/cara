@@ -1,6 +1,9 @@
+from contextlib import ExitStack
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi.testclient import TestClient
+from starlette.testclient import WebSocketDenialResponse
 
 _ROOM_ID = UUID("8edc5cf8-0caa-4d5a-9b5b-10da42dfdde2")
 
@@ -59,3 +62,57 @@ def test_unknown_room_registration_is_a_domain_404(client: TestClient) -> None:
 
     assert response.status_code == 404
     assert response.json()["code"] == "room_not_found"
+
+
+def test_unknown_room_socket_is_rejected_before_acceptance(client: TestClient) -> None:
+    with (
+        pytest.raises(WebSocketDenialResponse) as denial,
+        client.websocket_connect(f"/v1/rooms/{uuid4()}/channel"),
+    ):
+        pass
+
+    assert denial.value.status_code == 404
+
+
+def test_room_must_register_before_connecting(client: TestClient) -> None:
+    with (
+        pytest.raises(WebSocketDenialResponse) as denial,
+        client.websocket_connect(f"/v1/rooms/{_ROOM_ID}/channel"),
+    ):
+        pass
+
+    assert denial.value.status_code == 403
+    assert client.get(f"/v1/rooms/{_ROOM_ID}").json()["online"] is False
+
+
+def test_stale_disconnect_does_not_clear_current_room_presence(
+    client: TestClient,
+) -> None:
+    response = client.put(
+        f"/v1/rooms/{_ROOM_ID}/registration",
+        json={"client_version": "1.0.0", "devices": []},
+    )
+    assert response.status_code == 200
+
+    report = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "room.report_state",
+        "params": {"state": "idle"},
+    }
+    with ExitStack() as previous_connection:
+        previous_socket_context = client.websocket_connect(
+            f"/v1/rooms/{_ROOM_ID}/channel"
+        )
+        previous_socket = previous_connection.enter_context(previous_socket_context)
+        previous_socket.send_json(report)
+        assert previous_socket.receive_json()["result"] == {"accepted": True}
+        with client.websocket_connect(
+            f"/v1/rooms/{_ROOM_ID}/channel"
+        ) as current_socket:
+            current_socket.send_json(report)
+            assert current_socket.receive_json()["result"] == {"accepted": True}
+            previous_connection.close()
+            assert client.get(f"/v1/rooms/{_ROOM_ID}").json()["online"] is True
+
+    assert client.get(f"/v1/rooms/{_ROOM_ID}").json()["online"] is False
