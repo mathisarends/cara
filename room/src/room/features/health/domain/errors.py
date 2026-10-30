@@ -1,2 +1,0 @@
-class RoomNotReadyError(RuntimeError):
-    pass
